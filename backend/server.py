@@ -1,13 +1,17 @@
-from fastapi import FastAPI, APIRouter
+from fastapi import FastAPI, APIRouter, HTTPException, Query
+from fastapi.responses import JSONResponse
 from dotenv import load_dotenv
 from starlette.middleware.cors import CORSMiddleware
 from motor.motor_asyncio import AsyncIOMotorClient
 import os
 import logging
 from pathlib import Path
-from pydantic import BaseModel, Field, ConfigDict
-from typing import List
+from pydantic import BaseModel, Field, ConfigDict, EmailStr
+from typing import List, Optional
 import uuid
+import asyncio
+import time
+import httpx
 from datetime import datetime, timezone
 
 
@@ -19,54 +23,247 @@ mongo_url = os.environ['MONGO_URL']
 client = AsyncIOMotorClient(mongo_url)
 db = client[os.environ['DB_NAME']]
 
-# Create the main app without a prefix
-app = FastAPI()
-
-# Create a router with the /api prefix
+app = FastAPI(title="The Financial Doctor API")
 api_router = APIRouter(prefix="/api")
 
+# -------------- MODELS --------------
 
-# Define Models
-class StatusCheck(BaseModel):
-    model_config = ConfigDict(extra="ignore")  # Ignore MongoDB's _id field
-    
+class Review(BaseModel):
+    model_config = ConfigDict(extra="ignore")
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
-    client_name: str
-    timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    name: str
+    location: Optional[str] = "Sehore"
+    rating: int = Field(ge=1, le=5)
+    message: str
+    created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+    approved: bool = True  # auto-approved per user choice
 
-class StatusCheckCreate(BaseModel):
-    client_name: str
 
-# Add your routes to the router instead of directly to app
+class ReviewCreate(BaseModel):
+    name: str = Field(min_length=2, max_length=80)
+    location: Optional[str] = Field(default="Sehore", max_length=80)
+    rating: int = Field(ge=1, le=5)
+    message: str = Field(min_length=10, max_length=600)
+
+
+class ContactRequest(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    full_name: str
+    phone: str
+    email: Optional[str] = None
+    service: Optional[str] = None
+    message: Optional[str] = None
+    created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+
+
+class ContactCreate(BaseModel):
+    full_name: str = Field(min_length=2, max_length=80)
+    phone: str = Field(min_length=8, max_length=15)
+    email: Optional[str] = None
+    service: Optional[str] = None
+    message: Optional[str] = None
+
+
+# -------------- ROUTES: meta --------------
+
 @api_router.get("/")
 async def root():
-    return {"message": "Hello World"}
+    return {"app": "The Financial Doctor", "status": "ok"}
 
-@api_router.post("/status", response_model=StatusCheck)
-async def create_status_check(input: StatusCheckCreate):
-    status_dict = input.model_dump()
-    status_obj = StatusCheck(**status_dict)
-    
-    # Convert to dict and serialize datetime to ISO string for MongoDB
-    doc = status_obj.model_dump()
-    doc['timestamp'] = doc['timestamp'].isoformat()
-    
-    _ = await db.status_checks.insert_one(doc)
-    return status_obj
 
-@api_router.get("/status", response_model=List[StatusCheck])
-async def get_status_checks():
-    # Exclude MongoDB's _id field from the query results
-    status_checks = await db.status_checks.find({}, {"_id": 0}).to_list(1000)
-    
-    # Convert ISO string timestamps back to datetime objects
-    for check in status_checks:
-        if isinstance(check['timestamp'], str):
-            check['timestamp'] = datetime.fromisoformat(check['timestamp'])
-    
-    return status_checks
+# -------------- ROUTES: Reviews --------------
 
-# Include the router in the main app
+@api_router.post("/reviews", response_model=Review)
+async def create_review(payload: ReviewCreate):
+    review = Review(**payload.model_dump())
+    await db.reviews.insert_one(review.model_dump())
+    return review
+
+
+@api_router.get("/reviews", response_model=List[Review])
+async def list_reviews(limit: int = 50):
+    items = await db.reviews.find({"approved": True}, {"_id": 0}).sort("created_at", -1).to_list(limit)
+    return items
+
+
+@api_router.get("/reviews/stats")
+async def reviews_stats():
+    pipeline = [
+        {"$match": {"approved": True}},
+        {"$group": {"_id": None, "avg": {"$avg": "$rating"}, "count": {"$sum": 1}}}
+    ]
+    cursor = db.reviews.aggregate(pipeline)
+    docs = await cursor.to_list(1)
+    if not docs:
+        return {"average": 0, "count": 0}
+    return {"average": round(docs[0]["avg"], 2), "count": docs[0]["count"]}
+
+
+# -------------- ROUTES: Contact --------------
+
+@api_router.post("/contact", response_model=ContactRequest)
+async def create_contact(payload: ContactCreate):
+    obj = ContactRequest(**payload.model_dump())
+    await db.contact_requests.insert_one(obj.model_dump())
+    return obj
+
+
+# -------------- ROUTES: MF Data (proxy MFAPI.in with caching) --------------
+
+# Curated top funds across categories
+TOP_FUNDS = {
+    "Large Cap": [
+        {"code": "118632", "name": "Nippon India Large Cap Fund - Direct Growth"},
+        {"code": "120586", "name": "ICICI Prudential Large Cap (Bluechip) Fund - Direct Growth"},
+        {"code": "120465", "name": "Axis Large Cap Fund - Direct Growth"},
+    ],
+    "Mid Cap": [
+        {"code": "127042", "name": "Motilal Oswal Midcap Fund - Direct Growth"},
+        {"code": "118989", "name": "HDFC Mid Cap Fund - Direct Growth"},
+        {"code": "118650", "name": "Nippon India Multi Cap Fund - Direct Growth"},
+    ],
+    "Small Cap": [
+        {"code": "118778", "name": "Nippon India Small Cap Fund - Direct Growth"},
+        {"code": "120828", "name": "Quant Small Cap Fund - Direct Growth"},
+        {"code": "125354", "name": "Axis Small Cap Fund - Direct Growth"},
+    ],
+    "Flexi Cap": [
+        {"code": "122639", "name": "Parag Parikh Flexi Cap Fund - Direct Growth"},
+        {"code": "118955", "name": "HDFC Flexi Cap Fund - Direct Growth"},
+        {"code": "120843", "name": "Quant Flexi Cap Fund - Direct Growth"},
+    ],
+    "ELSS (Tax Saver)": [
+        {"code": "135781", "name": "Mirae Asset ELSS Tax Saver Fund - Direct Growth"},
+        {"code": "120847", "name": "Quant ELSS Tax Saver Fund - Direct Growth"},
+        {"code": "120503", "name": "Axis ELSS Tax Saver Fund - Direct Growth"},
+    ],
+}
+
+_cache: dict = {}
+_CACHE_TTL = 60 * 60  # 1 hour
+
+
+def _annualised_return(navs: list[dict], years: float) -> Optional[float]:
+    """navs: list newest first with date dd-mm-yyyy and nav string."""
+    if not navs:
+        return None
+    try:
+        current_nav = float(navs[0]["nav"])
+        current_date = datetime.strptime(navs[0]["date"], "%d-%m-%Y")
+        # find closest historical nav
+        best = None
+        for entry in navs:
+            d = datetime.strptime(entry["date"], "%d-%m-%Y")
+            delta_years = (current_date - d).days / 365.25
+            if delta_years >= years:
+                best = entry
+                break
+        if not best:
+            return None
+        old_nav = float(best["nav"])
+        if old_nav <= 0:
+            return None
+        if years >= 1:
+            cagr = ((current_nav / old_nav) ** (1 / years) - 1) * 100
+        else:
+            cagr = ((current_nav / old_nav) - 1) * 100
+        return round(cagr, 2)
+    except Exception:
+        return None
+
+
+async def fetch_fund(code: str) -> dict:
+    cache_key = f"mf:{code}"
+    now = time.time()
+    cached = _cache.get(cache_key)
+    if cached and now - cached["ts"] < _CACHE_TTL:
+        return cached["data"]
+    async with httpx.AsyncClient(timeout=15.0) as cli:
+        r = await cli.get(f"https://api.mfapi.in/mf/{code}")
+        r.raise_for_status()
+        data = r.json()
+    _cache[cache_key] = {"ts": now, "data": data}
+    return data
+
+
+@api_router.get("/mf/top-funds")
+async def top_funds():
+    """Return curated top funds across categories with latest NAV and returns."""
+    out = []
+    async def _build(category: str, fund: dict):
+        try:
+            data = await fetch_fund(fund["code"])
+            meta = data.get("meta", {})
+            navs = data.get("data", [])
+            latest = navs[0] if navs else {}
+            return {
+                "code": fund["code"],
+                "name": meta.get("scheme_name", fund["name"]),
+                "fund_house": meta.get("fund_house", ""),
+                "category": category,
+                "nav": latest.get("nav"),
+                "nav_date": latest.get("date"),
+                "return_1y": _annualised_return(navs, 1),
+                "return_3y": _annualised_return(navs, 3),
+                "return_5y": _annualised_return(navs, 5),
+            }
+        except Exception as e:
+            logger.warning(f"Failed fetch {fund['code']}: {e}")
+            return None
+
+    tasks = []
+    for cat, funds in TOP_FUNDS.items():
+        for f in funds:
+            tasks.append(_build(cat, f))
+    results = await asyncio.gather(*tasks)
+    out = [r for r in results if r]
+    return {"categories": list(TOP_FUNDS.keys()), "funds": out}
+
+
+@api_router.get("/mf/search")
+async def search_funds(q: str = Query(min_length=2)):
+    """Search funds by name via MFAPI."""
+    cache_key = f"search:{q.lower()}"
+    now = time.time()
+    cached = _cache.get(cache_key)
+    if cached and now - cached["ts"] < _CACHE_TTL:
+        return cached["data"]
+    async with httpx.AsyncClient(timeout=15.0) as cli:
+        r = await cli.get(f"https://api.mfapi.in/mf/search?q={q}")
+        r.raise_for_status()
+        results = r.json()
+    # limit to 25
+    out = results[:25] if isinstance(results, list) else []
+    _cache[cache_key] = {"ts": now, "data": out}
+    return out
+
+
+@api_router.get("/mf/{code}")
+async def fund_detail(code: str):
+    try:
+        data = await fetch_fund(code)
+    except Exception as e:
+        raise HTTPException(status_code=404, detail=f"Fund not found: {e}")
+    meta = data.get("meta", {})
+    navs = data.get("data", [])
+    latest = navs[0] if navs else {}
+    return {
+        "code": code,
+        "name": meta.get("scheme_name"),
+        "fund_house": meta.get("fund_house"),
+        "scheme_type": meta.get("scheme_type"),
+        "scheme_category": meta.get("scheme_category"),
+        "nav": latest.get("nav"),
+        "nav_date": latest.get("date"),
+        "return_1y": _annualised_return(navs, 1),
+        "return_3y": _annualised_return(navs, 3),
+        "return_5y": _annualised_return(navs, 5),
+        "history": navs[:60],  # last ~60 days
+    }
+
+
+# -------------- mount router --------------
+
 app.include_router(api_router)
 
 app.add_middleware(
@@ -77,12 +274,9 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Configure logging
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-)
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
+
 
 @app.on_event("shutdown")
 async def shutdown_db_client():
