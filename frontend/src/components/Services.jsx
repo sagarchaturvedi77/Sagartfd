@@ -1,5 +1,6 @@
 import React from "react";
 import { TrendingUp, ShieldCheck, Heart, Activity, Car, Stethoscope } from "lucide-react";
+import Reveal from "@/components/Reveal";
 
 const items = [
     {
@@ -72,36 +73,40 @@ export default function Services() {
                     {items.map((it, idx) => {
                         const Icon = it.icon;
                         return (
-                            <article
-                                key={it.title}
-                                className="card-cream p-6 group hover:border-[#0E5E48] transition-colors relative overflow-hidden"
-                                data-testid={`service-card-${idx}`}
-                            >
-                                <div
-                                    aria-hidden
-                                    className="absolute -right-10 -top-10 w-32 h-32 rounded-full bg-[#0E5E48]/5 group-hover:bg-[#0E5E48]/10 transition-colors"
-                                />
-                                <div className="relative">
-                                    <div className="w-12 h-12 rounded-xl bg-[#0E1B2C] grid place-items-center text-[#F6F1E8]">
-                                        <Icon size={20} />
+                            <Reveal key={it.title} delay={idx * 70} y={26}>
+                                <article
+                                    className="card-cream p-6 group hover:border-[#0E5E48] transition-colors relative overflow-hidden h-full"
+                                    data-testid={`service-card-${idx}`}
+                                >
+                                    <div
+                                        aria-hidden
+                                        className="absolute -right-10 -top-10 w-32 h-32 rounded-full bg-[#0E5E48]/5 group-hover:bg-[#0E5E48]/10 transition-colors"
+                                    />
+                                    <div className="relative">
+                                        <div className="service-icon w-12 h-12 rounded-xl bg-[#0E1B2C] grid place-items-center text-[#F6F1E8]">
+                                            <Icon size={20} />
+                                        </div>
+                                        <div className="mt-5 text-[11px] tracking-[0.18em] uppercase text-[#0E5E48] font-semibold">
+                                            {it.tag}
+                                        </div>
+                                        <h3 className="h3 mt-2 text-[#0E1B2C]">{it.title}</h3>
+                                        <p className="mt-3 text-[14.5px] text-[#2A364B] leading-relaxed">
+                                            {it.body}
+                                        </p>
+                                        <a
+                                            href={it.href}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="inline-flex items-center gap-1.5 mt-5 text-[#0E5E48] hover:text-[#0A4838] font-medium text-sm group/cta"
+                                        >
+                                            {it.cta}{" "}
+                                            <span aria-hidden className="transition-transform group-hover/cta:translate-x-1">
+                                                →
+                                            </span>
+                                        </a>
                                     </div>
-                                    <div className="mt-5 text-[11px] tracking-[0.18em] uppercase text-[#0E5E48] font-semibold">
-                                        {it.tag}
-                                    </div>
-                                    <h3 className="h3 mt-2 text-[#0E1B2C]">{it.title}</h3>
-                                    <p className="mt-3 text-[14.5px] text-[#2A364B] leading-relaxed">
-                                        {it.body}
-                                    </p>
-                                    <a
-                                        href={it.href}
-                                        target="_blank"
-                                        rel="noreferrer"
-                                        className="inline-flex items-center gap-1.5 mt-5 text-[#0E5E48] hover:text-[#0A4838] font-medium text-sm"
-                                    >
-                                        {it.cta} <span aria-hidden>→</span>
-                                    </a>
-                                </div>
-                            </article>
+                                </article>
+                            </Reveal>
                         );
                     })}
                 </div>

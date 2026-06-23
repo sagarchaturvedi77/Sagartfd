@@ -1,9 +1,11 @@
 import React, { useEffect, useState } from "react";
-import { Star, Send, ExternalLink, CheckCircle2 } from "lucide-react";
+import { Star, Send, ExternalLink, CheckCircle2, Shuffle } from "lucide-react";
 import { toast } from "sonner";
 import { api } from "@/lib/api";
 import { IDS } from "@/constants/testIds";
 import { LINKS } from "@/lib/links";
+import { REVIEW_TEMPLATES, pickRandomTemplate } from "@/lib/reviewTemplates";
+import Reveal from "@/components/Reveal";
 
 const initials = (name) =>
     name
@@ -91,7 +93,12 @@ export default function Reviews() {
     const [stats, setStats] = useState({ average: 4.9, count: 120 });
     const [submitted, setSubmitted] = useState(false);
 
-    const [form, setForm] = useState({ name: "", location: "Sehore", rating: 5, message: "" });
+    const [form, setForm] = useState(() => ({
+        name: "",
+        location: "Sehore",
+        rating: 5, // pre-set 5 stars
+        message: pickRandomTemplate(), // pre-fill a random review
+    }));
     const [hoverStar, setHoverStar] = useState(0);
     const [loading, setLoading] = useState(false);
 
@@ -120,7 +127,12 @@ export default function Reviews() {
             const created = await api.createReview(form);
             setList((cur) => [created, ...cur]);
             setSubmitted(true);
-            setForm({ name: "", location: "Sehore", rating: 5, message: "" });
+            setForm({
+                name: "",
+                location: "Sehore",
+                rating: 5,
+                message: pickRandomTemplate(),
+            });
             toast.success("Thanks! Now drop the same on Google to feature on our site ⭐");
         } catch (e) {
             toast.error("Could not submit. Please try again.");
@@ -275,6 +287,43 @@ export default function Reviews() {
                                         })}
                                     </div>
                                 </div>
+                                <div>
+                                    <div className="flex items-center justify-between mb-2">
+                                        <div className="text-[11px] uppercase tracking-[0.18em] opacity-70">
+                                            Pick a template (or write your own)
+                                        </div>
+                                        <button
+                                            type="button"
+                                            onClick={() => setForm((f) => ({ ...f, message: pickRandomTemplate() }))}
+                                            data-testid="reviews-shuffle"
+                                            className="inline-flex items-center gap-1 text-[11px] text-[#C9802A] hover:text-[#F6F1E8] transition-colors"
+                                            aria-label="Shuffle template"
+                                            title="Pick a different template"
+                                        >
+                                            <Shuffle size={12} /> Shuffle
+                                        </button>
+                                    </div>
+                                    <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1">
+                                        {REVIEW_TEMPLATES.map((t, idx) => {
+                                            const active = form.message === t;
+                                            return (
+                                                <button
+                                                    type="button"
+                                                    key={idx}
+                                                    onClick={() => setForm({ ...form, message: t })}
+                                                    data-testid={`reviews-template-${idx}`}
+                                                    className={`shrink-0 text-[11px] rounded-full px-3 py-1.5 transition-colors ${
+                                                        active
+                                                            ? "bg-[#C9802A] text-white"
+                                                            : "bg-[#2A364B] text-[#F6F1E8]/80 hover:bg-[#3a4761]"
+                                                    }`}
+                                                >
+                                                    Template {idx + 1}
+                                                </button>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
                                 <textarea
                                     required
                                     data-testid={IDS.reviews.message}
@@ -299,12 +348,12 @@ export default function Reviews() {
 
                     {/* List */}
                     <div className="lg:col-span-7 grid sm:grid-cols-2 gap-4 content-start" data-testid={IDS.reviews.list}>
-                        {list.slice(0, 6).map((r) => (
-                            <article
-                                key={r.id}
-                                className="card-cream p-5 flex flex-col relative"
-                                data-testid={`review-card-${r.id}`}
-                            >
+                        {list.slice(0, 6).map((r, idx) => (
+                            <Reveal key={r.id} delay={idx * 70} y={20}>
+                                <article
+                                    className="card-cream p-5 flex flex-col relative h-full"
+                                    data-testid={`review-card-${r.id}`}
+                                >
                                 <div className="flex items-center justify-between mb-3">
                                     <div className="flex gap-1">
                                         {Array.from({ length: 5 }).map((_, i) => (
@@ -341,6 +390,7 @@ export default function Reviews() {
                                     </div>
                                 </div>
                             </article>
+                            </Reveal>
                         ))}
                     </div>
                 </div>

@@ -1,5 +1,6 @@
 import React from "react";
 import { Award, BadgeCheck } from "lucide-react";
+import Reveal from "@/components/Reveal";
 
 const AWARD =
     "https://customer-assets.emergentagent.com/job_wealth-advisor-111/artifacts/xqwjwi4k_IMG_9401.jpeg";
@@ -17,7 +18,7 @@ export default function About() {
     return (
         <section id="about" className="section bg-[#EFE7D6]">
             <div className="container-x grid md:grid-cols-12 gap-12 items-center">
-                <div className="md:col-span-5">
+                <Reveal className="md:col-span-5" y={32}>
                     <div className="relative">
                         <div className="absolute -inset-4 rounded-[2rem] bg-[#0E5E48]/15 rotate-2" />
                         <div className="relative rounded-[2rem] overflow-hidden border border-[#E2D8C2]">
@@ -35,9 +36,9 @@ export default function About() {
                             Excellence in Investment Awareness
                         </div>
                     </div>
-                </div>
+                </Reveal>
 
-                <div className="md:col-span-7">
+                <Reveal className="md:col-span-7" delay={150} y={28}>
                     <div className="eyebrow">Meet the Doctor</div>
                     <h2 className="h2 mt-3 text-[#0E1B2C]">
                         Sagar Chaturvedi <span className="font-italic-serif text-[#0E5E48]">— Founder &amp; CEO</span>
@@ -75,7 +76,7 @@ export default function About() {
                     >
                         Book Free Portfolio Review
                     </a>
-                </div>
+                </Reveal>
             </div>
         </section>
     );

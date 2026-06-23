@@ -11,7 +11,7 @@ export default function Hero() {
             {/* Decorative blob */}
             <div
                 aria-hidden
-                className="absolute -top-32 -right-40 w-[700px] h-[700px] rounded-full opacity-40 blur-3xl"
+                className="absolute -top-32 -right-40 w-[700px] h-[700px] rounded-full opacity-40 blur-3xl blob-float"
                 style={{
                     background:
                         "radial-gradient(circle at center, rgba(14,94,72,0.35) 0%, transparent 60%)",
@@ -19,7 +19,7 @@ export default function Hero() {
             />
             <div
                 aria-hidden
-                className="absolute -bottom-40 -left-40 w-[600px] h-[600px] rounded-full opacity-30 blur-3xl"
+                className="absolute -bottom-40 -left-40 w-[600px] h-[600px] rounded-full opacity-30 blur-3xl blob-float-delayed"
                 style={{
                     background:
                         "radial-gradient(circle at center, rgba(201,128,42,0.35) 0%, transparent 60%)",
@@ -28,7 +28,7 @@ export default function Hero() {
 
             <div className="container-x px-6 grid md:grid-cols-12 gap-10 items-center relative">
                 {/* Left text */}
-                <div className="md:col-span-7">
+                <div className="md:col-span-7 hero-rise">
                     <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-[#E2D8C2] bg-[#FBF7EE]/60 text-xs tracking-[0.18em] uppercase text-[#0E5E48] font-semibold">
                         <ShieldCheck size={14} /> AMFI Registered · ARN-290298
                     </div>

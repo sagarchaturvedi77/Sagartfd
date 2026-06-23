@@ -50,6 +50,85 @@ body {
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     margin: 0;
+    scroll-behavior: smooth;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+    }
+}
+
+/* Soft floating blob animation */
+@keyframes blob-float {
+    0%, 100% { transform: translate3d(0, 0, 0) scale(1); }
+    50% { transform: translate3d(0, -18px, 0) scale(1.04); }
+}
+.blob-float { animation: blob-float 11s ease-in-out infinite; }
+.blob-float-delayed { animation: blob-float 13s ease-in-out infinite; animation-delay: -4s; }
+
+/* Card lift on hover */
+.card-cream, .card-ink {
+    transition: transform 0.35s cubic-bezier(0.22,1,0.36,1), box-shadow 0.35s cubic-bezier(0.22,1,0.36,1);
+}
+.card-cream:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 20px 40px -20px rgba(14, 27, 44, 0.15);
+}
+
+/* Stagger reveal helpers (used inline with delay prop) */
+@keyframes slide-fade-up {
+    from { opacity: 0; transform: translate3d(0, 20px, 0); }
+    to { opacity: 1; transform: translate3d(0, 0, 0); }
+}
+.anim-slide-up { animation: slide-fade-up 0.7s cubic-bezier(0.22,1,0.36,1) both; }
+
+/* Pulse for important CTAs */
+@keyframes soft-pulse {
+    0%, 100% { box-shadow: 0 6px 18px -8px rgba(14, 94, 72, 0.6); }
+    50% { box-shadow: 0 10px 30px -8px rgba(14, 94, 72, 0.9); }
+}
+.btn-primary { animation: soft-pulse 4s ease-in-out infinite; }
+
+/* Hero entrance */
+@keyframes hero-rise {
+    from { opacity: 0; transform: translate3d(0, 30px, 0); }
+    to { opacity: 1; transform: translate3d(0, 0, 0); }
+}
+.hero-rise > * { opacity: 0; animation: hero-rise 0.9s cubic-bezier(0.22,1,0.36,1) forwards; }
+.hero-rise > *:nth-child(1) { animation-delay: 0.05s; }
+.hero-rise > *:nth-child(2) { animation-delay: 0.18s; }
+.hero-rise > *:nth-child(3) { animation-delay: 0.32s; }
+.hero-rise > *:nth-child(4) { animation-delay: 0.46s; }
+.hero-rise > *:nth-child(5) { animation-delay: 0.6s; }
+
+/* Marquee already exists; speed up gentle hover effect */
+.marquee-track > * {
+    transition: transform 0.3s ease, background-color 0.3s ease, color 0.3s ease;
+}
+.marquee-track > *:hover {
+    transform: translateY(-3px);
+    background-color: #0E5E48 !important;
+    color: #F6F1E8 !important;
+}
+
+/* Tab pill micro-animation */
+.tab-pill {
+    transition: all 0.25s cubic-bezier(0.22,1,0.36,1);
+}
+.tab-pill.active {
+    transform: translateY(-1px);
+}
+
+/* Service icon hover */
+.service-icon {
+    transition: transform 0.4s cubic-bezier(0.22,1,0.36,1);
+}
+article:hover .service-icon {
+    transform: rotate(-6deg) scale(1.08);
 }
 
 .font-display {
