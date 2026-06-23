@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
-import { Sparkles, Send, X, Download } from "lucide-react";
+import { Sparkles, Send, X, Download, FileText } from "lucide-react";
 import html2canvas from "html2canvas";
+import jsPDF from "jspdf";
 import { QRCodeCanvas } from "qrcode.react";
 import { toast } from "sonner";
 import { AI_PLAN_RECOMMENDATIONS } from "@/lib/recommendations";
@@ -98,11 +99,16 @@ export default function AIChat() {
                     const chunk = dataLines.join("\n");
                     if (chunk === "[DONE]") continue;
                     setMessages((m) => {
-                        const copy = [...m];
-                        const last = copy[copy.length - 1];
-                        if (last && last.role === "assistant") {
-                            last.content = (last.content || "") + chunk;
-                        }
+                        if (m.length === 0) return m;
+                        const lastIdx = m.length - 1;
+                        const last = m[lastIdx];
+                        if (last.role !== "assistant") return m;
+                        // PURE update — replace the object, do NOT mutate.
+                        // (Strict Mode invokes updaters twice and would otherwise
+                        // append the same chunk twice into the same mutated object.)
+                        const updated = { ...last, content: (last.content || "") + chunk };
+                        const copy = m.slice();
+                        copy[lastIdx] = updated;
                         return copy;
                     });
                 }
@@ -110,12 +116,17 @@ export default function AIChat() {
         } catch (e) {
             console.error("AI chat error", e);
             setMessages((m) => {
-                const copy = [...m];
-                const last = copy[copy.length - 1];
-                if (last && last.role === "assistant" && !last.content) {
-                    last.content =
-                        "Sorry, mujhe abhi connect karne me dikkat aa rahi hai. Thoda baad try karein, ya direct Sagar ji ko WhatsApp karein.";
-                }
+                if (m.length === 0) return m;
+                const lastIdx = m.length - 1;
+                const last = m[lastIdx];
+                if (last.role !== "assistant" || last.content) return m;
+                const updated = {
+                    ...last,
+                    content:
+                        "Sorry, mujhe abhi connect karne me dikkat aa rahi hai. Thoda baad try karein, ya direct Sagar ji ko WhatsApp karein.",
+                };
+                const copy = m.slice();
+                copy[lastIdx] = updated;
                 return copy;
             });
         } finally {
@@ -123,40 +134,91 @@ export default function AIChat() {
         }
     };
 
-    const downloadPlanning = async () => {
-        // Build a transient snapshot in DOM, render, capture.
-        if (!snapRef.current) return;
+    // Generates the html2canvas of the snapshot DOM. Reused by PNG and PDF flows.
+    const _renderSnapshotCanvas = async () => {
+        if (!snapRef.current) return null;
+        const node = snapRef.current;
+        await new Promise((r) => setTimeout(r, 250));
+        return html2canvas(node, {
+            backgroundColor: "#F6F1E8",
+            scale: 2,
+            useCORS: true,
+            logging: false,
+            width: node.offsetWidth,
+            height: node.offsetHeight,
+            windowWidth: node.offsetWidth,
+            windowHeight: node.offsetHeight,
+        });
+    };
+
+    const _ensurePlanReady = () => {
         const assistantMsgs = messages.filter(
             (m) => m.role === "assistant" && m.content && m.content.trim().length > 0,
         );
         // First assistant is the welcome message — need at least one more substantial reply
         if (assistantMsgs.length < 2) {
             toast.error("Pehle TFD-AI se planning karwaiye, phir download karein.");
-            return;
+            return false;
         }
+        return true;
+    };
 
+    const downloadPlanning = async () => {
+        if (!_ensurePlanReady()) return;
         try {
-            toast.loading("Generating your planning snapshot…", { id: "ai-snap" });
-            await new Promise((r) => setTimeout(r, 250));
-            const node = snapRef.current;
-            const canvas = await html2canvas(node, {
-                backgroundColor: "#F6F1E8",
-                scale: 2,
-                useCORS: true,
-                logging: false,
-                width: node.offsetWidth,
-                height: node.offsetHeight,
-                windowWidth: node.offsetWidth,
-                windowHeight: node.offsetHeight,
-            });
+            toast.loading("Generating your planning PNG…", { id: "ai-snap" });
+            const canvas = await _renderSnapshotCanvas();
+            if (!canvas) {
+                toast.error("Could not generate snapshot. Try again.", { id: "ai-snap" });
+                return;
+            }
             const link = document.createElement("a");
             link.download = `TFD-AI-planning-${Date.now()}.png`;
             link.href = canvas.toDataURL("image/png");
             link.click();
-            toast.success("Planning snapshot downloaded — share it on WhatsApp!", { id: "ai-snap" });
+            toast.success("PNG downloaded — share it on WhatsApp!", { id: "ai-snap" });
         } catch (e) {
             console.error(e);
             toast.error("Could not generate snapshot. Try again.", { id: "ai-snap" });
+        }
+    };
+
+    const downloadPlanningPdf = async () => {
+        if (!_ensurePlanReady()) return;
+        try {
+            toast.loading("Generating your planning PDF…", { id: "ai-pdf" });
+            const canvas = await _renderSnapshotCanvas();
+            if (!canvas) {
+                toast.error("Could not generate PDF. Try again.", { id: "ai-pdf" });
+                return;
+            }
+            // A4 portrait at 72dpi = 595 × 842 pt. Fit canvas to A4 width with auto-paging.
+            const pdf = new jsPDF({ unit: "pt", format: "a4", orientation: "portrait" });
+            const pageW = pdf.internal.pageSize.getWidth();
+            const pageH = pdf.internal.pageSize.getHeight();
+            const imgW = pageW;
+            const imgH = (canvas.height * pageW) / canvas.width;
+            const imgData = canvas.toDataURL("image/jpeg", 0.92);
+            if (imgH <= pageH) {
+                pdf.addImage(imgData, "JPEG", 0, 0, imgW, imgH, undefined, "FAST");
+            } else {
+                // Multi-page: slice the tall canvas into page-height strips.
+                let remaining = imgH;
+                let y = 0;
+                while (remaining > 0) {
+                    pdf.addImage(imgData, "JPEG", 0, y, imgW, imgH, undefined, "FAST");
+                    remaining -= pageH;
+                    if (remaining > 0) {
+                        pdf.addPage();
+                        y -= pageH;
+                    }
+                }
+            }
+            pdf.save(`TFD-AI-planning-${Date.now()}.pdf`);
+            toast.success("PDF downloaded — share it on WhatsApp!", { id: "ai-pdf" });
+        } catch (e) {
+            console.error(e);
+            toast.error("Could not generate PDF. Try again.", { id: "ai-pdf" });
         }
     };
 
@@ -190,13 +252,24 @@ export default function AIChat() {
                             </div>
                             <div className="flex items-center gap-2">
                                 {hasPlan && (
-                                    <button
-                                        onClick={downloadPlanning}
-                                        className="hidden sm:inline-flex items-center gap-1.5 text-[12px] bg-[#C7102E] hover:bg-[#9B0D24] text-white px-3 py-1.5 rounded-full"
-                                        data-testid="ai-chat-download-header"
-                                    >
-                                        <Download size={13} /> PNG
-                                    </button>
+                                    <>
+                                        <button
+                                            onClick={downloadPlanning}
+                                            className="hidden sm:inline-flex items-center gap-1.5 text-[12px] bg-[#C7102E] hover:bg-[#9B0D24] text-white px-3 py-1.5 rounded-full"
+                                            data-testid="ai-chat-download-header"
+                                            title="Download as PNG"
+                                        >
+                                            <Download size={13} /> PNG
+                                        </button>
+                                        <button
+                                            onClick={downloadPlanningPdf}
+                                            className="hidden sm:inline-flex items-center gap-1.5 text-[12px] bg-[#024396] hover:bg-[#012E6B] text-white px-3 py-1.5 rounded-full"
+                                            data-testid="ai-chat-download-pdf-header"
+                                            title="Download as PDF"
+                                        >
+                                            <FileText size={13} /> PDF
+                                        </button>
+                                    </>
                                 )}
                                 <button
                                     onClick={() => setOpen(false)}
@@ -243,16 +316,25 @@ export default function AIChat() {
                                 </div>
                             )}
 
-                            {/* Inline download CTA after at least one plan */}
+                            {/* Inline download CTAs after at least one plan */}
                             {hasPlan && !streaming && (
                                 <div className="pt-2">
-                                    <button
-                                        onClick={downloadPlanning}
-                                        data-testid="ai-chat-download"
-                                        className="inline-flex items-center gap-2 text-[12px] font-medium bg-[#024396] hover:bg-[#012E6B] text-[#F6F1E8] px-4 py-2 rounded-full"
-                                    >
-                                        <Download size={13} /> Download this planning as PNG
-                                    </button>
+                                    <div className="flex flex-wrap gap-2">
+                                        <button
+                                            onClick={downloadPlanning}
+                                            data-testid="ai-chat-download"
+                                            className="inline-flex items-center gap-2 text-[12px] font-medium bg-[#024396] hover:bg-[#012E6B] text-[#F6F1E8] px-4 py-2 rounded-full"
+                                        >
+                                            <Download size={13} /> Download as PNG
+                                        </button>
+                                        <button
+                                            onClick={downloadPlanningPdf}
+                                            data-testid="ai-chat-download-pdf"
+                                            className="inline-flex items-center gap-2 text-[12px] font-medium bg-[#C7102E] hover:bg-[#9B0D24] text-white px-4 py-2 rounded-full"
+                                        >
+                                            <FileText size={13} /> Download as PDF
+                                        </button>
+                                    </div>
                                     <div className="text-[10px] text-[#5C677D] mt-1.5">
                                         Save and share your AI-curated plan on WhatsApp.
                                     </div>
