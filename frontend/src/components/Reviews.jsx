@@ -123,22 +123,26 @@ export default function Reviews() {
             return;
         }
         setLoading(true);
+        // Copy message to clipboard so user can paste on Google
+        try {
+            if (navigator.clipboard) await navigator.clipboard.writeText(form.message);
+        } catch {}
+        // Save locally for analytics (not displayed — only Google reviews shown)
         try {
             const created = await api.createReview(form);
             setList((cur) => [created, ...cur]);
-            setSubmitted(true);
-            setForm({
-                name: "",
-                location: "Sehore",
-                rating: 5,
-                message: pickRandomTemplate(),
-            });
-            toast.success("Thanks! Now drop the same on Google to feature on our site ⭐");
-        } catch (e) {
-            toast.error("Could not submit. Please try again.");
-        } finally {
-            setLoading(false);
-        }
+        } catch {}
+        // Redirect to Google review page in a new tab — primary action
+        window.open(LINKS.googleReviews, "_blank", "noopener,noreferrer");
+        setSubmitted(true);
+        setForm({
+            name: "",
+            location: "Sehore",
+            rating: 5,
+            message: pickRandomTemplate(),
+        });
+        toast.success("Review copied! Paste it on Google to publish ⭐");
+        setLoading(false);
     };
 
     return (
@@ -180,18 +184,19 @@ export default function Reviews() {
                     {/* Form */}
                     <form
                         onSubmit={onSubmit}
-                        className="lg:col-span-5 card-ink p-5 sm:p-7"
+                        className="lg:col-span-5 card-ink p-4 sm:p-7 w-full min-w-0 overflow-hidden"
                         data-testid={IDS.reviews.form}
                     >
-                        <div className="text-[10px] sm:text-[11px] tracking-[0.2em] uppercase text-[#C9802A] font-semibold">
+                        <div className="text-[10px] sm:text-[11px] tracking-[0.18em] uppercase text-[#C9802A] font-semibold">
                             Share your experience
                         </div>
-                        <h3 className="font-display text-[1.35rem] sm:text-[1.7rem] mt-1.5 sm:mt-2 leading-snug">
+                        <h3 className="font-display text-[1.2rem] sm:text-[1.7rem] mt-1.5 sm:mt-2 leading-snug">
                             Rate The Financial Doctor.
                         </h3>
-                        <p className="text-[#F6F1E8]/70 mt-2 text-[13px] sm:text-sm">
-                            We showcase only <strong>verified Google reviews</strong> on this site —
-                            post yours on Google and we'll feature it here.
+                        <p className="text-[#F6F1E8]/70 mt-1.5 sm:mt-2 text-[12px] sm:text-sm leading-relaxed">
+                            We showcase only <strong>verified Google reviews</strong>. Pick a template
+                            below and tap Publish — your review opens directly on Google with the text
+                            ready to paste.
                         </p>
 
                         {/* Primary: Google review CTA */}
@@ -200,23 +205,22 @@ export default function Reviews() {
                             target="_blank"
                             rel="noopener noreferrer"
                             data-testid="reviews-write-on-google"
-                            className="btn-pill w-full justify-center mt-4 sm:mt-5 text-sm"
+                            className="flex items-center justify-between gap-2 w-full rounded-full mt-3 sm:mt-5 px-4 py-3 text-[13px] sm:text-sm font-semibold"
                             style={{
                                 background: "linear-gradient(135deg, #FBBC04 0%, #F4B400 100%)",
                                 color: "#0E1B2C",
-                                fontWeight: 600,
                                 boxShadow: "0 10px 24px -10px rgba(251,188,4,0.6)",
                             }}
                         >
-                            <span className="inline-flex items-center gap-1.5">
-                                <GoogleG /> Write a Google Review
+                            <span className="inline-flex items-center gap-1.5 min-w-0">
+                                <GoogleG /> <span className="truncate">Write a Google Review</span>
                             </span>
-                            <ExternalLink size={14} />
+                            <ExternalLink size={14} className="shrink-0" />
                         </a>
 
-                        <div className="my-4 sm:my-5 flex items-center gap-3 text-[9.5px] sm:text-[10px] tracking-[0.2em] uppercase text-[#F6F1E8]/40">
+                        <div className="my-4 sm:my-5 flex items-center gap-3 text-[9.5px] sm:text-[10px] tracking-[0.18em] uppercase text-[#F6F1E8]/40">
                             <span className="h-px flex-1 bg-[#F6F1E8]/15" />
-                            or quick note here
+                            <span className="hidden xs:inline">or</span> prep your review
                             <span className="h-px flex-1 bg-[#F6F1E8]/15" />
                         </div>
 
@@ -243,19 +247,18 @@ export default function Reviews() {
                             <div className="space-y-3 sm:space-y-4">
                                 <div className="grid grid-cols-2 gap-2 sm:gap-3">
                                     <input
-                                        required
                                         data-testid={IDS.reviews.name}
                                         placeholder="Your name"
                                         value={form.name}
                                         onChange={(e) => setForm({ ...form, name: e.target.value })}
-                                        className="bg-[#2A364B] border border-[#3a4761] rounded-xl px-3 sm:px-4 py-2.5 sm:py-3 text-[14px] text-[#F6F1E8] placeholder:text-[#8A93A6] focus:border-[#C9802A]"
+                                        className="min-w-0 bg-[#2A364B] border border-[#3a4761] rounded-xl px-3 py-2.5 text-[13px] sm:text-[14px] text-[#F6F1E8] placeholder:text-[#8A93A6] focus:border-[#C9802A]"
                                     />
                                     <input
                                         data-testid={IDS.reviews.location}
                                         placeholder="City"
                                         value={form.location}
                                         onChange={(e) => setForm({ ...form, location: e.target.value })}
-                                        className="bg-[#2A364B] border border-[#3a4761] rounded-xl px-3 sm:px-4 py-2.5 sm:py-3 text-[14px] text-[#F6F1E8] placeholder:text-[#8A93A6] focus:border-[#C9802A]"
+                                        className="min-w-0 bg-[#2A364B] border border-[#3a4761] rounded-xl px-3 py-2.5 text-[13px] sm:text-[14px] text-[#F6F1E8] placeholder:text-[#8A93A6] focus:border-[#C9802A]"
                                     />
                                 </div>
                                 <div>
@@ -303,7 +306,7 @@ export default function Reviews() {
                                             <Shuffle size={12} /> Shuffle
                                         </button>
                                     </div>
-                                    <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1">
+                                    <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1 max-w-full">
                                         {REVIEW_TEMPLATES.map((t, idx) => {
                                             const active = form.message === t;
                                             return (
@@ -318,7 +321,7 @@ export default function Reviews() {
                                                             : "bg-[#2A364B] text-[#F6F1E8]/80 hover:bg-[#3a4761]"
                                                     }`}
                                                 >
-                                                    Template {idx + 1}
+                                                    #{idx + 1}
                                                 </button>
                                             );
                                         })}
@@ -331,17 +334,26 @@ export default function Reviews() {
                                     value={form.message}
                                     onChange={(e) => setForm({ ...form, message: e.target.value })}
                                     rows={3}
-                                    className="w-full bg-[#2A364B] border border-[#3a4761] rounded-xl px-3 sm:px-4 py-2.5 sm:py-3 text-[13.5px] sm:text-[14px] text-[#F6F1E8] placeholder:text-[#8A93A6] focus:border-[#C9802A]"
+                                    className="w-full min-w-0 bg-[#2A364B] border border-[#3a4761] rounded-xl px-3 py-2.5 text-[13px] sm:text-[14px] text-[#F6F1E8] placeholder:text-[#8A93A6] focus:border-[#C9802A] resize-none"
                                 />
                                 <button
                                     type="submit"
-                                    disabled={loading || !form.name || form.message.length < 10}
+                                    disabled={loading || form.message.length < 10}
                                     data-testid={IDS.reviews.submit}
-                                    className="btn-pill w-full justify-center disabled:opacity-50 text-sm"
+                                    className="flex items-center justify-between gap-2 w-full rounded-full px-4 py-3 text-[13px] sm:text-sm font-semibold disabled:opacity-50 transition-opacity"
                                     style={{ background: "#C9802A", color: "#fff" }}
                                 >
-                                    <Send size={16} /> {loading ? "Publishing…" : "Publish review"}
+                                    <span className="inline-flex items-center gap-1.5 min-w-0">
+                                        <Send size={15} className="shrink-0" />
+                                        <span className="truncate">
+                                            {loading ? "Opening…" : "Publish on Google"}
+                                        </span>
+                                    </span>
+                                    <ExternalLink size={14} className="shrink-0" />
                                 </button>
+                                <p className="text-[10px] text-[#F6F1E8]/55 text-center leading-relaxed">
+                                    Tapping Publish opens Google Review with your text auto-copied — just paste &amp; post.
+                                </p>
                             </div>
                         )}
                     </form>
