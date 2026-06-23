@@ -266,15 +266,15 @@ export default function Calculators() {
                     </div>
                 </div>
 
-                {/* Tabs — horizontal scroll on mobile to avoid wrap clutter */}
-                <div className="-mx-6 md:mx-0 px-6 md:px-0 mb-6 overflow-x-auto">
-                    <div className="flex gap-2 min-w-max md:flex-wrap">
+                {/* Tabs — grid (no horizontal slide) */}
+                <div className="mb-6">
+                    <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
                         {TABS.map((t) => (
                             <button
                                 key={t.id}
                                 data-testid={t.testid}
                                 onClick={() => setTab(t.id)}
-                                className={`tab-pill shrink-0 ${tab === t.id ? "active" : ""}`}
+                                className={`tab-pill text-center justify-center ${tab === t.id ? "active" : ""}`}
                             >
                                 {t.label}
                             </button>
@@ -573,6 +573,102 @@ function projectExtended(tab, baseState, extraYears) {
     }
 }
 
+// Smart upsell scenarios for the snapshot — calculated dynamically
+function upsellScenarios(tab, state, result) {
+    if (!result || !["sip", "daily", "lumpsum", "goal"].includes(tab)) return [];
+    const out = [];
+    try {
+        if (tab === "sip") {
+            const baseFv = result.fv;
+            const topup = sipCalc(state.sipAmount * 1.1, state.sipYears, state.sipRate);
+            out.push({
+                title: "10% topup karein",
+                titleHi: "हर साल 10% बढ़ाएँ",
+                extra: topup.fv - baseFv,
+                detail: `Just increase monthly SIP by ${Math.round(state.sipAmount * 0.1)} = ₹${Math.round(state.sipAmount * 1.1).toLocaleString("en-IN")}/mo`,
+            });
+            const daily100 = sipCalc(state.sipAmount + 100 * 22, state.sipYears, state.sipRate);
+            out.push({
+                title: "Add ₹100/day SIP",
+                titleHi: "रोज़ ₹100 और जोड़ें",
+                extra: daily100.fv - baseFv,
+                detail: "Equivalent to +₹2,200/month — coffee money turns into wealth",
+            });
+            const longer5 = sipCalc(state.sipAmount, state.sipYears + 5, state.sipRate);
+            out.push({
+                title: "5 saal aur invest karein",
+                titleHi: "5 साल और जारी रखें",
+                extra: longer5.fv - baseFv,
+                detail: `Same SIP, ${state.sipYears + 5} years instead of ${state.sipYears}`,
+            });
+        } else if (tab === "daily") {
+            const baseFv = result.fv;
+            const dailyPlus50 = dailySipCalc(state.dailyAmount + 50, state.dailyYears, state.dailyRate);
+            out.push({
+                title: "₹50/day aur badhayein",
+                titleHi: "रोज़ ₹50 और जोड़ें",
+                extra: dailyPlus50.fv - baseFv,
+                detail: `Just ₹${state.dailyAmount + 50}/day instead of ₹${state.dailyAmount}/day`,
+            });
+            const stepup = dailySipCalc(state.dailyAmount * 1.1, state.dailyYears, state.dailyRate);
+            out.push({
+                title: "10% step-up karein",
+                titleHi: "10% step-up करें",
+                extra: stepup.fv - baseFv,
+                detail: "Every year increase daily SIP by 10%",
+            });
+            const longer = dailySipCalc(state.dailyAmount, state.dailyYears + 5, state.dailyRate);
+            out.push({
+                title: "5 saal aur",
+                titleHi: "5 साल और",
+                extra: longer.fv - baseFv,
+                detail: `Continue for ${state.dailyYears + 5} years total`,
+            });
+        } else if (tab === "lumpsum") {
+            const baseFv = result.fv;
+            const withSip = sipCalc(2000, state.lumpYears, state.lumpRate);
+            out.push({
+                title: "Add ₹2000/mo SIP",
+                titleHi: "साथ में ₹2000/mo SIP",
+                extra: withSip.fv,
+                detail: "Lumpsum + monthly SIP = compounding squared",
+            });
+            const daily100 = sipCalc(100 * 22, state.lumpYears, state.lumpRate);
+            out.push({
+                title: "Add ₹100/day SIP",
+                titleHi: "रोज़ ₹100 SIP जोड़ें",
+                extra: daily100.fv,
+                detail: "Lumpsum ke saath daily habit",
+            });
+            const longer = lumpsumCalc(state.lump, state.lumpYears + 5, state.lumpRate);
+            out.push({
+                title: "5 saal aur hold karein",
+                titleHi: "5 साल और रखें",
+                extra: longer.fv - baseFv,
+                detail: `Hold for ${state.lumpYears + 5} years instead`,
+            });
+        } else if (tab === "goal") {
+            const baseSip = result.requiredSip;
+            const stepup = baseSip * 0.8; // 20% less if step-up
+            out.push({
+                title: "Step-up SIP shuru karein",
+                titleHi: "Step-up SIP चलाएँ",
+                extra: (baseSip - stepup) * state.goalYears * 12,
+                detail: `Start with only ₹${Math.round(stepup).toLocaleString("en-IN")}/mo and step up 10% yearly`,
+            });
+            out.push({
+                title: "₹100/day daily SIP add",
+                titleHi: "रोज़ ₹100 SIP जोड़ें",
+                extra: state.goal * 0.15,
+                detail: "Add a daily SIP — reach goal 2-3 years earlier",
+            });
+        }
+    } catch (e) {
+        console.warn(e);
+    }
+    return out.slice(0, 3);
+}
+
 function SnapshotCard({ tab, result, state }) {
     if (!result) return null;
     const labels = {
@@ -800,25 +896,13 @@ function SnapshotCard({ tab, result, state }) {
                 </div>
             )}
 
-            {/* Mini chart visualisation */}
+            {/* Growth chart — SVG line + area */}
             <div style={{ position: "relative", marginBottom: 18 }}>
                 <div style={{ fontSize: 10, letterSpacing: "0.22em", textTransform: "uppercase", color: "#5C677D", marginBottom: 8 }}>
                     Year-on-year growth
                 </div>
-                <div style={{ height: 64, background: "#FBF7EE", border: "1px solid #E2D8C2", borderRadius: 12, padding: 8, display: "flex", alignItems: "flex-end", gap: 2 }}>
-                    {(result.series || []).map((p, idx) => {
-                        const max = Math.max(
-                            ...result.series.map((x) => Math.max(x.invested, x.value, 1)),
-                        );
-                        const hi = (p.invested / max) * 100;
-                        const hv = (p.value / max) * 100;
-                        return (
-                            <div key={idx} style={{ flex: 1, display: "flex", flexDirection: "column-reverse", gap: 1 }}>
-                                <div style={{ height: `${hi}%`, background: "#C9802A", borderRadius: 2 }} />
-                                <div style={{ height: `${hv}%`, background: "#0E5E48", borderRadius: 2 }} />
-                            </div>
-                        );
-                    })}
+                <div style={{ background: "#FBF7EE", border: "1px solid #E2D8C2", borderRadius: 12, padding: 12 }}>
+                    <SnapshotChart series={result.series || []} tab={tab} />
                 </div>
                 <div style={{ display: "flex", justifyContent: "space-between", marginTop: 6, fontSize: 10, color: "#5C677D" }}>
                     <span style={{ display: "inline-flex", alignItems: "center", gap: 5 }}>
@@ -832,14 +916,14 @@ function SnapshotCard({ tab, result, state }) {
                 </div>
             </div>
 
-            {/* Bilingual recommendations */}
+            {/* Bilingual recommendations + upsell scenarios */}
             <div style={{ position: "relative", marginBottom: 18 }}>
                 <div style={{ fontSize: 10, letterSpacing: "0.22em", textTransform: "uppercase", color: "#C9802A", fontWeight: 700, marginBottom: 10, display: "flex", alignItems: "center", gap: 8 }}>
                     <span style={{ width: 18, height: 18, borderRadius: 999, background: "#C9802A", color: "#fff", display: "grid", placeItems: "center", fontSize: 11 }}>💡</span>
-                    Smart tips · सुझाव
+                    Boost your wealth · Smart suggestions
                 </div>
                 <div style={{ display: "flex", flexDirection: "column", gap: 7 }}>
-                    {(CALC_RECOMMENDATIONS[tab] || []).slice(0, 3).map((tip, idx) => (
+                    {upsellScenarios(tab, state, result).map((s, idx) => (
                         <div
                             key={idx}
                             style={{
@@ -848,6 +932,39 @@ function SnapshotCard({ tab, result, state }) {
                                 borderRadius: 12,
                                 padding: "9px 12px",
                                 borderLeft: "3px solid #0E5E48",
+                                display: "flex",
+                                justifyContent: "space-between",
+                                alignItems: "center",
+                                gap: 10,
+                            }}
+                        >
+                            <div style={{ flex: 1, minWidth: 0 }}>
+                                <div style={{ fontSize: 12, color: "#0E1B2C", fontWeight: 600, lineHeight: 1.3 }}>
+                                    {s.title} · <span style={{ color: "#5C677D", fontWeight: 400 }}>{s.titleHi}</span>
+                                </div>
+                                <div style={{ fontSize: 10.5, color: "#5C677D", marginTop: 2, lineHeight: 1.3 }}>
+                                    {s.detail}
+                                </div>
+                            </div>
+                            <div style={{ textAlign: "right", flexShrink: 0 }}>
+                                <div style={{ fontSize: 9, color: "#0E5E48", letterSpacing: "0.12em", textTransform: "uppercase", fontWeight: 700 }}>
+                                    Extra gain
+                                </div>
+                                <div style={{ fontFamily: "'Fraunces', serif", fontSize: 17, color: "#0E5E48", lineHeight: 1.1, marginTop: 2 }}>
+                                    +{fmtINR(s.extra)}
+                                </div>
+                            </div>
+                        </div>
+                    ))}
+                    {(CALC_RECOMMENDATIONS[tab] || []).slice(0, 1).map((tip, idx) => (
+                        <div
+                            key={`tip-${idx}`}
+                            style={{
+                                background: "#FBF7EE",
+                                border: "1px solid #E2D8C2",
+                                borderRadius: 12,
+                                padding: "9px 12px",
+                                borderLeft: "3px solid #C9802A",
                             }}
                         >
                             <div style={{ fontSize: 11.5, color: "#0E1B2C", lineHeight: 1.4 }}>
@@ -884,11 +1001,11 @@ function SnapshotCard({ tab, result, state }) {
                         crossOrigin="anonymous"
                         alt="Sagar"
                         style={{
-                            width: 60,
-                            height: 60,
-                            borderRadius: "50%",
+                            width: 70,
+                            height: 88,
+                            borderRadius: 12,
                             objectFit: "cover",
-                            border: "3px solid #C9802A",
+                            border: "2px solid #C9802A",
                         }}
                     />
                     <div>
@@ -965,5 +1082,119 @@ function BigStat({ label, value, accent }) {
                 {value}
             </div>
         </div>
+    );
+}
+
+
+function SnapshotChart({ series, tab }) {
+    const w = 540;
+    const h = 150;
+    const pad = { l: 40, r: 8, t: 8, b: 22 };
+    if (!series || series.length === 0) {
+        return <div style={{ height: h, color: "#5C677D", fontSize: 11 }}>No data</div>;
+    }
+    const max = Math.max(...series.map((p) => Math.max(p.invested, p.value, 1)));
+    const innerW = w - pad.l - pad.r;
+    const innerH = h - pad.t - pad.b;
+    const step = innerW / Math.max(1, series.length - 1);
+    const toXY = (p, i, key) => {
+        const x = pad.l + step * i;
+        const y = pad.t + innerH - (p[key] / max) * innerH;
+        return [x, y];
+    };
+    const buildPath = (key) =>
+        series
+            .map((p, i) => {
+                const [x, y] = toXY(p, i, key);
+                return `${i === 0 ? "M" : "L"}${x.toFixed(1)},${y.toFixed(1)}`;
+            })
+            .join(" ");
+    const buildArea = (key) => {
+        const top = buildPath(key);
+        const [x0] = toXY(series[0], 0, key);
+        const [xn] = toXY(series[series.length - 1], series.length - 1, key);
+        return `${top} L${xn.toFixed(1)},${(pad.t + innerH).toFixed(1)} L${x0.toFixed(1)},${(pad.t + innerH).toFixed(1)} Z`;
+    };
+    const yTicks = [0, max / 2, max];
+    const fmtTick = (v) => {
+        if (v >= 1e7) return `${(v / 1e7).toFixed(1)}Cr`;
+        if (v >= 1e5) return `${(v / 1e5).toFixed(1)}L`;
+        if (v >= 1e3) return `${(v / 1e3).toFixed(0)}K`;
+        return String(Math.round(v));
+    };
+    return (
+        <svg width={w} height={h} viewBox={`0 0 ${w} ${h}`} xmlns="http://www.w3.org/2000/svg">
+            <defs>
+                <linearGradient id="gv-snap" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="#0E5E48" stopOpacity="0.4" />
+                    <stop offset="100%" stopColor="#0E5E48" stopOpacity="0" />
+                </linearGradient>
+                <linearGradient id="gi-snap" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="#C9802A" stopOpacity="0.35" />
+                    <stop offset="100%" stopColor="#C9802A" stopOpacity="0" />
+                </linearGradient>
+            </defs>
+            {/* y grid */}
+            {yTicks.map((t, i) => {
+                const y = pad.t + innerH - (t / max) * innerH;
+                return (
+                    <g key={`y${i}`}>
+                        <line
+                            x1={pad.l}
+                            x2={w - pad.r}
+                            y1={y}
+                            y2={y}
+                            stroke="#E2D8C2"
+                            strokeDasharray="3 3"
+                            strokeWidth={1}
+                        />
+                        <text
+                            x={pad.l - 6}
+                            y={y + 3}
+                            fontSize="9"
+                            fill="#5C677D"
+                            textAnchor="end"
+                            fontFamily="DM Sans, sans-serif"
+                        >
+                            ₹{fmtTick(t)}
+                        </text>
+                    </g>
+                );
+            })}
+            {/* x labels */}
+            {series.map((p, i) => {
+                if (series.length > 8 && i % 2 !== 0 && i !== series.length - 1) return null;
+                const x = pad.l + step * i;
+                return (
+                    <text
+                        key={`x${i}`}
+                        x={x}
+                        y={h - 6}
+                        fontSize="9"
+                        fill="#5C677D"
+                        textAnchor="middle"
+                        fontFamily="DM Sans, sans-serif"
+                    >
+                        {p.label}
+                    </text>
+                );
+            })}
+            {/* areas */}
+            <path d={buildArea("invested")} fill="url(#gi-snap)" />
+            <path d={buildArea("value")} fill="url(#gv-snap)" />
+            {/* lines */}
+            <path d={buildPath("invested")} fill="none" stroke="#C9802A" strokeWidth="2" />
+            <path d={buildPath("value")} fill="none" stroke="#0E5E48" strokeWidth="2.4" />
+            {/* endpoint dot for value */}
+            {(() => {
+                const last = series[series.length - 1];
+                const [x, y] = toXY(last, series.length - 1, "value");
+                return (
+                    <g>
+                        <circle cx={x} cy={y} r="4" fill="#0E5E48" stroke="#FBF7EE" strokeWidth="2" />
+                    </g>
+                );
+            })()}
+        </svg>
     );
 }
