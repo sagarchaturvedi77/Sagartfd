@@ -74,32 +74,42 @@ export default function FloatingActions() {
             {/* LEFT — AI chat standalone */}
             <button
                 onClick={() => window.dispatchEvent(new CustomEvent("tfd:open-ai-chat"))}
-                aria-label="Ask TFD-AI"
+                aria-label="Ask TFD-AI — your AI financial guide"
                 data-testid="fab-ai-chat"
-                className="fixed left-4 md:left-6 bottom-6 z-[55] group"
+                className="fixed left-3 md:left-6 bottom-5 md:bottom-6 z-[55] group"
             >
                 <span
-                    className="flex items-center gap-2 pl-1 pr-4 py-1 rounded-full shadow-2xl text-[#F6F1E8] hover:scale-105 transition-transform"
+                    className="flex items-center gap-2 pl-1 pr-3 md:pr-4 py-1 rounded-full shadow-2xl text-[#F6F1E8] hover:scale-105 transition-transform"
                     style={{ background: "linear-gradient(135deg, #0E5E48 0%, #0A4838 100%)" }}
                 >
                     <span
-                        className="w-12 h-12 rounded-full grid place-items-center"
+                        className="w-12 h-12 rounded-full grid place-items-center relative shrink-0"
                         style={{ background: "linear-gradient(135deg, #C9802A 0%, #B66B1B 100%)" }}
                     >
                         <Sparkles size={20} />
+                        {/* AI pulse dot */}
+                        <span
+                            aria-hidden
+                            className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-[#22C55E] border-2 border-[#0E5E48] animate-pulse"
+                        />
                     </span>
-                    <span className="hidden sm:flex flex-col items-start leading-none pr-1">
-                        <span className="text-[10px] tracking-[0.18em] uppercase opacity-80">
-                            Ask
+                    <span className="flex flex-col items-start leading-none pr-1 max-w-[160px]">
+                        <span className="inline-flex items-center gap-1 text-[9px] tracking-[0.18em] uppercase opacity-80 font-semibold">
+                            <span className="px-1.5 py-0.5 rounded-sm bg-[#C9802A] text-white text-[8px]">
+                                AI
+                            </span>
+                            Ask me anything
                         </span>
-                        <span className="font-display text-[15px] mt-0.5">TFD-AI</span>
+                        <span className="font-display text-[13px] mt-0.5 whitespace-nowrap">
+                            Planning your future
+                        </span>
                     </span>
                 </span>
             </button>
 
             {/* RIGHT — WhatsApp + expandable stack of socials */}
-            <div className="fixed right-4 md:right-6 bottom-6 z-[55] flex flex-col items-end gap-2.5">
-                {/* expandable stack (reverse so closest to WA is the first social) */}
+            <div className="fixed right-3 md:right-6 bottom-5 md:bottom-6 z-[55] flex flex-col items-end gap-2.5">
+                {/* expandable stack (closest to WhatsApp first) */}
                 <div
                     className={`flex flex-col-reverse gap-2.5 transition-all duration-300 ${
                         open
@@ -117,12 +127,14 @@ export default function FloatingActions() {
                                 rel="noopener noreferrer"
                                 aria-label={a.label}
                                 data-testid={a.testid}
-                                className="flex items-center gap-3 hover:scale-105 transition-transform"
+                                className="flex items-center gap-2 hover:scale-105 transition-transform"
                                 style={{ transitionDelay: open ? `${idx * 35}ms` : "0ms" }}
                             >
-                                <span className="bg-[#0E1B2C] text-[#F6F1E8] rounded-full px-3.5 py-1.5 text-[12px] shadow-lg whitespace-nowrap hidden sm:block">
-                                    <span className="font-medium leading-tight block">{a.label}</span>
-                                    <span className="text-[10px] opacity-70">{a.sub}</span>
+                                <span className="bg-[#0E1B2C] text-[#F6F1E8] rounded-full px-3 py-1.5 text-[11.5px] shadow-lg whitespace-nowrap">
+                                    <span className="font-medium leading-tight block">
+                                        {a.label}
+                                    </span>
+                                    <span className="text-[9.5px] opacity-70">{a.sub}</span>
                                 </span>
                                 <span
                                     className="w-11 h-11 rounded-full grid place-items-center text-white shadow-lg shrink-0"
@@ -140,10 +152,17 @@ export default function FloatingActions() {
                     onClick={() => setOpen(!open)}
                     aria-label={open ? "Close socials" : "More links"}
                     data-testid="fab-toggle"
-                    className="w-10 h-10 rounded-full grid place-items-center text-[#F6F1E8] shadow-lg hover:scale-105 transition-transform"
-                    style={{ background: "#0E1B2C" }}
+                    className="flex items-center gap-2 hover:scale-105 transition-transform"
                 >
-                    {open ? <X size={16} /> : <Plus size={18} />}
+                    <span className="bg-[#0E1B2C]/85 text-[#F6F1E8] rounded-full px-3 py-1 text-[10.5px] shadow-md whitespace-nowrap font-medium">
+                        {open ? "Close" : "More links"}
+                    </span>
+                    <span
+                        className="w-10 h-10 rounded-full grid place-items-center text-[#F6F1E8] shadow-lg"
+                        style={{ background: "#0E1B2C" }}
+                    >
+                        {open ? <X size={16} /> : <Plus size={18} />}
+                    </span>
                 </button>
 
                 {/* WhatsApp main button */}
@@ -151,22 +170,24 @@ export default function FloatingActions() {
                     href={LINKS.whatsappDM}
                     target="_blank"
                     rel="noopener noreferrer"
-                    aria-label="WhatsApp Sagar ji"
+                    aria-label="WhatsApp Sagar ji directly"
                     data-testid="fab-whatsapp"
                     className="group"
                 >
                     <span
-                        className="flex items-center gap-2 pl-1 pr-4 py-1 rounded-full shadow-2xl text-white hover:scale-105 transition-transform"
+                        className="flex items-center gap-2 pl-1 pr-3 md:pr-4 py-1 rounded-full shadow-2xl text-white hover:scale-105 transition-transform"
                         style={{ background: "linear-gradient(135deg, #25D366 0%, #128C7E 100%)" }}
                     >
-                        <span className="w-12 h-12 rounded-full grid place-items-center bg-white/15">
+                        <span className="w-12 h-12 rounded-full grid place-items-center bg-white/15 shrink-0">
                             <MessageCircle size={20} />
                         </span>
-                        <span className="hidden sm:flex flex-col items-start leading-none pr-1">
-                            <span className="text-[10px] tracking-[0.18em] uppercase opacity-90">
-                                Chat
+                        <span className="flex flex-col items-start leading-none pr-1 max-w-[140px]">
+                            <span className="text-[9px] tracking-[0.18em] uppercase opacity-90 font-semibold">
+                                Chat with us
                             </span>
-                            <span className="font-display text-[15px] mt-0.5">WhatsApp</span>
+                            <span className="font-display text-[13px] mt-0.5 whitespace-nowrap">
+                                WhatsApp Sagar ji
+                            </span>
                         </span>
                     </span>
                 </a>
