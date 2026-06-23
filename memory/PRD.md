@@ -57,11 +57,20 @@
 - Added duplicate-line/duplicate-sentence collapse in `stripMdFull` to clean SSE streaming artefacts in snapshot rendering.
 - `downloadPlanning` now passes explicit width/height to html2canvas so very tall snapshots capture reliably.
 
+### 2026-06-23 (iter 6 — code review fixes: XSS + stable keys + error logging)
+- **XSS hardening (CRITICAL)**: Rewrote AIChat.jsx Markdown renderer to use React nodes exclusively — eliminated all `dangerouslySetInnerHTML` callers (4 instances). New `renderInline` tokenises markdown into JSX nodes; new `safeUrl` gate restricts link `href` to http(s)/mailto only. Verified at runtime: `<script>` neutralised, `javascript:` href rewritten to `#`.
+- **Stable React keys**: Added `genMessageId()` for AIChat messages with welcome message id='welcome'. Replaced array-index keys with content-derived stable keys across AIChat (messages, tips), Reviews (templates), Calculators (upsell scenarios), Partners (partner name), WhatsAppCommunityPopup (perk text).
+- **Error visibility**: Reviews.jsx empty `catch {}` blocks now log warnings via `console.warn` with context (clipboard failures, createReview failures) — observable in DevTools without breaking the Google-redirect success flow.
+- **Skipped large refactors** (preserve stability): Did NOT split AIChat/Calculators/PlanSnapshot into smaller components — these are working production code; splitting carries high regression risk and yields no functional benefit.
+- **Skipped Python `is` fixes**: The flagged `is True` / `is not None` patterns are PEP 8-correct; no `is 200`-style anti-patterns exist in tests.
+- Verified via iteration_5.json: 100% pass on 9 target flows including a deliberate `<script>` + `javascript:` XSS probe.
+
 ## Test status
 - iter_1: 100% backend, 95% frontend
 - iter_2: 100% backend, 100% frontend
 - iter_3: 100% backend (22/22 once cache warm), 100% frontend (all 6 new flows pass)
 - iter_4: 100% frontend (colour migration + AI snapshot full-content download, calculator regression, top funds, floating actions all pass)
+- iter_5: 100% frontend (XSS hardening verified — script + javascript: URL injection neutralised; stable keys verified — zero React key warnings in console; markdown renders bold/italic/code/list/table/link correctly without dangerouslySetInnerHTML)
 
 ## Backlog
 - P1: Admin moderation panel for reviews, Resend email notification on new contact, SEO LocalBusiness JSON-LD + OG image, persistent MF cache in MongoDB
