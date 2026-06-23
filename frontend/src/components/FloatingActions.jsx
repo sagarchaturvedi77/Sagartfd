@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import {
     MessageCircle,
     Instagram,
@@ -8,28 +8,10 @@ import {
     Sparkles,
     X,
     Users,
+    Plus,
 } from "lucide-react";
 
-const actions = [
-    {
-        id: "ai",
-        label: "Ask TFD-AI",
-        sub: "Sagar ji's AI assistant",
-        icon: Sparkles,
-        bg: "#0E5E48",
-        kind: "custom-event",
-        event: "tfd:open-ai-chat",
-        testid: "fab-ai-chat",
-    },
-    {
-        id: "wa",
-        label: "Chat on WhatsApp",
-        sub: "+91 77738 05794",
-        icon: MessageCircle,
-        bg: "#25D366",
-        href: "https://wa.me/917773805794?text=Hi%20Sagar%20ji%2C%20I%20want%20to%20know%20more%20about%20mutual%20fund%20investments.",
-        testid: "fab-whatsapp",
-    },
+const rightActions = [
     {
         id: "wa-community",
         label: "WhatsApp Community",
@@ -80,91 +62,114 @@ const actions = [
 export default function FloatingActions() {
     const [open, setOpen] = useState(false);
 
-    // Close on Escape
     useEffect(() => {
         const onKey = (e) => e.key === "Escape" && setOpen(false);
         window.addEventListener("keydown", onKey);
         return () => window.removeEventListener("keydown", onKey);
     }, []);
 
-    const handle = (a) => {
-        if (a.kind === "custom-event") {
-            window.dispatchEvent(new CustomEvent(a.event));
-            setOpen(false);
-        }
-    };
-
     return (
-        <div
-            className="fixed left-4 md:left-6 bottom-6 z-[55] flex flex-col items-start gap-3"
-            data-testid="floating-actions"
-        >
-            {/* Expanding action list */}
-            <div
-                className={`flex flex-col-reverse gap-2.5 transition-all duration-300 ${
-                    open ? "opacity-100 translate-y-0 pointer-events-auto" : "opacity-0 translate-y-3 pointer-events-none"
-                }`}
-            >
-                {actions.map((a, idx) => {
-                    const Icon = a.icon;
-                    const inner = (
-                        <span
-                            className="w-12 h-12 rounded-full grid place-items-center text-white shadow-lg shrink-0"
-                            style={{ background: a.bg }}
-                        >
-                            <Icon size={20} />
-                        </span>
-                    );
-                    return (
-                        <div
-                            key={a.id}
-                            className="flex items-center gap-3 group"
-                            style={{ transitionDelay: open ? `${idx * 40}ms` : "0ms" }}
-                        >
-                            {a.href ? (
-                                <a
-                                    href={a.href}
-                                    target="_blank"
-                                    rel="noreferrer"
-                                    aria-label={a.label}
-                                    data-testid={a.testid}
-                                    className="flex items-center gap-3 hover:scale-105 transition-transform"
-                                >
-                                    {inner}
-                                </a>
-                            ) : (
-                                <button
-                                    onClick={() => handle(a)}
-                                    aria-label={a.label}
-                                    data-testid={a.testid}
-                                    className="flex items-center gap-3 hover:scale-105 transition-transform"
-                                >
-                                    {inner}
-                                </button>
-                            )}
-                            <div className="bg-[#0E1B2C] text-[#F6F1E8] rounded-full px-3.5 py-1.5 text-[12px] shadow-lg whitespace-nowrap hidden sm:block">
-                                <div className="font-medium leading-tight">{a.label}</div>
-                                <div className="text-[10px] opacity-70">{a.sub}</div>
-                            </div>
-                        </div>
-                    );
-                })}
-            </div>
-
-            {/* Main toggle */}
+        <>
+            {/* LEFT — AI chat standalone */}
             <button
-                onClick={() => setOpen(!open)}
-                aria-label={open ? "Close menu" : "Open quick actions"}
-                data-testid="fab-toggle"
-                className="w-14 h-14 rounded-full grid place-items-center text-[#F6F1E8] shadow-2xl transition-transform hover:scale-105"
-                style={{
-                    background: open
-                        ? "#0E1B2C"
-                        : "linear-gradient(135deg, #0E5E48 0%, #0A4838 100%)",
-                }}
+                onClick={() => window.dispatchEvent(new CustomEvent("tfd:open-ai-chat"))}
+                aria-label="Ask TFD-AI"
+                data-testid="fab-ai-chat"
+                className="fixed left-4 md:left-6 bottom-6 z-[55] group"
             >
-                {open ? <X size={22} /> : <Sparkles size={22} />}
+                <span
+                    className="flex items-center gap-2 pl-1 pr-4 py-1 rounded-full shadow-2xl text-[#F6F1E8] hover:scale-105 transition-transform"
+                    style={{ background: "linear-gradient(135deg, #0E5E48 0%, #0A4838 100%)" }}
+                >
+                    <span
+                        className="w-12 h-12 rounded-full grid place-items-center"
+                        style={{ background: "linear-gradient(135deg, #C9802A 0%, #B66B1B 100%)" }}
+                    >
+                        <Sparkles size={20} />
+                    </span>
+                    <span className="hidden sm:flex flex-col items-start leading-none pr-1">
+                        <span className="text-[10px] tracking-[0.18em] uppercase opacity-80">
+                            Ask
+                        </span>
+                        <span className="font-display text-[15px] mt-0.5">TFD-AI</span>
+                    </span>
+                </span>
             </button>
-        </div>
+
+            {/* RIGHT — WhatsApp + expandable stack of socials */}
+            <div className="fixed right-4 md:right-6 bottom-6 z-[55] flex flex-col items-end gap-2.5">
+                {/* expandable stack (reverse so closest to WA is the first social) */}
+                <div
+                    className={`flex flex-col-reverse gap-2.5 transition-all duration-300 ${
+                        open
+                            ? "opacity-100 translate-y-0 pointer-events-auto"
+                            : "opacity-0 translate-y-3 pointer-events-none"
+                    }`}
+                >
+                    {rightActions.map((a, idx) => {
+                        const Icon = a.icon;
+                        return (
+                            <a
+                                key={a.id}
+                                href={a.href}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                aria-label={a.label}
+                                data-testid={a.testid}
+                                className="flex items-center gap-3 hover:scale-105 transition-transform"
+                                style={{ transitionDelay: open ? `${idx * 35}ms` : "0ms" }}
+                            >
+                                <span className="bg-[#0E1B2C] text-[#F6F1E8] rounded-full px-3.5 py-1.5 text-[12px] shadow-lg whitespace-nowrap hidden sm:block">
+                                    <span className="font-medium leading-tight block">{a.label}</span>
+                                    <span className="text-[10px] opacity-70">{a.sub}</span>
+                                </span>
+                                <span
+                                    className="w-11 h-11 rounded-full grid place-items-center text-white shadow-lg shrink-0"
+                                    style={{ background: a.bg }}
+                                >
+                                    <Icon size={18} />
+                                </span>
+                            </a>
+                        );
+                    })}
+                </div>
+
+                {/* Plus toggle (above WhatsApp) */}
+                <button
+                    onClick={() => setOpen(!open)}
+                    aria-label={open ? "Close socials" : "More links"}
+                    data-testid="fab-toggle"
+                    className="w-10 h-10 rounded-full grid place-items-center text-[#F6F1E8] shadow-lg hover:scale-105 transition-transform"
+                    style={{ background: "#0E1B2C" }}
+                >
+                    {open ? <X size={16} /> : <Plus size={18} />}
+                </button>
+
+                {/* WhatsApp main button */}
+                <a
+                    href="https://wa.me/917773805794?text=Hi%20Sagar%20ji%2C%20I%20want%20to%20know%20more%20about%20mutual%20fund%20investments."
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    aria-label="WhatsApp Sagar ji"
+                    data-testid="fab-whatsapp"
+                    className="group"
+                >
+                    <span
+                        className="flex items-center gap-2 pl-1 pr-4 py-1 rounded-full shadow-2xl text-white hover:scale-105 transition-transform"
+                        style={{ background: "linear-gradient(135deg, #25D366 0%, #128C7E 100%)" }}
+                    >
+                        <span className="w-12 h-12 rounded-full grid place-items-center bg-white/15">
+                            <MessageCircle size={20} />
+                        </span>
+                        <span className="hidden sm:flex flex-col items-start leading-none pr-1">
+                            <span className="text-[10px] tracking-[0.18em] uppercase opacity-90">
+                                Chat
+                            </span>
+                            <span className="font-display text-[15px] mt-0.5">WhatsApp</span>
+                        </span>
+                    </span>
+                </a>
+            </div>
+        </>
     );
 }

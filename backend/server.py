@@ -113,29 +113,29 @@ async def create_contact(payload: ContactCreate):
 # Curated top funds across categories
 TOP_FUNDS = {
     "Large Cap": [
-        {"code": "118632", "name": "Nippon India Large Cap Fund - Direct Growth"},
-        {"code": "120586", "name": "ICICI Prudential Large Cap (Bluechip) Fund - Direct Growth"},
-        {"code": "120465", "name": "Axis Large Cap Fund - Direct Growth"},
+        {"code": "106235", "name": "Nippon India Large Cap Fund - Regular Growth"},
+        {"code": "108466", "name": "ICICI Prudential Large Cap (Bluechip) Fund - Regular Growth"},
+        {"code": "112277", "name": "Axis Large Cap Fund - Regular Growth"},
     ],
     "Mid Cap": [
-        {"code": "127042", "name": "Motilal Oswal Midcap Fund - Direct Growth"},
-        {"code": "118989", "name": "HDFC Mid Cap Fund - Direct Growth"},
-        {"code": "118650", "name": "Nippon India Multi Cap Fund - Direct Growth"},
+        {"code": "127039", "name": "Motilal Oswal Midcap Fund - Regular Growth"},
+        {"code": "105758", "name": "HDFC Mid Cap Fund - Regular Growth"},
+        {"code": "101161", "name": "Nippon India Multi Cap Fund - Regular Growth"},
     ],
     "Small Cap": [
-        {"code": "118778", "name": "Nippon India Small Cap Fund - Direct Growth"},
-        {"code": "120828", "name": "Quant Small Cap Fund - Direct Growth"},
-        {"code": "125354", "name": "Axis Small Cap Fund - Direct Growth"},
+        {"code": "113177", "name": "Nippon India Small Cap Fund - Regular Growth"},
+        {"code": "100177", "name": "Quant Small Cap Fund - Regular Growth"},
+        {"code": "125350", "name": "Axis Small Cap Fund - Regular Growth"},
     ],
     "Flexi Cap": [
-        {"code": "122639", "name": "Parag Parikh Flexi Cap Fund - Direct Growth"},
-        {"code": "118955", "name": "HDFC Flexi Cap Fund - Direct Growth"},
-        {"code": "120843", "name": "Quant Flexi Cap Fund - Direct Growth"},
+        {"code": "122640", "name": "Parag Parikh Flexi Cap Fund - Regular Growth"},
+        {"code": "101762", "name": "HDFC Flexi Cap Fund - Regular Growth"},
+        {"code": "109830", "name": "Quant Flexi Cap Fund - Regular Growth"},
     ],
     "ELSS (Tax Saver)": [
-        {"code": "135781", "name": "Mirae Asset ELSS Tax Saver Fund - Direct Growth"},
-        {"code": "120847", "name": "Quant ELSS Tax Saver Fund - Direct Growth"},
-        {"code": "120503", "name": "Axis ELSS Tax Saver Fund - Direct Growth"},
+        {"code": "135784", "name": "Mirae Asset ELSS Tax Saver Fund - Regular Growth"},
+        {"code": "100175", "name": "Quant ELSS Tax Saver Fund - Regular Growth"},
+        {"code": "112323", "name": "Axis ELSS Tax Saver Fund - Regular Growth"},
     ],
 }
 
@@ -282,9 +282,10 @@ Hard rules:
 - NEVER promise specific returns. Use ranges or historical CAGR with a "past performance is not indicative of future returns" caveat.
 - NEVER share PAN/Aadhaar/OTP requests. If user shares sensitive info, politely tell them not to.
 - Do NOT recommend direct stock picks or speculative products (F&O, crypto).
+- ALWAYS recommend **Regular Plan (Growth option)** mutual funds — NEVER Direct plans. The Financial Doctor is an AMFI-registered distributor (ARN-290298) and only services Regular plans. If a user specifically asks about Direct plans, politely explain that personalised advisory, paperwork, and rebalancing support are provided through Regular plans via AssetPlus, and the small expense-ratio difference is compensated by ongoing hand-holding from Sagar ji.
 - For onboarding / actual investing, direct them to AssetPlus: https://www.assetplus.in/mfd/ARN-290298 or WhatsApp Sagar ji at +91 77738 05794.
 - Keep responses concise (3-6 short paragraphs max). Use markdown sparingly (bullets for lists).
-- If asked about specific NAVs or live returns, mention the user can check the "Top Funds" section on this website.
+- If asked about specific NAVs or live returns, mention the user can check the "Top Funds" section on this website (all Regular Plan funds curated by Sagar ji).
 - If user is in distress / asks anything off-topic (politics, gossip), politely redirect to finance.
 
 Sign-off: When user says thanks/bye, sign off as: "— TFD-AI 💚 (on behalf of Sagar ji)"

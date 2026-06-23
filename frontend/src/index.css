@@ -275,8 +275,8 @@ input:focus, textarea:focus, select:focus {
     color: var(--ink);
     border-radius: 28px;
     border: 1px solid var(--line);
-    padding: 2.25rem 2rem;
-    width: 640px;
+    padding: 1.75rem 1.5rem;
+    width: 600px;
     box-shadow: 0 30px 60px -25px rgba(14, 27, 44, 0.25);
     position: relative;
     overflow: hidden;

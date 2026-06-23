@@ -13,6 +13,8 @@ import Contact from "@/components/Contact";
 import Footer from "@/components/Footer";
 import FloatingActions from "@/components/FloatingActions";
 import AIChat from "@/components/AIChat";
+import LeadPopup from "@/components/LeadPopup";
+import WhatsAppCommunityPopup from "@/components/WhatsAppCommunityPopup";
 
 export default function Home() {
     return (
@@ -33,6 +35,8 @@ export default function Home() {
             <Footer />
             <FloatingActions />
             <AIChat />
+            <LeadPopup />
+            <WhatsAppCommunityPopup />
         </div>
     );
 }

@@ -8,11 +8,12 @@ import {
     ResponsiveContainer,
     CartesianGrid,
 } from "recharts";
-import { Download, ArrowUpRight, Calculator as CalcIcon, Sparkles } from "lucide-react";
+import { Download, ArrowUpRight, Calculator as CalcIcon, Sparkles, Lightbulb } from "lucide-react";
 import html2canvas from "html2canvas";
 import { QRCodeCanvas } from "qrcode.react";
 import { toast } from "sonner";
 import { IDS } from "@/constants/testIds";
+import { CALC_RECOMMENDATIONS } from "@/lib/recommendations";
 
 const TFD_BRAND_URL = "https://www.assetplus.in/mfd/ARN-290298";
 
@@ -804,7 +805,7 @@ function SnapshotCard({ tab, result, state }) {
                 <div style={{ fontSize: 10, letterSpacing: "0.22em", textTransform: "uppercase", color: "#5C677D", marginBottom: 8 }}>
                     Year-on-year growth
                 </div>
-                <div style={{ height: 70, background: "#FBF7EE", border: "1px solid #E2D8C2", borderRadius: 12, padding: 8, display: "flex", alignItems: "flex-end", gap: 2 }}>
+                <div style={{ height: 64, background: "#FBF7EE", border: "1px solid #E2D8C2", borderRadius: 12, padding: 8, display: "flex", alignItems: "flex-end", gap: 2 }}>
                     {(result.series || []).map((p, idx) => {
                         const max = Math.max(
                             ...result.series.map((x) => Math.max(x.invested, x.value, 1)),
@@ -828,6 +829,37 @@ function SnapshotCard({ tab, result, state }) {
                         <span style={{ width: 8, height: 8, borderRadius: 999, background: "#0E5E48" }} />
                         {tab === "emi" ? "Outstanding" : "Value"}
                     </span>
+                </div>
+            </div>
+
+            {/* Bilingual recommendations */}
+            <div style={{ position: "relative", marginBottom: 18 }}>
+                <div style={{ fontSize: 10, letterSpacing: "0.22em", textTransform: "uppercase", color: "#C9802A", fontWeight: 700, marginBottom: 10, display: "flex", alignItems: "center", gap: 8 }}>
+                    <span style={{ width: 18, height: 18, borderRadius: 999, background: "#C9802A", color: "#fff", display: "grid", placeItems: "center", fontSize: 11 }}>💡</span>
+                    Smart tips · सुझाव
+                </div>
+                <div style={{ display: "flex", flexDirection: "column", gap: 7 }}>
+                    {(CALC_RECOMMENDATIONS[tab] || []).slice(0, 3).map((tip, idx) => (
+                        <div
+                            key={idx}
+                            style={{
+                                background: "#FBF7EE",
+                                border: "1px solid #E2D8C2",
+                                borderRadius: 12,
+                                padding: "9px 12px",
+                                borderLeft: "3px solid #0E5E48",
+                            }}
+                        >
+                            <div style={{ fontSize: 11.5, color: "#0E1B2C", lineHeight: 1.4 }}>
+                                <strong style={{ fontFamily: "'Fraunces', serif", fontWeight: 500, marginRight: 6, color: "#0E5E48" }}>EN:</strong>
+                                {tip.en}
+                            </div>
+                            <div style={{ fontSize: 11.5, color: "#2A364B", lineHeight: 1.4, marginTop: 3 }}>
+                                <strong style={{ fontFamily: "'Fraunces', serif", fontWeight: 500, marginRight: 6, color: "#C9802A" }}>HI:</strong>
+                                {tip.hi}
+                            </div>
+                        </div>
+                    ))}
                 </div>
             </div>
 
