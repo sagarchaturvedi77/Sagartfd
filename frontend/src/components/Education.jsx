@@ -109,7 +109,7 @@ export default function Education() {
                         </p>
                     </div>
                     <a
-                        href="https://chat.whatsapp.com/KTs87c2XR2I0JwYpU8dDEE"
+                        href="https://chat.whatsapp.com/JEb2Ilngiq45oqyUQDMFSX"
                         target="_blank"
                         rel="noreferrer"
                         className="btn-pill"

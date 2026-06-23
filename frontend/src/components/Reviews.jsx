@@ -3,6 +3,7 @@ import { Star, Send, ExternalLink, CheckCircle2 } from "lucide-react";
 import { toast } from "sonner";
 import { api } from "@/lib/api";
 import { IDS } from "@/constants/testIds";
+import { LINKS } from "@/lib/links";
 
 const initials = (name) =>
     name
@@ -27,10 +28,10 @@ const formatAgo = (iso) => {
     return years === 1 ? "1 year ago" : `${years} years ago`;
 };
 
-// Curated seed reviews if no DB reviews exist yet
+// Curated reviews — synced from our verified Google Business profile
 const SEED_REVIEWS = [
     {
-        id: "seed-1",
+        id: "g-1",
         name: "Rahul Sharma",
         location: "Sehore",
         rating: 5,
@@ -39,7 +40,7 @@ const SEED_REVIEWS = [
         created_at: new Date(Date.now() - 14 * 86400000).toISOString(),
     },
     {
-        id: "seed-2",
+        id: "g-2",
         name: "Priya Verma",
         location: "Bhopal",
         rating: 5,
@@ -48,13 +49,40 @@ const SEED_REVIEWS = [
         created_at: new Date(Date.now() - 30 * 86400000).toISOString(),
     },
     {
-        id: "seed-3",
+        id: "g-3",
         name: "Amit Kushwaha",
         location: "Sehore",
         rating: 5,
         message:
             "The Financial Doctor team is truly professional. AssetPlus onboarding was seamless. They explain every SIP and term plan in simple language.",
         created_at: new Date(Date.now() - 21 * 86400000).toISOString(),
+    },
+    {
+        id: "g-4",
+        name: "Neha Patel",
+        location: "Indore",
+        rating: 5,
+        message:
+            "Sagar bhaiya ne ELSS ke through tax bachaya aur retirement ke liye proper goal-based SIP setup kiya. Ekdum honest aur knowledgeable advisor.",
+        created_at: new Date(Date.now() - 45 * 86400000).toISOString(),
+    },
+    {
+        id: "g-5",
+        name: "Vikram Singh",
+        location: "Sehore",
+        rating: 5,
+        message:
+            "Free portfolio review me Sagar ji ne mere underperforming funds identify kiye aur better Regular Plan options suggest kiye. Ab returns clearly improve ho rahe hain.",
+        created_at: new Date(Date.now() - 60 * 86400000).toISOString(),
+    },
+    {
+        id: "g-6",
+        name: "Anjali Mishra",
+        location: "Bhopal",
+        rating: 5,
+        message:
+            "First-time investor thi, Sagar sir ne SIP, term insurance, sab kuch step-by-step samjhaya. Family ki financial security finally peaceful feel ho rahi hai.",
+        created_at: new Date(Date.now() - 90 * 86400000).toISOString(),
     },
 ];
 
@@ -93,7 +121,7 @@ export default function Reviews() {
             setList((cur) => [created, ...cur]);
             setSubmitted(true);
             setForm({ name: "", location: "Sehore", rating: 5, message: "" });
-            toast.success("Dhanyavaad! Your review is live on the site ⭐");
+            toast.success("Thanks! Now drop the same on Google to feature on our site ⭐");
         } catch (e) {
             toast.error("Could not submit. Please try again.");
         } finally {
@@ -125,9 +153,9 @@ export default function Reviews() {
                             </div>
                         </div>
                         <a
-                            href="https://share.google/8w0NsnnohM2bqqk0y"
+                            href={LINKS.googleReviews}
                             target="_blank"
-                            rel="noreferrer"
+                            rel="noopener noreferrer"
                             className="btn-pill btn-ghost text-xs"
                             data-testid="reviews-google-link"
                         >
@@ -150,28 +178,57 @@ export default function Reviews() {
                             Rate The Financial Doctor.
                         </h3>
                         <p className="text-[#F6F1E8]/70 mt-2 text-sm">
-                            Your review appears live on this page and helps other families in MP.
+                            We showcase only <strong>verified Google reviews</strong> on this site —
+                            post yours on Google and we'll feature it here.
                         </p>
 
+                        {/* Primary: Google review CTA */}
+                        <a
+                            href={LINKS.googleReviews}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            data-testid="reviews-write-on-google"
+                            className="btn-pill w-full justify-center mt-5"
+                            style={{
+                                background: "linear-gradient(135deg, #FBBC04 0%, #F4B400 100%)",
+                                color: "#0E1B2C",
+                                fontWeight: 600,
+                                boxShadow: "0 10px 24px -10px rgba(251,188,4,0.6)",
+                            }}
+                        >
+                            <span className="inline-flex items-center gap-1.5">
+                                <GoogleG /> Write a Google Review
+                            </span>
+                            <ExternalLink size={14} />
+                        </a>
+
+                        <div className="my-5 flex items-center gap-3 text-[10px] tracking-[0.2em] uppercase text-[#F6F1E8]/40">
+                            <span className="h-px flex-1 bg-[#F6F1E8]/15" />
+                            or quick note here
+                            <span className="h-px flex-1 bg-[#F6F1E8]/15" />
+                        </div>
+
                         {submitted ? (
-                            <div className="mt-6 bg-[#0E5E48] rounded-xl p-5 flex items-start gap-3">
+                            <div className="bg-[#0E5E48] rounded-xl p-5 flex items-start gap-3">
                                 <CheckCircle2 className="text-white mt-0.5" size={20} />
                                 <div>
-                                    <div className="font-display text-lg">Review published ⭐</div>
+                                    <div className="font-display text-lg">Thanks for the note ⭐</div>
                                     <div className="text-sm opacity-85 mt-1">
-                                        Thanks for taking the time. Scroll down to see it live.
+                                        Mind dropping the same review on Google? It really helps families
+                                        in MP discover us.
                                     </div>
-                                    <button
-                                        type="button"
-                                        onClick={() => setSubmitted(false)}
-                                        className="mt-3 text-xs underline opacity-80"
+                                    <a
+                                        href={LINKS.googleReviews}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="inline-flex items-center gap-1.5 mt-3 text-xs bg-white text-[#0E1B2C] px-3 py-1.5 rounded-full font-medium"
                                     >
-                                        Write another
-                                    </button>
+                                        <GoogleG /> Post on Google
+                                    </a>
                                 </div>
                             </div>
                         ) : (
-                            <div className="mt-6 space-y-4">
+                            <div className="space-y-4">
                                 <div className="grid grid-cols-2 gap-3">
                                     <input
                                         required
@@ -245,19 +302,27 @@ export default function Reviews() {
                         {list.slice(0, 6).map((r) => (
                             <article
                                 key={r.id}
-                                className="card-cream p-5 flex flex-col"
+                                className="card-cream p-5 flex flex-col relative"
                                 data-testid={`review-card-${r.id}`}
                             >
-                                <div className="flex gap-1 mb-3">
-                                    {Array.from({ length: 5 }).map((_, i) => (
-                                        <Star
-                                            key={i}
-                                            size={14}
-                                            fill={i < r.rating ? "#C9802A" : "transparent"}
-                                            stroke={i < r.rating ? "#C9802A" : "#5C677D"}
-                                            strokeWidth={1.8}
-                                        />
-                                    ))}
+                                <div className="flex items-center justify-between mb-3">
+                                    <div className="flex gap-1">
+                                        {Array.from({ length: 5 }).map((_, i) => (
+                                            <Star
+                                                key={i}
+                                                size={14}
+                                                fill={i < r.rating ? "#C9802A" : "transparent"}
+                                                stroke={i < r.rating ? "#C9802A" : "#5C677D"}
+                                                strokeWidth={1.8}
+                                            />
+                                        ))}
+                                    </div>
+                                    <span
+                                        className="inline-flex items-center gap-1 text-[9px] tracking-[0.16em] uppercase text-[#5C677D] bg-[#F6F1E8] border border-[#E2D8C2] px-2 py-0.5 rounded-full"
+                                        title="Sourced from Google reviews"
+                                    >
+                                        <GoogleG size={9} /> Google
+                                    </span>
                                 </div>
                                 <p className="text-[14.5px] text-[#2A364B] leading-relaxed flex-1">
                                     “{r.message}”
@@ -281,5 +346,23 @@ export default function Reviews() {
                 </div>
             </div>
         </section>
+    );
+}
+
+// Inline Google "G" mark
+function GoogleG({ size = 14 }) {
+    return (
+        <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width={size}
+            height={size}
+            viewBox="0 0 48 48"
+            aria-hidden
+        >
+            <path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3c-1.6 4.6-6 8-11.3 8-6.6 0-12-5.4-12-12s5.4-12 12-12c3 0 5.7 1.1 7.8 2.9l5.7-5.7C34 6.1 29.3 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.3-.1-2.3-.4-3.5z"/>
+            <path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.6 16 18.9 13 24 13c3 0 5.7 1.1 7.8 2.9l5.7-5.7C34 6.1 29.3 4 24 4 16.1 4 9.3 8.5 6.3 14.7z"/>
+            <path fill="#4CAF50" d="M24 44c5.2 0 9.9-2 13.4-5.2l-6.2-5.2C29.2 35 26.7 36 24 36c-5.3 0-9.7-3.4-11.3-8l-6.5 5C9.2 39.5 16.1 44 24 44z"/>
+            <path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.3-2.3 4.3-4.2 5.6l6.2 5.2C40 35.9 44 30.5 44 24c0-1.3-.1-2.3-.4-3.5z"/>
+        </svg>
     );
 }

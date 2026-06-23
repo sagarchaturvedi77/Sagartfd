@@ -32,7 +32,7 @@ export default function Footer() {
                         <Social href="https://www.instagram.com/the_financial.doctor" icon={Instagram} label="Instagram" />
                         <Social href="https://youtube.com/@the_financial_doctor" icon={Youtube} label="YouTube" />
                         <Social href="https://www.linkedin.com/in/sagarchaturvedisehore" icon={Linkedin} label="LinkedIn" />
-                        <Social href="https://chat.whatsapp.com/KTs87c2XR2I0JwYpU8dDEE" icon={MessageCircle} label="WhatsApp Community" />
+                        <Social href="https://chat.whatsapp.com/JEb2Ilngiq45oqyUQDMFSX" icon={MessageCircle} label="WhatsApp Community" />
                     </div>
                     <a
                         href="#ai-chat"

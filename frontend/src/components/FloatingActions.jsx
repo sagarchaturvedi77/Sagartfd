@@ -10,15 +10,16 @@ import {
     Users,
     Plus,
 } from "lucide-react";
+import { LINKS } from "@/lib/links";
 
 const rightActions = [
     {
         id: "wa-community",
         label: "WhatsApp Community",
-        sub: "Daily finance tips",
+        sub: "MF info — Daily",
         icon: Users,
         bg: "#128C7E",
-        href: "https://chat.whatsapp.com/KTs87c2XR2I0JwYpU8dDEE",
+        href: LINKS.whatsappCommunity,
         testid: "fab-whatsapp-community",
     },
     {
@@ -27,7 +28,7 @@ const rightActions = [
         sub: "Leave a 5★ review",
         icon: Star,
         bg: "#FBBC04",
-        href: "https://share.google/8w0NsnnohM2bqqk0y",
+        href: LINKS.googleReviews,
         testid: "fab-google",
     },
     {
@@ -36,7 +37,7 @@ const rightActions = [
         sub: "@the_financial.doctor",
         icon: Instagram,
         bg: "linear-gradient(135deg,#feda75,#fa7e1e,#d62976,#962fbf,#4f5bd5)",
-        href: "https://www.instagram.com/the_financial.doctor",
+        href: LINKS.instagram,
         testid: "fab-instagram",
     },
     {
@@ -45,7 +46,7 @@ const rightActions = [
         sub: "@the_financial_doctor",
         icon: Youtube,
         bg: "#FF0000",
-        href: "https://youtube.com/@the_financial_doctor",
+        href: LINKS.youtube,
         testid: "fab-youtube",
     },
     {
@@ -54,7 +55,7 @@ const rightActions = [
         sub: "Connect with Sagar",
         icon: Linkedin,
         bg: "#0A66C2",
-        href: "https://www.linkedin.com/in/sagarchaturvedisehore",
+        href: LINKS.linkedin,
         testid: "fab-linkedin",
     },
 ];
@@ -147,7 +148,7 @@ export default function FloatingActions() {
 
                 {/* WhatsApp main button */}
                 <a
-                    href="https://wa.me/917773805794?text=Hi%20Sagar%20ji%2C%20I%20want%20to%20know%20more%20about%20mutual%20fund%20investments."
+                    href={LINKS.whatsappDM}
                     target="_blank"
                     rel="noopener noreferrer"
                     aria-label="WhatsApp Sagar ji"

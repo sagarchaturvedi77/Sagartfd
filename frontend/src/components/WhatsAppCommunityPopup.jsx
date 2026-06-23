@@ -3,7 +3,7 @@ import { X, MessageCircle, Sparkles, TrendingUp, Bell, Lightbulb } from "lucide-
 
 const STORAGE_KEY = "tfd_wa_community_popup_v1";
 const SHOW_AFTER_MS = 10000;
-const COMMUNITY_LINK = "https://chat.whatsapp.com/KTs87c2XR2I0JwYpU8dDEE";
+const COMMUNITY_LINK = "https://chat.whatsapp.com/JEb2Ilngiq45oqyUQDMFSX";
 
 const perks = [
     { icon: TrendingUp, text: "Daily MF picks & NAV updates" },

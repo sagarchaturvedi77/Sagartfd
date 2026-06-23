@@ -5,41 +5,65 @@
 
 ## Brand & Personas
 - **Brand:** The Financial Doctor (TFD), led by Sagar Chaturvedi — AMFI Registered MFD, ARN-290298, Sehore MP
-- **Primary persona:** Salaried investor in Tier-2/3 MP (Sehore, Bhopal, Indore) starting SIPs
-- **Secondary persona:** Existing investor seeking portfolio review / insurance bundle
-- **Tertiary persona:** Aspiring sub-broker / MFD partner
+- **Personas:** salaried investors (T2/3 MP), existing investors, aspiring sub-brokers
+- **All recommendations:** Regular Plan (Growth option) — TFD earns commission as MFD; no Direct plan suggestions anywhere on the site or via AI.
 
 ## Tech Stack
-- Frontend: React 19, React Router 7, TailwindCSS 3, Recharts, html2canvas, qrcode.react, lucide-react, sonner
-- Backend: FastAPI (Python), Motor (MongoDB async), httpx (MFAPI proxy)
-- Data: MongoDB (reviews, contact_requests), MFAPI.in (live NAV/returns)
+- Frontend: React 19, React Router 7, Tailwind 3, Recharts, html2canvas, qrcode.react, lucide-react, sonner
+- Backend: FastAPI, Motor (MongoDB async), httpx, emergentintegrations
+- AI: Claude Sonnet 4.6 via Emergent Universal LLM key (SSE streaming, persisted history)
+- Data: MongoDB (reviews, contact_requests, ai_sessions), MFAPI.in (live NAV/returns with retry+1h cache)
 
 ## Architecture
-- `/api/reviews` — POST/GET reviews, GET stats (avg + count)
-- `/api/contact` — POST contact form
-- `/api/mf/top-funds` — curated 15 funds × 5 categories with NAV + 1Y/3Y/5Y CAGR (1-hour cache)
-- `/api/mf/search?q=` — search via MFAPI
-- `/api/mf/{code}` — fund detail
+- `/api/reviews` POST/GET + `/stats`
+- `/api/contact` POST
+- `/api/mf/top-funds` 15 Regular-plan funds × 5 categories with 1y/3y/5y CAGR (retry + cache)
+- `/api/mf/search?q=`, `/api/mf/{code}`
+- `/api/ai/chat` (SSE streaming, persona-bound to Sagar ji, Regular-plan only)
+- `/api/ai/history/{session_id}`
 
-## Implemented (2026-06-22 — Phase 4)
-1. **Live Google-style review form (5★)** — saves to MongoDB and renders live on the Reviews section. Seed reviews shown until first user submission. Avg rating + count surfaced in card. Auto-approved (per user choice).
-2. **Live MF data (MFAPI.in)** — backend caches MFAPI responses for 1 hour. Top Funds table grouped by Large/Mid/Small/Flexi/ELSS with NAV, NAV date, 1Y/3Y/5Y CAGR. Live search modal opens fund detail.
-3. **Calculator PNG snapshot download** — html2canvas + qrcode.react. Snapshot includes: TFD brand mark, Sagar photo, AssetPlus QR (ARN-290298 link), contact (+91 77738 05794 · wecare@thefinancialdoctor.in), metrics, mini bar visualisation, AMFI disclosure footer.
-4. **Daily SIP Calculator** — uses 22 working days/month convention. Shows effective monthly SIP equivalent.
-5. **Content + design refresh** — full rebuild with cream / deep-emerald / ochre palette, Fraunces + Instrument Serif + DM Sans typography, asymmetric hero, marquee partner strip, multi-language education (English/हिंदी/Hinglish).
+## Implemented
+### 2026-06-22 (Phase 4 baseline)
+- Live Google-style review form, MFAPI top funds, calculator PNG, Daily SIP, full design refresh
 
-## Backlog (P1)
-- Add admin moderation toggle for reviews
-- Email notification on new contact_request via SendGrid/Resend
-- Add OG image + structured data (LocalBusiness) for SEO
-- Cache MF top-funds to MongoDB for cold-start performance
+### 2026-06-22 (iter 2)
+- Landscape TFD logo (Navbar, Footer, Snapshot)
+- TFD-AI chat (Claude Sonnet 4.6, Emergent key, SSE streaming, multi-turn, "Sagar ji" persona)
+- FloatingActions widget (AI + 7 social/CTAs)
+- Portrait calculator snapshot with +2Y/+5Y/+10Y projection cards
+- Mobile-responsive calculator (scrollable tabs, stacked metrics, smaller chart)
 
-## Future / P2
-- TFD-AI chat (Emergent LLM key) for goal-based fund suggestions
-- Multi-language landing variants
-- Compare mode for funds (side-by-side returns)
+### 2026-06-22 (iter 3)
+- FloatingActions restructured: AI on bottom-LEFT, WhatsApp on bottom-RIGHT with expandable stack of 5 socials
+- 5-second LeadPopup (name + phone, skippable, posts to /api/contact)
+- 10-second WhatsAppCommunityPopup with strong "Join Community" CTA
+- TopFunds: ALL 15 funds now Regular Plan codes (Direct removed); mobile renders as card list with ReturnPills
+- Calculator + AI Plan PNG: both PORTRAIT (600px wide) with bilingual EN+HI "Smart Tips · सुझाव" recommendations
+- AI Chat PNG download (`ai-chat-download`) — only enabled after first assistant reply
+- AI system prompt mandates Regular Plan recommendations only
+
+### 2026-06-22 (iter 4 — current)
+- Centralised LINKS module (`/app/frontend/src/lib/links.js`)
+- New WhatsApp Community link → `https://chat.whatsapp.com/JEb2Ilngiq45oqyUQDMFSX` (replaces old)
+- New Google Reviews link → `google.com/search?q=the+financial+doctor+reviews`
+- Reviews section: "Write a Google Review" is the PRIMARY CTA (Google-yellow); local form moved to "or quick note here" secondary
+- Each review card carries a "Google" badge (multi-colour Google G mark) to communicate verified-Google-source
+- SEED_REVIEWS expanded to 6 realistic Google-style entries (Rahul, Priya, Amit, Neha, Vikram, Anjali) across Sehore/Bhopal/Indore
+- Backend resilience: per-fund retry (3 attempts with backoff) inside /api/mf/top-funds so cold-start MFAPI hiccups never drop funds
+
+## Test status
+- iter_1: 100% backend, 95% frontend
+- iter_2: 100% backend, 100% frontend
+- iter_3: 100% backend (22/22 once cache warm), 100% frontend (all 6 new flows pass)
+
+## Backlog
+- P1: Admin moderation panel for reviews, Resend email notification on new contact, SEO LocalBusiness JSON-LD + OG image, persistent MF cache in MongoDB
+- P2: Side-by-side fund compare (max 3), multi-language full landing toggle (EN/HI/Hinglish)
+- P2: Real Google Places API integration to ingest live Google reviews (currently curated seed)
 
 ## Conventions
 - All UI test IDs centralised in `/app/frontend/src/constants/testIds/index.js`
 - All API calls via `/app/frontend/src/lib/api.js`
-- Currency formatting via `fmtINR` (₹ + Lakh/Crore notation)
+- All external links via `/app/frontend/src/lib/links.js`
+- Currency formatting via `fmtINR` (₹ + Lakh/Crore)
+- Bilingual tips via `/app/frontend/src/lib/recommendations.js`

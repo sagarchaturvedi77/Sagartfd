@@ -191,25 +191,28 @@ async def top_funds():
     """Return curated top funds across categories with latest NAV and returns."""
     out = []
     async def _build(category: str, fund: dict):
-        try:
-            data = await fetch_fund(fund["code"])
-            meta = data.get("meta", {})
-            navs = data.get("data", [])
-            latest = navs[0] if navs else {}
-            return {
-                "code": fund["code"],
-                "name": meta.get("scheme_name", fund["name"]),
-                "fund_house": meta.get("fund_house", ""),
-                "category": category,
-                "nav": latest.get("nav"),
-                "nav_date": latest.get("date"),
-                "return_1y": _annualised_return(navs, 1),
-                "return_3y": _annualised_return(navs, 3),
-                "return_5y": _annualised_return(navs, 5),
-            }
-        except Exception as e:
-            logger.warning(f"Failed fetch {fund['code']}: {e}")
-            return None
+        for attempt in range(3):
+            try:
+                data = await fetch_fund(fund["code"])
+                meta = data.get("meta", {})
+                navs = data.get("data", [])
+                latest = navs[0] if navs else {}
+                return {
+                    "code": fund["code"],
+                    "name": meta.get("scheme_name", fund["name"]),
+                    "fund_house": meta.get("fund_house", ""),
+                    "category": category,
+                    "nav": latest.get("nav"),
+                    "nav_date": latest.get("date"),
+                    "return_1y": _annualised_return(navs, 1),
+                    "return_3y": _annualised_return(navs, 3),
+                    "return_5y": _annualised_return(navs, 5),
+                }
+            except Exception as e:
+                if attempt == 2:
+                    logger.warning(f"Failed fetch {fund['code']}: {e}")
+                    return None
+                await asyncio.sleep(0.4 * (attempt + 1))
 
     tasks = []
     for cat, funds in TOP_FUNDS.items():
