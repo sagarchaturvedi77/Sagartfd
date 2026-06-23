@@ -152,7 +152,7 @@ export default function Reviews() {
                     <div>
                         <div className="eyebrow">Word on the street</div>
                         <h2 className="h2 mt-3 text-[#0E1B2C]">
-                            Trusted by 1000+ <span className="font-italic-serif text-[#C9802A]">families</span> across MP.
+                            Trusted by 1000+ <span className="font-italic-serif text-[#C7102E]">families</span> across MP.
                         </h2>
                     </div>
                     <div className="card-cream px-3.5 sm:px-5 py-3 sm:py-4 flex items-center gap-3 sm:gap-5">
@@ -187,7 +187,7 @@ export default function Reviews() {
                         className="lg:col-span-5 card-ink p-4 sm:p-7 w-full min-w-0 overflow-hidden"
                         data-testid={IDS.reviews.form}
                     >
-                        <div className="text-[10px] sm:text-[11px] tracking-[0.18em] uppercase text-[#C9802A] font-semibold">
+                        <div className="text-[10px] sm:text-[11px] tracking-[0.18em] uppercase text-[#C7102E] font-semibold">
                             Share your experience
                         </div>
                         <h3 className="font-display text-[1.2rem] sm:text-[1.7rem] mt-1.5 sm:mt-2 leading-snug">
@@ -225,7 +225,7 @@ export default function Reviews() {
                         </div>
 
                         {submitted ? (
-                            <div className="bg-[#0E5E48] rounded-xl p-5 flex items-start gap-3">
+                            <div className="bg-[#024396] rounded-xl p-5 flex items-start gap-3">
                                 <CheckCircle2 className="text-white mt-0.5" size={20} />
                                 <div>
                                     <div className="font-display text-lg">Thanks for the note ⭐</div>
@@ -251,14 +251,14 @@ export default function Reviews() {
                                         placeholder="Your name"
                                         value={form.name}
                                         onChange={(e) => setForm({ ...form, name: e.target.value })}
-                                        className="min-w-0 bg-[#2A364B] border border-[#3a4761] rounded-xl px-3 py-2.5 text-[13px] sm:text-[14px] text-[#F6F1E8] placeholder:text-[#8A93A6] focus:border-[#C9802A]"
+                                        className="min-w-0 bg-[#2A364B] border border-[#3a4761] rounded-xl px-3 py-2.5 text-[13px] sm:text-[14px] text-[#F6F1E8] placeholder:text-[#8A93A6] focus:border-[#C7102E]"
                                     />
                                     <input
                                         data-testid={IDS.reviews.location}
                                         placeholder="City"
                                         value={form.location}
                                         onChange={(e) => setForm({ ...form, location: e.target.value })}
-                                        className="min-w-0 bg-[#2A364B] border border-[#3a4761] rounded-xl px-3 py-2.5 text-[13px] sm:text-[14px] text-[#F6F1E8] placeholder:text-[#8A93A6] focus:border-[#C9802A]"
+                                        className="min-w-0 bg-[#2A364B] border border-[#3a4761] rounded-xl px-3 py-2.5 text-[13px] sm:text-[14px] text-[#F6F1E8] placeholder:text-[#8A93A6] focus:border-[#C7102E]"
                                     />
                                 </div>
                                 <div>
@@ -281,8 +281,8 @@ export default function Reviews() {
                                                 >
                                                     <Star
                                                         size={26}
-                                                        fill={active ? "#C9802A" : "transparent"}
-                                                        stroke={active ? "#C9802A" : "#5C677D"}
+                                                        fill={active ? "#C7102E" : "transparent"}
+                                                        stroke={active ? "#C7102E" : "#5C677D"}
                                                         strokeWidth={1.8}
                                                     />
                                                 </button>
@@ -299,7 +299,7 @@ export default function Reviews() {
                                             type="button"
                                             onClick={() => setForm((f) => ({ ...f, message: pickRandomTemplate() }))}
                                             data-testid="reviews-shuffle"
-                                            className="inline-flex items-center gap-1 text-[11px] text-[#C9802A] hover:text-[#F6F1E8] transition-colors"
+                                            className="inline-flex items-center gap-1 text-[11px] text-[#C7102E] hover:text-[#F6F1E8] transition-colors"
                                             aria-label="Shuffle template"
                                             title="Pick a different template"
                                         >
@@ -317,7 +317,7 @@ export default function Reviews() {
                                                     data-testid={`reviews-template-${idx}`}
                                                     className={`shrink-0 text-[11px] rounded-full px-3 py-1.5 transition-colors ${
                                                         active
-                                                            ? "bg-[#C9802A] text-white"
+                                                            ? "bg-[#C7102E] text-white"
                                                             : "bg-[#2A364B] text-[#F6F1E8]/80 hover:bg-[#3a4761]"
                                                     }`}
                                                 >
@@ -334,14 +334,14 @@ export default function Reviews() {
                                     value={form.message}
                                     onChange={(e) => setForm({ ...form, message: e.target.value })}
                                     rows={3}
-                                    className="w-full min-w-0 bg-[#2A364B] border border-[#3a4761] rounded-xl px-3 py-2.5 text-[13px] sm:text-[14px] text-[#F6F1E8] placeholder:text-[#8A93A6] focus:border-[#C9802A] resize-none"
+                                    className="w-full min-w-0 bg-[#2A364B] border border-[#3a4761] rounded-xl px-3 py-2.5 text-[13px] sm:text-[14px] text-[#F6F1E8] placeholder:text-[#8A93A6] focus:border-[#C7102E] resize-none"
                                 />
                                 <button
                                     type="submit"
                                     disabled={loading || form.message.length < 10}
                                     data-testid={IDS.reviews.submit}
                                     className="flex items-center justify-between gap-2 w-full rounded-full px-4 py-3 text-[13px] sm:text-sm font-semibold disabled:opacity-50 transition-opacity"
-                                    style={{ background: "#C9802A", color: "#fff" }}
+                                    style={{ background: "#C7102E", color: "#fff" }}
                                 >
                                     <span className="inline-flex items-center gap-1.5 min-w-0">
                                         <Send size={15} className="shrink-0" />
@@ -372,8 +372,8 @@ export default function Reviews() {
                                             <Star
                                                 key={i}
                                                 size={13}
-                                                fill={i < r.rating ? "#C9802A" : "transparent"}
-                                                stroke={i < r.rating ? "#C9802A" : "#5C677D"}
+                                                fill={i < r.rating ? "#C7102E" : "transparent"}
+                                                stroke={i < r.rating ? "#C7102E" : "#5C677D"}
                                                 strokeWidth={1.8}
                                             />
                                         ))}
@@ -389,7 +389,7 @@ export default function Reviews() {
                                     “{r.message}”
                                 </p>
                                 <div className="mt-3 sm:mt-4 pt-3 sm:pt-4 border-t border-[#E2D8C2] flex items-center gap-2.5 sm:gap-3">
-                                    <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-[#0E5E48] text-[#F6F1E8] grid place-items-center text-xs sm:text-sm font-display">
+                                    <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-[#024396] text-[#F6F1E8] grid place-items-center text-xs sm:text-sm font-display">
                                         {initials(r.name)}
                                     </div>
                                     <div>

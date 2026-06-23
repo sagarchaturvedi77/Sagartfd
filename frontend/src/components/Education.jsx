@@ -68,7 +68,7 @@ export default function Education() {
                     <div>
                         <div className="eyebrow">Financial Education</div>
                         <h2 className="h2 mt-3 text-[#0E1B2C]">
-                            Learn before <span className="font-italic-serif text-[#0E5E48]">you invest.</span>
+                            Learn before <span className="font-italic-serif text-[#024396]">you invest.</span>
                         </h2>
                     </div>
                     <div className="flex gap-2">
@@ -98,7 +98,7 @@ export default function Education() {
 
                 <div className="mt-10 card-ink p-7 md:p-9 flex flex-col md:flex-row items-start md:items-center justify-between gap-5">
                     <div>
-                        <div className="text-[11px] tracking-[0.2em] uppercase text-[#C9802A] font-semibold">
+                        <div className="text-[11px] tracking-[0.2em] uppercase text-[#C7102E] font-semibold">
                             Join our community
                         </div>
                         <h3 className="font-display text-[1.8rem] mt-1">
@@ -113,7 +113,7 @@ export default function Education() {
                         target="_blank"
                         rel="noreferrer"
                         className="btn-pill"
-                        style={{ background: "#C9802A", color: "#fff" }}
+                        style={{ background: "#C7102E", color: "#fff" }}
                     >
                         Join WhatsApp Community
                     </a>

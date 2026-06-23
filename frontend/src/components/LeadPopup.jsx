@@ -76,7 +76,7 @@ export default function LeadPopup() {
 
                 {submitted ? (
                     <div className="px-7 py-10 text-center">
-                        <div className="w-16 h-16 rounded-full bg-[#0E5E48] grid place-items-center mx-auto text-[#F6F1E8]">
+                        <div className="w-16 h-16 rounded-full bg-[#024396] grid place-items-center mx-auto text-[#F6F1E8]">
                             <Sparkles size={28} />
                         </div>
                         <h3 className="font-display text-2xl text-[#0E1B2C] mt-5">
@@ -98,7 +98,7 @@ export default function LeadPopup() {
                     <>
                         {/* Header band */}
                         <div className="bg-[#0E1B2C] text-[#F6F1E8] px-7 py-5 flex items-center gap-3">
-                            <span className="w-11 h-11 rounded-full bg-gradient-to-br from-[#0E5E48] to-[#C9802A] grid place-items-center shrink-0">
+                            <span className="w-11 h-11 rounded-full bg-gradient-to-br from-[#024396] to-[#C7102E] grid place-items-center shrink-0">
                                 <Stethoscope size={18} />
                             </span>
                             <div>
@@ -130,7 +130,7 @@ export default function LeadPopup() {
                                         onChange={(e) => setName(e.target.value)}
                                         placeholder="Aapka naam"
                                         data-testid="lead-popup-name"
-                                        className="w-full bg-[#F6F1E8] border border-[#E2D8C2] rounded-xl pl-11 pr-4 py-3 text-[#0E1B2C] placeholder:text-[#8A93A6] focus:border-[#0E5E48]"
+                                        className="w-full bg-[#F6F1E8] border border-[#E2D8C2] rounded-xl pl-11 pr-4 py-3 text-[#0E1B2C] placeholder:text-[#8A93A6] focus:border-[#024396]"
                                     />
                                 </div>
                                 <div className="relative">
@@ -146,7 +146,7 @@ export default function LeadPopup() {
                                         onChange={(e) => setPhone(e.target.value)}
                                         placeholder="Mobile number"
                                         data-testid="lead-popup-phone"
-                                        className="w-full bg-[#F6F1E8] border border-[#E2D8C2] rounded-xl pl-11 pr-4 py-3 text-[#0E1B2C] placeholder:text-[#8A93A6] focus:border-[#0E5E48]"
+                                        className="w-full bg-[#F6F1E8] border border-[#E2D8C2] rounded-xl pl-11 pr-4 py-3 text-[#0E1B2C] placeholder:text-[#8A93A6] focus:border-[#024396]"
                                     />
                                 </div>
                             </div>

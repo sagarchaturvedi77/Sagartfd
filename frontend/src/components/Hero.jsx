@@ -14,7 +14,7 @@ export default function Hero() {
                 className="absolute -top-32 -right-40 w-[700px] h-[700px] rounded-full opacity-40 blur-3xl"
                 style={{
                     background:
-                        "radial-gradient(circle at center, rgba(14,94,72,0.35) 0%, transparent 60%)",
+                        "radial-gradient(circle at center, rgba(2, 67, 150,0.35) 0%, transparent 60%)",
                 }}
             />
             <div
@@ -22,20 +22,20 @@ export default function Hero() {
                 className="absolute -bottom-40 -left-40 w-[600px] h-[600px] rounded-full opacity-30 blur-3xl"
                 style={{
                     background:
-                        "radial-gradient(circle at center, rgba(201,128,42,0.35) 0%, transparent 60%)",
+                        "radial-gradient(circle at center, rgba(199, 16, 46,0.35) 0%, transparent 60%)",
                 }}
             />
 
             <div className="container-x px-6 grid md:grid-cols-12 gap-10 items-center relative">
                 {/* Left text */}
                 <div className="md:col-span-7">
-                    <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-[#E2D8C2] bg-[#FBF7EE]/60 text-xs tracking-[0.18em] uppercase text-[#0E5E48] font-semibold">
+                    <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-[#E2D8C2] bg-[#FBF7EE]/60 text-xs tracking-[0.18em] uppercase text-[#024396] font-semibold">
                         <ShieldCheck size={14} /> AMFI Registered · ARN-290298
                     </div>
 
                     <h1 className="h1 mt-6 text-[#0E1B2C]">
-                        Treating <span className="font-italic-serif text-[#0E5E48]">your</span>
-                        <br /> financial <span className="font-italic-serif text-[#C9802A]">health</span>.
+                        Treating <span className="font-italic-serif text-[#024396]">your</span>
+                        <br /> financial <span className="font-italic-serif text-[#C7102E]">health</span>.
                     </h1>
 
                     <p className="mt-6 text-[1.05rem] md:text-lg text-[#2A364B] max-w-xl leading-relaxed">
@@ -91,8 +91,8 @@ export default function Hero() {
                 {/* Right photo */}
                 <div className="md:col-span-5 relative">
                     <div className="relative w-full max-w-[460px] mx-auto">
-                        <div className="absolute -inset-6 rounded-[2.5rem] bg-[#0E5E48]/10 -rotate-2" />
-                        <div className="absolute -inset-4 rounded-[2.5rem] bg-[#C9802A]/10 rotate-1" />
+                        <div className="absolute -inset-6 rounded-[2.5rem] bg-[#024396]/10 -rotate-2" />
+                        <div className="absolute -inset-4 rounded-[2.5rem] bg-[#C7102E]/10 rotate-1" />
                         <div className="relative rounded-[2.5rem] overflow-hidden border border-[#E2D8C2] bg-[#FBF7EE]">
                             <img
                                 src={SAGAR_PHOTO}

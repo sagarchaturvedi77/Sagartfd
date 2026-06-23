@@ -40,7 +40,7 @@ export default function Footer() {
                             e.preventDefault();
                             window.dispatchEvent(new CustomEvent("tfd:open-ai-chat"));
                         }}
-                        className="inline-flex items-center gap-2 mt-5 text-sm text-[#C9802A] hover:text-[#F6F1E8]"
+                        className="inline-flex items-center gap-2 mt-5 text-sm text-[#C7102E] hover:text-[#F6F1E8]"
                         data-testid="footer-ai-chat-link"
                     >
                         <Sparkles size={14} /> Ask TFD-AI anything
@@ -48,7 +48,7 @@ export default function Footer() {
                 </div>
 
                 <div>
-                    <div className="text-[11px] tracking-[0.2em] uppercase text-[#C9802A] font-semibold">
+                    <div className="text-[11px] tracking-[0.2em] uppercase text-[#C7102E] font-semibold">
                         Quick links
                     </div>
                     <ul className="mt-4 space-y-2.5 text-sm">
@@ -62,7 +62,7 @@ export default function Footer() {
                 </div>
 
                 <div>
-                    <div className="text-[11px] tracking-[0.2em] uppercase text-[#C9802A] font-semibold">
+                    <div className="text-[11px] tracking-[0.2em] uppercase text-[#C7102E] font-semibold">
                         Disclosure
                     </div>
                     <p className="text-xs mt-4 leading-relaxed">

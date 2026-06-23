@@ -33,7 +33,7 @@ export default function Partnership() {
                         <div className="eyebrow">Partner with us</div>
                         <h2 className="h2 mt-3 text-[#0E1B2C]">
                             Build a distribution business with India's{" "}
-                            <span className="font-italic-serif text-[#0E5E48]">most-loved doctor.</span>
+                            <span className="font-italic-serif text-[#024396]">most-loved doctor.</span>
                         </h2>
                         <p className="mt-4 text-[#2A364B]">
                             Whether you're a CA, insurance agent, or aspiring MFD — partner with The
@@ -64,7 +64,7 @@ export default function Partnership() {
                                     className="card-cream p-6"
                                     data-testid={`partnership-perk-${idx}`}
                                 >
-                                    <div className="w-11 h-11 rounded-xl bg-[#C9802A]/15 text-[#C9802A] grid place-items-center">
+                                    <div className="w-11 h-11 rounded-xl bg-[#C7102E]/15 text-[#C7102E] grid place-items-center">
                                         <Icon size={20} />
                                     </div>
                                     <h3 className="font-display text-[1.2rem] text-[#0E1B2C] mt-4">

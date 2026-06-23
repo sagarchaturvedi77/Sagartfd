@@ -53,7 +53,7 @@ export default function Navbar() {
                         <a
                             key={l.id}
                             href={`#${l.id}`}
-                            className="hover:text-[#0E5E48] transition-colors relative"
+                            className="hover:text-[#024396] transition-colors relative"
                         >
                             {l.label}
                         </a>

@@ -252,7 +252,7 @@ export default function Calculators() {
                     <div>
                         <div className="eyebrow">Plan · Visualise · Act</div>
                         <h2 className="h2 mt-3 text-[#0E1B2C]">
-                            Money math, <span className="font-italic-serif text-[#0E5E48]">made visual.</span>
+                            Money math, <span className="font-italic-serif text-[#024396]">made visual.</span>
                         </h2>
                         <p className="mt-3 text-[#2A364B] max-w-2xl">
                             See exactly how your wealth compounds. Try SIP, Daily SIP, Lumpsum, SWP, Goal &
@@ -261,7 +261,7 @@ export default function Calculators() {
                         </p>
                     </div>
                     <div className="hidden md:inline-flex items-center gap-2 text-xs text-[#5C677D] bg-[#FBF7EE] border border-[#E2D8C2] rounded-full px-3 py-2">
-                        <Sparkles size={14} className="text-[#C9802A]" />
+                        <Sparkles size={14} className="text-[#C7102E]" />
                         Daily SIP uses <strong className="text-[#0E1B2C] mx-1">22 working days</strong> / month
                     </div>
                 </div>
@@ -369,11 +369,11 @@ export default function Calculators() {
                                 </div>
                                 <div className="flex items-center gap-3 sm:gap-4 text-[11px] sm:text-xs text-[#5C677D]">
                                     <span className="inline-flex items-center gap-1.5">
-                                        <span className="w-2.5 h-2.5 rounded-full bg-[#C9802A]" />
+                                        <span className="w-2.5 h-2.5 rounded-full bg-[#C7102E]" />
                                         Invested
                                     </span>
                                     <span className="inline-flex items-center gap-1.5">
-                                        <span className="w-2.5 h-2.5 rounded-full bg-[#0E5E48]" />
+                                        <span className="w-2.5 h-2.5 rounded-full bg-[#024396]" />
                                         {tab === "emi" ? "Outstanding" : "Value"}
                                     </span>
                                 </div>
@@ -383,12 +383,12 @@ export default function Calculators() {
                                     <AreaChart data={result?.series || []}>
                                         <defs>
                                             <linearGradient id="gv" x1="0" y1="0" x2="0" y2="1">
-                                                <stop offset="0%" stopColor="#0E5E48" stopOpacity={0.45} />
-                                                <stop offset="100%" stopColor="#0E5E48" stopOpacity={0} />
+                                                <stop offset="0%" stopColor="#024396" stopOpacity={0.45} />
+                                                <stop offset="100%" stopColor="#024396" stopOpacity={0} />
                                             </linearGradient>
                                             <linearGradient id="gi" x1="0" y1="0" x2="0" y2="1">
-                                                <stop offset="0%" stopColor="#C9802A" stopOpacity={0.4} />
-                                                <stop offset="100%" stopColor="#C9802A" stopOpacity={0} />
+                                                <stop offset="0%" stopColor="#C7102E" stopOpacity={0.4} />
+                                                <stop offset="100%" stopColor="#C7102E" stopOpacity={0} />
                                             </linearGradient>
                                         </defs>
                                         <CartesianGrid strokeDasharray="3 3" stroke="#E2D8C2" />
@@ -407,14 +407,14 @@ export default function Calculators() {
                                         <Area
                                             type="monotone"
                                             dataKey="invested"
-                                            stroke="#C9802A"
+                                            stroke="#C7102E"
                                             strokeWidth={2}
                                             fill="url(#gi)"
                                         />
                                         <Area
                                             type="monotone"
                                             dataKey="value"
-                                            stroke="#0E5E48"
+                                            stroke="#024396"
                                             strokeWidth={2.4}
                                             fill="url(#gv)"
                                         />
@@ -494,7 +494,7 @@ function ResultCard({ tab, result, onDownload }) {
                     <button
                         onClick={onDownload}
                         className="btn-pill flex-1 md:flex-none justify-center"
-                        style={{ background: "#C9802A", color: "#fff" }}
+                        style={{ background: "#C7102E", color: "#fff" }}
                         data-testid={IDS.calc.download}
                     >
                         <Download size={16} /> <span className="hidden sm:inline">Download</span> PNG
@@ -727,7 +727,7 @@ function SnapshotCard({ tab, result, state }) {
                     width: 320,
                     height: 320,
                     borderRadius: "50%",
-                    background: "radial-gradient(circle, rgba(14,94,72,0.18) 0%, transparent 70%)",
+                    background: "radial-gradient(circle, rgba(2, 67, 150,0.18) 0%, transparent 70%)",
                 }}
             />
             <div
@@ -739,7 +739,7 @@ function SnapshotCard({ tab, result, state }) {
                     width: 360,
                     height: 360,
                     borderRadius: "50%",
-                    background: "radial-gradient(circle, rgba(201,128,42,0.15) 0%, transparent 70%)",
+                    background: "radial-gradient(circle, rgba(199, 16, 46,0.15) 0%, transparent 70%)",
                 }}
             />
 
@@ -773,7 +773,7 @@ function SnapshotCard({ tab, result, state }) {
                     <div style={{ fontSize: 10, letterSpacing: "0.22em", textTransform: "uppercase", color: "#5C677D" }}>
                         AMFI · ARN-290298
                     </div>
-                    <div style={{ fontSize: 11, color: "#0E5E48", marginTop: 4, fontWeight: 600 }}>
+                    <div style={{ fontSize: 11, color: "#024396", marginTop: 4, fontWeight: 600 }}>
                         Sehore · MP
                     </div>
                 </div>
@@ -794,7 +794,7 @@ function SnapshotCard({ tab, result, state }) {
                 }}
             >
                 <div>
-                    <div style={{ fontSize: 10, letterSpacing: "0.22em", textTransform: "uppercase", color: "#C9802A", fontWeight: 600 }}>
+                    <div style={{ fontSize: 10, letterSpacing: "0.22em", textTransform: "uppercase", color: "#C7102E", fontWeight: 600 }}>
                         {labels[tab]}
                     </div>
                     <div style={{ fontFamily: "'Fraunces', serif", fontSize: 26, marginTop: 6, lineHeight: 1 }}>
@@ -806,7 +806,7 @@ function SnapshotCard({ tab, result, state }) {
                 </div>
                 <div
                     style={{
-                        background: "#C9802A",
+                        background: "#C7102E",
                         color: "#fff",
                         borderRadius: 999,
                         padding: "5px 12px",
@@ -852,8 +852,8 @@ function SnapshotCard({ tab, result, state }) {
             {/* What if section */}
             {extendable && (
                 <div style={{ position: "relative", marginBottom: 20 }}>
-                    <div style={{ fontSize: 10, letterSpacing: "0.22em", textTransform: "uppercase", color: "#0E5E48", fontWeight: 700, marginBottom: 10, display: "flex", alignItems: "center", gap: 8 }}>
-                        <span style={{ width: 18, height: 1, background: "#0E5E48" }} />
+                    <div style={{ fontSize: 10, letterSpacing: "0.22em", textTransform: "uppercase", color: "#024396", fontWeight: 700, marginBottom: 10, display: "flex", alignItems: "center", gap: 8 }}>
+                        <span style={{ width: 18, height: 1, background: "#024396" }} />
                         What if you stay invested longer?
                     </div>
                     <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10 }}>
@@ -871,7 +871,7 @@ function SnapshotCard({ tab, result, state }) {
                                     }}
                                 >
                                     <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 6 }}>
-                                        <span style={{ background: "#0E5E48", color: "#F6F1E8", fontSize: 10, fontWeight: 700, padding: "3px 8px", borderRadius: 999 }}>
+                                        <span style={{ background: "#024396", color: "#F6F1E8", fontSize: 10, fontWeight: 700, padding: "3px 8px", borderRadius: 999 }}>
                                             +{y}Y
                                         </span>
                                         <span style={{ fontSize: 10, color: "#5C677D" }}>
@@ -881,7 +881,7 @@ function SnapshotCard({ tab, result, state }) {
                                     <div style={{ fontFamily: "'Fraunces', serif", fontSize: 19, color: "#0E1B2C", lineHeight: 1.1 }}>
                                         {p ? fmtINR(p.fv) : "—"}
                                     </div>
-                                    <div style={{ fontSize: 10, color: "#0E5E48", marginTop: 4, fontWeight: 600 }}>
+                                    <div style={{ fontSize: 10, color: "#024396", marginTop: 4, fontWeight: 600 }}>
                                         +{fmtINR(extraGains)} extra
                                     </div>
                                     {p && (
@@ -906,11 +906,11 @@ function SnapshotCard({ tab, result, state }) {
                 </div>
                 <div style={{ display: "flex", justifyContent: "space-between", marginTop: 6, fontSize: 10, color: "#5C677D" }}>
                     <span style={{ display: "inline-flex", alignItems: "center", gap: 5 }}>
-                        <span style={{ width: 8, height: 8, borderRadius: 999, background: "#C9802A" }} />
+                        <span style={{ width: 8, height: 8, borderRadius: 999, background: "#C7102E" }} />
                         Invested
                     </span>
                     <span style={{ display: "inline-flex", alignItems: "center", gap: 5 }}>
-                        <span style={{ width: 8, height: 8, borderRadius: 999, background: "#0E5E48" }} />
+                        <span style={{ width: 8, height: 8, borderRadius: 999, background: "#024396" }} />
                         {tab === "emi" ? "Outstanding" : "Value"}
                     </span>
                 </div>
@@ -918,8 +918,8 @@ function SnapshotCard({ tab, result, state }) {
 
             {/* Bilingual recommendations + upsell scenarios */}
             <div style={{ position: "relative", marginBottom: 18 }}>
-                <div style={{ fontSize: 10, letterSpacing: "0.22em", textTransform: "uppercase", color: "#C9802A", fontWeight: 700, marginBottom: 10, display: "flex", alignItems: "center", gap: 8 }}>
-                    <span style={{ width: 18, height: 18, borderRadius: 999, background: "#C9802A", color: "#fff", display: "grid", placeItems: "center", fontSize: 11 }}>💡</span>
+                <div style={{ fontSize: 10, letterSpacing: "0.22em", textTransform: "uppercase", color: "#C7102E", fontWeight: 700, marginBottom: 10, display: "flex", alignItems: "center", gap: 8 }}>
+                    <span style={{ width: 18, height: 18, borderRadius: 999, background: "#C7102E", color: "#fff", display: "grid", placeItems: "center", fontSize: 11 }}>💡</span>
                     Boost your wealth · Smart suggestions
                 </div>
                 <div style={{ display: "flex", flexDirection: "column", gap: 7 }}>
@@ -931,7 +931,7 @@ function SnapshotCard({ tab, result, state }) {
                                 border: "1px solid #E2D8C2",
                                 borderRadius: 12,
                                 padding: "9px 12px",
-                                borderLeft: "3px solid #0E5E48",
+                                borderLeft: "3px solid #024396",
                                 display: "flex",
                                 justifyContent: "space-between",
                                 alignItems: "center",
@@ -947,10 +947,10 @@ function SnapshotCard({ tab, result, state }) {
                                 </div>
                             </div>
                             <div style={{ textAlign: "right", flexShrink: 0 }}>
-                                <div style={{ fontSize: 9, color: "#0E5E48", letterSpacing: "0.12em", textTransform: "uppercase", fontWeight: 700 }}>
+                                <div style={{ fontSize: 9, color: "#024396", letterSpacing: "0.12em", textTransform: "uppercase", fontWeight: 700 }}>
                                     Extra gain
                                 </div>
-                                <div style={{ fontFamily: "'Fraunces', serif", fontSize: 17, color: "#0E5E48", lineHeight: 1.1, marginTop: 2 }}>
+                                <div style={{ fontFamily: "'Fraunces', serif", fontSize: 17, color: "#024396", lineHeight: 1.1, marginTop: 2 }}>
                                     +{fmtINR(s.extra)}
                                 </div>
                             </div>
@@ -964,15 +964,15 @@ function SnapshotCard({ tab, result, state }) {
                                 border: "1px solid #E2D8C2",
                                 borderRadius: 12,
                                 padding: "9px 12px",
-                                borderLeft: "3px solid #C9802A",
+                                borderLeft: "3px solid #C7102E",
                             }}
                         >
                             <div style={{ fontSize: 11.5, color: "#0E1B2C", lineHeight: 1.4 }}>
-                                <strong style={{ fontFamily: "'Fraunces', serif", fontWeight: 500, marginRight: 6, color: "#0E5E48" }}>EN:</strong>
+                                <strong style={{ fontFamily: "'Fraunces', serif", fontWeight: 500, marginRight: 6, color: "#024396" }}>EN:</strong>
                                 {tip.en}
                             </div>
                             <div style={{ fontSize: 11.5, color: "#2A364B", lineHeight: 1.4, marginTop: 3 }}>
-                                <strong style={{ fontFamily: "'Fraunces', serif", fontWeight: 500, marginRight: 6, color: "#C9802A" }}>HI:</strong>
+                                <strong style={{ fontFamily: "'Fraunces', serif", fontWeight: 500, marginRight: 6, color: "#C7102E" }}>HI:</strong>
                                 {tip.hi}
                             </div>
                         </div>
@@ -1005,7 +1005,7 @@ function SnapshotCard({ tab, result, state }) {
                             height: 88,
                             borderRadius: 12,
                             objectFit: "cover",
-                            border: "2px solid #C9802A",
+                            border: "2px solid #C7102E",
                         }}
                     />
                     <div>
@@ -1034,7 +1034,7 @@ function SnapshotCard({ tab, result, state }) {
                             includeMargin={false}
                         />
                     </div>
-                    <div style={{ fontSize: 9, marginTop: 5, color: "#C9802A", fontWeight: 700, letterSpacing: "0.15em", textTransform: "uppercase" }}>
+                    <div style={{ fontSize: 9, marginTop: 5, color: "#C7102E", fontWeight: 700, letterSpacing: "0.15em", textTransform: "uppercase" }}>
                         Scan to invest
                     </div>
                     <div style={{ fontSize: 9, opacity: 0.6 }}>AssetPlus · ARN-290298</div>
@@ -1059,7 +1059,7 @@ function BigStat({ label, value, accent }) {
     return (
         <div
             style={{
-                background: accent ? "#0E5E48" : "#FBF7EE",
+                background: accent ? "#024396" : "#FBF7EE",
                 border: accent ? "none" : "1px solid #E2D8C2",
                 borderRadius: 16,
                 padding: "12px 12px",
@@ -1126,12 +1126,12 @@ function SnapshotChart({ series, tab }) {
         <svg width={w} height={h} viewBox={`0 0 ${w} ${h}`} xmlns="http://www.w3.org/2000/svg">
             <defs>
                 <linearGradient id="gv-snap" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#0E5E48" stopOpacity="0.4" />
-                    <stop offset="100%" stopColor="#0E5E48" stopOpacity="0" />
+                    <stop offset="0%" stopColor="#024396" stopOpacity="0.4" />
+                    <stop offset="100%" stopColor="#024396" stopOpacity="0" />
                 </linearGradient>
                 <linearGradient id="gi-snap" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#C9802A" stopOpacity="0.35" />
-                    <stop offset="100%" stopColor="#C9802A" stopOpacity="0" />
+                    <stop offset="0%" stopColor="#C7102E" stopOpacity="0.35" />
+                    <stop offset="100%" stopColor="#C7102E" stopOpacity="0" />
                 </linearGradient>
             </defs>
             {/* y grid */}
@@ -1183,15 +1183,15 @@ function SnapshotChart({ series, tab }) {
             <path d={buildArea("invested")} fill="url(#gi-snap)" />
             <path d={buildArea("value")} fill="url(#gv-snap)" />
             {/* lines */}
-            <path d={buildPath("invested")} fill="none" stroke="#C9802A" strokeWidth="2" />
-            <path d={buildPath("value")} fill="none" stroke="#0E5E48" strokeWidth="2.4" />
+            <path d={buildPath("invested")} fill="none" stroke="#C7102E" strokeWidth="2" />
+            <path d={buildPath("value")} fill="none" stroke="#024396" strokeWidth="2.4" />
             {/* endpoint dot for value */}
             {(() => {
                 const last = series[series.length - 1];
                 const [x, y] = toXY(last, series.length - 1, "value");
                 return (
                     <g>
-                        <circle cx={x} cy={y} r="4" fill="#0E5E48" stroke="#FBF7EE" strokeWidth="2" />
+                        <circle cx={x} cy={y} r="4" fill="#024396" stroke="#FBF7EE" strokeWidth="2" />
                     </g>
                 );
             })()}

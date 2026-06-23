@@ -80,22 +80,22 @@ export default function FloatingActions() {
             >
                 <span
                     className="flex items-center gap-1.5 sm:gap-2 pl-1 pr-2.5 sm:pr-3 md:pr-4 py-1 rounded-full shadow-2xl text-[#F6F1E8] hover:scale-105 transition-transform"
-                    style={{ background: "linear-gradient(135deg, #0E5E48 0%, #0A4838 100%)" }}
+                    style={{ background: "linear-gradient(135deg, #024396 0%, #012E6B 100%)" }}
                 >
                     <span
                         className="w-10 h-10 sm:w-12 sm:h-12 rounded-full grid place-items-center relative shrink-0"
-                        style={{ background: "linear-gradient(135deg, #C9802A 0%, #B66B1B 100%)" }}
+                        style={{ background: "linear-gradient(135deg, #C7102E 0%, #9B0D24 100%)" }}
                     >
                         <Sparkles size={18} className="sm:hidden" />
                         <Sparkles size={20} className="hidden sm:block" />
                         <span
                             aria-hidden
-                            className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-[#22C55E] border-2 border-[#0E5E48]"
+                            className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-[#22C55E] border-2 border-[#024396]"
                         />
                     </span>
                     <span className="flex flex-col items-start leading-none pr-0.5 sm:pr-1">
                         <span className="inline-flex items-center gap-1 text-[8.5px] sm:text-[9px] tracking-[0.16em] sm:tracking-[0.18em] uppercase opacity-80 font-semibold">
-                            <span className="px-1 sm:px-1.5 py-0.5 rounded-sm bg-[#C9802A] text-white text-[8px] leading-none">
+                            <span className="px-1 sm:px-1.5 py-0.5 rounded-sm bg-[#C7102E] text-white text-[8px] leading-none">
                                 AI
                             </span>
                             <span className="hidden sm:inline">Ask me anything</span>

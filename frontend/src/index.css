@@ -9,11 +9,11 @@
     --ink-soft: #2A364B;
     --ink-mute: #5C677D;
     --line: #E2D8C2;
-    --emerald: #0E5E48;
-    --emerald-deep: #0A4838;
-    --ochre: #C9802A;
-    --terracotta: #C04A2A;
-    --gold: #B68A2E;
+    --emerald: #024396;
+    --emerald-deep: #012E6B;
+    --ochre: #C7102E;
+    --terracotta: #C7102E;
+    --gold: #C7102E;
 
     --background: 40 35% 94%;
     --foreground: 218 53% 12%;
@@ -21,19 +21,19 @@
     --card-foreground: 218 53% 12%;
     --popover: 40 35% 96%;
     --popover-foreground: 218 53% 12%;
-    --primary: 165 75% 21%;
+    --primary: 213 97% 30%;
     --primary-foreground: 40 35% 96%;
     --secondary: 36 24% 84%;
     --secondary-foreground: 218 53% 12%;
     --muted: 36 24% 88%;
     --muted-foreground: 218 14% 42%;
-    --accent: 32 65% 47%;
+    --accent: 351 85% 42%;
     --accent-foreground: 40 35% 96%;
-    --destructive: 0 84% 50%;
+    --destructive: 351 85% 42%;
     --destructive-foreground: 40 35% 96%;
     --border: 35 30% 82%;
     --input: 35 30% 82%;
-    --ring: 165 75% 21%;
+    --ring: 213 97% 30%;
     --radius: 0.75rem;
 }
 
@@ -101,11 +101,11 @@ body {
 .btn-primary {
     background: var(--emerald);
     color: #F6F1E8;
-    box-shadow: 0 6px 18px -8px rgba(14, 94, 72, 0.6);
+    box-shadow: 0 6px 18px -8px rgba(2, 67, 150, 0.6);
 }
 .btn-primary:hover {
     background: var(--emerald-deep);
-    box-shadow: 0 10px 24px -10px rgba(14, 94, 72, 0.7);
+    box-shadow: 0 10px 24px -10px rgba(2, 67, 150, 0.7);
 }
 .btn-ghost {
     background: transparent;

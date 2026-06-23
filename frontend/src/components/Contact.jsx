@@ -49,7 +49,7 @@ export default function Contact() {
                 <div className="lg:col-span-5">
                     <div className="eyebrow">Let's talk money</div>
                     <h2 className="h2 mt-3 text-[#0E1B2C]">
-                        Book your free <span className="font-italic-serif text-[#0E5E48]">15-min consult.</span>
+                        Book your free <span className="font-italic-serif text-[#024396]">15-min consult.</span>
                     </h2>
                     <p className="mt-4 text-[#2A364B] max-w-md">
                         Tell us a bit about your goal — SIP, insurance, or a portfolio review — and we'll
@@ -62,7 +62,7 @@ export default function Contact() {
                             className="flex items-start gap-4 group"
                             data-testid="contact-phone-link"
                         >
-                            <div className="w-11 h-11 rounded-xl bg-[#0E1B2C] text-[#F6F1E8] grid place-items-center shrink-0 group-hover:bg-[#0E5E48] transition-colors">
+                            <div className="w-11 h-11 rounded-xl bg-[#0E1B2C] text-[#F6F1E8] grid place-items-center shrink-0 group-hover:bg-[#024396] transition-colors">
                                 <Phone size={18} />
                             </div>
                             <div>
@@ -78,7 +78,7 @@ export default function Contact() {
                             href="mailto:wecare@thefinancialdoctor.in"
                             className="flex items-start gap-4 group"
                         >
-                            <div className="w-11 h-11 rounded-xl bg-[#0E1B2C] text-[#F6F1E8] grid place-items-center shrink-0 group-hover:bg-[#0E5E48] transition-colors">
+                            <div className="w-11 h-11 rounded-xl bg-[#0E1B2C] text-[#F6F1E8] grid place-items-center shrink-0 group-hover:bg-[#024396] transition-colors">
                                 <Mail size={18} />
                             </div>
                             <div>
@@ -200,7 +200,7 @@ export default function Contact() {
                             color: #0E1B2C;
                             font-family: inherit;
                         }
-                        .input-cream:focus { border-color: #0E5E48; }
+                        .input-cream:focus { border-color: #024396; }
                     `}</style>
                 </form>
             </div>
@@ -213,7 +213,7 @@ function Field({ label, required, children }) {
         <label className="block">
             <span className="block text-[11px] uppercase tracking-[0.18em] text-[#5C677D] mb-2">
                 {label}
-                {required && <span className="text-[#C04A2A] ml-0.5">*</span>}
+                {required && <span className="text-[#C7102E] ml-0.5">*</span>}
             </span>
             {children}
         </label>

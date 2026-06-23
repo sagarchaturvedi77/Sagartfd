@@ -15,7 +15,7 @@ export default function Partners() {
                 <div className="max-w-2xl mb-8 sm:mb-10">
                     <div className="eyebrow">Partners we deliver through</div>
                     <h2 className="h2 mt-3 text-[#0E1B2C]">
-                        Access to 40+ AMCs, <span className="font-italic-serif text-[#0E5E48]">one trusted advisor.</span>
+                        Access to 40+ AMCs, <span className="font-italic-serif text-[#024396]">one trusted advisor.</span>
                     </h2>
                 </div>
                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2.5 sm:gap-3">

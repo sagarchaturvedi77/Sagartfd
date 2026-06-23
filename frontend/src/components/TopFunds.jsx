@@ -64,7 +64,7 @@ export default function TopFunds() {
                             <TrendingUp size={14} /> Live market data
                         </div>
                         <h2 className="h2 mt-3 text-[#0E1B2C]">
-                            Top funds, <span className="font-italic-serif text-[#0E5E48]">handpicked</span> for you.
+                            Top funds, <span className="font-italic-serif text-[#024396]">handpicked</span> for you.
                         </h2>
                         <p className="mt-3 text-[#2A364B] max-w-2xl">
                             Live NAV &amp; trailing returns powered by AMFI (via{" "}
@@ -84,7 +84,7 @@ export default function TopFunds() {
                         value={searchQ}
                         onChange={(e) => setSearchQ(e.target.value)}
                         placeholder="Search any mutual fund (e.g. Parag Parikh Flexi)"
-                        className="w-full bg-[#FBF7EE] border border-[#E2D8C2] rounded-full pl-11 pr-4 py-3 text-[#0E1B2C] placeholder:text-[#8A93A6] focus:border-[#0E5E48]"
+                        className="w-full bg-[#FBF7EE] border border-[#E2D8C2] rounded-full pl-11 pr-4 py-3 text-[#0E1B2C] placeholder:text-[#8A93A6] focus:border-[#024396]"
                     />
                     {searchResults.length > 0 && (
                         <div
@@ -200,7 +200,7 @@ export default function TopFunds() {
                                                     href={ASSETPLUS}
                                                     target="_blank"
                                                     rel="noopener noreferrer"
-                                                    className="inline-flex items-center gap-1 text-[#0E5E48] hover:text-[#0A4838] text-sm font-medium"
+                                                    className="inline-flex items-center gap-1 text-[#024396] hover:text-[#012E6B] text-sm font-medium"
                                                 >
                                                     Invest <ExternalLink size={13} />
                                                 </a>
@@ -235,7 +235,7 @@ export default function TopFunds() {
                                             <div className="text-[11px] text-[#5C677D] mt-1">
                                                 {f.fund_house}
                                             </div>
-                                            <span className="inline-block mt-2 text-[10px] tracking-[0.14em] uppercase text-[#0E5E48] bg-[#0E5E48]/10 px-2 py-0.5 rounded-full">
+                                            <span className="inline-block mt-2 text-[10px] tracking-[0.14em] uppercase text-[#024396] bg-[#024396]/10 px-2 py-0.5 rounded-full">
                                                 {f.category}
                                             </span>
                                         </div>
@@ -266,7 +266,7 @@ export default function TopFunds() {
                                             href={ASSETPLUS}
                                             target="_blank"
                                             rel="noopener noreferrer"
-                                            className="inline-flex items-center gap-1.5 text-[13px] font-medium text-[#F6F1E8] bg-[#0E5E48] hover:bg-[#0A4838] px-3.5 py-2 rounded-full"
+                                            className="inline-flex items-center gap-1.5 text-[13px] font-medium text-[#F6F1E8] bg-[#024396] hover:bg-[#012E6B] px-3.5 py-2 rounded-full"
                                         >
                                             Invest <ExternalLink size={12} />
                                         </a>
@@ -291,17 +291,17 @@ export default function TopFunds() {
 
 function returnColor(v) {
     if (v === null || v === undefined) return "text-[#5C677D]";
-    if (v >= 0) return "text-[#0E5E48]";
-    return "text-[#C04A2A]";
+    if (v >= 0) return "text-[#024396]";
+    return "text-[#C7102E]";
 }
 
 function ReturnPill({ label, value }) {
     const positive = value !== null && value !== undefined && value >= 0;
     const negative = value !== null && value !== undefined && value < 0;
     const bg = positive
-        ? "bg-[#0E5E48]/10 text-[#0E5E48]"
+        ? "bg-[#024396]/10 text-[#024396]"
         : negative
-        ? "bg-[#C04A2A]/10 text-[#C04A2A]"
+        ? "bg-[#C7102E]/10 text-[#C7102E]"
         : "bg-[#F6F1E8] text-[#5C677D]";
     return (
         <div className={`rounded-lg px-2 py-1.5 text-center ${bg}`}>
@@ -357,7 +357,7 @@ function Info({ label, value, accent }) {
     return (
         <div>
             <div className="text-[10px] uppercase tracking-[0.18em] text-[#5C677D]">{label}</div>
-            <div className={`mt-1 font-display ${accent ? "text-[#0E5E48] text-lg" : "text-[#0E1B2C]"}`}>
+            <div className={`mt-1 font-display ${accent ? "text-[#024396] text-lg" : "text-[#0E1B2C]"}`}>
                 {value}
             </div>
         </div>
