@@ -314,8 +314,6 @@ async def ai_chat(payload: AIChatRequest):
     if not api_key:
         raise HTTPException(status_code=500, detail="EMERGENT_LLM_KEY not configured")
 
-    # Load existing history for this session
-    history_doc = await db.ai_sessions.find_one({"session_id": payload.session_id}, {"_id": 0})
     chat = LlmChat(
         api_key=api_key,
         session_id=payload.session_id,
