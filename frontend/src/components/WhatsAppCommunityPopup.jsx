@@ -108,7 +108,7 @@ export default function WhatsAppCommunityPopup() {
                         {perks.map((p, idx) => {
                             const Icon = p.icon;
                             return (
-                                <li key={idx} className="flex items-center gap-3 text-[13.5px] text-[#0E1B2C]">
+                                <li key={`perk-${idx}-${p.text.slice(0, 12)}`} className="flex items-center gap-3 text-[13.5px] text-[#0E1B2C]">
                                     <span className="w-8 h-8 rounded-full bg-[#25D366]/15 text-[#128C7E] grid place-items-center shrink-0">
                                         <Icon size={15} />
                                     </span>

@@ -23,6 +23,10 @@ function genSessionId() {
     return "tfd-" + Math.random().toString(36).slice(2, 10) + Date.now().toString(36);
 }
 
+function genMessageId() {
+    return "m-" + Math.random().toString(36).slice(2, 10) + Date.now().toString(36);
+}
+
 export default function AIChat() {
     const [open, setOpen] = useState(false);
     const [sessionId] = useState(() => {
@@ -34,6 +38,7 @@ export default function AIChat() {
     });
     const [messages, setMessages] = useState([
         {
+            id: "welcome",
             role: "assistant",
             content:
                 "Namaste! 🙏 Main **TFD-AI** hoon — Sagar ji ke financial advisory approach par trained. SIP, ELSS, insurance, tax — kuch bhi poochiye! \n\n_Disclaimer: I'm an AI assistant; for actual onboarding speak directly with Sagar ji._",
@@ -62,8 +67,8 @@ export default function AIChat() {
         setInput("");
         setMessages((m) => [
             ...m,
-            { role: "user", content: msg },
-            { role: "assistant", content: "" },
+            { id: genMessageId(), role: "user", content: msg },
+            { id: genMessageId(), role: "assistant", content: "" },
         ]);
         setStreaming(true);
 
@@ -212,7 +217,7 @@ export default function AIChat() {
                         >
                             {messages.map((m, i) => (
                                 <ChatBubble
-                                    key={i}
+                                    key={m.id || `msg-${i}`}
                                     role={m.role}
                                     content={m.content}
                                     streaming={
@@ -324,6 +329,7 @@ function ChatBubble({ role, content, streaming }) {
 }
 
 // Markdown renderer (bold, italic, code, list, heading, link, table-row → mono row)
+// SAFE: uses React nodes only, no dangerouslySetInnerHTML — eliminates XSS.
 function Markdown({ content }) {
     if (!content) return null;
     const lines = content.split("\n");
@@ -331,10 +337,11 @@ function Markdown({ content }) {
     let listBuf = [];
     const flushList = (key) => {
         if (listBuf.length) {
+            const items = listBuf.slice();
             out.push(
                 <ul key={`ul-${key}`} className="list-disc pl-5 my-1 space-y-0.5">
-                    {listBuf.map((it, i) => (
-                        <li key={i} dangerouslySetInnerHTML={{ __html: renderInline(it) }} />
+                    {items.map((it, i) => (
+                        <li key={`li-${key}-${i}-${it.slice(0, 12)}`}>{renderInline(it)}</li>
                     ))}
                 </ul>
             );
@@ -382,11 +389,9 @@ function Markdown({ content }) {
                     style={{ gridTemplateColumns: `repeat(${cells.length}, minmax(0,1fr))` }}
                 >
                     {cells.map((c, ci) => (
-                        <div
-                            key={ci}
-                            className="text-[#2A364B]"
-                            dangerouslySetInnerHTML={{ __html: renderInline(c) }}
-                        />
+                        <div key={`td-${i}-${ci}`} className="text-[#2A364B]">
+                            {renderInline(c)}
+                        </div>
                     ))}
                 </div>
             );
@@ -398,8 +403,9 @@ function Markdown({ content }) {
                 <div
                     key={`q-${i}`}
                     className="border-l-2 border-[#C7102E] pl-3 my-1 text-[#2A364B] italic"
-                    dangerouslySetInnerHTML={{ __html: renderInline(line.replace(/^> /, "")) }}
-                />
+                >
+                    {renderInline(line.replace(/^> /, ""))}
+                </div>
             );
             return;
         }
@@ -407,25 +413,72 @@ function Markdown({ content }) {
         if (line.trim() === "") {
             out.push(<div key={`s-${i}`} className="h-1.5" />);
         } else {
-            out.push(<p key={`p-${i}`} dangerouslySetInnerHTML={{ __html: renderInline(line) }} />);
+            out.push(<p key={`p-${i}-${line.slice(0, 16)}`}>{renderInline(line)}</p>);
         }
     });
     flushList("end");
     return <div>{out}</div>;
 }
 
+// Safe URL gate — only http(s) and mailto allowed in markdown links.
+function safeUrl(u) {
+    try {
+        const url = String(u).trim();
+        if (/^(https?:|mailto:)/i.test(url)) return url;
+        return "#";
+    } catch {
+        return "#";
+    }
+}
+
+// Tokenise inline markdown (`**bold**`, `*em*`, `` `code` ``, `[label](url)`) into React nodes.
+// Returns an array of strings + JSX elements — completely sanitiser-free since React escapes text.
 function renderInline(s) {
-    return s
-        .replace(/&/g, "&amp;")
-        .replace(/</g, "&lt;")
-        .replace(/>/g, "&gt;")
-        .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
-        .replace(/\*(.+?)\*/g, "<em>$1</em>")
-        .replace(/`([^`]+)`/g, '<code class="bg-[#F6F1E8] px-1 rounded text-[12px]">$1</code>')
-        .replace(
-            /\[([^\]]+)\]\(([^)]+)\)/g,
-            '<a href="$2" target="_blank" rel="noopener noreferrer" class="underline text-[#024396]">$1</a>',
-        );
+    if (s == null || s === "") return null;
+    // Order matters: handle links and code first to avoid bold/italic eating their innards.
+    const tokens = [];
+    let remaining = String(s);
+    let safetyCounter = 0;
+    const pattern = /(\[([^\]]+)\]\(([^)]+)\))|(`([^`]+)`)|(\*\*([^*]+)\*\*)|(\*([^*]+)\*)/;
+    while (remaining && safetyCounter++ < 500) {
+        const m = remaining.match(pattern);
+        if (!m) {
+            tokens.push(remaining);
+            break;
+        }
+        const idx = m.index;
+        if (idx > 0) tokens.push(remaining.slice(0, idx));
+        if (m[1]) {
+            // link
+            tokens.push(
+                <a
+                    key={`a-${tokens.length}`}
+                    href={safeUrl(m[3])}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="underline text-[#024396]"
+                >
+                    {m[2]}
+                </a>
+            );
+        } else if (m[4]) {
+            // inline code
+            tokens.push(
+                <code
+                    key={`c-${tokens.length}`}
+                    className="bg-[#F6F1E8] px-1 rounded text-[12px]"
+                >
+                    {m[5]}
+                </code>
+            );
+        } else if (m[6]) {
+            tokens.push(<strong key={`b-${tokens.length}`}>{m[7]}</strong>);
+        } else if (m[8]) {
+            tokens.push(<em key={`i-${tokens.length}`}>{m[9]}</em>);
+        }
+        remaining = remaining.slice(idx + m[0].length);
+    }
+    return tokens;
 }
 
 // ---------- Plan Snapshot for PNG ----------
@@ -696,7 +749,7 @@ function PlanSnapshot({ messages }) {
                 <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
                     {AI_PLAN_RECOMMENDATIONS.slice(0, 3).map((tip, idx) => (
                         <div
-                            key={idx}
+                            key={`tip-${idx}-${(tip.en || "").slice(0, 12)}`}
                             style={{
                                 background: "#FBF7EE",
                                 border: "1px solid #E2D8C2",

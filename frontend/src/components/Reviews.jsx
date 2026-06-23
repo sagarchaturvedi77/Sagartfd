@@ -126,12 +126,18 @@ export default function Reviews() {
         // Copy message to clipboard so user can paste on Google
         try {
             if (navigator.clipboard) await navigator.clipboard.writeText(form.message);
-        } catch {}
+        } catch (err) {
+            // Clipboard not available (insecure context / unsupported browser) — non-fatal.
+            console.warn("clipboard.writeText failed:", err);
+        }
         // Save locally for analytics (not displayed — only Google reviews shown)
         try {
             const created = await api.createReview(form);
             setList((cur) => [created, ...cur]);
-        } catch {}
+        } catch (err) {
+            // Backend save is best-effort; the Google redirect is the primary action.
+            console.warn("createReview failed:", err);
+        }
         // Redirect to Google review page in a new tab — primary action
         window.open(LINKS.googleReviews, "_blank", "noopener,noreferrer");
         setSubmitted(true);
@@ -312,7 +318,7 @@ export default function Reviews() {
                                             return (
                                                 <button
                                                     type="button"
-                                                    key={idx}
+                                                    key={`tpl-${idx}-${t.slice(0, 10)}`}
                                                     onClick={() => setForm({ ...form, message: t })}
                                                     data-testid={`reviews-template-${idx}`}
                                                     className={`shrink-0 text-[11px] rounded-full px-3 py-1.5 transition-colors ${

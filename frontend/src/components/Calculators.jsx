@@ -925,7 +925,7 @@ function SnapshotCard({ tab, result, state }) {
                 <div style={{ display: "flex", flexDirection: "column", gap: 7 }}>
                     {upsellScenarios(tab, state, result).map((s, idx) => (
                         <div
-                            key={idx}
+                            key={`upsell-${idx}-${(s.label || "").slice(0, 12)}`}
                             style={{
                                 background: "#FBF7EE",
                                 border: "1px solid #E2D8C2",
