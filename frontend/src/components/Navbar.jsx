@@ -2,6 +2,9 @@ import React, { useEffect, useState } from "react";
 import { Menu, X, MessageCircle } from "lucide-react";
 import { IDS } from "@/constants/testIds";
 
+const LOGO_URL =
+    "https://customer-assets.emergentagent.com/job_advisor-phase4-build/artifacts/buhrts3f_IMG_2870.png";
+
 const links = [
     { id: "about", label: "About" },
     { id: "calc", label: "Calculators" },
@@ -35,16 +38,13 @@ export default function Navbar() {
                     data-testid={IDS.nav.logo}
                     className="flex items-center gap-3 group"
                 >
-                    <span className="w-9 h-9 rounded-full bg-[#0E5E48] grid place-items-center text-[#F6F1E8] font-display text-lg leading-none">
-                        T
-                    </span>
-                    <span className="hidden sm:block">
-                        <span className="font-display text-[#0E1B2C] text-[1.05rem] block leading-none">
-                            The Financial Doctor
-                        </span>
-                        <span className="text-[10px] tracking-[0.2em] text-[#5C677D] uppercase">
-                            ARN-290298 · Sehore
-                        </span>
+                    <img
+                        src={LOGO_URL}
+                        alt="The Financial Doctor"
+                        className="h-12 sm:h-14 w-auto object-contain shrink-0"
+                    />
+                    <span className="hidden lg:inline-flex items-center border-l border-[#E2D8C2] pl-3 text-[10px] tracking-[0.2em] text-[#5C677D] uppercase">
+                        ARN-290298 · Sehore
                     </span>
                 </a>
 

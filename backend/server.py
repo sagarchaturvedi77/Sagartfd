@@ -1,5 +1,5 @@
 from fastapi import FastAPI, APIRouter, HTTPException, Query
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, StreamingResponse
 from dotenv import load_dotenv
 from starlette.middleware.cors import CORSMiddleware
 from motor.motor_asyncio import AsyncIOMotorClient
@@ -260,6 +260,127 @@ async def fund_detail(code: str):
         "return_5y": _annualised_return(navs, 5),
         "history": navs[:60],  # last ~60 days
     }
+
+
+# -------------- ROUTES: AI Chat (Sagar ji persona) --------------
+
+SAGAR_SYSTEM_PROMPT = """You are 'TFD-AI' — a friendly mutual fund & insurance advisor speaking on behalf of **Sagar Chaturvedi**, founder of **The Financial Doctor** (AMFI Registered MFD · ARN-290298 · Sehore, MP).
+
+Personality:
+- Warm, simple, and respectful. Use Hindi-English mix (Hinglish) when natural, otherwise English. Match the user's language.
+- Address users politely (ji, aap). Never be pushy.
+- Always be educational first, recommendation second.
+
+Topics you cover:
+- Mutual Funds: SIP, lumpsum, SWP, ELSS, large/mid/small/flexi cap, debt, hybrid
+- Insurance: term, health, life (endowment/ULIP), motor
+- Tax-saving (ELSS, 80C), goal-based planning (retirement, child education, home)
+- Basic personal finance hygiene (emergency fund, insurance before investment)
+
+Hard rules:
+- ALWAYS end recommendations with: "Mutual fund investments are subject to market risks. Read all scheme-related documents carefully."
+- NEVER promise specific returns. Use ranges or historical CAGR with a "past performance is not indicative of future returns" caveat.
+- NEVER share PAN/Aadhaar/OTP requests. If user shares sensitive info, politely tell them not to.
+- Do NOT recommend direct stock picks or speculative products (F&O, crypto).
+- For onboarding / actual investing, direct them to AssetPlus: https://www.assetplus.in/mfd/ARN-290298 or WhatsApp Sagar ji at +91 77738 05794.
+- Keep responses concise (3-6 short paragraphs max). Use markdown sparingly (bullets for lists).
+- If asked about specific NAVs or live returns, mention the user can check the "Top Funds" section on this website.
+- If user is in distress / asks anything off-topic (politics, gossip), politely redirect to finance.
+
+Sign-off: When user says thanks/bye, sign off as: "— TFD-AI 💚 (on behalf of Sagar ji)"
+
+You speak as TFD-AI, not as Sagar ji himself. You can quote Sagar ji's advice but always clarify you are the AI assistant trained on his approach.
+"""
+
+
+class AIChatRequest(BaseModel):
+    session_id: str
+    message: str = Field(min_length=1, max_length=2000)
+
+
+@api_router.post("/ai/chat")
+async def ai_chat(payload: AIChatRequest):
+    """Streaming SSE endpoint for TFD-AI chatbot using Claude Sonnet 4.6."""
+    try:
+        from emergentintegrations.llm.chat import LlmChat, UserMessage, TextDelta, StreamDone
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"emergentintegrations missing: {e}")
+
+    api_key = os.environ.get("EMERGENT_LLM_KEY")
+    if not api_key:
+        raise HTTPException(status_code=500, detail="EMERGENT_LLM_KEY not configured")
+
+    # Load existing history for this session
+    history_doc = await db.ai_sessions.find_one({"session_id": payload.session_id}, {"_id": 0})
+    chat = LlmChat(
+        api_key=api_key,
+        session_id=payload.session_id,
+        system_message=SAGAR_SYSTEM_PROMPT,
+    ).with_model("anthropic", "claude-sonnet-4-6")
+
+    # Rehydrate history into the chat instance (library maintains its own list internally)
+    # The library will append new messages to its in-memory history per session, so we
+    # store each turn ourselves and pass prior turns in via the system message context if needed.
+    # For our scope, we keep history in MongoDB and stream tokens out.
+
+    full_response_chunks: list[str] = []
+
+    async def event_gen():
+        try:
+            async for ev in chat.stream_message(UserMessage(text=payload.message)):
+                if isinstance(ev, TextDelta):
+                    full_response_chunks.append(ev.content)
+                    # SSE-style data line
+                    yield f"data: {ev.content}\n\n".replace("\n\n", "\n\n", 1) if False else _sse(ev.content)
+                elif isinstance(ev, StreamDone):
+                    break
+        except Exception as exc:
+            logger.exception("AI chat stream error")
+            yield _sse(f"\n\n[error: {exc}]")
+        finally:
+            # Persist the turn
+            full_text = "".join(full_response_chunks)
+            now = datetime.now(timezone.utc).isoformat()
+            await db.ai_sessions.update_one(
+                {"session_id": payload.session_id},
+                {
+                    "$setOnInsert": {"session_id": payload.session_id, "created_at": now},
+                    "$push": {
+                        "messages": {
+                            "$each": [
+                                {"role": "user", "content": payload.message, "ts": now},
+                                {"role": "assistant", "content": full_text, "ts": now},
+                            ]
+                        }
+                    },
+                },
+                upsert=True,
+            )
+            yield "event: done\ndata: [DONE]\n\n"
+
+    return StreamingResponse(
+        event_gen(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "X-Accel-Buffering": "no",
+            "Connection": "keep-alive",
+        },
+    )
+
+
+def _sse(text: str) -> str:
+    # Encode preserving newlines using base64-free format: split on \n into multiple data: lines
+    lines = text.split("\n")
+    return "".join(f"data: {line}\n" for line in lines) + "\n"
+
+
+@api_router.get("/ai/history/{session_id}")
+async def ai_history(session_id: str):
+    doc = await db.ai_sessions.find_one({"session_id": session_id}, {"_id": 0})
+    if not doc:
+        return {"session_id": session_id, "messages": []}
+    return doc
 
 
 # -------------- mount router --------------

@@ -247,7 +247,7 @@ export default function Calculators() {
     return (
         <section id="calc" className="section">
             <div className="container-x">
-                <div className="flex items-end justify-between flex-wrap gap-4 mb-10">
+                <div className="flex items-end justify-between flex-wrap gap-4 mb-8">
                     <div>
                         <div className="eyebrow">Plan · Visualise · Act</div>
                         <h2 className="h2 mt-3 text-[#0E1B2C]">
@@ -265,22 +265,25 @@ export default function Calculators() {
                     </div>
                 </div>
 
-                <div className="flex flex-wrap gap-2 mb-8">
-                    {TABS.map((t) => (
-                        <button
-                            key={t.id}
-                            data-testid={t.testid}
-                            onClick={() => setTab(t.id)}
-                            className={`tab-pill ${tab === t.id ? "active" : ""}`}
-                        >
-                            {t.label}
-                        </button>
-                    ))}
+                {/* Tabs — horizontal scroll on mobile to avoid wrap clutter */}
+                <div className="-mx-6 md:mx-0 px-6 md:px-0 mb-6 overflow-x-auto">
+                    <div className="flex gap-2 min-w-max md:flex-wrap">
+                        {TABS.map((t) => (
+                            <button
+                                key={t.id}
+                                data-testid={t.testid}
+                                onClick={() => setTab(t.id)}
+                                className={`tab-pill shrink-0 ${tab === t.id ? "active" : ""}`}
+                            >
+                                {t.label}
+                            </button>
+                        ))}
+                    </div>
                 </div>
 
-                <div className="grid lg:grid-cols-12 gap-6">
+                <div className="grid lg:grid-cols-12 gap-5 md:gap-6">
                     {/* Inputs */}
-                    <div className="lg:col-span-4 card-cream p-7">
+                    <div className="lg:col-span-4 card-cream p-5 sm:p-6 md:p-7">
                         <div className="text-[11px] tracking-[0.2em] uppercase text-[#5C677D] mb-5">
                             Inputs
                         </div>
@@ -357,13 +360,13 @@ export default function Calculators() {
                     </div>
 
                     {/* Chart + Result */}
-                    <div className="lg:col-span-8 grid grid-rows-[1fr_auto] gap-6">
-                        <div className="card-cream p-6">
+                    <div className="lg:col-span-8 grid grid-rows-[1fr_auto] gap-5 md:gap-6">
+                        <div className="card-cream p-4 sm:p-5 md:p-6">
                             <div className="flex items-center justify-between mb-3">
                                 <div className="text-[11px] tracking-[0.2em] uppercase text-[#5C677D]">
                                     Projection
                                 </div>
-                                <div className="flex items-center gap-4 text-xs text-[#5C677D]">
+                                <div className="flex items-center gap-3 sm:gap-4 text-[11px] sm:text-xs text-[#5C677D]">
                                     <span className="inline-flex items-center gap-1.5">
                                         <span className="w-2.5 h-2.5 rounded-full bg-[#C9802A]" />
                                         Invested
@@ -374,7 +377,7 @@ export default function Calculators() {
                                     </span>
                                 </div>
                             </div>
-                            <div className="h-[280px]">
+                            <div className="h-[220px] sm:h-[260px] md:h-[280px]">
                                 <ResponsiveContainer width="100%" height="100%">
                                     <AreaChart data={result?.series || []}>
                                         <defs>
@@ -389,7 +392,7 @@ export default function Calculators() {
                                         </defs>
                                         <CartesianGrid strokeDasharray="3 3" stroke="#E2D8C2" />
                                         <XAxis dataKey="label" stroke="#5C677D" tick={{ fontSize: 11 }} />
-                                        <YAxis stroke="#5C677D" tick={{ fontSize: 11 }} tickFormatter={fmtINR} width={70} />
+                                        <YAxis stroke="#5C677D" tick={{ fontSize: 10 }} tickFormatter={fmtINR} width={56} />
                                         <Tooltip
                                             contentStyle={{
                                                 background: "#0E1B2C",
@@ -434,7 +437,19 @@ export default function Calculators() {
                     aria-hidden
                 >
                     <div ref={snapRef} data-testid={IDS.calc.snapshot}>
-                        <SnapshotCard tab={tab} result={result} />
+                        <SnapshotCard
+                            tab={tab}
+                            result={result}
+                            state={{
+                                sipAmount, sipYears, sipRate,
+                                dailyAmount, dailyYears, dailyRate,
+                                lump, lumpYears, lumpRate,
+                                swpCorpus, swpMonthly, swpYears, swpRate,
+                                goal, goalYears, goalRate,
+                                loan, loanYears, loanRate,
+                                result,
+                            }}
+                        />
                     </div>
                 </div>
             </div>
@@ -445,9 +460,9 @@ export default function Calculators() {
 function ResultCard({ tab, result, onDownload }) {
     if (!result) return null;
     return (
-        <div className="card-ink p-6 md:p-7" data-testid={IDS.calc.result}>
-            <div className="flex items-start justify-between flex-wrap gap-6">
-                <div className="grid grid-cols-3 gap-6 md:gap-10 flex-1">
+        <div className="card-ink p-5 sm:p-6 md:p-7" data-testid={IDS.calc.result}>
+            <div className="flex flex-col md:flex-row md:items-start justify-between gap-5 md:gap-6">
+                <div className="grid grid-cols-3 gap-3 sm:gap-5 md:gap-8 flex-1 min-w-0">
                     {tab === "emi" ? (
                         <>
                             <Metric label="Monthly EMI" value={fmtINR(result.emi)} />
@@ -457,41 +472,41 @@ function ResultCard({ tab, result, onDownload }) {
                     ) : tab === "swp" ? (
                         <>
                             <Metric label="Initial Corpus" value={fmtINR(result.invested)} />
-                            <Metric label="Total Withdrawn" value={fmtINR(result.gains)} />
+                            <Metric label="Withdrawn" value={fmtINR(result.gains)} />
                             <Metric label="Balance Left" value={fmtINR(result.fv)} primary />
                         </>
                     ) : tab === "goal" ? (
                         <>
-                            <Metric label="Required Monthly SIP" value={fmtINR(result.requiredSip)} primary />
+                            <Metric label="Required SIP" value={fmtINR(result.requiredSip)} primary />
                             <Metric label="Total Invested" value={fmtINR(result.invested)} />
-                            <Metric label="Target Corpus" value={fmtINR(result.target)} />
+                            <Metric label="Target" value={fmtINR(result.target)} />
                         </>
                     ) : (
                         <>
-                            <Metric label="Total Invested" value={fmtINR(result.invested)} />
-                            <Metric label="Estimated Returns" value={fmtINR(result.gains)} />
+                            <Metric label="Invested" value={fmtINR(result.invested)} />
+                            <Metric label="Returns" value={fmtINR(result.gains)} />
                             <Metric label="Future Value" value={fmtINR(result.fv)} primary />
                         </>
                     )}
                 </div>
-                <div className="flex flex-col gap-2 ml-auto">
+                <div className="flex flex-row md:flex-col gap-2 md:ml-auto">
                     <button
                         onClick={onDownload}
-                        className="btn-pill"
+                        className="btn-pill flex-1 md:flex-none justify-center"
                         style={{ background: "#C9802A", color: "#fff" }}
                         data-testid={IDS.calc.download}
                     >
-                        <Download size={16} /> Download PNG
+                        <Download size={16} /> <span className="hidden sm:inline">Download</span> PNG
                     </button>
                     <a
                         href={TFD_BRAND_URL}
                         target="_blank"
                         rel="noreferrer"
-                        className="btn-pill"
+                        className="btn-pill flex-1 md:flex-none justify-center"
                         style={{ background: "#F6F1E8", color: "#0E1B2C" }}
                         data-testid={IDS.calc.startPlan}
                     >
-                        Start this Plan <ArrowUpRight size={14} />
+                        Start <ArrowUpRight size={14} />
                     </a>
                 </div>
             </div>
@@ -501,11 +516,15 @@ function ResultCard({ tab, result, onDownload }) {
 
 function Metric({ label, value, primary }) {
     return (
-        <div>
-            <div className="text-[10px] uppercase tracking-[0.2em] opacity-60">{label}</div>
+        <div className="min-w-0">
+            <div className="text-[9px] sm:text-[10px] uppercase tracking-[0.18em] sm:tracking-[0.2em] opacity-60 truncate">
+                {label}
+            </div>
             <div
-                className={`font-display mt-2 ${
-                    primary ? "text-[2rem] text-[#F6F1E8]" : "text-[1.5rem] text-[#F6F1E8]/85"
+                className={`font-display mt-1 sm:mt-2 break-words ${
+                    primary
+                        ? "text-[1.25rem] sm:text-[1.6rem] md:text-[2rem] text-[#F6F1E8]"
+                        : "text-[1.05rem] sm:text-[1.25rem] md:text-[1.5rem] text-[#F6F1E8]/85"
                 }`}
             >
                 {value}
@@ -517,7 +536,43 @@ function Metric({ label, value, primary }) {
 const SAGAR_PHOTO =
     "https://customer-assets.emergentagent.com/job_wealth-advisor-111/artifacts/1dwkpp48_D3037D99-4115-4778-83D8-907655A401FD.png";
 
-function SnapshotCard({ tab, result }) {
+const TFD_LOGO =
+    "https://customer-assets.emergentagent.com/job_advisor-phase4-build/artifacts/buhrts3f_IMG_2870.png";
+
+// Compute "what if" projections: extend the current calculation by extraYears.
+function projectExtended(tab, baseState, extraYears) {
+    switch (tab) {
+        case "sip": {
+            const r = sipCalc(baseState.sipAmount, baseState.sipYears + extraYears, baseState.sipRate);
+            return { invested: r.invested, fv: r.fv, gains: r.gains };
+        }
+        case "daily": {
+            const r = dailySipCalc(
+                baseState.dailyAmount,
+                baseState.dailyYears + extraYears,
+                baseState.dailyRate,
+            );
+            return { invested: r.invested, fv: r.fv, gains: r.gains };
+        }
+        case "lumpsum": {
+            const r = lumpsumCalc(baseState.lump, baseState.lumpYears + extraYears, baseState.lumpRate);
+            return { invested: r.invested, fv: r.fv, gains: r.gains };
+        }
+        case "goal": {
+            // For goal: keep the required SIP fixed; show what value it would reach with extra years
+            const r = sipCalc(
+                baseState.result.requiredSip,
+                baseState.goalYears + extraYears,
+                baseState.goalRate,
+            );
+            return { invested: r.invested, fv: r.fv, gains: r.gains };
+        }
+        default:
+            return null;
+    }
+}
+
+function SnapshotCard({ tab, result, state }) {
     if (!result) return null;
     const labels = {
         sip: "SIP Calculator",
@@ -527,151 +582,354 @@ function SnapshotCard({ tab, result }) {
         goal: "Goal Planner",
         emi: "EMI Calculator",
     };
+
+    const extendable = ["sip", "daily", "lumpsum", "goal"].includes(tab);
+    const periods = extendable ? [2, 5, 10] : [];
+    const projections = periods.map((y) => ({ y, p: projectExtended(tab, state, y) }));
+
+    const baseYears = (() => {
+        switch (tab) {
+            case "sip": return state.sipYears;
+            case "daily": return state.dailyYears;
+            case "lumpsum": return state.lumpYears;
+            case "swp": return state.swpYears;
+            case "goal": return state.goalYears;
+            case "emi": return state.loanYears;
+            default: return 0;
+        }
+    })();
+
+    const rateUsed = (() => {
+        switch (tab) {
+            case "sip": return state.sipRate;
+            case "daily": return state.dailyRate;
+            case "lumpsum": return state.lumpRate;
+            case "swp": return state.swpRate;
+            case "goal": return state.goalRate;
+            case "emi": return state.loanRate;
+            default: return 12;
+        }
+    })();
+
+    const headlineMetric = (() => {
+        if (tab === "emi") return { label: "Monthly EMI", value: fmtINR(result.emi) };
+        if (tab === "swp") return { label: "Balance left", value: fmtINR(result.fv) };
+        if (tab === "goal") return { label: "Monthly SIP needed", value: fmtINR(result.requiredSip) };
+        return { label: "Future Value", value: fmtINR(result.fv) };
+    })();
+
     return (
         <div className="snap-card">
-            {/* Header */}
-            <div className="flex items-center justify-between mb-5">
-                <div className="flex items-center gap-3">
-                    <span className="w-11 h-11 rounded-full bg-[#0E5E48] grid place-items-center text-[#F6F1E8] font-display text-xl">
-                        T
-                    </span>
+            {/* Decorative accent */}
+            <div
+                aria-hidden
+                style={{
+                    position: "absolute",
+                    top: -120,
+                    right: -120,
+                    width: 320,
+                    height: 320,
+                    borderRadius: "50%",
+                    background: "radial-gradient(circle, rgba(14,94,72,0.18) 0%, transparent 70%)",
+                }}
+            />
+            <div
+                aria-hidden
+                style={{
+                    position: "absolute",
+                    bottom: -140,
+                    left: -140,
+                    width: 360,
+                    height: 360,
+                    borderRadius: "50%",
+                    background: "radial-gradient(circle, rgba(201,128,42,0.15) 0%, transparent 70%)",
+                }}
+            />
+
+            {/* Header: logo + brand + ARN */}
+            <div style={{ position: "relative", display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 22 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+                    <img
+                        src={TFD_LOGO}
+                        crossOrigin="anonymous"
+                        alt="TFD"
+                        style={{
+                            height: 72,
+                            width: "auto",
+                            objectFit: "contain",
+                            background: "#F6F1E8",
+                            borderRadius: 12,
+                            padding: 6,
+                            border: "1px solid #E2D8C2",
+                        }}
+                    />
                     <div>
-                        <div className="font-display text-[1.15rem] leading-none text-[#0E1B2C]">
+                        <div style={{ fontFamily: "'Fraunces', serif", fontSize: 22, color: "#0E1B2C", lineHeight: 1 }}>
                             The Financial Doctor
                         </div>
-                        <div className="text-[10px] tracking-[0.2em] uppercase text-[#5C677D] mt-1">
-                            ARN-290298 · Sehore, MP
+                        <div style={{ fontSize: 10, letterSpacing: "0.22em", textTransform: "uppercase", color: "#5C677D", marginTop: 6 }}>
+                            Treating Your Financial Health
                         </div>
                     </div>
                 </div>
-                <div className="text-right">
-                    <div className="text-[10px] tracking-[0.2em] uppercase text-[#5C677D]">
-                        {labels[tab]}
+                <div style={{ textAlign: "right" }}>
+                    <div style={{ fontSize: 10, letterSpacing: "0.22em", textTransform: "uppercase", color: "#5C677D" }}>
+                        AMFI · ARN-290298
                     </div>
-                    <div className="font-display text-[#C9802A] text-base mt-1">
-                        <CalcIcon size={14} className="inline mr-1" /> Snapshot
+                    <div style={{ fontSize: 11, color: "#0E5E48", marginTop: 4, fontWeight: 600 }}>
+                        Sehore · MP
                     </div>
                 </div>
             </div>
 
-            {/* Body grid */}
-            <div className="grid grid-cols-[1fr_auto] gap-5">
+            {/* Title strip */}
+            <div
+                style={{
+                    position: "relative",
+                    background: "#0E1B2C",
+                    color: "#F6F1E8",
+                    borderRadius: 18,
+                    padding: "16px 20px",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    marginBottom: 18,
+                }}
+            >
                 <div>
-                    <div className="grid grid-cols-3 gap-4 mb-5">
-                        {tab === "emi" ? (
-                            <>
-                                <Stat label="Monthly EMI" value={fmtINR(result.emi)} />
-                                <Stat label="Interest" value={fmtINR(result.interest)} />
-                                <Stat label="Total Payable" value={fmtINR(result.total)} primary />
-                            </>
-                        ) : tab === "swp" ? (
-                            <>
-                                <Stat label="Corpus" value={fmtINR(result.invested)} />
-                                <Stat label="Total Withdrawn" value={fmtINR(result.gains)} />
-                                <Stat label="Balance Left" value={fmtINR(result.fv)} primary />
-                            </>
-                        ) : tab === "goal" ? (
-                            <>
-                                <Stat label="Monthly SIP" value={fmtINR(result.requiredSip)} primary />
-                                <Stat label="Invested" value={fmtINR(result.invested)} />
-                                <Stat label="Target" value={fmtINR(result.target)} />
-                            </>
-                        ) : (
-                            <>
-                                <Stat label="Invested" value={fmtINR(result.invested)} />
-                                <Stat label="Returns" value={fmtINR(result.gains)} />
-                                <Stat label="Future Value" value={fmtINR(result.fv)} primary />
-                            </>
-                        )}
+                    <div style={{ fontSize: 10, letterSpacing: "0.22em", textTransform: "uppercase", color: "#C9802A", fontWeight: 600 }}>
+                        {labels[tab]}
                     </div>
+                    <div style={{ fontFamily: "'Fraunces', serif", fontSize: 26, marginTop: 6, lineHeight: 1 }}>
+                        {headlineMetric.value}
+                    </div>
+                    <div style={{ fontSize: 11, color: "#F6F1E8", opacity: 0.7, marginTop: 4 }}>
+                        {headlineMetric.label} · over {baseYears} years @ {rateUsed}% p.a.
+                    </div>
+                </div>
+                <div
+                    style={{
+                        background: "#C9802A",
+                        color: "#fff",
+                        borderRadius: 999,
+                        padding: "5px 12px",
+                        fontSize: 10,
+                        letterSpacing: "0.18em",
+                        textTransform: "uppercase",
+                        fontWeight: 700,
+                    }}
+                >
+                    Snapshot
+                </div>
+            </div>
 
-                    {/* Mini bar visualisation */}
-                    <div className="h-20 rounded-xl bg-[#F6F1E8] border border-[#E2D8C2] flex items-end gap-1 p-2">
-                        {(result.series || []).map((p, idx) => {
-                            const max = Math.max(
-                                ...result.series.map((x) => Math.max(x.invested, x.value)),
-                            );
-                            const hi = (p.invested / max) * 100;
-                            const hv = (p.value / max) * 100;
+            {/* Primary 3 metrics */}
+            <div style={{ position: "relative", display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10, marginBottom: 20 }}>
+                {tab === "emi" ? (
+                    <>
+                        <BigStat label="Loan Amount" value={fmtINR(state.loan)} />
+                        <BigStat label="Total Interest" value={fmtINR(result.interest)} />
+                        <BigStat label="Total Payable" value={fmtINR(result.total)} accent />
+                    </>
+                ) : tab === "swp" ? (
+                    <>
+                        <BigStat label="Initial Corpus" value={fmtINR(result.invested)} />
+                        <BigStat label="Total Withdrawn" value={fmtINR(result.gains)} />
+                        <BigStat label="Balance Left" value={fmtINR(result.fv)} accent />
+                    </>
+                ) : tab === "goal" ? (
+                    <>
+                        <BigStat label="Target" value={fmtINR(result.target)} />
+                        <BigStat label="You Invest" value={fmtINR(result.invested)} />
+                        <BigStat label="Required SIP" value={fmtINR(result.requiredSip)} accent />
+                    </>
+                ) : (
+                    <>
+                        <BigStat label="Total Invested" value={fmtINR(result.invested)} />
+                        <BigStat label="Est. Returns" value={fmtINR(result.gains)} />
+                        <BigStat label="Future Value" value={fmtINR(result.fv)} accent />
+                    </>
+                )}
+            </div>
+
+            {/* What if section */}
+            {extendable && (
+                <div style={{ position: "relative", marginBottom: 20 }}>
+                    <div style={{ fontSize: 10, letterSpacing: "0.22em", textTransform: "uppercase", color: "#0E5E48", fontWeight: 700, marginBottom: 10, display: "flex", alignItems: "center", gap: 8 }}>
+                        <span style={{ width: 18, height: 1, background: "#0E5E48" }} />
+                        What if you stay invested longer?
+                    </div>
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10 }}>
+                        {projections.map(({ y, p }) => {
+                            const extraGains = p ? p.fv - result.fv : 0;
                             return (
-                                <div key={idx} className="flex-1 flex flex-col-reverse gap-0.5">
-                                    <div
-                                        style={{ height: `${hi}%`, background: "#C9802A" }}
-                                        className="rounded-sm"
-                                    />
-                                    <div
-                                        style={{ height: `${hv}%`, background: "#0E5E48" }}
-                                        className="rounded-sm"
-                                    />
+                                <div
+                                    key={y}
+                                    style={{
+                                        background: "#FBF7EE",
+                                        border: "1px solid #E2D8C2",
+                                        borderRadius: 16,
+                                        padding: "14px 12px",
+                                        textAlign: "left",
+                                    }}
+                                >
+                                    <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 6 }}>
+                                        <span style={{ background: "#0E5E48", color: "#F6F1E8", fontSize: 10, fontWeight: 700, padding: "3px 8px", borderRadius: 999 }}>
+                                            +{y}Y
+                                        </span>
+                                        <span style={{ fontSize: 10, color: "#5C677D" }}>
+                                            ({baseYears + y} yrs total)
+                                        </span>
+                                    </div>
+                                    <div style={{ fontFamily: "'Fraunces', serif", fontSize: 19, color: "#0E1B2C", lineHeight: 1.1 }}>
+                                        {p ? fmtINR(p.fv) : "—"}
+                                    </div>
+                                    <div style={{ fontSize: 10, color: "#0E5E48", marginTop: 4, fontWeight: 600 }}>
+                                        +{fmtINR(extraGains)} extra
+                                    </div>
+                                    {p && (
+                                        <div style={{ fontSize: 9, color: "#5C677D", marginTop: 3 }}>
+                                            Invested {fmtINR(p.invested)}
+                                        </div>
+                                    )}
                                 </div>
                             );
                         })}
                     </div>
+                </div>
+            )}
 
-                    <div className="mt-5 flex items-center gap-3">
-                        <img
-                            src={SAGAR_PHOTO}
-                            crossOrigin="anonymous"
-                            alt="Sagar Chaturvedi"
-                            className="w-14 h-14 rounded-full object-cover border-2 border-[#0E5E48]"
-                        />
-                        <div>
-                            <div className="font-display text-[#0E1B2C] text-[1.05rem] leading-tight">
-                                Sagar Chaturvedi
+            {/* Mini chart visualisation */}
+            <div style={{ position: "relative", marginBottom: 18 }}>
+                <div style={{ fontSize: 10, letterSpacing: "0.22em", textTransform: "uppercase", color: "#5C677D", marginBottom: 8 }}>
+                    Year-on-year growth
+                </div>
+                <div style={{ height: 70, background: "#FBF7EE", border: "1px solid #E2D8C2", borderRadius: 12, padding: 8, display: "flex", alignItems: "flex-end", gap: 2 }}>
+                    {(result.series || []).map((p, idx) => {
+                        const max = Math.max(
+                            ...result.series.map((x) => Math.max(x.invested, x.value, 1)),
+                        );
+                        const hi = (p.invested / max) * 100;
+                        const hv = (p.value / max) * 100;
+                        return (
+                            <div key={idx} style={{ flex: 1, display: "flex", flexDirection: "column-reverse", gap: 1 }}>
+                                <div style={{ height: `${hi}%`, background: "#C9802A", borderRadius: 2 }} />
+                                <div style={{ height: `${hv}%`, background: "#0E5E48", borderRadius: 2 }} />
                             </div>
-                            <div className="text-[11px] text-[#5C677D]">
-                                Founder · MFD (AMFI Certified)
-                            </div>
-                            <div className="text-[11px] text-[#5C677D]">
-                                +91 77738 05794 · wecare@thefinancialdoctor.in
-                            </div>
+                        );
+                    })}
+                </div>
+                <div style={{ display: "flex", justifyContent: "space-between", marginTop: 6, fontSize: 10, color: "#5C677D" }}>
+                    <span style={{ display: "inline-flex", alignItems: "center", gap: 5 }}>
+                        <span style={{ width: 8, height: 8, borderRadius: 999, background: "#C9802A" }} />
+                        Invested
+                    </span>
+                    <span style={{ display: "inline-flex", alignItems: "center", gap: 5 }}>
+                        <span style={{ width: 8, height: 8, borderRadius: 999, background: "#0E5E48" }} />
+                        {tab === "emi" ? "Outstanding" : "Value"}
+                    </span>
+                </div>
+            </div>
+
+            {/* Sagar + QR */}
+            <div
+                style={{
+                    position: "relative",
+                    background: "#0E1B2C",
+                    color: "#F6F1E8",
+                    borderRadius: 18,
+                    padding: "16px 18px",
+                    display: "grid",
+                    gridTemplateColumns: "1fr auto",
+                    gap: 16,
+                    alignItems: "center",
+                    marginBottom: 14,
+                }}
+            >
+                <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                    <img
+                        src={SAGAR_PHOTO}
+                        crossOrigin="anonymous"
+                        alt="Sagar"
+                        style={{
+                            width: 60,
+                            height: 60,
+                            borderRadius: "50%",
+                            objectFit: "cover",
+                            border: "3px solid #C9802A",
+                        }}
+                    />
+                    <div>
+                        <div style={{ fontFamily: "'Fraunces', serif", fontSize: 18, lineHeight: 1.1 }}>
+                            Sagar Chaturvedi
+                        </div>
+                        <div style={{ fontSize: 10, color: "#F6F1E8", opacity: 0.7, marginTop: 3, letterSpacing: "0.12em", textTransform: "uppercase" }}>
+                            Founder · MFD (AMFI Certified)
+                        </div>
+                        <div style={{ fontSize: 11, marginTop: 6, opacity: 0.9 }}>
+                            📱 +91 77738 05794
+                        </div>
+                        <div style={{ fontSize: 11, opacity: 0.9 }}>
+                            ✉ wecare@thefinancialdoctor.in
                         </div>
                     </div>
                 </div>
-
-                <div className="flex flex-col items-center justify-between">
-                    <div className="bg-white border border-[#E2D8C2] rounded-xl p-2">
+                <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
+                    <div style={{ background: "#fff", padding: 5, borderRadius: 10 }}>
                         <QRCodeCanvas
                             value={TFD_BRAND_URL}
-                            size={108}
+                            size={88}
                             bgColor="#FFFFFF"
                             fgColor="#0E1B2C"
                             level="M"
                             includeMargin={false}
                         />
                     </div>
-                    <div className="text-center mt-2">
-                        <div className="text-[10px] uppercase tracking-[0.2em] text-[#5C677D]">
-                            Scan to invest
-                        </div>
-                        <div className="font-display text-[#0E5E48] text-sm mt-0.5">
-                            AssetPlus · ARN-290298
-                        </div>
+                    <div style={{ fontSize: 9, marginTop: 5, color: "#C9802A", fontWeight: 700, letterSpacing: "0.15em", textTransform: "uppercase" }}>
+                        Scan to invest
                     </div>
+                    <div style={{ fontSize: 9, opacity: 0.6 }}>AssetPlus · ARN-290298</div>
                 </div>
             </div>
 
-            {/* Footer */}
-            <div className="mt-5 pt-4 border-t border-[#E2D8C2] flex items-center justify-between text-[10px] text-[#5C677D]">
-                <span>thefinancialdoctor.in</span>
-                <span className="italic">
+            {/* Footer disclaimer */}
+            <div style={{ position: "relative", textAlign: "center" }}>
+                <div style={{ fontSize: 11, color: "#0E1B2C", fontWeight: 600, marginBottom: 4 }}>
+                    thefinancialdoctor.in
+                </div>
+                <div style={{ fontSize: 9, color: "#5C677D", fontStyle: "italic", lineHeight: 1.4 }}>
                     Mutual fund investments are subject to market risks. Read all scheme-related
-                    documents carefully.
-                </span>
+                    documents carefully. Calculations are illustrative; actual returns may vary.
+                </div>
             </div>
         </div>
     );
 }
 
-function Stat({ label, value, primary }) {
+function BigStat({ label, value, accent }) {
     return (
-        <div>
-            <div className="text-[9px] uppercase tracking-[0.2em] text-[#5C677D]">{label}</div>
+        <div
+            style={{
+                background: accent ? "#0E5E48" : "#FBF7EE",
+                border: accent ? "none" : "1px solid #E2D8C2",
+                borderRadius: 16,
+                padding: "12px 12px",
+                textAlign: "left",
+                color: accent ? "#F6F1E8" : "#0E1B2C",
+            }}
+        >
             <div
-                className={`font-display mt-1 ${
-                    primary ? "text-[1.5rem] text-[#0E5E48]" : "text-[1.05rem] text-[#0E1B2C]"
-                }`}
+                style={{
+                    fontSize: 9,
+                    letterSpacing: "0.2em",
+                    textTransform: "uppercase",
+                    color: accent ? "rgba(246,241,232,0.75)" : "#5C677D",
+                    marginBottom: 6,
+                }}
             >
+                {label}
+            </div>
+            <div style={{ fontFamily: "'Fraunces', serif", fontSize: 20, lineHeight: 1.1 }}>
                 {value}
             </div>
         </div>

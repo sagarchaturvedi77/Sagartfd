@@ -11,6 +11,8 @@ import Reviews from "@/components/Reviews";
 import Partnership from "@/components/Partnership";
 import Contact from "@/components/Contact";
 import Footer from "@/components/Footer";
+import FloatingActions from "@/components/FloatingActions";
+import AIChat from "@/components/AIChat";
 
 export default function Home() {
     return (
@@ -29,6 +31,8 @@ export default function Home() {
                 <Contact />
             </main>
             <Footer />
+            <FloatingActions />
+            <AIChat />
         </div>
     );
 }
