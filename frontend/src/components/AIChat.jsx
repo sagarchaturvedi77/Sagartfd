@@ -830,9 +830,10 @@ function stripMd(s, max) {
 }
 
 // Full markdown strip — preserves entire content (no truncation) for snapshot use.
+// Also collapses immediate duplicate lines/sentences that can leak in from streaming SSE chunks.
 function stripMdFull(s) {
     if (!s) return "";
-    return s
+    let out = s
         .replace(/\*\*(.+?)\*\*/g, "$1")
         .replace(/\*(.+?)\*/g, "$1")
         .replace(/`([^`]+)`/g, "$1")
@@ -847,6 +848,13 @@ function stripMdFull(s) {
                 .join(" · "),
         )
         .replace(/^[\s|:\-]+$/gm, "")
-        .replace(/\n{3,}/g, "\n\n")
-        .trim();
+        .replace(/\n{3,}/g, "\n\n");
+    // Collapse exact duplicate adjacent lines (streaming SSE chunk-boundary artefact)
+    out = out
+        .split("\n")
+        .filter((line, i, arr) => i === 0 || line.trim() === "" || line.trim() !== arr[i - 1].trim())
+        .join("\n");
+    // Collapse "Sentence Sentence" → "Sentence" for ≥15-char repeated phrases on same line
+    out = out.replace(/\b([^.!?\n]{15,}?[.!?])\s+\1/g, "$1");
+    return out.trim();
 }

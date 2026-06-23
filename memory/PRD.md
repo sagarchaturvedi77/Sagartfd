@@ -51,10 +51,17 @@
 - SEED_REVIEWS expanded to 6 realistic Google-style entries (Rahul, Priya, Amit, Neha, Vikram, Anjali) across Sehore/Bhopal/Indore
 - Backend resilience: per-fund retry (3 attempts with backoff) inside /api/mf/top-funds so cold-start MFAPI hiccups never drop funds
 
+### 2026-06-23 (iter 5 — logo-matched palette + snapshot fix)
+- **Brand colour migration**: Extracted exact hex from TFD logo (navy `#024396` + red `#C7102E`) and migrated entire codebase. Old emerald `#0E5E48` and ochre `#C9802A` replaced everywhere. CSS HSL tokens updated (`--primary: 213 97% 30%`, `--accent: 351 85% 42%`).
+- **AI Chat snapshot fix**: `PlanSnapshot` refactored to render ONLY the latest user question + latest substantial AI plan (full content via new `stripMdFull` helper, NO truncation). Long multi-turn chats no longer cut off — verified producing 1280×5376 PNGs with the entire planning + recommendations visible.
+- Added duplicate-line/duplicate-sentence collapse in `stripMdFull` to clean SSE streaming artefacts in snapshot rendering.
+- `downloadPlanning` now passes explicit width/height to html2canvas so very tall snapshots capture reliably.
+
 ## Test status
 - iter_1: 100% backend, 95% frontend
 - iter_2: 100% backend, 100% frontend
 - iter_3: 100% backend (22/22 once cache warm), 100% frontend (all 6 new flows pass)
+- iter_4: 100% frontend (colour migration + AI snapshot full-content download, calculator regression, top funds, floating actions all pass)
 
 ## Backlog
 - P1: Admin moderation panel for reviews, Resend email notification on new contact, SEO LocalBusiness JSON-LD + OG image, persistent MF cache in MongoDB
