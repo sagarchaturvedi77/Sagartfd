@@ -144,23 +144,23 @@ export default function Reviews() {
     return (
         <section id="reviews" className="section">
             <div className="container-x">
-                <div className="flex items-end justify-between flex-wrap gap-6 mb-10">
+                <div className="flex items-end justify-between flex-wrap gap-4 sm:gap-6 mb-6 sm:mb-10">
                     <div>
                         <div className="eyebrow">Word on the street</div>
                         <h2 className="h2 mt-3 text-[#0E1B2C]">
                             Trusted by 1000+ <span className="font-italic-serif text-[#C9802A]">families</span> across MP.
                         </h2>
                     </div>
-                    <div className="card-cream px-5 py-4 flex items-center gap-5">
+                    <div className="card-cream px-3.5 sm:px-5 py-3 sm:py-4 flex items-center gap-3 sm:gap-5">
                         <div>
-                            <div className="text-[11px] tracking-[0.18em] uppercase text-[#5C677D]">
+                            <div className="text-[10px] sm:text-[11px] tracking-[0.18em] uppercase text-[#5C677D]">
                                 Google Rating
                             </div>
-                            <div className="font-display text-3xl text-[#0E1B2C] mt-1 flex items-baseline gap-2">
+                            <div className="font-display text-2xl sm:text-3xl text-[#0E1B2C] mt-1 flex items-baseline gap-2">
                                 {stats.average.toFixed(1)}
-                                <span className="text-base text-[#5C677D]">/ 5</span>
+                                <span className="text-sm sm:text-base text-[#5C677D]">/ 5</span>
                             </div>
-                            <div className="text-[12px] text-[#5C677D]">
+                            <div className="text-[11px] sm:text-[12px] text-[#5C677D]">
                                 Based on {stats.count}+ reviews
                             </div>
                         </div>
@@ -168,28 +168,28 @@ export default function Reviews() {
                             href={LINKS.googleReviews}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="btn-pill btn-ghost text-xs"
+                            className="btn-pill btn-ghost text-[11px] sm:text-xs px-3 py-2"
                             data-testid="reviews-google-link"
                         >
-                            View on Google <ExternalLink size={12} />
+                            View<span className="hidden sm:inline">&nbsp;on Google</span> <ExternalLink size={12} />
                         </a>
                     </div>
                 </div>
 
-                <div className="grid lg:grid-cols-12 gap-6">
+                <div className="grid lg:grid-cols-12 gap-5 sm:gap-6">
                     {/* Form */}
                     <form
                         onSubmit={onSubmit}
-                        className="lg:col-span-5 card-ink p-7"
+                        className="lg:col-span-5 card-ink p-5 sm:p-7"
                         data-testid={IDS.reviews.form}
                     >
-                        <div className="text-[11px] tracking-[0.2em] uppercase text-[#C9802A] font-semibold">
+                        <div className="text-[10px] sm:text-[11px] tracking-[0.2em] uppercase text-[#C9802A] font-semibold">
                             Share your experience
                         </div>
-                        <h3 className="font-display text-[1.7rem] mt-2 leading-snug">
+                        <h3 className="font-display text-[1.35rem] sm:text-[1.7rem] mt-1.5 sm:mt-2 leading-snug">
                             Rate The Financial Doctor.
                         </h3>
-                        <p className="text-[#F6F1E8]/70 mt-2 text-sm">
+                        <p className="text-[#F6F1E8]/70 mt-2 text-[13px] sm:text-sm">
                             We showcase only <strong>verified Google reviews</strong> on this site —
                             post yours on Google and we'll feature it here.
                         </p>
@@ -200,7 +200,7 @@ export default function Reviews() {
                             target="_blank"
                             rel="noopener noreferrer"
                             data-testid="reviews-write-on-google"
-                            className="btn-pill w-full justify-center mt-5"
+                            className="btn-pill w-full justify-center mt-4 sm:mt-5 text-sm"
                             style={{
                                 background: "linear-gradient(135deg, #FBBC04 0%, #F4B400 100%)",
                                 color: "#0E1B2C",
@@ -214,7 +214,7 @@ export default function Reviews() {
                             <ExternalLink size={14} />
                         </a>
 
-                        <div className="my-5 flex items-center gap-3 text-[10px] tracking-[0.2em] uppercase text-[#F6F1E8]/40">
+                        <div className="my-4 sm:my-5 flex items-center gap-3 text-[9.5px] sm:text-[10px] tracking-[0.2em] uppercase text-[#F6F1E8]/40">
                             <span className="h-px flex-1 bg-[#F6F1E8]/15" />
                             or quick note here
                             <span className="h-px flex-1 bg-[#F6F1E8]/15" />
@@ -240,29 +240,29 @@ export default function Reviews() {
                                 </div>
                             </div>
                         ) : (
-                            <div className="space-y-4">
-                                <div className="grid grid-cols-2 gap-3">
+                            <div className="space-y-3 sm:space-y-4">
+                                <div className="grid grid-cols-2 gap-2 sm:gap-3">
                                     <input
                                         required
                                         data-testid={IDS.reviews.name}
                                         placeholder="Your name"
                                         value={form.name}
                                         onChange={(e) => setForm({ ...form, name: e.target.value })}
-                                        className="bg-[#2A364B] border border-[#3a4761] rounded-xl px-4 py-3 text-[#F6F1E8] placeholder:text-[#8A93A6] focus:border-[#C9802A]"
+                                        className="bg-[#2A364B] border border-[#3a4761] rounded-xl px-3 sm:px-4 py-2.5 sm:py-3 text-[14px] text-[#F6F1E8] placeholder:text-[#8A93A6] focus:border-[#C9802A]"
                                     />
                                     <input
                                         data-testid={IDS.reviews.location}
-                                        placeholder="City (e.g. Sehore)"
+                                        placeholder="City"
                                         value={form.location}
                                         onChange={(e) => setForm({ ...form, location: e.target.value })}
-                                        className="bg-[#2A364B] border border-[#3a4761] rounded-xl px-4 py-3 text-[#F6F1E8] placeholder:text-[#8A93A6] focus:border-[#C9802A]"
+                                        className="bg-[#2A364B] border border-[#3a4761] rounded-xl px-3 sm:px-4 py-2.5 sm:py-3 text-[14px] text-[#F6F1E8] placeholder:text-[#8A93A6] focus:border-[#C9802A]"
                                     />
                                 </div>
                                 <div>
-                                    <div className="text-[11px] uppercase tracking-[0.18em] opacity-70 mb-2">
+                                    <div className="text-[10px] sm:text-[11px] uppercase tracking-[0.16em] sm:tracking-[0.18em] opacity-70 mb-1.5 sm:mb-2">
                                         Your rating
                                     </div>
-                                    <div className="flex gap-1.5">
+                                    <div className="flex gap-1 sm:gap-1.5">
                                         {[1, 2, 3, 4, 5].map((i) => {
                                             const active = i <= (hoverStar || form.rating);
                                             return (
@@ -277,7 +277,7 @@ export default function Reviews() {
                                                     aria-label={`Rate ${i} star`}
                                                 >
                                                     <Star
-                                                        size={30}
+                                                        size={26}
                                                         fill={active ? "#C9802A" : "transparent"}
                                                         stroke={active ? "#C9802A" : "#5C677D"}
                                                         strokeWidth={1.8}
@@ -330,14 +330,14 @@ export default function Reviews() {
                                     placeholder="Likhiye apna experience…"
                                     value={form.message}
                                     onChange={(e) => setForm({ ...form, message: e.target.value })}
-                                    rows={4}
-                                    className="w-full bg-[#2A364B] border border-[#3a4761] rounded-xl px-4 py-3 text-[#F6F1E8] placeholder:text-[#8A93A6] focus:border-[#C9802A]"
+                                    rows={3}
+                                    className="w-full bg-[#2A364B] border border-[#3a4761] rounded-xl px-3 sm:px-4 py-2.5 sm:py-3 text-[13.5px] sm:text-[14px] text-[#F6F1E8] placeholder:text-[#8A93A6] focus:border-[#C9802A]"
                                 />
                                 <button
                                     type="submit"
                                     disabled={loading || !form.name || form.message.length < 10}
                                     data-testid={IDS.reviews.submit}
-                                    className="btn-pill w-full justify-center disabled:opacity-50"
+                                    className="btn-pill w-full justify-center disabled:opacity-50 text-sm"
                                     style={{ background: "#C9802A", color: "#fff" }}
                                 >
                                     <Send size={16} /> {loading ? "Publishing…" : "Publish review"}
@@ -347,19 +347,19 @@ export default function Reviews() {
                     </form>
 
                     {/* List */}
-                    <div className="lg:col-span-7 grid sm:grid-cols-2 gap-4 content-start" data-testid={IDS.reviews.list}>
-                        {list.slice(0, 6).map((r, idx) => (
+                    <div className="lg:col-span-7 grid sm:grid-cols-2 gap-3 sm:gap-4 content-start" data-testid={IDS.reviews.list}>
+                        {list.slice(0, 4).map((r, idx) => (
                             <Reveal key={r.id} delay={idx * 70} y={20}>
                                 <article
-                                    className="card-cream p-5 flex flex-col relative h-full"
+                                    className="card-cream p-4 sm:p-5 flex flex-col relative h-full"
                                     data-testid={`review-card-${r.id}`}
                                 >
-                                <div className="flex items-center justify-between mb-3">
-                                    <div className="flex gap-1">
+                                <div className="flex items-center justify-between mb-2 sm:mb-3">
+                                    <div className="flex gap-0.5 sm:gap-1">
                                         {Array.from({ length: 5 }).map((_, i) => (
                                             <Star
                                                 key={i}
-                                                size={14}
+                                                size={13}
                                                 fill={i < r.rating ? "#C9802A" : "transparent"}
                                                 stroke={i < r.rating ? "#C9802A" : "#5C677D"}
                                                 strokeWidth={1.8}
@@ -367,24 +367,24 @@ export default function Reviews() {
                                         ))}
                                     </div>
                                     <span
-                                        className="inline-flex items-center gap-1 text-[9px] tracking-[0.16em] uppercase text-[#5C677D] bg-[#F6F1E8] border border-[#E2D8C2] px-2 py-0.5 rounded-full"
+                                        className="inline-flex items-center gap-1 text-[9px] tracking-[0.16em] uppercase text-[#5C677D] bg-[#F6F1E8] border border-[#E2D8C2] px-1.5 sm:px-2 py-0.5 rounded-full"
                                         title="Sourced from Google reviews"
                                     >
                                         <GoogleG size={9} /> Google
                                     </span>
                                 </div>
-                                <p className="text-[14.5px] text-[#2A364B] leading-relaxed flex-1">
+                                <p className="text-[13px] sm:text-[14.5px] text-[#2A364B] leading-relaxed flex-1">
                                     “{r.message}”
                                 </p>
-                                <div className="mt-4 pt-4 border-t border-[#E2D8C2] flex items-center gap-3">
-                                    <div className="w-10 h-10 rounded-full bg-[#0E5E48] text-[#F6F1E8] grid place-items-center text-sm font-display">
+                                <div className="mt-3 sm:mt-4 pt-3 sm:pt-4 border-t border-[#E2D8C2] flex items-center gap-2.5 sm:gap-3">
+                                    <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-[#0E5E48] text-[#F6F1E8] grid place-items-center text-xs sm:text-sm font-display">
                                         {initials(r.name)}
                                     </div>
                                     <div>
-                                        <div className="font-display text-[#0E1B2C] text-[15px] leading-tight">
+                                        <div className="font-display text-[#0E1B2C] text-[13px] sm:text-[15px] leading-tight">
                                             {r.name}
                                         </div>
-                                        <div className="text-[11px] text-[#5C677D]">
+                                        <div className="text-[10px] sm:text-[11px] text-[#5C677D]">
                                             {r.location} · {formatAgo(r.created_at)}
                                         </div>
                                     </div>
@@ -392,6 +392,27 @@ export default function Reviews() {
                             </article>
                             </Reveal>
                         ))}
+
+                        {/* See all on Google CTA */}
+                        <a
+                            href={LINKS.googleReviews}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            data-testid="reviews-see-all-google"
+                            className="card-cream p-4 sm:p-5 flex items-center justify-between gap-3 sm:col-span-2 hover:bg-[#F6F1E8] transition-colors"
+                        >
+                            <div>
+                                <div className="text-[10px] sm:text-[11px] tracking-[0.18em] uppercase text-[#5C677D]">
+                                    Want to read more?
+                                </div>
+                                <div className="font-display text-[14px] sm:text-[18px] text-[#0E1B2C] mt-1 leading-tight">
+                                    See all reviews on Google →
+                                </div>
+                            </div>
+                            <span className="inline-flex items-center gap-1.5 text-[12px] sm:text-[13px] font-medium bg-[#F6F1E8] border border-[#E2D8C2] text-[#0E1B2C] px-3 py-2 rounded-full shrink-0">
+                                <GoogleG size={12} /> Open
+                            </span>
+                        </a>
                     </div>
                 </div>
             </div>

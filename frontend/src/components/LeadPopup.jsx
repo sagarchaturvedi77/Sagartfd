@@ -57,17 +57,13 @@ export default function LeadPopup() {
 
     return (
         <div
-            className="fixed inset-0 z-[80] grid place-items-center bg-[#0E1B2C]/55 backdrop-blur-sm p-4 animate-[fadeIn_0.25s_ease]"
+            className="fixed inset-0 z-[80] grid place-items-center bg-[#0E1B2C]/55 backdrop-blur-sm p-4"
             onClick={() => dismiss("backdrop")}
             data-testid="lead-popup"
         >
-            <style>{`
-                @keyframes fadeIn { from { opacity: 0 } to { opacity: 1 } }
-                @keyframes popIn { from { opacity: 0; transform: translateY(20px) scale(0.96) } to { opacity: 1; transform: none } }
-            `}</style>
             <div
                 onClick={(e) => e.stopPropagation()}
-                className="bg-[#FBF7EE] rounded-3xl shadow-2xl w-full max-w-md overflow-hidden relative animate-[popIn_0.35s_ease]"
+                className="bg-[#FBF7EE] rounded-3xl shadow-2xl w-full max-w-md overflow-hidden relative"
             >
                 <button
                     onClick={() => dismiss("close-btn")}

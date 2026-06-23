@@ -51,17 +51,13 @@ export default function WhatsAppCommunityPopup() {
 
     return (
         <div
-            className="fixed inset-0 z-[78] grid place-items-center bg-[#0E1B2C]/55 backdrop-blur-sm p-4 animate-[fadeIn_0.3s_ease]"
+            className="fixed inset-0 z-[78] grid place-items-center bg-[#0E1B2C]/55 backdrop-blur-sm p-4"
             onClick={() => dismiss("backdrop")}
             data-testid="wa-community-popup"
         >
-            <style>{`
-                @keyframes fadeIn { from { opacity: 0 } to { opacity: 1 } }
-                @keyframes popInWA { from { opacity: 0; transform: translateY(20px) scale(0.96) } to { opacity: 1; transform: none } }
-            `}</style>
             <div
                 onClick={(e) => e.stopPropagation()}
-                className="relative w-full max-w-md rounded-3xl overflow-hidden shadow-2xl animate-[popInWA_0.4s_ease]"
+                className="relative w-full max-w-md rounded-3xl overflow-hidden shadow-2xl"
                 style={{ background: "#FBF7EE" }}
             >
                 <button

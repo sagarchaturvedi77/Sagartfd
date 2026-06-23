@@ -90,7 +90,7 @@ export default function FloatingActions() {
                         <Sparkles size={20} className="hidden sm:block" />
                         <span
                             aria-hidden
-                            className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-[#22C55E] border-2 border-[#0E5E48] animate-pulse"
+                            className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-[#22C55E] border-2 border-[#0E5E48]"
                         />
                     </span>
                     <span className="flex flex-col items-start leading-none pr-0.5 sm:pr-1">
