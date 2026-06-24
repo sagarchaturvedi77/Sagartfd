@@ -343,7 +343,7 @@ export default function Calculators() {
                                     min={500} max={200000} step={500} format={fmtINR}
                                     testid={IDS.calc.amount} />
                                 <Slider
-                                    label="ADD DAILY SIP (OPTIONALl)"
+                                    label="ADD DAILY SIP (OPTIONAL)"
                                     labelNote={(
                                         <div className="space-y-1">
                                             <div>
