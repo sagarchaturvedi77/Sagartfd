@@ -126,15 +126,49 @@ function emiCalc(principal, years, rateAnnual) {
 // ---------- Slider ----------
 function Slider({ value, onChange, min, max, step = 1, label, format, testid }) {
     const pct = ((value - min) / (max - min)) * 100;
+    const [editing, setEditing] = React.useState(false);
+    const [tempValue, setTempValue] = React.useState(value);
+
+    const commitValue = () => {
+        let v = Number(tempValue);
+        if (isNaN(v)) v = value;
+        if (v < min) v = min;
+        if (v > max) v = max;
+        onChange(v);
+        setEditing(false);
+    };
+
     return (
         <div>
             <div className="flex items-baseline justify-between mb-2">
                 <label className="text-[13px] uppercase tracking-[0.15em] text-[#5C677D]">
                     {label}
                 </label>
-                <div className="font-display text-xl text-[#0E1B2C]">
-                    {format ? format(value) : value}
-                </div>
+                {editing ? (
+                    <input
+                        type="number"
+                        autoFocus
+                        value={tempValue}
+                        onChange={(e) => setTempValue(e.target.value)}
+                        onBlur={commitValue}
+                        onKeyDown={(e) => {
+                            if (e.key === "Enter") commitValue();
+                            if (e.key === "Escape") setEditing(false);
+                        }}
+                        className="font-display text-xl text-[#0E1B2C] w-28 text-right border-b border-[#024396] outline-none bg-transparent"
+                    />
+                ) : (
+                    <div
+                        className="font-display text-xl text-[#0E1B2C] cursor-pointer hover:text-[#024396]"
+                        onClick={() => {
+                            setTempValue(value);
+                            setEditing(true);
+                        }}
+                        title="Click to type a custom value"
+                    >
+                        {format ? format(value) : value}
+                    </div>
+                )}
             </div>
             <input
                 type="range"
