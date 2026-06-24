@@ -551,7 +551,7 @@ function ResultCard({ tab, result, onDownload }) {
                     >
                         <Download size={16} /> <span className="hidden sm:inline">Download</span> PNG
                     </button>
-                    
+                    <a
                         href={TFD_BRAND_URL}
                         target="_blank"
                         rel="noreferrer"
