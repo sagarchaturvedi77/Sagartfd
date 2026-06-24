@@ -128,7 +128,7 @@ function emiCalc(principal, years, rateAnnual) {
 }
 
 // ---------- Slider ----------
-function Slider({ value, onChange, min, max, step = 1, label, format, testid }) {
+function Slider({ value, onChange, min, max, step = 1, label, labelNote, format, testid }) {
     const pct = ((value - min) / (max - min)) * 100;
     const [editing, setEditing] = React.useState(false);
     const [tempValue, setTempValue] = React.useState(value);
@@ -145,9 +145,16 @@ function Slider({ value, onChange, min, max, step = 1, label, format, testid }) 
     return (
         <div>
             <div className="flex items-baseline justify-between mb-2">
-                <label className="text-[13px] uppercase tracking-[0.15em] text-[#5C677D]">
-                    {label}
-                </label>
+                <div>
+                    <label className="text-[13px] uppercase tracking-[0.15em] text-[#5C677D]">
+                        {label}
+                    </label>
+                    {labelNote && (
+                        <div className="mt-1 text-xs normal-case tracking-normal text-[#5C677D]">
+                            {labelNote}
+                        </div>
+                    )}
+                </div>
                 {editing ? (
                     <input
                         type="number"
@@ -335,8 +342,25 @@ export default function Calculators() {
                                 <Slider label="Monthly Investment" value={sipAmount} onChange={setSipAmount}
                                     min={500} max={200000} step={500} format={fmtINR}
                                     testid={IDS.calc.amount} />
-                                <Slider label="+ Daily SIP Top-up (optional)" value={sipDailyAddon} onChange={setSipDailyAddon}
-                                    min={0} max={2000} step={50} format={fmtINR} />
+                                <Slider
+                                    label="Daily SIP Top-up (optional)"
+                                    labelNote={(
+                                        <div className="space-y-1">
+                                            <div>Add Daily SIP (optional)</div>
+                                            <div>
+                                                Note - Daily SIP uses{" "}
+                                                <strong className="text-[#0E1B2C]">22 working days</strong>
+                                                {" "} / month
+                                            </div>
+                                        </div>
+                                    )}
+                                    value={sipDailyAddon}
+                                    onChange={setSipDailyAddon}
+                                    min={0}
+                                    max={2000}
+                                    step={50}
+                                    format={fmtINR}
+                                />
                                 <Slider label="Annual Step-up % (optional)" value={sipStepUp} onChange={setSipStepUp}
                                     min={0} max={20} step={1} format={(v) => `${v}%`} />
                                 <Slider label="Investment Period" value={sipYears} onChange={setSipYears}
