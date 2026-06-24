@@ -26,15 +26,19 @@ const fmtINR = (n) => {
 };
 
 // ---------- Calculations ----------
-function sipCalc(monthly, years, rateAnnual) {
+function sipCalc(monthly, years, rateAnnual, stepUpPct = 0) {
     const months = years * 12;
     const r = rateAnnual / 100 / 12;
     const series = [];
     let invested = 0;
     let fv = 0;
+    let currentMonthly = monthly;
     for (let m = 1; m <= months; m++) {
-        invested += monthly;
-        fv = (fv + monthly) * (1 + r);
+        if (m > 1 && (m - 1) % 12 === 0 && stepUpPct > 0) {
+            currentMonthly = currentMonthly * (1 + stepUpPct / 100);
+        }
+        invested += currentMonthly;
+        fv = (fv + currentMonthly) * (1 + r);
         if (m % 12 === 0) {
             series.push({
                 label: `Yr ${m / 12}`,
@@ -203,6 +207,8 @@ export default function Calculators() {
 
     // Shared / per-tab states
     const [sipAmount, setSipAmount] = useState(10000);
+    const [sipDailyAddon, setSipDailyAddon] = useState(0);
+    const [sipStepUp, setSipStepUp] = useState(0);
     const [sipYears, setSipYears] = useState(15);
     const [sipRate, setSipRate] = useState(12);
 
@@ -229,8 +235,10 @@ export default function Calculators() {
 
     const result = useMemo(() => {
         switch (tab) {
-            case "sip":
-                return { kind: "sip", ...sipCalc(sipAmount, sipYears, sipRate) };
+            case "sip": {
+                const effectiveMonthly = sipAmount + sipDailyAddon * 22;
+                return { kind: "sip", ...sipCalc(effectiveMonthly, sipYears, sipRate, sipStepUp) };
+            }
             case "daily":
                 return { kind: "daily", ...dailySipCalc(dailyAmount, dailyYears, dailyRate) };
             case "lumpsum":
@@ -246,7 +254,7 @@ export default function Calculators() {
         }
     }, [
         tab,
-        sipAmount, sipYears, sipRate,
+        sipAmount, sipDailyAddon, sipStepUp, sipYears, sipRate,
         dailyAmount, dailyYears, dailyRate,
         lump, lumpYears, lumpRate,
         swpCorpus, swpMonthly, swpYears, swpRate,
@@ -327,12 +335,22 @@ export default function Calculators() {
                                 <Slider label="Monthly Investment" value={sipAmount} onChange={setSipAmount}
                                     min={500} max={200000} step={500} format={fmtINR}
                                     testid={IDS.calc.amount} />
+                                <Slider label="+ Daily SIP Top-up (optional)" value={sipDailyAddon} onChange={setSipDailyAddon}
+                                    min={0} max={2000} step={50} format={fmtINR} />
+                                <Slider label="Annual Step-up % (optional)" value={sipStepUp} onChange={setSipStepUp}
+                                    min={0} max={20} step={1} format={(v) => `${v}%`} />
                                 <Slider label="Investment Period" value={sipYears} onChange={setSipYears}
                                     min={1} max={40} step={1} format={(v) => `${v} Yr`}
                                     testid={IDS.calc.years} />
                                 <Slider label="Expected Return (p.a.)" value={sipRate} onChange={setSipRate}
                                     min={1} max={30} step={0.5} format={(v) => `${v}%`}
                                     testid={IDS.calc.rate} />
+                                {(sipDailyAddon > 0 || sipStepUp > 0) && (
+                                    <div className="text-xs text-[#5C677D] bg-[#F6F1E8] border border-[#E2D8C2] rounded-lg p-3 leading-relaxed">
+                                        Effective starting monthly: <strong className="text-[#0E1B2C]">{fmtINR(sipAmount + sipDailyAddon * 22)}</strong>
+                                        {sipStepUp > 0 && ` — increasing ${sipStepUp}% every year`}
+                                    </div>
+                                )}
                             </div>
                         )}
                         {tab === "daily" && (
@@ -476,7 +494,7 @@ export default function Calculators() {
                             tab={tab}
                             result={result}
                             state={{
-                                sipAmount, sipYears, sipRate,
+                                sipAmount, sipDailyAddon, sipStepUp, sipYears, sipRate,
                                 dailyAmount, dailyYears, dailyRate,
                                 lump, lumpYears, lumpRate,
                                 swpCorpus, swpMonthly, swpYears, swpRate,
@@ -533,7 +551,7 @@ function ResultCard({ tab, result, onDownload }) {
                     >
                         <Download size={16} /> <span className="hidden sm:inline">Download</span> PNG
                     </button>
-                    <a
+                    
                         href={TFD_BRAND_URL}
                         target="_blank"
                         rel="noreferrer"
@@ -578,7 +596,8 @@ const TFD_LOGO =
 function projectExtended(tab, baseState, extraYears) {
     switch (tab) {
         case "sip": {
-            const r = sipCalc(baseState.sipAmount, baseState.sipYears + extraYears, baseState.sipRate);
+            const effectiveMonthly = baseState.sipAmount + (baseState.sipDailyAddon || 0) * 22;
+            const r = sipCalc(effectiveMonthly, baseState.sipYears + extraYears, baseState.sipRate, baseState.sipStepUp || 0);
             return { invested: r.invested, fv: r.fv, gains: r.gains };
         }
         case "daily": {
@@ -614,21 +633,22 @@ function upsellScenarios(tab, state, result) {
     try {
         if (tab === "sip") {
             const baseFv = result.fv;
-            const topup = sipCalc(state.sipAmount * 1.1, state.sipYears, state.sipRate);
+            const baseEffective = state.sipAmount + (state.sipDailyAddon || 0) * 22;
+            const topup = sipCalc(baseEffective * 1.1, state.sipYears, state.sipRate, state.sipStepUp || 0);
             out.push({
                 title: "10% topup karein",
                 titleHi: "हर साल 10% बढ़ाएँ",
                 extra: topup.fv - baseFv,
-                detail: `Just increase monthly SIP by ${Math.round(state.sipAmount * 0.1)} = ₹${Math.round(state.sipAmount * 1.1).toLocaleString("en-IN")}/mo`,
+                detail: `Just increase monthly SIP by ${Math.round(baseEffective * 0.1)} = ₹${Math.round(baseEffective * 1.1).toLocaleString("en-IN")}/mo`,
             });
-            const daily100 = sipCalc(state.sipAmount + 100 * 22, state.sipYears, state.sipRate);
+            const daily100 = sipCalc(baseEffective + 100 * 22, state.sipYears, state.sipRate, state.sipStepUp || 0);
             out.push({
                 title: "Add ₹100/day SIP",
                 titleHi: "रोज़ ₹100 और जोड़ें",
                 extra: daily100.fv - baseFv,
                 detail: "Equivalent to +₹2,200/month — coffee money turns into wealth",
             });
-            const longer5 = sipCalc(state.sipAmount, state.sipYears + 5, state.sipRate);
+            const longer5 = sipCalc(baseEffective, state.sipYears + 5, state.sipRate, state.sipStepUp || 0);
             out.push({
                 title: "5 saal aur invest karein",
                 titleHi: "5 साल और जारी रखें",
@@ -749,6 +769,22 @@ function SnapshotCard({ tab, result, state }) {
         return { label: "Future Value", value: fmtINR(result.fv) };
     })();
 
+    // What was invested — shown clearly in the snapshot title strip
+    const investedLine = (() => {
+        if (tab === "sip") {
+            let s = `Monthly SIP: ${fmtINR(state.sipAmount)}`;
+            if (state.sipDailyAddon > 0) s += ` + Daily top-up ${fmtINR(state.sipDailyAddon)}/day`;
+            if (state.sipStepUp > 0) s += ` · ${state.sipStepUp}% annual step-up`;
+            return s;
+        }
+        if (tab === "daily") return `Daily SIP: ${fmtINR(state.dailyAmount)}/day (22 working days/month)`;
+        if (tab === "lumpsum") return `Lumpsum Amount: ${fmtINR(state.lump)}`;
+        if (tab === "swp") return `Monthly Withdrawal: ${fmtINR(state.swpMonthly)} from ${fmtINR(state.swpCorpus)} corpus`;
+        if (tab === "goal") return `Target Corpus: ${fmtINR(state.goal)}`;
+        if (tab === "emi") return `Loan Amount: ${fmtINR(state.loan)}`;
+        return "";
+    })();
+
     return (
         <div className="snap-card">
             {/* Decorative accent */}
@@ -836,6 +872,9 @@ function SnapshotCard({ tab, result, state }) {
                     </div>
                     <div style={{ fontSize: 11, color: "#F6F1E8", opacity: 0.7, marginTop: 4 }}>
                         {headlineMetric.label} · over {baseYears} years @ {rateUsed}% p.a.
+                    </div>
+                    <div style={{ fontSize: 12, color: "#F6F1E8", marginTop: 6, fontWeight: 600 }}>
+                        {investedLine}
                     </div>
                 </div>
                 <div
