@@ -105,6 +105,28 @@ async def reviews_stats():
 async def create_contact(payload: ContactCreate):
     obj = ContactRequest(**payload.model_dump())
     await db.contact_requests.insert_one(obj.model_dump())
+    
+    # EmailJS se email bhejo
+    try:
+        async with httpx.AsyncClient(timeout=10.0) as cli:
+            await cli.post(
+                "https://api.emailjs.com/api/v1.0/email/send",
+                json={
+                    "service_id": "service_tgaf18k",
+                    "template_id": "template_ikee3pt",
+                    "user_id": "FvB3BN4WHB03ZhD5R",
+                    "template_params": {
+                        "from_name": payload.full_name,
+                        "phone": payload.phone,
+                        "email": payload.email or "Not provided",
+                        "service": payload.service or "Not selected",
+                        "message": payload.message or "No message",
+                    }
+                }
+            )
+    except Exception as e:
+        logger.warning(f"EmailJS send failed: {e}")
+    
     return obj
 
 
