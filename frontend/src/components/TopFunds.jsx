@@ -1,12 +1,11 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { Search, TrendingUp, Sparkles, ExternalLink, Loader2 } from "lucide-react";
+import { Search, TrendingUp, Sparkles, ExternalLink, Loader2, ChevronLeft, ChevronRight, FileText } from "lucide-react";
 import { IDS } from "@/constants/testIds";
 
 const ASSETPLUS = "https://www.assetplus.in/mfd/ARN-290298";
 
 const fmtPct = (v) => (v === null || v === undefined ? "—" : `${v}%`);
 
-// 1. India ke sabse famous regular growth funds ki master list (Sare direct MFapi se load honge)
 const MASTER_FUNDS = [
   // Flexi Cap
   { code: "122639", name: "Parag Parikh Flexi Cap Fund - Growth", category: "Flexi Cap", fund_house: "PPFAS Mutual Fund" },
@@ -43,8 +42,11 @@ export default function TopFunds() {
     const [searchingDetail, setSearchingDetail] = useState(null);
     const [loadingDetails, setLoadingDetails] = useState(false);
     const [searching, setSearching] = useState(false);
+    
+    // Pagination State
+    const [currentPage, setCurrentPage] = useState(1);
+    const itemsPerPage = 4;
 
-    // Initial Load: Master list wale saare funds ka live data ek sath hit karna
     useEffect(() => {
         const fetchAllMasterFunds = async () => {
             try {
@@ -72,7 +74,7 @@ export default function TopFunds() {
         fetchAllMasterFunds();
     }, []);
 
-    // Global Search Engine for 10,000+ Funds
+    // Global Search Engine
     useEffect(() => {
         if (searchQ.trim().length < 3) {
             setSearchResults([]);
@@ -100,10 +102,20 @@ export default function TopFunds() {
         return ["All", "Flexi Cap", "Small Cap", "Mid Cap", "Large Cap", "ELSS Tax Saver"];
     }, []);
 
+    // Category Filter hone par page reset to 1
     const filtered = useMemo(() => {
+        setCurrentPage(1); 
         if (category === "All") return data;
         return data.filter((f) => f.category === category);
     }, [data, category]);
+
+    // Pagination Logic (Sirf 4 items select karna current page ke liye)
+    const paginatedFunds = useMemo(() => {
+        const startIndex = (currentPage - 1) * itemsPerPage;
+        return filtered.slice(startIndex, startIndex + itemsPerPage);
+    }, [filtered, currentPage]);
+
+    const totalPages = Math.ceil(filtered.length / itemsPerPage);
 
     const openFundDetail = async (code) => {
         setLoadingDetails(true);
@@ -128,6 +140,10 @@ export default function TopFunds() {
         } finally {
             setLoadingDetails(false);
         }
+    };
+
+    const getFactsheetUrl = (name, fundHouse) => {
+        return `https://www.google.com/search?q=${encodeURIComponent(name + " " + (fundHouse || "") + " official factsheet filetype:pdf")}`;
     };
 
     return (
@@ -232,7 +248,7 @@ export default function TopFunds() {
                                         </td>
                                     </tr>
                                 )}
-                                {!loading && filtered.length === 0 && (
+                                {!loading && paginatedFunds.length === 0 && (
                                     <tr>
                                         <td colSpan={7} className="px-5 py-10 text-center text-[#5C677D]">
                                             No funds found in this category. Use search above.
@@ -240,11 +256,13 @@ export default function TopFunds() {
                                     </tr>
                                 )}
                                 {!loading &&
-                                    filtered.map((f) => (
+                                    paginatedFunds.map((f) => (
                                         <tr key={f.code} className="border-t border-[#E2D8C2] hover:bg-[#F6F1E8]">
                                             <td className="px-5 py-4">
-                                                <div className="font-display text-[15px] text-[#0E1B2C] leading-tight">{f.name}</div>
-                                                <div className="text-[11px] text-[#5C677D] mt-1">{f.fund_house}</div>
+                                                <button onClick={() => openFundDetail(f.code)} className="text-left group block">
+                                                    <div className="font-display text-[15px] text-[#0E1B2C] leading-tight group-hover:text-[#024396] transition-colors">{f.name}</div>
+                                                    <div className="text-[11px] text-[#5C677D] mt-1">{f.fund_house}</div>
+                                                </button>
                                             </td>
                                             <td className="px-3 py-4 text-[12px] text-[#5C677D]">{f.category}</td>
                                             <td className="px-3 py-4 text-right">
@@ -254,10 +272,16 @@ export default function TopFunds() {
                                             <td className={`px-3 py-4 text-right font-medium ${returnColor(parseFloat(f.return_1y))}`}>{fmtPct(f.return_1y)}</td>
                                             <td className={`px-3 py-4 text-right font-medium ${returnColor(parseFloat(f.return_3y))}`}>{fmtPct(f.return_3y)}</td>
                                             <td className={`px-3 py-4 text-right font-medium ${returnColor(parseFloat(f.return_5y))}`}>{fmtPct(f.return_5y)}</td>
-                                            <td className="px-5 py-4 text-right">
-                                                <a href={ASSETPLUS} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-[#024396] hover:text-[#012E6B] text-sm font-medium">
-                                                    Invest <ExternalLink size={13} />
-                                                </a>
+                                            <td className="px-5 py-4">
+                                                <div className="flex items-center justify-end gap-4">
+                                                    {/* Direct Factsheet Download Option */}
+                                                    <a href={getFactsheetUrl(f.name, f.fund_house)} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-xs font-medium text-[#5C677D] hover:text-[#0E1B2C] bg-[#EFE7D6] px-2.5 py-1 rounded-md transition-all">
+                                                        <FileText size={12} /> Factsheet
+                                                    </a>
+                                                    <a href={ASSETPLUS} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-[#024396] hover:text-[#012E6B] text-sm font-medium">
+                                                        Invest <ExternalLink size={13} />
+                                                    </a>
+                                                </div>
                                             </td>
                                         </tr>
                                     ))}
@@ -268,7 +292,7 @@ export default function TopFunds() {
                     {/* Mobile card list */}
                     <div className="md:hidden divide-y divide-[#E2D8C2]">
                         {!loading &&
-                            filtered.map((f) => (
+                            paginatedFunds.map((f) => (
                                 <article key={f.code} className="px-4 py-4 bg-[#FBF7EE]">
                                     <div className="flex items-start justify-between gap-3">
                                         <div className="min-w-0 flex-1">
@@ -287,9 +311,14 @@ export default function TopFunds() {
                                         <ReturnPill label="5Y" value={f.return_5y} />
                                     </div>
                                     <div className="flex items-center justify-between mt-4">
-                                        <button onClick={() => openFundDetail(f.code)} className="text-[12px] text-[#5C677D] underline-offset-2 hover:underline">
-                                            View details
-                                        </button>
+                                        <div className="flex gap-3">
+                                            <button onClick={() => openFundDetail(f.code)} className="text-[12px] text-[#5C677D] underline-offset-2 hover:underline">
+                                                View details
+                                            </button>
+                                            <a href={getFactsheetUrl(f.name, f.fund_house)} target="_blank" rel="noopener noreferrer" className="text-[12px] text-[#024396] font-medium flex items-center gap-1">
+                                                📥 Factsheet
+                                            </a>
+                                        </div>
                                         <a href={ASSETPLUS} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 text-[13px] font-medium text-[#F6F1E8] bg-[#024396] hover:bg-[#012E6B] px-3.5 py-2 rounded-full">
                                             Invest <ExternalLink size={12} />
                                         </a>
@@ -299,7 +328,32 @@ export default function TopFunds() {
                     </div>
                 </div>
 
-                <p className="text-xs text-[#5C677D] mt-4 italic">
+                {/* Clean Pagination Controller Layout */}
+                {!loading && totalPages > 1 && (
+                    <div className="flex items-center justify-between mt-5 px-1">
+                        <div className="text-xs text-[#5C677D]">
+                            Showing page <span className="font-semibold text-[#0E1B2C]">{currentPage}</span> of <span className="font-semibold text-[#0E1B2C]">{totalPages}</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <button
+                                onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
+                                disabled={currentPage === 1}
+                                className="p-2 rounded-lg bg-[#FBF7EE] border border-[#E2D8C2] text-[#0E1B2C] disabled:opacity-40 disabled:cursor-not-allowed hover:bg-[#F6F1E8] transition-colors"
+                            >
+                                <ChevronLeft size={16} />
+                            </button>
+                            <button
+                                onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
+                                disabled={currentPage === totalPages}
+                                className="p-2 rounded-lg bg-[#FBF7EE] border border-[#E2D8C2] text-[#0E1B2C] disabled:opacity-40 disabled:cursor-not-allowed hover:bg-[#F6F1E8] transition-colors"
+                            >
+                                <ChevronRight size={16} />
+                            </button>
+                        </div>
+                    </div>
+                )}
+
+                <p className="text-xs text-[#5C677D] mt-6 italic">
                     Returns shown are simulated illustrative figures over historical data. Mutual fund investments are subject to market risks.
                 </p>
 
@@ -332,7 +386,7 @@ function ReturnPill({ label, value }) {
 }
 
 function FundModal({ data, onClose }) {
-    const morningstarUrl = `https://www.morningstar.in/pins/FundSearch.aspx?q=${encodeURIComponent(data.name)}`;
+    const morningstarUrl = `https://www.google.com/search?q=${encodeURIComponent(data.name + " " + (data.fund_house || "") + " official factsheet filetype:pdf")}`;
 
     return (
         <div className="fixed inset-0 z-[60] bg-[#0E1B2C]/70 backdrop-blur grid place-items-center p-4" onClick={onClose}>
@@ -348,6 +402,7 @@ function FundModal({ data, onClose }) {
                     <Info label="3Y Est. Return" value={fmtPct(data.return_3y)} accent />
                     <Info label="5Y Est. Return" value={fmtPct(data.return_5y)} accent />
                 </div>
+                
                 <div className="mt-6 flex flex-col gap-2">
                     <div className="flex gap-3">
                         <a href={ASSETPLUS} target="_blank" rel="noopener noreferrer" className="btn-pill btn-primary flex-1 justify-center">
@@ -355,8 +410,14 @@ function FundModal({ data, onClose }) {
                         </a>
                         <button onClick={onClose} className="btn-pill btn-ghost">Close</button>
                     </div>
-                    <a href={morningstarUrl} target="_blank" rel="noopener noreferrer" className="w-full text-center text-xs text-[#024396] hover:text-[#012E6B] font-medium py-2.5 bg-[#024396]/5 hover:bg-[#024396]/10 rounded-xl transition-all border border-[#024396]/20 mt-1 flex items-center justify-center gap-1.5">
-                        📊 View Official Morningstar Factsheet
+                    
+                    <a 
+                        href={morningstarUrl} 
+                        target="_blank" 
+                        rel="noopener noreferrer" 
+                        className="w-full text-center text-xs text-white font-medium py-2.5 bg-[#024396] hover:bg-[#012E6B] rounded-xl transition-all shadow-sm mt-1 flex items-center justify-center gap-1.5"
+                    >
+                        📥 Download Official Factsheet (PDF)
                     </a>
                 </div>
             </div>
@@ -367,7 +428,7 @@ function FundModal({ data, onClose }) {
 function Info({ label, value, accent }) {
     return (
         <div>
-            <div className="text-[10px] uppercase tracking-[0.18em] text-[#5C677D]" TYPE="text">{label}</div>
+            <div className="text-[10px] uppercase tracking-[0.18em] text-[#5C677D]">{label}</div>
             <div className={`mt-1 font-display ${accent ? "text-[#024396] text-lg" : "text-[#0E1B2C]"}`}>{value}</div>
         </div>
     );
