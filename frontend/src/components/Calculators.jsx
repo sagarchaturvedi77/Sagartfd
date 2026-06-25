@@ -335,9 +335,9 @@ export default function Calculators() {
                                 <Slider label="Monthly Investment" value={sipAmount} onChange={setSipAmount}
                                     min={500} max={200000} step={500} format={fmtINR}
                                     testid={IDS.calc.amount} />
-                                <Slider label="+ Daily SIP Top-up (optional)" value={sipDailyAddon} onChange={setSipDailyAddon}
+                                <Slider label="Add Daily SIP (optional)" value={sipDailyAddon} onChange={setSipDailyAddon}
                                     min={0} max={2000} step={50} format={fmtINR} />
-                                <Slider label="Annual Step-up % (optional)" value={sipStepUp} onChange={setSipStepUp}
+                                <Slider label="Annual Step-up % — har saal SIP badhao" value={sipStepUp} onChange={setSipStepUp}
                                     min={0} max={20} step={1} format={(v) => `${v}%`} />
                                 <Slider label="Investment Period" value={sipYears} onChange={setSipYears}
                                     min={1} max={40} step={1} format={(v) => `${v} Yr`}
@@ -345,7 +345,12 @@ export default function Calculators() {
                                 <Slider label="Expected Return (p.a.)" value={sipRate} onChange={setSipRate}
                                     min={1} max={30} step={0.5} format={(v) => `${v}%`}
                                     testid={IDS.calc.rate} />
-                                {(sipDailyAddon > 0 || sipStepUp > 0) && (
+                                {sipDailyAddon > 0 && (
+    <div className="text-xs text-[#5C677D] bg-[#F6F1E8] border border-[#E2D8C2] rounded-lg p-3">
+        Note: Daily SIP uses 22 working days/month
+    </div>
+)}
+{(sipDailyAddon > 0 || sipStepUp > 0) && (
                                     <div className="text-xs text-[#5C677D] bg-[#F6F1E8] border border-[#E2D8C2] rounded-lg p-3 leading-relaxed">
                                         Effective starting monthly: <strong className="text-[#0E1B2C]">{fmtINR(sipAmount + sipDailyAddon * 22)}</strong>
                                         {sipStepUp > 0 && ` — increasing ${sipStepUp}% every year`}
