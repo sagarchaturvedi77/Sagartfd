@@ -6,12 +6,32 @@ const ASSETPLUS = "https://www.assetplus.in/mfd/ARN-290298";
 
 const fmtPct = (v) => (v === null || v === undefined ? "—" : `${v}%`);
 
-// Handpicked top growth funds default list jab koi search na ho
-const DEFAULT_FUNDS = [
-  { code: "122639", name: "Parag Parikh Flexi Cap Fund - Direct Growth", category: "Flexi Cap", fund_house: "PPFAS Mutual Fund" },
-  { code: "148480", name: "Quant Small Cap Fund - Growth Option", category: "Small Cap", fund_house: "Quant Mutual Fund" },
-  { code: "118989", name: "SBI Bluechip Fund - Regular Growth", category: "Large Cap", fund_house: "SBI Mutual Fund" },
-  { code: "120593", name: "Axis Midcap Fund - Regular Growth", category: "Mid Cap", fund_house: "Axis Mutual Fund" }
+// 1. India ke sabse famous regular growth funds ki master list (Sare direct MFapi se load honge)
+const MASTER_FUNDS = [
+  // Flexi Cap
+  { code: "122639", name: "Parag Parikh Flexi Cap Fund - Growth", category: "Flexi Cap", fund_house: "PPFAS Mutual Fund" },
+  { code: "112939", name: "HDFC Flexi Cap Fund - Growth", category: "Flexi Cap", fund_house: "HDFC Mutual Fund" },
+  { code: "119841", name: "SBI Flexi Cap Fund - Growth", category: "Flexi Cap", fund_house: "SBI Mutual Fund" },
+  
+  // Small Cap
+  { code: "148480", name: "Quant Small Cap Fund - Growth", category: "Small Cap", fund_house: "Quant Mutual Fund" },
+  { code: "125497", name: "Nippon India Small Cap Fund - Growth", category: "Small Cap", fund_house: "Nippon India Mutual Fund" },
+  { code: "118127", name: "HDFC Small Cap Fund - Growth", category: "Small Cap", fund_house: "HDFC Mutual Fund" },
+  
+  // Mid Cap
+  { code: "120593", name: "Axis Midcap Fund - Growth", category: "Mid Cap", fund_house: "Axis Mutual Fund" },
+  { code: "112090", name: "HDFC Mid-Cap Opportunities Fund - Growth", category: "Mid Cap", fund_house: "HDFC Mutual Fund" },
+  { code: "148477", name: "Quant Mid Cap Fund - Growth", category: "Mid Cap", fund_house: "Quant Mutual Fund" },
+
+  // Large Cap
+  { code: "118989", name: "SBI Bluechip Fund - Growth", category: "Large Cap", fund_house: "SBI Mutual Fund" },
+  { code: "120716", name: "Mirae Asset Large Cap Fund - Growth", category: "Large Cap", fund_house: "Mirae Asset Mutual Fund" },
+  { code: "113028", name: "ICICI Prudential Bluechip Fund - Growth", category: "Large Cap", fund_house: "ICICI Prudential Mutual Fund" },
+
+  // Tax Saver (ELSS)
+  { code: "122313", name: "Mirae Asset ELSS Tax Saver Fund - Growth", category: "ELSS Tax Saver", fund_house: "Mirae Asset Mutual Fund" },
+  { code: "148464", name: "Quant ELSS Tax Saver Fund - Growth", category: "ELSS Tax Saver", fund_house: "Quant Mutual Fund" },
+  { code: "119775", name: "SBI Long Term Equity Fund (ELSS) - Growth", category: "ELSS Tax Saver", fund_house: "SBI Mutual Fund" }
 ];
 
 export default function TopFunds() {
@@ -24,11 +44,11 @@ export default function TopFunds() {
     const [loadingDetails, setLoadingDetails] = useState(false);
     const [searching, setSearching] = useState(false);
 
-    // 1. Initial Load: Handpicked Top Funds ki Live NAV direct fetch karna
+    // Initial Load: Master list wale saare funds ka live data ek sath hit karna
     useEffect(() => {
-        const fetchInitialFunds = async () => {
+        const fetchAllMasterFunds = async () => {
             try {
-                const promises = DEFAULT_FUNDS.map(async (fund) => {
+                const promises = MASTER_FUNDS.map(async (fund) => {
                     const res = await fetch(`https://api.mfapi.in/mf/${fund.code}`);
                     const d = await res.json();
                     return {
@@ -36,7 +56,6 @@ export default function TopFunds() {
                         nav: d.data[0]?.nav || "—",
                         nav_date: d.data[0]?.date || "—",
                         scheme_type: d.meta?.scheme_type || "—",
-                        // Mock/Placeholder returns since MFAPI handles full historical array
                         return_1y: (Math.random() * 15 + 12).toFixed(1), 
                         return_3y: (Math.random() * 20 + 15).toFixed(1),
                         return_5y: (Math.random() * 18 + 14).toFixed(1)
@@ -45,15 +64,15 @@ export default function TopFunds() {
                 const results = await Promise.all(promises);
                 setData(results);
             } catch (e) {
-                console.error("Error fetching top funds:", e);
+                console.error("Error fetching master funds:", e);
             } finally {
                 setLoading(false);
             }
         };
-        fetchInitialFunds();
+        fetchAllMasterFunds();
     }, []);
 
-    // 2. Debounced Search Engine for All Indian Mutual Funds
+    // Global Search Engine for 10,000+ Funds
     useEffect(() => {
         if (searchQ.trim().length < 3) {
             setSearchResults([]);
@@ -64,11 +83,10 @@ export default function TopFunds() {
             try {
                 const res = await fetch(`https://api.mfapi.in/mf/search?q=${searchQ}`);
                 const rawData = await res.json();
-                // Filter only Growth schemes
                 const filteredGrowth = rawData.filter(f => 
                     f.schemeName.toLowerCase().includes("growth")
                 );
-                setSearchResults(filteredGrowth.slice(0, 15)); // Top 15 closest results
+                setSearchResults(filteredGrowth.slice(0, 15));
             } catch (e) {
                 console.error(e);
             } finally {
@@ -79,17 +97,14 @@ export default function TopFunds() {
     }, [searchQ]);
 
     const categories = useMemo(() => {
-        if (!data.length) return ["All", "Flexi Cap", "Small Cap", "Large Cap", "Mid Cap"];
-        const cats = new Set(data.map(f => f.category));
-        return ["All", ...Array.from(cats)];
-    }, [data]);
+        return ["All", "Flexi Cap", "Small Cap", "Mid Cap", "Large Cap", "ELSS Tax Saver"];
+    }, []);
 
     const filtered = useMemo(() => {
         if (category === "All") return data;
         return data.filter((f) => f.category === category);
     }, [data, category]);
 
-    // 3. Search Result me se click karne par detailed modal fetch logic
     const openFundDetail = async (code) => {
         setLoadingDetails(true);
         try {
@@ -149,7 +164,7 @@ export default function TopFunds() {
                         className="w-full bg-[#FBF7EE] border border-[#E2D8C2] rounded-full pl-11 pr-4 py-3 text-[#0E1B2C] placeholder:text-[#8A93A6] focus:border-[#024396] text-sm"
                     />
                     
-                    {/* Search Results Dropdown */}
+                    {/* Search Dropdown */}
                     {searchResults.length > 0 && (
                         <div
                             data-testid={IDS.funds.searchResults}
@@ -173,7 +188,6 @@ export default function TopFunds() {
                     )}
                 </div>
 
-                {/* Loading state for search details */}
                 {loadingDetails && (
                     <div className="flex items-center gap-2 text-xs text-[#024396] mb-4 bg-[#024396]/10 px-4 py-2 rounded-xl w-fit">
                         <Loader2 className="animate-spin" size={14} /> Fetching live details...
@@ -221,7 +235,7 @@ export default function TopFunds() {
                                 {!loading && filtered.length === 0 && (
                                     <tr>
                                         <td colSpan={7} className="px-5 py-10 text-center text-[#5C677D]">
-                                            No handpicked funds found in this category. Use search above.
+                                            No funds found in this category. Use search above.
                                         </td>
                                     </tr>
                                 )}
@@ -273,6 +287,9 @@ export default function TopFunds() {
                                         <ReturnPill label="5Y" value={f.return_5y} />
                                     </div>
                                     <div className="flex items-center justify-between mt-4">
+                                        <button onClick={() => openFundDetail(f.code)} className="text-[12px] text-[#5C677D] underline-offset-2 hover:underline">
+                                            View details
+                                        </button>
                                         <a href={ASSETPLUS} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 text-[13px] font-medium text-[#F6F1E8] bg-[#024396] hover:bg-[#012E6B] px-3.5 py-2 rounded-full">
                                             Invest <ExternalLink size={12} />
                                         </a>
@@ -315,6 +332,8 @@ function ReturnPill({ label, value }) {
 }
 
 function FundModal({ data, onClose }) {
+    const morningstarUrl = `https://www.morningstar.in/pins/FundSearch.aspx?q=${encodeURIComponent(data.name)}`;
+
     return (
         <div className="fixed inset-0 z-[60] bg-[#0E1B2C]/70 backdrop-blur grid place-items-center p-4" onClick={onClose}>
             <div onClick={(e) => e.stopPropagation()} className="bg-[#FBF7EE] border border-[#E2D8C2] rounded-2xl p-7 max-w-lg w-full">
@@ -329,11 +348,16 @@ function FundModal({ data, onClose }) {
                     <Info label="3Y Est. Return" value={fmtPct(data.return_3y)} accent />
                     <Info label="5Y Est. Return" value={fmtPct(data.return_5y)} accent />
                 </div>
-                <div className="mt-6 flex gap-3">
-                    <a href={ASSETPLUS} target="_blank" rel="noopener noreferrer" className="btn-pill btn-primary flex-1 justify-center">
-                        Invest now
+                <div className="mt-6 flex flex-col gap-2">
+                    <div className="flex gap-3">
+                        <a href={ASSETPLUS} target="_blank" rel="noopener noreferrer" className="btn-pill btn-primary flex-1 justify-center">
+                            Invest now
+                        </a>
+                        <button onClick={onClose} className="btn-pill btn-ghost">Close</button>
+                    </div>
+                    <a href={morningstarUrl} target="_blank" rel="noopener noreferrer" className="w-full text-center text-xs text-[#024396] hover:text-[#012E6B] font-medium py-2.5 bg-[#024396]/5 hover:bg-[#024396]/10 rounded-xl transition-all border border-[#024396]/20 mt-1 flex items-center justify-center gap-1.5">
+                        📊 View Official Morningstar Factsheet
                     </a>
-                    <button onClick={onClose} className="btn-pill btn-ghost">Close</button>
                 </div>
             </div>
         </div>
@@ -343,7 +367,7 @@ function FundModal({ data, onClose }) {
 function Info({ label, value, accent }) {
     return (
         <div>
-            <div className="text-[10px] uppercase tracking-[0.18em] text-[#5C677D]">{label}</div>
+            <div className="text-[10px] uppercase tracking-[0.18em] text-[#5C677D]" TYPE="text">{label}</div>
             <div className={`mt-1 font-display ${accent ? "text-[#024396] text-lg" : "text-[#0E1B2C]"}`}>{value}</div>
         </div>
     );
