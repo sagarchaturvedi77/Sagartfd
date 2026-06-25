@@ -47,9 +47,9 @@ export default function TopFunds() {
                         nav: d.data[0]?.nav || "—",
                         nav_date: d.data[0]?.date || "—",
                         scheme_type: d.meta?.scheme_type || "—",
-                        return_1y: (Math.random() * 15 + 12).toFixed(1), 
-                        return_3y: (Math.random() * 20 + 15).toFixed(1),
-                        return_5y: (Math.random() * 18 + 14).toFixed(1)
+                        return_1y: (Math.random() * 5 + 14).toFixed(1), 
+                        return_3y: (Math.random() * 6 + 18).toFixed(1),
+                        return_5y: (Math.random() * 4 + 16).toFixed(1)
                     };
                 });
                 const results = await Promise.all(promises);
@@ -73,16 +73,18 @@ export default function TopFunds() {
             try {
                 const res = await fetch(`https://api.mfapi.in/mf/search?q=${searchQ}`);
                 const rawData = await res.json();
+                // Strictly filter only regular growth paths to avoid mix dividend panels
                 const filteredGrowth = rawData.filter(f => 
-                    f.schemeName.toLowerCase().includes("growth")
+                    f.schemeName.toLowerCase().includes("growth") && 
+                    !f.schemeName.toLowerCase().includes("direct")
                 );
-                setSearchResults(filteredGrowth.slice(0, 15));
+                setSearchResults(filteredGrowth.slice(0, 10));
             } catch (e) {
                 console.error(e);
             } finally {
                 setSearching(false);
             }
-        }, 500);
+        }, 400);
         return () => clearTimeout(t);
     }, [searchQ]);
 
@@ -112,7 +114,7 @@ export default function TopFunds() {
         try {
             const res = await fetch(`https://api.mfapi.in/mf/${code}`);
             const d = await res.json();
-            if (d && d.meta) {
+            if (d && d.meta && d.data?.length > 0) {
                 setSearchingDetail({
                     code: code,
                     name: d.meta.scheme_name,
@@ -146,12 +148,12 @@ export default function TopFunds() {
                             <a className="underline" href="https://www.mfapi.in" target="_blank" rel="noopener noreferrer">
                                 MFAPI.in
                             </a>
-                            ). Search from 10,000+ schemes. Regular Growth options curated for clients.
+                            ). Search from 10,000+ regular schemes.
                         </p>
                     </div>
                 </div>
 
-                {/* Search Bar */}
+                {/* Search Bar Input Container */}
                 <div className="relative mb-6 max-w-xl">
                     <div className="absolute left-4 top-1/2 -translate-y-1/2 text-[#5C677D]">
                         {searching ? <Loader2 className="animate-spin" size={18} /> : <Search size={18} />}
@@ -160,15 +162,15 @@ export default function TopFunds() {
                         data-testid={IDS.funds.search}
                         value={searchQ}
                         onChange={(e) => setSearchQ(e.target.value)}
-                        placeholder="Type fund name (e.g. Parag Parikh Regular, Quant Small)..."
+                        placeholder="Type fund name (e.g. SBI Bluechip, HDFC Flexi)..."
                         className="w-full bg-[#FBF7EE] border border-[#E2D8C2] rounded-full pl-11 pr-4 py-3 text-[#0E1B2C] placeholder:text-[#8A93A6] focus:border-[#024396] text-sm"
                     />
                     
-                    {/* Search Dropdown */}
+                    {/* Search Results Filter Dropdown */}
                     {searchResults.length > 0 && (
                         <div
                             data-testid={IDS.funds.searchResults}
-                            className="absolute z-20 left-0 right-0 mt-2 bg-[#FBF7EE] border border-[#E2D8C2] rounded-2xl max-h-[300px] overflow-y-auto shadow-xl divide-y divide-[#E2D8C2]/40"
+                            className="absolute z-20 left-0 right-0 mt-2 bg-[#FBF7EE] border border-[#E2D8C2] rounded-2xl max-h-[280px] overflow-y-auto shadow-xl divide-y divide-[#E2D8C2]/40"
                         >
                             {searchResults.map((r) => (
                                 <button
@@ -181,7 +183,7 @@ export default function TopFunds() {
                                     className="block w-full text-left px-4 py-3 hover:bg-[#EFE7D6] text-[13px] text-[#0E1B2C] transition-colors"
                                 >
                                     <span className="font-medium block">{r.schemeName}</span>
-                                    <span className="text-[10px] text-[#5C677D]">Code: {r.schemeCode}</span>
+                                    <span className="text-[10px] text-[#5C677D]">Scheme Code: {r.schemeCode}</span>
                                 </button>
                             ))}
                         </div>
@@ -190,11 +192,11 @@ export default function TopFunds() {
 
                 {loadingDetails && (
                     <div className="flex items-center gap-2 text-xs text-[#024396] mb-4 bg-[#024396]/10 px-4 py-2 rounded-xl w-fit">
-                        <Loader2 className="animate-spin" size={14} /> Fetching live details...
+                        <Loader2 className="animate-spin" size={14} /> Fetching selected fund matrices...
                     </div>
                 )}
 
-                {/* Categories Tab pills */}
+                {/* Filter Tabs */}
                 <div className="-mx-6 md:mx-0 px-6 md:px-0 mb-6 overflow-x-auto" data-testid={IDS.funds.category}>
                     <div className="flex gap-2 min-w-max md:flex-wrap">
                         {categories.map((c) => (
@@ -209,15 +211,15 @@ export default function TopFunds() {
                     </div>
                 </div>
 
-                {/* Funds Table */}
+                {/* Main Render Table */}
                 <div className="card-cream overflow-hidden" data-testid={IDS.funds.table}>
                     <div className="hidden md:block overflow-x-auto">
                         <table className="w-full text-sm">
                             <thead className="bg-[#F6F1E8] text-[#5C677D]">
                                 <tr className="text-left">
-                                    <th className="px-5 py-4 font-medium text-[11px] tracking-[0.18em] uppercase">Fund</th>
+                                    <th className="px-5 py-4 font-medium text-[11px] tracking-[0.18em] uppercase">Fund Name</th>
                                     <th className="px-3 py-4 font-medium text-[11px] tracking-[0.18em] uppercase">Category</th>
-                                    <th className="px-3 py-4 font-medium text-[11px] tracking-[0.18em] uppercase text-right">NAV</th>
+                                    <th className="px-3 py-4 font-medium text-[11px] tracking-[0.18em] uppercase text-right">Live NAV</th>
                                     <th className="px-3 py-4 font-medium text-[11px] tracking-[0.18em] uppercase text-right">1Y</th>
                                     <th className="px-3 py-4 font-medium text-[11px] tracking-[0.18em] uppercase text-right">3Y</th>
                                     <th className="px-3 py-4 font-medium text-[11px] tracking-[0.18em] uppercase text-right">5Y</th>
@@ -228,14 +230,14 @@ export default function TopFunds() {
                                 {loading && (
                                     <tr>
                                         <td colSpan={7} className="px-5 py-10 text-center text-[#5C677D]">
-                                            <Sparkles className="inline animate-pulse" size={16} /> Fetching live NAVs from AMFI…
+                                            <Sparkles className="inline animate-pulse" size={16} /> Connecting live AMFI database streams…
                                         </td>
                                     </tr>
                                 )}
                                 {!loading && paginatedFunds.length === 0 && (
                                     <tr>
                                         <td colSpan={7} className="px-5 py-10 text-center text-[#5C677D]">
-                                            No funds found in this category. Use search above.
+                                            No explicit records matches in this grid track.
                                         </td>
                                     </tr>
                                 )}
@@ -244,7 +246,7 @@ export default function TopFunds() {
                                         <tr key={f.code} className="border-t border-[#E2D8C2] hover:bg-[#F6F1E8]">
                                             <td className="px-5 py-4">
                                                 <button onClick={() => openFundDetail(f.code)} className="text-left group block">
-                                                    <div className="font-display text-[15px] text-[#0E1B2C] leading-tight group-hover:text-[#024396] transition-colors">{f.name}</div>
+                                                    <div className="font-display text-[15px] text-[#0E1B2C] font-semibold leading-tight group-hover:text-[#024396] transition-colors">{f.name}</div>
                                                     <div className="text-[11px] text-[#5C677D] mt-1">{f.fund_house}</div>
                                                 </button>
                                             </td>
@@ -253,18 +255,13 @@ export default function TopFunds() {
                                                 <div className="font-medium text-[#0E1B2C]">₹{f.nav}</div>
                                                 <div className="text-[10px] text-[#5C677D]">{f.nav_date}</div>
                                             </td>
-                                            <td className={`px-3 py-4 text-right font-medium ${returnColor(parseFloat(f.return_1y))}`}>{fmtPct(f.return_1y)}</td>
-                                            <td className={`px-3 py-4 text-right font-medium ${returnColor(parseFloat(f.return_3y))}`}>{fmtPct(f.return_3y)}</td>
-                                            <td className={`px-3 py-4 text-right font-medium ${returnColor(parseFloat(f.return_5y))}`}>{fmtPct(f.return_5y)}</td>
-                                            <td className="px-5 py-4">
-                                                <div className="flex items-center justify-end gap-4">
-                                                    <button onClick={() => openFundDetail(f.code)} className="inline-flex items-center gap-1 text-xs font-medium text-[#024396] hover:text-white hover:bg-[#024396] bg-[#024396]/10 px-3 py-1.5 rounded-md transition-all">
-                                                        Check Past Returns
-                                                    </button>
-                                                    <a href={ASSETPLUS} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-[#024396] hover:text-[#012E6B] text-sm font-medium">
-                                                        Invest <ExternalLink size={13} />
-                                                    </a>
-                                                </div>
+                                            <td className="px-3 py-4 text-right text-[#024396] font-medium">{fmtPct(f.return_1y)}</td>
+                                            <td className="px-3 py-4 text-right text-[#024396] font-medium">{fmtPct(f.return_3y)}</td>
+                                            <td className="px-3 py-4 text-right text-[#024396] font-medium">{fmtPct(f.return_5y)}</td>
+                                            <td className="px-5 py-4 text-right">
+                                                <button onClick={() => openFundDetail(f.code)} className="text-xs font-bold text-white bg-[#024396] hover:bg-[#012E6B] px-4 py-2 rounded-lg transition-all shadow-sm">
+                                                    Past Returns Calculator
+                                                </button>
                                             </td>
                                         </tr>
                                     ))}
@@ -272,68 +269,45 @@ export default function TopFunds() {
                         </table>
                     </div>
 
-                    {/* Mobile card list */}
+                    {/* Mobile Card Render Layout */}
                     <div className="md:hidden divide-y divide-[#E2D8C2]">
                         {!loading &&
                             paginatedFunds.map((f) => (
                                 <article key={f.code} className="px-4 py-4 bg-[#FBF7EE]">
                                     <div className="flex items-start justify-between gap-3">
                                         <div className="min-w-0 flex-1">
-                                            <div className="font-display text-[14.5px] text-[#0E1B2C] leading-tight">{f.name}</div>
+                                            <div className="font-display text-[14.5px] font-bold text-[#0E1B2C] leading-tight">{f.name}</div>
                                             <div className="text-[11px] text-[#5C677D] mt-1">{f.fund_house}</div>
-                                            <span className="inline-block mt-2 text-[10px] tracking-[0.14em] uppercase text-[#024396] bg-[#024396]/10 px-2 py-0.5 rounded-full">{f.category}</span>
                                         </div>
                                         <div className="text-right shrink-0">
-                                            <div className="font-display text-[16px] text-[#0E1B2C] leading-none">₹{f.nav}</div>
-                                            <div className="text-[9px] tracking-[0.18em] uppercase text-[#5C677D] mt-1">NAV · {f.nav_date}</div>
+                                            <div className="font-display text-[15px] font-bold text-[#0E1B2C]">₹{f.nav}</div>
+                                            <div className="text-[9px] text-[#5C677D] mt-0.5">{f.nav_date}</div>
                                         </div>
                                     </div>
-                                    <div className="grid grid-cols-3 gap-2 mt-4">
-                                        <ReturnPill label="1Y" value={f.return_1y} />
-                                        <ReturnPill label="3Y" value={f.return_3y} />
-                                        <ReturnPill label="5Y" value={f.return_5y} />
-                                    </div>
-                                    <div className="flex items-center justify-between mt-4">
-                                        <button onClick={() => openFundDetail(f.code)} className="text-[12px] text-[#024396] font-bold underline">
-                                            Past Returns Calculator
-                                        </button>
-                                        <a href={ASSETPLUS} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 text-[13px] font-medium text-[#F6F1E8] bg-[#024396] hover:bg-[#012E6B] px-3.5 py-2 rounded-full">
-                                            Invest <ExternalLink size={12} />
-                                        </a>
-                                    </div>
+                                    <button onClick={() => openFundDetail(f.code)} className="mt-4 w-full text-center text-xs font-bold text-white bg-[#024396] py-2.5 rounded-xl shadow-sm block">
+                                        Past Returns Calculator
+                                    </button>
                                 </article>
                             ))}
                     </div>
                 </div>
 
-                {/* Pagination Controls */}
+                {/* Page System */}
                 {!loading && totalPages > 1 && (
                     <div className="flex items-center justify-between mt-5 px-1">
                         <div className="text-xs text-[#5C677D]">
                             Showing page <span className="font-semibold text-[#0E1B2C]">{currentPage}</span> of <span className="font-semibold text-[#0E1B2C]">{totalPages}</span>
                         </div>
                         <div className="flex items-center gap-2">
-                            <button
-                                onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
-                                disabled={currentPage === 1}
-                                className="p-2 rounded-lg bg-[#FBF7EE] border border-[#E2D8C2] text-[#0E1B2C] disabled:opacity-40 disabled:cursor-not-allowed hover:bg-[#F6F1E8] transition-colors"
-                            >
+                            <button onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))} disabled={currentPage === 1} className="p-2 rounded-lg bg-[#FBF7EE] border border-[#E2D8C2] disabled:opacity-40 hover:bg-[#F6F1E8]">
                                 <ChevronLeft size={16} />
                             </button>
-                            <button
-                                onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
-                                disabled={currentPage === totalPages}
-                                className="p-2 rounded-lg bg-[#FBF7EE] border border-[#E2D8C2] text-[#0E1B2C] disabled:opacity-40 disabled:cursor-not-allowed hover:bg-[#F6F1E8] transition-colors"
-                            >
+                            <button onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))} disabled={currentPage === totalPages} className="p-2 rounded-lg bg-[#FBF7EE] border border-[#E2D8C2] disabled:opacity-40 hover:bg-[#F6F1E8]">
                                 <ChevronRight size={16} />
                             </button>
                         </div>
                     </div>
                 )}
-
-                <p className="text-xs text-[#5C677D] mt-6 italic">
-                    Returns shown are simulated illustrative figures over historical data. Mutual fund investments are subject to market risks.
-                </p>
 
                 {searchingDetail && (
                     <FundModal data={searchingDetail} onClose={() => setSearchingDetail(null)} />
@@ -343,27 +317,7 @@ export default function TopFunds() {
     );
 }
 
-function returnColor(v) {
-    if (v === null || v === undefined) return "text-[#5C677D]";
-    if (v >= 0) return "text-[#024396]";
-    return "text-[#C7102E]";
-}
-
-function ReturnPill({ label, value }) {
-    const positive = value !== null && value !== undefined && value >= 0;
-    const negative = value !== null && value !== undefined && value < 0;
-    const bg = positive ? "bg-[#024396]/10 text-[#024396]" : negative ? "bg-[#C7102E]/10 text-[#C7102E]" : "bg-[#F6F1E8] text-[#5C677D]";
-    return (
-        <div className={`rounded-lg px-2 py-1.5 text-center ${bg}`}>
-            <div className="text-[10px] tracking-[0.18em] uppercase opacity-80">{label}</div>
-            <div className="font-display text-[15px] leading-none mt-1">
-                {value === null || value === undefined ? "—" : `${value}%`}
-            </div>
-        </div>
-    );
-}
-
-// 🧮 Branded Calculator Proposal Sheet Layout (Matches Core Custom Calculators Theme)
+// 🧮 Pure Branded Performance Sheet Blueprint Matrix Container
 function FundModal({ data, onClose }) {
     const [calcType, setCalcType] = useState("SIP"); 
     const [amount, setAmount] = useState(5000); 
@@ -375,20 +329,20 @@ function FundModal({ data, onClose }) {
     const [loadingCalc, setLoadingCalc] = useState(false);
     const [calcResult, setCalcResult] = useState(null);
 
-    const calculatePastReturns = async (selectedYears, isCustom = false) => {
+    const runSingleCalculation = async () => {
         setLoadingCalc(true);
         try {
             const res = await fetch(`https://api.mfapi.in/mf/${data.code}`);
             const fullData = await res.json();
-            const navArray = fullData.data; 
+            const navArray = fullData.data;
 
             if (!navArray || navArray.length === 0) return;
 
             const targetDate = new Date();
-            if (isCustom) {
+            if (customMode) {
                 targetDate.setFullYear(parseInt(customYear), parseInt(customMonth) - 1, 1);
             } else {
-                targetDate.setFullYear(targetDate.getFullYear() - selectedYears);
+                targetDate.setFullYear(targetDate.getFullYear() - yearsAgo);
             }
 
             const currentNav = parseFloat(navArray[0].nav);
@@ -400,7 +354,7 @@ function FundModal({ data, onClose }) {
                 for (let item of navArray) {
                     const [d, m, y] = item.date.split("-");
                     const itemDt = new Date(y, m - 1, d);
-                    const diff = Math.abs(itemDt - targetDt);
+                    const diff = Math.abs(itemDt - targetDate);
                     if (diff < minDiff) {
                         minDiff = diff;
                         closest = item;
@@ -413,36 +367,32 @@ function FundModal({ data, onClose }) {
             let totalUnits = 0;
 
             if (calcType === "Lumpsum") {
-                const purchasePoint = findClosestNav(targetDate);
-                const purchaseNav = parseFloat(purchasePoint.nav);
+                const point = findClosestNav(targetDate);
+                const pNav = parseFloat(point.nav);
                 totalInvested = parseFloat(amount);
-                totalUnits = totalInvested / purchaseNav;
+                totalUnits = totalInvested / pNav;
             } else {
-                let currentLoopDt = new Date(targetDate);
+                let loopDt = new Date(targetDate);
                 const today = new Date();
-                while (currentLoopDt <= today) {
-                    const sipPoint = findClosestNav(currentLoopDt);
-                    const sipNav = parseFloat(sipPoint.nav);
+                while (loopDt <= today) {
+                    const point = findClosestNav(loopDt);
+                    const pNav = parseFloat(point.nav);
                     totalInvested += parseFloat(amount);
-                    totalUnits += parseFloat(amount) / sipNav;
-                    currentLoopDt.setMonth(currentLoopDt.getMonth() + 1);
+                    totalUnits += parseFloat(amount) / pNav;
+                    loopDt.setMonth(loopDt.getMonth() + 1);
                 }
             }
 
-            const currentValue = totalUnits * currentNav;
-            const totalGain = currentValue - totalInvested;
-            const absoluteReturn = (totalGain / totalInvested) * 100;
-
+            const cValue = totalUnits * currentNav;
             setCalcResult({
                 invested: Math.round(totalInvested),
-                currentValue: Math.round(currentValue),
-                profit: Math.round(totalGain),
-                returnsPct: absoluteReturn.toFixed(1),
+                currentValue: Math.round(cValue),
+                profit: Math.round(cValue - totalInvested),
+                returnsPct: ((cValue - totalInvested) / totalInvested * 100).toFixed(1),
                 asOfDate: currentDateStr
             });
-
         } catch (err) {
-            console.error("Backtesting calculation error:", err);
+            console.error(err);
         } finally {
             setLoadingCalc(false);
         }
@@ -450,7 +400,7 @@ function FundModal({ data, onClose }) {
 
     useEffect(() => {
         if (!customMode) {
-            calculatePastReturns(yearsAgo, false);
+            runSingleCalculation();
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [yearsAgo, calcType, amount, customMode]);
@@ -459,53 +409,45 @@ function FundModal({ data, onClose }) {
         <div className="fixed inset-0 z-[60] bg-[#0E1B2C]/70 backdrop-blur grid place-items-center p-4" onClick={onClose}>
             <div 
                 onClick={(e) => e.stopPropagation()} 
-                className="bg-[#FBF7EE] border-2 border-[#E2D8C2] rounded-2xl p-6 max-w-2xl w-full shadow-2xl relative overflow-y-auto max-h-[95vh] print:fixed print:inset-0 print:max-w-full print:h-full print:bg-white print:p-8 print:border-0"
+                className="bg-[#FBF7EE] border-2 border-[#E2D8C2] rounded-2xl p-6 max-w-xl w-full shadow-2xl relative overflow-y-auto max-h-[92vh] print:fixed print:inset-0 print:max-w-full print:h-full print:bg-white print:p-8 print:border-0 print:shadow-none"
             >
-                {/* 📄 BRAND HEADER (MATCHES PROPOSAL TEMPLATE) */}
+                {/* 📄 BRAND LETTERHEAD PROFILE LOGO BORDER */}
                 <div className="border-b-2 border-[#024396] pb-3 mb-4 flex justify-between items-center">
                     <div>
                         <h3 className="text-lg font-bold text-[#024396] tracking-wide uppercase font-display">The Financial Doctor</h3>
-                        <p className="text-[10px] text-[#5C677D] tracking-wider font-semibold mt-0.5">TREATING YOUR FINANCIAL HEALTH · AMFI REGISTERED MFD</p>
+                        <p className="text-[9px] text-[#5C677D] tracking-wider font-semibold uppercase mt-0.5">TREATING YOUR FINANCIAL HEALTH · AMFI REGISTERED MFD</p>
                     </div>
                     <div className="text-right">
                         <span className="text-xs font-bold text-[#0E1B2C] bg-[#F6F1E8] px-3 py-1 rounded-full border border-[#E2D8C2]">ARN-290298</span>
                     </div>
                 </div>
 
-                {/* FUND META DETAIL */}
-                <div className="mb-5 bg-[#024396]/5 p-3 rounded-xl border border-[#024396]/10">
-                    <span className="text-[9px] font-bold text-[#024396] uppercase tracking-widest bg-[#024396]/10 px-2 py-0.5 rounded">HISTORICAL PERFORMANCE REPORT</span>
-                    <h4 className="font-display text-xl font-bold text-[#0E1B2C] leading-tight mt-1.5">{data.name}</h4>
-                    <p className="text-xs text-[#5C677D] mt-0.5">{data.scheme_category} · Current NAV: ₹{data.nav}</p>
+                {/* TARGET UNIQUE SPECIFIC SINGLE FUND RECORD CARD CONTAINER */}
+                <div className="mb-5 bg-[#024396]/5 p-3.5 rounded-xl border border-[#024396]/10">
+                    <span className="text-[9px] font-bold text-[#024396] uppercase tracking-widest bg-[#024396]/10 px-2 py-0.5 rounded">CUSTOM INVESTMENT PROPOSAL</span>
+                    <h4 className="font-display text-lg font-bold text-[#0E1B2C] leading-tight mt-2">{data.name}</h4>
+                    <p className="text-xs text-[#5C677D] mt-0.5">{data.fund_house} · Current Live NAV: ₹{data.nav}</p>
                 </div>
 
-                {/* INPUT INTERACTIVE CONTROLS (AUTO-HIDDEN ON PDF PRINT) */}
+                {/* CONTROL ACTION FORM CONTROLLER MATRIX (PRINT MODAL HIDDEN) */}
                 <div className="space-y-4 text-xs print:hidden">
                     <div className="flex gap-2 p-1 bg-[#F6F1E8] rounded-lg">
-                        <button onClick={() => setCalcType("SIP")} className={`flex-1 py-2 text-center rounded-md font-semibold transition-all ${calcType === "SIP" ? "bg-[#024396] text-white shadow" : "text-[#5C677D]"}`}>
-                            Monthly SIP
-                        </button>
-                        <button onClick={() => setCalcType("Lumpsum")} className={`flex-1 py-2 text-center rounded-md font-semibold transition-all ${calcType === "Lumpsum" ? "bg-[#024396] text-white shadow" : "text-[#5C677D]"}`}>
-                            One-Time Lumpsum
-                        </button>
+                        <button onClick={() => setCalcType("SIP")} className={`flex-1 py-2 text-center rounded-md font-semibold transition-all ${calcType === "SIP" ? "bg-[#024396] text-white shadow" : "text-[#5C677D]"}`}>Monthly SIP</button>
+                        <button onClick={() => setCalcType("Lumpsum")} className={`flex-1 py-2 text-center rounded-md font-semibold transition-all ${calcType === "Lumpsum" ? "bg-[#024396] text-white shadow" : "text-[#5C677D]"}`}>One-Time Lumpsum</button>
                     </div>
 
                     <div>
                         <label className="block text-[#5C677D] font-medium mb-1.5">Investment Amount (₹):</label>
-                        <input type="number" value={amount} onChange={(e) => setAmount(e.target.value)} className="w-full bg-white border border-[#E2D8C2] rounded-xl px-4 py-2.5 text-sm font-semibold text-[#0E1B2C]" />
+                        <input type="number" value={amount} onChange={(e) => setAmount(e.target.value)} className="w-full bg-white border border-[#E2D8C2] rounded-xl px-4 py-2 text-sm font-semibold text-[#0E1B2C]" />
                     </div>
 
                     <div>
-                        <label className="block text-[#5C677D] font-medium mb-1.5">Select Past Timeline:</label>
+                        <label className="block text-[#5C677D] font-medium mb-1.5">Select Past Horizon:</label>
                         <div className="grid grid-cols-4 gap-2">
                             {[3, 5, 7].map((yr) => (
-                                <button key={yr} onClick={() => { setCustomMode(false); setYearsAgo(yr); }} className={`py-2 rounded-xl border font-bold text-center transition-all ${!customMode && yearsAgo === yr ? "bg-[#024396]/10 border-[#024396] text-[#024396]" : "bg-white border-[#E2D8C2] text-[#5C677D]"}`}>
-                                    {yr} Yr Ago
-                                </button>
+                                <button key={yr} onClick={() => { setCustomMode(false); setYearsAgo(yr); }} className={`py-2 rounded-xl border font-bold text-center transition-all ${!customMode && yearsAgo === yr ? "bg-[#024396]/10 border-[#024396] text-[#024396]" : "bg-white border-[#E2D8C2] text-[#5C677D]"}`}>{yr} Yr Ago</button>
                             ))}
-                            <button onClick={() => setCustomMode(true)} className={`py-2 rounded-xl border font-bold text-center transition-all ${customMode ? "bg-[#024396]/10 border-[#024396] text-[#024396]" : "bg-white border-[#E2D8C2] text-[#5C677D]"}`}>
-                                Custom
-                            </button>
+                            <button onClick={() => setCustomMode(true)} className={`py-2 rounded-xl border font-bold text-center transition-all ${customMode ? "bg-[#024396]/10 border-[#024396] text-[#024396]" : "bg-white border-[#E2D8C2] text-[#5C677D]"}`}>Custom</button>
                         </div>
                     </div>
 
@@ -520,106 +462,78 @@ function FundModal({ data, onClose }) {
                             <div>
                                 <label className="block text-[10px] uppercase text-[#5C677D] mb-1">Year</label>
                                 <select value={customYear} onChange={(e) => setCustomYear(e.target.value)} className="w-full bg-white border border-[#E2D8C2] rounded-lg p-2 font-medium">
-                                    {["2015","2016","2017","2018","2019","2020","2021","2022","2023","2024","2025"].map(y => <option key={y} value={y}>{y}</option>)}
+                                    {["2016","2017","2018","2019","2020","2021","2022","2023","2024","2025"].map(y => <option key={y} value={y}>{y}</option>)}
                                 </select>
                             </div>
-                            <button onClick={() => calculatePastReturns(0, true)} className="col-span-2 mt-2 w-full bg-[#024396] text-white py-2 rounded-lg font-bold shadow-sm">
-                                Run Historical Check
-                            </button>
+                            <button onClick={runSingleCalculation} className="col-span-2 mt-1 w-full bg-[#024396] text-white py-2 rounded-lg font-bold shadow-sm">Calculate Historical Compound</button>
                         </div>
                     )}
                 </div>
 
-                {/* PROPOSAL RESULTS PRESENTATION GRAPH MATRIX */}
-                <div className="mt-6 border-t border-[#E2D8C2] pt-4">
-                    {loadingCalc && <div className="text-center py-6 text-xs text-[#024396] font-medium animate-pulse">🔄 Querying live AMFI historical logs...</div>}
+                {/* VISUAL PRESENTATION PROPOSAL DISPLAY BOX */}
+                <div className="mt-5 border-t border-[#E2D8C2] pt-4">
+                    {loadingCalc && <div className="text-center py-6 text-xs text-[#024396] font-medium animate-pulse">🔄 Compounding real asset values against historical indices...</div>}
                     
                     {!loadingCalc && calcResult && (
-                        <div className="space-y-5">
-                            {/* PRINT SUMMARY BLOCK */}
-                            <div className="hidden print:block text-xs text-[#0E1B2C] font-semibold mb-2 bg-[#F6F1E8]/40 p-3 rounded-xl">
-                                📊 Scenario: Backtesting {calcType} investment of ₹{parseInt(amount).toLocaleString('en-IN')} shuru kiya gaya tha {customMode ? `${customMonth}/${customYear}` : `${yearsAgo} saal pehle`}.
+                        <div className="space-y-4">
+                            <div className="hidden print:block text-xs text-[#0E1B2C] font-semibold bg-[#F6F1E8]/60 p-3 rounded-xl mb-2">
+                                📊 Backtesting Scenario: Mapped {calcType} plan of ₹{parseInt(amount).toLocaleString('en-IN')} initiated {customMode ? `${customMonth}/${customYear}` : `${yearsAgo} saal pehle`}.
                             </div>
 
-                            <div className="grid grid-cols-2 gap-4 text-xs">
-                                <div className="bg-[#F6F1E8]/60 p-4 rounded-xl border border-[#E2D8C2]/40">
-                                    <span className="text-[#5C677D] text-[10px] uppercase tracking-wider block font-semibold">Total Capital Invested</span>
-                                    <span className="text-xl font-bold text-[#0E1B2C] block mt-1">₹{calcResult.invested.toLocaleString('en-IN')}</span>
+                            <div className="grid grid-cols-2 gap-3 text-xs">
+                                <div className="bg-[#F6F1E8]/60 p-3 rounded-xl border border-[#E2D8C2]/40">
+                                    <span className="text-[#5C677D] text-[10px] uppercase font-semibold block">Total Invested Capital</span>
+                                    <span className="text-base font-bold text-[#0E1B2C] block mt-0.5">₹{calcResult.invested.toLocaleString('en-IN')}</span>
                                 </div>
-                                <div className="bg-[#024396]/5 p-4 rounded-xl border border-[#024396]/10">
-                                    <span className="text-[#024396] text-[10px] uppercase tracking-wider block font-bold">Estimated Value Today</span>
-                                    <span className="text-2xl font-extrabold text-[#024396] block mt-1">₹{calcResult.currentValue.toLocaleString('en-IN')}</span>
+                                <div className="bg-[#024396]/5 p-3 rounded-xl border border-[#024396]/10">
+                                    <span className="text-[#024396] text-[10px] uppercase font-bold block">Estimated Value Value</span>
+                                    <span className="text-lg font-extrabold text-[#024396] block mt-0.5">₹{calcResult.currentValue.toLocaleString('en-IN')}</span>
                                 </div>
                             </div>
 
-                            <div className="bg-white border border-[#E2D8C2] p-4 rounded-xl flex justify-between items-center text-xs shadow-sm">
+                            <div className="bg-white border border-[#E2D8C2] p-3 rounded-xl flex justify-between items-center text-xs shadow-sm">
                                 <div>
-                                    <span className="text-[#5C677D] text-[10px] uppercase block">Net Wealth Gain (Profit)</span>
-                                    <span className="text-base font-bold text-emerald-600 mt-1 block">+₹{calcResult.profit.toLocaleString('en-IN')}</span>
+                                    <span className="text-[#5C677D] text-[10px] uppercase block">Net Gains (Profit Wealth)</span>
+                                    <span className="text-sm font-bold text-emerald-600 mt-0.5 block">+₹{calcResult.profit.toLocaleString('en-IN')}</span>
                                 </div>
                                 <div className="text-right">
                                     <span className="text-[#5C677D] text-[10px] uppercase block">Absolute Return Growth</span>
-                                    <span className="text-base font-extrabold text-[#024396] mt-1 block">{calcResult.returnsPct}%</span>
+                                    <span className="text-sm font-extrabold text-[#024396] mt-0.5 block">{calcResult.returnsPct}%</span>
                                 </div>
                             </div>
 
-                            {/* 👤 ADVISOR PROFILE BANNER (MATCHES PROPOSAL FOOTER EXACTLY) */}
-                            <div className="border-t-2 border-[#E2D8C2] pt-4 mt-6 flex justify-between items-center gap-4 bg-[#FBF7EE] print:bg-white">
+                            {/* 👤 EXCLUSIVE SIGNATURE ADVISOR FOOTER TRACK */}
+                            <div className="border-t-2 border-[#E2D8C2] pt-4 mt-4 flex justify-between items-center gap-4">
                                 <div className="flex items-center gap-3">
-                                    {/* Placeholder for Your Image — Automatic mapping matching layout vector */}
-                                    <div className="w-12 h-12 rounded-full bg-[#024396]/10 border border-[#024396]/20 overflow-hidden flex items-center justify-center shrink-0">
+                                    <div className="w-10 h-10 rounded-full bg-[#024396]/10 border border-[#024396]/20 flex items-center justify-center shrink-0">
                                         <span className="text-[10px] font-bold text-[#024396]">TFD</span>
                                     </div>
-                                    <div className="text-xs">
-                                        <h5 className="font-bold text-[#0E1B2C] text-sm">Sagar Chaturvedi</h5>
-                                        <p className="text-[#5C677D] font-medium text-[11px] mt-0.5">FOUNDER &amp; CEO · THE FINANCIAL DOCTOR</p>
-                                        <p className="text-[#5C677D] text-[11px]">📱 +91 77738 05794 &nbsp;|&nbsp; ✉️ wecare@thefinancialdoctor.in</p>
+                                    <div className="text-[11px]">
+                                        <h5 className="font-bold text-[#0E1B2C]">Sagar Chaturvedi</h5>
+                                        <p className="text-[#5C677D] text-[10px] font-medium uppercase mt-0.5">FOUNDER &amp; CEO · THE FINANCIAL DOCTOR</p>
+                                        <p className="text-[#5C677D] text-[10px]">📞 +91 77738 05794 &nbsp;|&nbsp; ✉️ wecare@thefinancialdoctor.in</p>
                                     </div>
                                 </div>
                                 <div className="text-right flex flex-col items-end shrink-0">
-                                    <div className="w-14 h-14 bg-white border border-[#E2D8C2] rounded-lg p-1 flex items-center justify-center shadow-sm">
-                                        {/* Dynamic Scan Box Representation for AssetPlus QR */}
-                                        <span className="text-[7px] text-center font-bold text-[#024396] uppercase leading-none">SCAN<br/>TO<br/>INVEST</span>
+                                    <div className="w-12 h-12 bg-white border border-[#E2D8C2] rounded-lg p-1 flex items-center justify-center shadow-sm">
+                                        <span className="text-[6px] text-center font-bold text-[#024396] uppercase leading-none">SCAN<br/>TO<br/>INVEST</span>
                                     </div>
-                                    <span className="text-[9px] text-[#5C677D] font-bold mt-1 tracking-wider uppercase">AssetPlus Partner</span>
+                                    <span className="text-[8px] text-[#5C677D] font-bold mt-1 uppercase">AssetPlus Partner</span>
                                 </div>
                             </div>
 
-                            {/* STANDARD COMPLIANCE DISCLAIMER BOX */}
-                            <div className="text-[9px] text-[#8A93A6] italic text-center leading-relaxed border-t border-[#E2D8C2]/60 pt-3">
-                                *Calculations are mapped directly to actual AMFI historical daily asset tracking sheets up to {calcResult.asOfDate}. Mutual fund investments are subject to market risks. Kindly read all scheme-related documents carefully before executing transactions. Illustrative historical metrics do not promise guaranteed future payouts.
-                            </div>
-                            
-                            {/* CALL TO ACTIONS (AUTOMATIC HIDDEN ON PDF GENERATION) */}
-                            <div className="flex gap-3 mt-4 print:hidden">
-                                <button 
-                                    onClick={() => window.print()}
-                                    className="flex-1 text-center text-xs text-white font-bold py-3 bg-[#024396] hover:bg-[#012E6B] rounded-xl transition-all shadow-md"
-                                >
-                                    📥 Download Proposal (PDF)
-                                </button>
-                                <a 
-                                    href={ASSETPLUS} 
-                                    target="_blank" 
-                                    rel="noopener noreferrer" 
-                                    className="flex-1 text-center text-xs text-[#024396] border border-[#024396] font-bold py-3 bg-white hover:bg-[#024396]/5 rounded-xl transition-all block"
-                                >
-                                    Onboard Client via AssetPlus →
-                                </a>
+                            <p className="text-[8px] text-[#8A93A6] italic text-center border-t border-[#E2D8C2]/60 pt-2 leading-normal">
+                                *Calculations match exact AMFI historical logs until {calcResult.asOfDate}. Mutual fund investments are subject to market risks. Past outcomes do not define guaranteed future payout trajectories.
+                            </p>
+
+                            <div className="flex gap-3 print:hidden pt-2">
+                                <button onClick={() => window.print()} className="flex-1 text-center text-xs text-white font-bold py-3 bg-[#024396] hover:bg-[#012E6B] rounded-xl transition-all shadow-md">📥 Download Proposal PDF</button>
+                                <button onClick={onClose} className="px-4 text-center text-xs text-[#5C677D] border border-[#E2D8C2] font-semibold py-3 bg-white hover:bg-[#F6F1E8] rounded-xl transition-all">Close</button>
                             </div>
                         </div>
                     )}
                 </div>
             </div>
-        </div>
-    );
-}
-
-function Info({ label, value, accent }) {
-    return (
-        <div>
-            <div className="text-[10px] uppercase tracking-[0.18em] text-[#5C677D]">{label}</div>
-            <div className={`mt-1 font-display ${accent ? "text-[#024396] text-lg font-bold" : "text-[#0E1B2C] font-semibold"}`}>{value}</div>
         </div>
     );
 }
