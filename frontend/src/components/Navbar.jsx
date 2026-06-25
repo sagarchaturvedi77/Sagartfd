@@ -60,7 +60,7 @@ export default function Navbar() {
                     ))}
                 </nav>
 
-                <div className="hidden md:flex items-center gap-6">
+                <div className="hidden md:flex items-center gap-6 ml-8">
                     <a
                         href="https://wa.me/917773805794?text=Hi%20Sagar%20ji%2C%20I%20want%20to%20know%20more%20about%20mutual%20fund%20investments."
                         target="_blank"
