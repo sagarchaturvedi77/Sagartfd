@@ -17,7 +17,7 @@ const items = [
         title: "Term Insurance",
         body: "Pure protection plans with high cover at low premiums. We compare LIC, HDFC Life, ICICI Pru, Max Life and more.",
         cta: "Get a Quote",
-        href: "https://wa.me/917773805794?text=Hi%20Sagar%20ji%2C%20I%20want%20a%20Term%20Insurance%20quote.",
+        href: "https://insurance.assetplus.in/290298/term",
     },
     {
         icon: Heart,
@@ -33,7 +33,7 @@ const items = [
         title: "Health Insurance",
         body: "Individual & family floater plans, top-ups and critical illness covers. Cashless across 10,000+ hospitals.",
         cta: "Compare Plans",
-        href: "https://wa.me/917773805794?text=Hi%20Sagar%20ji%2C%20I%20want%20to%20compare%20Health%20Insurance.",
+        href: "https://insurance.assetplus.in/290298/health",
     },
     {
         icon: Car,
