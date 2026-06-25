@@ -554,7 +554,7 @@ function ResultCard({ tab, result, onDownload }) {
                         style={{ background: "#C7102E", color: "#fff" }}
                         data-testid={IDS.calc.download}
                     >
-                        <Download size={16} /> <span className="hidden sm:inline">Download</span> PNG
+                        <Download size={16} /> <span className="hidden sm:inline">Download</span> Proposal
                     </button>
                      <a 
                         href={TFD_BRAND_URL}
