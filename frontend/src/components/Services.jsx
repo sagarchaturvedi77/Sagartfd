@@ -1,6 +1,7 @@
-import React from "react";
+import React, { useState } from "react";
 import { TrendingUp, ShieldCheck, Heart, Activity, Car, Stethoscope } from "lucide-react";
 import Reveal from "@/components/Reveal";
+import MotorInsuranceForm from "@/components/MotorInsuranceForm";
 
 const items = [
     {
@@ -41,7 +42,7 @@ const items = [
         title: "Motor Insurance",
         body: "Car & two-wheeler insurance with instant policy issuance and hassle-free claim assistance.",
         cta: "Quick Quote",
-        href: "https://wa.me/917773805794?text=Hi%20Sagar%20ji%2C%20I%20want%20a%20Motor%20Insurance%20quote.",
+        isForm: true,
     },
     {
         icon: Stethoscope,
@@ -54,6 +55,8 @@ const items = [
 ];
 
 export default function Services() {
+    const [formOpen, setFormOpen] = useState(false);
+
     return (
         <section id="services" className="section">
             <div className="container-x">
@@ -93,17 +96,30 @@ export default function Services() {
                                         <p className="mt-3 text-[14.5px] text-[#2A364B] leading-relaxed">
                                             {it.body}
                                         </p>
-                                        <a
-                                            href={it.href}
-                                            target="_blank"
-                                            rel="noopener noreferrer"
-                                            className="inline-flex items-center gap-1.5 mt-5 text-[#024396] hover:text-[#012E6B] font-medium text-sm group/cta"
-                                        >
-                                            {it.cta}{" "}
-                                            <span aria-hidden className="transition-transform group-hover/cta:translate-x-1">
-                                                →
-                                            </span>
-                                        </a>
+                                        {it.isForm ? (
+                                            <button
+                                                type="button"
+                                                onClick={() => setFormOpen(true)}
+                                                className="inline-flex items-center gap-1.5 mt-5 text-[#024396] hover:text-[#012E6B] font-medium text-sm group/cta"
+                                            >
+                                                {it.cta}{" "}
+                                                <span aria-hidden className="transition-transform group-hover/cta:translate-x-1">
+                                                    →
+                                                </span>
+                                            </button>
+                                        ) : (
+                                            
+                                                href={it.href}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="inline-flex items-center gap-1.5 mt-5 text-[#024396] hover:text-[#012E6B] font-medium text-sm group/cta"
+                                            >
+                                                {it.cta}{" "}
+                                                <span aria-hidden className="transition-transform group-hover/cta:translate-x-1">
+                                                    →
+                                                </span>
+                                            </a>
+                                        )}
                                     </div>
                                 </article>
                             </Reveal>
@@ -111,6 +127,8 @@ export default function Services() {
                     })}
                 </div>
             </div>
+
+            <MotorInsuranceForm open={formOpen} onClose={() => setFormOpen(false)} />
         </section>
     );
 }
