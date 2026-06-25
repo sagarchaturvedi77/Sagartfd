@@ -363,7 +363,7 @@ function ReturnPill({ label, value }) {
     );
 }
 
-// 🧮 Fixed & Verified Fast Calculator Modal Container
+// 🧮 Branded Calculator Proposal Sheet Layout (Matches Core Custom Calculators Theme)
 function FundModal({ data, onClose }) {
     const [calcType, setCalcType] = useState("SIP"); 
     const [amount, setAmount] = useState(5000); 
@@ -377,7 +377,6 @@ function FundModal({ data, onClose }) {
 
     const calculatePastReturns = async (selectedYears, isCustom = false) => {
         setLoadingCalc(true);
-        setCalcResult(null);
         try {
             const res = await fetch(`https://api.mfapi.in/mf/${data.code}`);
             const fullData = await res.json();
@@ -443,40 +442,45 @@ function FundModal({ data, onClose }) {
             });
 
         } catch (err) {
-            console.error("Backtesting error:", err);
+            console.error("Backtesting calculation error:", err);
         } finally {
             setLoadingCalc(false);
         }
     };
 
-    // Instant initial trigger without recursive loop state
     useEffect(() => {
         if (!customMode) {
             calculatePastReturns(yearsAgo, false);
         }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [yearsAgo, calcType, amount, customMode]);
 
     return (
         <div className="fixed inset-0 z-[60] bg-[#0E1B2C]/70 backdrop-blur grid place-items-center p-4" onClick={onClose}>
-            <div onClick={(e) => e.stopPropagation()} className="bg-[#FBF7EE] border-2 border-[#E2D8C2] rounded-2xl p-6 max-w-xl w-full shadow-2xl relative overflow-y-auto max-h-[95vh]">
-                
-                {/* BRAND HEADER */}
-                <div className="border-b border-[#E2D8C2] pb-3 mb-4 flex justify-between items-center">
+            <div 
+                onClick={(e) => e.stopPropagation()} 
+                className="bg-[#FBF7EE] border-2 border-[#E2D8C2] rounded-2xl p-6 max-w-2xl w-full shadow-2xl relative overflow-y-auto max-h-[95vh] print:fixed print:inset-0 print:max-w-full print:h-full print:bg-white print:p-8 print:border-0"
+            >
+                {/* 📄 BRAND HEADER (MATCHES PROPOSAL TEMPLATE) */}
+                <div className="border-b-2 border-[#024396] pb-3 mb-4 flex justify-between items-center">
                     <div>
-                        <h3 className="text-sm font-bold text-[#024396] tracking-wider uppercase font-display">The Financial Doctor</h3>
-                        <p className="text-[9px] text-[#5C677D] tracking-tight">Sagar Chaturvedi · AMFI Registered MFD (ARN-290298)</p>
+                        <h3 className="text-lg font-bold text-[#024396] tracking-wide uppercase font-display">The Financial Doctor</h3>
+                        <p className="text-[10px] text-[#5C677D] tracking-wider font-semibold mt-0.5">TREATING YOUR FINANCIAL HEALTH · AMFI REGISTERED MFD</p>
                     </div>
-                    <button onClick={onClose} className="text-xs text-[#5C677D] hover:text-[#0E1B2C] font-bold">✕ Close</button>
+                    <div className="text-right">
+                        <span className="text-xs font-bold text-[#0E1B2C] bg-[#F6F1E8] px-3 py-1 rounded-full border border-[#E2D8C2]">ARN-290298</span>
+                    </div>
                 </div>
 
-                {/* FUND DETAIL */}
+                {/* FUND META DETAIL */}
                 <div className="mb-5 bg-[#024396]/5 p-3 rounded-xl border border-[#024396]/10">
-                    <h4 className="font-display text-lg font-bold text-[#0E1B2C] leading-tight">{data.name}</h4>
-                    <p className="text-xs text-[#5C677D] mt-0.5">{data.scheme_category} · Live NAV: ₹{data.nav}</p>
+                    <span className="text-[9px] font-bold text-[#024396] uppercase tracking-widest bg-[#024396]/10 px-2 py-0.5 rounded">HISTORICAL PERFORMANCE REPORT</span>
+                    <h4 className="font-display text-xl font-bold text-[#0E1B2C] leading-tight mt-1.5">{data.name}</h4>
+                    <p className="text-xs text-[#5C677D] mt-0.5">{data.scheme_category} · Current NAV: ₹{data.nav}</p>
                 </div>
 
-                {/* CONTROLS */}
-                <div className="space-y-4 text-xs">
+                {/* INPUT INTERACTIVE CONTROLS (AUTO-HIDDEN ON PDF PRINT) */}
+                <div className="space-y-4 text-xs print:hidden">
                     <div className="flex gap-2 p-1 bg-[#F6F1E8] rounded-lg">
                         <button onClick={() => setCalcType("SIP")} className={`flex-1 py-2 text-center rounded-md font-semibold transition-all ${calcType === "SIP" ? "bg-[#024396] text-white shadow" : "text-[#5C677D]"}`}>
                             Monthly SIP
@@ -526,44 +530,96 @@ function FundModal({ data, onClose }) {
                     )}
                 </div>
 
-                {/* RESULTS VIEW */}
+                {/* PROPOSAL RESULTS PRESENTATION GRAPH MATRIX */}
                 <div className="mt-6 border-t border-[#E2D8C2] pt-4">
-                    {loadingCalc && <div className="text-center py-6 text-xs text-[#024396] font-medium animate-pulse">🔄 Calculating actual compounding returns...</div>}
+                    {loadingCalc && <div className="text-center py-6 text-xs text-[#024396] font-medium animate-pulse">🔄 Querying live AMFI historical logs...</div>}
                     
                     {!loadingCalc && calcResult && (
-                        <div className="space-y-4">
-                            <div className="grid grid-cols-2 gap-3 text-xs">
-                                <div className="bg-[#F6F1E8]/60 p-3 rounded-xl border border-[#E2D8C2]/40">
-                                    <span className="text-[#5C677D] text-[10px] block font-medium">Total Capital Invested</span>
-                                    <span className="text-base font-bold text-[#0E1B2C] block mt-0.5">₹{calcResult.invested.toLocaleString('en-IN')}</span>
-                                </div>
-                                <div className="bg-[#024396]/5 p-3 rounded-xl border border-[#024396]/10">
-                                    <span className="text-[#024396] text-[10px] block font-bold">Estimated Value Today</span>
-                                    <span className="text-lg font-extrabold text-[#024396] block mt-0.5">₹{calcResult.currentValue.toLocaleString('en-IN')}</span>
-                                </div>
+                        <div className="space-y-5">
+                            {/* PRINT SUMMARY BLOCK */}
+                            <div className="hidden print:block text-xs text-[#0E1B2C] font-semibold mb-2 bg-[#F6F1E8]/40 p-3 rounded-xl">
+                                📊 Scenario: Backtesting {calcType} investment of ₹{parseInt(amount).toLocaleString('en-IN')} shuru kiya gaya tha {customMode ? `${customMonth}/${customYear}` : `${yearsAgo} saal pehle`}.
                             </div>
-                            <div className="bg-white border border-[#E2D8C2] p-3 rounded-xl flex justify-between items-center text-xs shadow-sm">
-                                <div>
-                                    <span className="text-[#5C677D] text-[10px] block">Net Wealth Gain (Profit)</span>
-                                    <span className="text-sm font-bold text-emerald-600 mt-0.5">+₹{calcResult.profit.toLocaleString('en-IN')}</span>
+
+                            <div className="grid grid-cols-2 gap-4 text-xs">
+                                <div className="bg-[#F6F1E8]/60 p-4 rounded-xl border border-[#E2D8C2]/40">
+                                    <span className="text-[#5C677D] text-[10px] uppercase tracking-wider block font-semibold">Total Capital Invested</span>
+                                    <span className="text-xl font-bold text-[#0E1B2C] block mt-1">₹{calcResult.invested.toLocaleString('en-IN')}</span>
                                 </div>
-                                <div className="text-right">
-                                    <span className="text-[#5C677D] text-[10px] block">Absolute Growth</span>
-                                    <span className="text-sm font-extrabold text-[#024396] mt-0.5">{calcResult.returnsPct}%</span>
+                                <div className="bg-[#024396]/5 p-4 rounded-xl border border-[#024396]/10">
+                                    <span className="text-[#024396] text-[10px] uppercase tracking-wider block font-bold">Estimated Value Today</span>
+                                    <span className="text-2xl font-extrabold text-[#024396] block mt-1">₹{calcResult.currentValue.toLocaleString('en-IN')}</span>
                                 </div>
                             </div>
 
-                            {/* 📥 DOWNLOAD PDF/PRINT OPTION */}
-                            <button 
-                                onClick={() => window.print()}
-                                className="w-full text-center text-xs text-white font-bold py-3 bg-[#024396] hover:bg-[#012E6B] rounded-xl transition-all shadow-md mt-2 flex items-center justify-center gap-2"
-                            >
-                                📥 Download Branded Performance Sheet (PDF)
-                            </button>
+                            <div className="bg-white border border-[#E2D8C2] p-4 rounded-xl flex justify-between items-center text-xs shadow-sm">
+                                <div>
+                                    <span className="text-[#5C677D] text-[10px] uppercase block">Net Wealth Gain (Profit)</span>
+                                    <span className="text-base font-bold text-emerald-600 mt-1 block">+₹{calcResult.profit.toLocaleString('en-IN')}</span>
+                                </div>
+                                <div className="text-right">
+                                    <span className="text-[#5C677D] text-[10px] uppercase block">Absolute Return Growth</span>
+                                    <span className="text-base font-extrabold text-[#024396] mt-1 block">{calcResult.returnsPct}%</span>
+                                </div>
+                            </div>
+
+                            {/* 👤 ADVISOR PROFILE BANNER (MATCHES PROPOSAL FOOTER EXACTLY) */}
+                            <div className="border-t-2 border-[#E2D8C2] pt-4 mt-6 flex justify-between items-center gap-4 bg-[#FBF7EE] print:bg-white">
+                                <div className="flex items-center gap-3">
+                                    {/* Placeholder for Your Image — Automatic mapping matching layout vector */}
+                                    <div className="w-12 h-12 rounded-full bg-[#024396]/10 border border-[#024396]/20 overflow-hidden flex items-center justify-center shrink-0">
+                                        <span className="text-[10px] font-bold text-[#024396]">TFD</span>
+                                    </div>
+                                    <div className="text-xs">
+                                        <h5 className="font-bold text-[#0E1B2C] text-sm">Sagar Chaturvedi</h5>
+                                        <p className="text-[#5C677D] font-medium text-[11px] mt-0.5">FOUNDER &amp; CEO · THE FINANCIAL DOCTOR</p>
+                                        <p className="text-[#5C677D] text-[11px]">📱 +91 77738 05794 &nbsp;|&nbsp; ✉️ wecare@thefinancialdoctor.in</p>
+                                    </div>
+                                </div>
+                                <div className="text-right flex flex-col items-end shrink-0">
+                                    <div className="w-14 h-14 bg-white border border-[#E2D8C2] rounded-lg p-1 flex items-center justify-center shadow-sm">
+                                        {/* Dynamic Scan Box Representation for AssetPlus QR */}
+                                        <span className="text-[7px] text-center font-bold text-[#024396] uppercase leading-none">SCAN<br/>TO<br/>INVEST</span>
+                                    </div>
+                                    <span className="text-[9px] text-[#5C677D] font-bold mt-1 tracking-wider uppercase">AssetPlus Partner</span>
+                                </div>
+                            </div>
+
+                            {/* STANDARD COMPLIANCE DISCLAIMER BOX */}
+                            <div className="text-[9px] text-[#8A93A6] italic text-center leading-relaxed border-t border-[#E2D8C2]/60 pt-3">
+                                *Calculations are mapped directly to actual AMFI historical daily asset tracking sheets up to {calcResult.asOfDate}. Mutual fund investments are subject to market risks. Kindly read all scheme-related documents carefully before executing transactions. Illustrative historical metrics do not promise guaranteed future payouts.
+                            </div>
+                            
+                            {/* CALL TO ACTIONS (AUTOMATIC HIDDEN ON PDF GENERATION) */}
+                            <div className="flex gap-3 mt-4 print:hidden">
+                                <button 
+                                    onClick={() => window.print()}
+                                    className="flex-1 text-center text-xs text-white font-bold py-3 bg-[#024396] hover:bg-[#012E6B] rounded-xl transition-all shadow-md"
+                                >
+                                    📥 Download Proposal (PDF)
+                                </button>
+                                <a 
+                                    href={ASSETPLUS} 
+                                    target="_blank" 
+                                    rel="noopener noreferrer" 
+                                    className="flex-1 text-center text-xs text-[#024396] border border-[#024396] font-bold py-3 bg-white hover:bg-[#024396]/5 rounded-xl transition-all block"
+                                >
+                                    Onboard Client via AssetPlus →
+                                </a>
+                            </div>
                         </div>
                     )}
                 </div>
             </div>
+        </div>
+    );
+}
+
+function Info({ label, value, accent }) {
+    return (
+        <div>
+            <div className="text-[10px] uppercase tracking-[0.18em] text-[#5C677D]">{label}</div>
+            <div className={`mt-1 font-display ${accent ? "text-[#024396] text-lg font-bold" : "text-[#0E1B2C] font-semibold"}`}>{value}</div>
         </div>
     );
 }
