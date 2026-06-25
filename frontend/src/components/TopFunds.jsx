@@ -102,9 +102,10 @@ export default function TopFunds() {
 
     const totalPages = Math.ceil(filtered.length / itemsPerPage);
 
-    useEffect(() => {
+    const handleCategoryChange = (cat) => {
+        setCategory(cat);
         setCurrentPage(1);
-    }, [category]);
+    };
 
     const openFundDetail = async (code) => {
         setLoadingDetails(true);
@@ -113,15 +114,13 @@ export default function TopFunds() {
             const d = await res.json();
             if (d && d.meta) {
                 setSearchingDetail({
+                    code: code,
                     name: d.meta.scheme_name,
                     fund_house: d.meta.fund_house,
                     nav: d.data[0]?.nav || "—",
                     nav_date: d.data[0]?.date || "—",
                     scheme_category: d.meta.scheme_category || "Growth",
-                    scheme_type: d.meta.scheme_type || "Open Ended",
-                    return_1y: (Math.random() * 14 + 11).toFixed(1),
-                    return_3y: (Math.random() * 18 + 14).toFixed(1),
-                    return_5y: (Math.random() * 16 + 13).toFixed(1)
+                    scheme_type: d.meta.scheme_type || "Open Ended"
                 });
             }
         } catch (e) {
@@ -201,7 +200,7 @@ export default function TopFunds() {
                         {categories.map((c) => (
                             <button
                                 key={c}
-                                onClick={() => setCategory(c)}
+                                onClick={() => handleCategoryChange(c)}
                                 className={`tab-pill shrink-0 ${category === c ? "active" : ""}`}
                             >
                                 {c}
@@ -364,7 +363,7 @@ function ReturnPill({ label, value }) {
     );
 }
 
-// 🧮 Pure Verification Cloudflare Engine for Backtesting Modal
+// 🧮 Fixed & Verified Fast Calculator Modal Container
 function FundModal({ data, onClose }) {
     const [calcType, setCalcType] = useState("SIP"); 
     const [amount, setAmount] = useState(5000); 
@@ -378,6 +377,7 @@ function FundModal({ data, onClose }) {
 
     const calculatePastReturns = async (selectedYears, isCustom = false) => {
         setLoadingCalc(true);
+        setCalcResult(null);
         try {
             const res = await fetch(`https://api.mfapi.in/mf/${data.code}`);
             const fullData = await res.json();
@@ -449,16 +449,18 @@ function FundModal({ data, onClose }) {
         }
     };
 
+    // Instant initial trigger without recursive loop state
     useEffect(() => {
         if (!customMode) {
             calculatePastReturns(yearsAgo, false);
         }
-        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [yearsAgo, calcType, amount, customMode]);
 
     return (
         <div className="fixed inset-0 z-[60] bg-[#0E1B2C]/70 backdrop-blur grid place-items-center p-4" onClick={onClose}>
             <div onClick={(e) => e.stopPropagation()} className="bg-[#FBF7EE] border-2 border-[#E2D8C2] rounded-2xl p-6 max-w-xl w-full shadow-2xl relative overflow-y-auto max-h-[95vh]">
+                
+                {/* BRAND HEADER */}
                 <div className="border-b border-[#E2D8C2] pb-3 mb-4 flex justify-between items-center">
                     <div>
                         <h3 className="text-sm font-bold text-[#024396] tracking-wider uppercase font-display">The Financial Doctor</h3>
@@ -467,24 +469,26 @@ function FundModal({ data, onClose }) {
                     <button onClick={onClose} className="text-xs text-[#5C677D] hover:text-[#0E1B2C] font-bold">✕ Close</button>
                 </div>
 
+                {/* FUND DETAIL */}
                 <div className="mb-5 bg-[#024396]/5 p-3 rounded-xl border border-[#024396]/10">
                     <h4 className="font-display text-lg font-bold text-[#0E1B2C] leading-tight">{data.name}</h4>
-                    <p className="text-xs text-[#5C677D] mt-0.5">{data.category} · Live NAV: ₹{data.nav}</p>
+                    <p className="text-xs text-[#5C677D] mt-0.5">{data.scheme_category} · Live NAV: ₹{data.nav}</p>
                 </div>
 
+                {/* CONTROLS */}
                 <div className="space-y-4 text-xs">
                     <div className="flex gap-2 p-1 bg-[#F6F1E8] rounded-lg">
-                        <button onClick={() => { setCalcType("SIP"); setCalcResult(null); }} className={`flex-1 py-2 text-center rounded-md font-semibold transition-all ${calcType === "SIP" ? "bg-[#024396] text-white shadow" : "text-[#5C677D]"}`}>
+                        <button onClick={() => setCalcType("SIP")} className={`flex-1 py-2 text-center rounded-md font-semibold transition-all ${calcType === "SIP" ? "bg-[#024396] text-white shadow" : "text-[#5C677D]"}`}>
                             Monthly SIP
                         </button>
-                        <button onClick={() => { setCalcType("Lumpsum"); setCalcResult(null); }} className={`flex-1 py-2 text-center rounded-md font-semibold transition-all ${calcType === "Lumpsum" ? "bg-[#024396] text-white shadow" : "text-[#5C677D]"}`}>
+                        <button onClick={() => setCalcType("Lumpsum")} className={`flex-1 py-2 text-center rounded-md font-semibold transition-all ${calcType === "Lumpsum" ? "bg-[#024396] text-white shadow" : "text-[#5C677D]"}`}>
                             One-Time Lumpsum
                         </button>
                     </div>
 
                     <div>
                         <label className="block text-[#5C677D] font-medium mb-1.5">Investment Amount (₹):</label>
-                        <input type="number" value={amount} onChange={(e) => { setAmount(e.target.value); setCalcResult(null); }} className="w-full bg-white border border-[#E2D8C2] rounded-xl px-4 py-2.5 text-sm font-semibold text-[#0E1B2C] focus:border-[#024396]" />
+                        <input type="number" value={amount} onChange={(e) => setAmount(e.target.value)} className="w-full bg-white border border-[#E2D8C2] rounded-xl px-4 py-2.5 text-sm font-semibold text-[#0E1B2C]" />
                     </div>
 
                     <div>
@@ -495,7 +499,7 @@ function FundModal({ data, onClose }) {
                                     {yr} Yr Ago
                                 </button>
                             ))}
-                            <button onClick={() => { setCustomMode(true); setCalcResult(null); }} className={`py-2 rounded-xl border font-bold text-center transition-all ${customMode ? "bg-[#024396]/10 border-[#024396] text-[#024396]" : "bg-white border-[#E2D8C2] text-[#5C677D]"}`}>
+                            <button onClick={() => setCustomMode(true)} className={`py-2 rounded-xl border font-bold text-center transition-all ${customMode ? "bg-[#024396]/10 border-[#024396] text-[#024396]" : "bg-white border-[#E2D8C2] text-[#5C677D]"}`}>
                                 Custom
                             </button>
                         </div>
@@ -522,23 +526,25 @@ function FundModal({ data, onClose }) {
                     )}
                 </div>
 
+                {/* RESULTS VIEW */}
                 <div className="mt-6 border-t border-[#E2D8C2] pt-4">
-                    {loadingCalc && <div className="text-center py-6 text-xs text-[#024396] font-medium animate-pulse">🔄 Fetching AMFI pricing tables...</div>}
+                    {loadingCalc && <div className="text-center py-6 text-xs text-[#024396] font-medium animate-pulse">🔄 Calculating actual compounding returns...</div>}
+                    
                     {!loadingCalc && calcResult && (
-                        <div className="space-y-3">
+                        <div className="space-y-4">
                             <div className="grid grid-cols-2 gap-3 text-xs">
                                 <div className="bg-[#F6F1E8]/60 p-3 rounded-xl border border-[#E2D8C2]/40">
-                                    <span className="text-[#5C677D] text-[10px] block font-medium">Total Invested</span>
+                                    <span className="text-[#5C677D] text-[10px] block font-medium">Total Capital Invested</span>
                                     <span className="text-base font-bold text-[#0E1B2C] block mt-0.5">₹{calcResult.invested.toLocaleString('en-IN')}</span>
                                 </div>
                                 <div className="bg-[#024396]/5 p-3 rounded-xl border border-[#024396]/10">
-                                    <span className="text-[#024396] text-[10px] block font-bold">Wealth Value</span>
+                                    <span className="text-[#024396] text-[10px] block font-bold">Estimated Value Today</span>
                                     <span className="text-lg font-extrabold text-[#024396] block mt-0.5">₹{calcResult.currentValue.toLocaleString('en-IN')}</span>
                                 </div>
                             </div>
                             <div className="bg-white border border-[#E2D8C2] p-3 rounded-xl flex justify-between items-center text-xs shadow-sm">
                                 <div>
-                                    <span className="text-[#5C677D] text-[10px] block">Net Profit</span>
+                                    <span className="text-[#5C677D] text-[10px] block">Net Wealth Gain (Profit)</span>
                                     <span className="text-sm font-bold text-emerald-600 mt-0.5">+₹{calcResult.profit.toLocaleString('en-IN')}</span>
                                 </div>
                                 <div className="text-right">
@@ -546,6 +552,14 @@ function FundModal({ data, onClose }) {
                                     <span className="text-sm font-extrabold text-[#024396] mt-0.5">{calcResult.returnsPct}%</span>
                                 </div>
                             </div>
+
+                            {/* 📥 DOWNLOAD PDF/PRINT OPTION */}
+                            <button 
+                                onClick={() => window.print()}
+                                className="w-full text-center text-xs text-white font-bold py-3 bg-[#024396] hover:bg-[#012E6B] rounded-xl transition-all shadow-md mt-2 flex items-center justify-center gap-2"
+                            >
+                                📥 Download Branded Performance Sheet (PDF)
+                            </button>
                         </div>
                     )}
                 </div>
