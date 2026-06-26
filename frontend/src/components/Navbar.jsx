@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from "react";
 import { Menu, X, MessageCircle } from "lucide-react";
-import { IDS } from "@/constants/testIds";
-// 🛠️ Exact copy code matching the absolute context space lookup
-import { useModal } from "@/ context/ModalContext"; 
+import { IDS } from "../constants/testIds";
+// 🛠️ Replaced absolute alias directly with clean relative folders pairing
+import { useModal } from "../ context/ModalContext"; 
 
 const LOGO_URL = "https://customer-assets.emergentagent.com/job_advisor-phase4-build/artifacts/buhrts3f_IMG_2870.png";
 
@@ -38,7 +38,7 @@ export default function Navbar() {
         {/* LOGO LINK */}
         <a
           href="#top"
-          data-testid={IDS.nav.logo}
+          data-testid={IDS?.nav?.logo || "nav-logo"}
           className="flex items-center gap-3 group"
         >
           <img
@@ -70,7 +70,7 @@ export default function Navbar() {
             href="https://wa.me/917773805794?text=Hi%20Sagar%20ji%2C%20I%20want%20to%20know%20more%20about%20mutual%20fund%20investments."
             target="_blank"
             rel="noreferrer"
-            data-testid={IDS.nav.whatsapp}
+            data-testid={IDS?.nav?.whatsapp || "nav-whatsapp"}
             className="btn-pill btn-ghost text-sm"
           >
             <MessageCircle size={16} /> WhatsApp
@@ -78,7 +78,7 @@ export default function Navbar() {
           
           <button
             onClick={openGateway}
-            data-testid={IDS.nav.cta}
+            data-testid={IDS?.nav?.cta || "nav-cta"}
             className="btn-pill btn-primary text-sm cursor-pointer"
           >
             Start Investing
