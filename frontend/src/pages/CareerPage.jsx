@@ -8,7 +8,6 @@ export default function CareerPage() {
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   
-  // File state tracking for UI confirmation
   const [photoFile, setPhotoFile] = useState(null);
   const [resumeFile, setResumeFile] = useState(null);
 
@@ -59,19 +58,19 @@ export default function CareerPage() {
       submissionBody.append("subject", `New Career Application for ${formData.position} - ${formData.fullName}`);
       submissionBody.append("from_name", "TFD Career Portal");
 
-      // Append text fields
       Object.keys(formData).forEach(key => {
         if (key === "skills") {
           submissionBody.append("Selected Skills", formData.skills.join(", "));
-        } else {
+        } else if (key !== "declaration1" && key !== "declaration2") {
           submissionBody.append(key, formData[key]);
         }
       });
 
-      // Append tracked files securely
+      // Files are appended directly into FormData container
       submissionBody.append("Uploaded Resume", resumeFile);
       submissionBody.append("Candidate Photo", photoFile);
 
+      // Browser handles content-type and boundary automatically when headers are omitted
       const response = await fetch("https://api.web3forms.com/submit", {
         method: "POST",
         body: submissionBody
@@ -83,11 +82,11 @@ export default function CareerPage() {
         setSubmitted(true);
         window.scrollTo({ top: 0, behavior: 'smooth' });
       } else {
-        throw new Error(result.message || "Submission failed");
+        throw new Error(result.message || "Submission backend issue");
       }
     } catch (err) {
       console.error(err);
-      toast.error("Submission failed. Please try again later.", { id: toastId });
+      toast.error("Submission failed. Please check your data and try again.", { id: toastId });
     } finally {
       setSubmitting(false);
     }
@@ -97,7 +96,7 @@ export default function CareerPage() {
     <div className="min-h-screen bg-[#FBF7EE] py-8 px-4 sm:px-6 lg:px-8">
       <div className="max-w-3xl mx-auto">
         
-        {/* BRAND HEADER (ARN Code & Sehore Text Removed Perfectly) */}
+        {/* BRAND HEADER */}
         <div className="flex items-center justify-between border-b border-[#E2D8C2] pb-5 mb-8">
           <a href="/" className="flex items-center gap-3 group">
             <img
@@ -118,7 +117,7 @@ export default function CareerPage() {
           </button>
         </div>
 
-        {/* WORK CULTURE & BENEFITS */}
+        {/* WORK CULTURE */}
         <div className="bg-white border border-[#E2D8C2] rounded-3xl p-6 sm:p-8 mb-8 shadow-sm space-y-6">
           <div>
             <h1 className="font-serif text-2xl sm:text-3xl text-[#0E1B2C] font-bold">Work with The Financial Doctor (TFD)</h1>
@@ -175,7 +174,7 @@ export default function CareerPage() {
             {!submitted ? (
               <form onSubmit={handleSubmit} className="space-y-8" encType="multipart/form-data">
                 
-                {/* SECTION 1: Personal Details (Photo Section Moved Out) */}
+                {/* SECTION 1: Personal Details */}
                 <div>
                   <h4 className="text-xs font-bold uppercase tracking-wider text-[#024396] border-b border-[#E2D8C2] pb-1.5 mb-4">1. Personal Details</h4>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -344,11 +343,10 @@ export default function CareerPage() {
                   </div>
                 </div>
 
-                {/* SECTION 6: Files Upload & Candidate Photo Integration */}
+                {/* SECTION 6: Document Uploads */}
                 <div>
                   <h4 className="text-xs font-bold uppercase tracking-wider text-[#024396] border-b border-[#E2D8C2] pb-1.5 mb-4">6. Document Uploads</h4>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {/* Resume File Input */}
                     <div>
                       <label className="block text-xs font-medium text-[#5C677D] mb-1.5">Upload Resume (PDF/DOC/DOCX) *</label>
                       <div className={`border border-dashed rounded-xl p-3 text-center transition-colors relative cursor-pointer ${resumeFile ? 'border-emerald-500 bg-emerald-50/20' : 'border-[#E2D8C2] bg-white hover:border-[#024396]'}`}>
@@ -373,7 +371,6 @@ export default function CareerPage() {
                       </div>
                     </div>
 
-                    {/* 🎯 Candidate Photo Section Moved Right Below Resume */}
                     <div>
                       <label className="block text-xs font-medium text-[#5C677D] mb-1.5">Candidate Photo *</label>
                       <div className={`border border-dashed rounded-xl p-3 text-center transition-colors relative cursor-pointer ${photoFile ? 'border-emerald-500 bg-emerald-50/20' : 'border-[#E2D8C2] bg-white hover:border-[#024396]'}`}>
