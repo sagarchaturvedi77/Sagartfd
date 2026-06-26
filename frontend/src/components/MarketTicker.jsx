@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 
 export default function MarketTicker() {
   const [isVisible, setIsVisible] = useState(true);
-  const [marketData, setMarketData] = useState({
+  const [marketData] = useState({
     nifty: { price: "23,564.10", change: "+0.52%" },
     sensex: { price: "77,100.47", change: "+0.14%" },
     banknifty: { price: "51,220.15", change: "-0.22%" },
@@ -22,16 +22,16 @@ export default function MarketTicker() {
     return (
       <style>{`
         body { padding-top: 0px !important; }
-        header, nav, [class*="Navbar"] { top: 0px !important; transform: none !important; }
+        header, nav, [class*="Navbar"] { transform: none !important; }
       `}</style>
     );
   }
 
   return (
-    /* 🌐 Fixed Top Running Strip Layer */
+    /* 🌐 Fixed Top Seamless News-Channel Marquee Ribbon */
     <div className="w-full fixed top-0 left-0 z-[100001] print:hidden bg-[#0E1B2C] text-[#FBF7EE] flex items-center shadow-md h-[40px] overflow-hidden select-none">
       
-      {/* 🏃‍♂️ Moving Track Section */}
+      {/* 🏃‍♂️ Running Track Area */}
       <div className="flex-1 overflow-hidden relative flex items-center h-full">
         <div className="flex whitespace-nowrap gap-16 animate-marquee">
           {/* Loop 1 */}
@@ -42,18 +42,16 @@ export default function MarketTicker() {
             <span className="flex items-center gap-2">🟢 <b>GOLD LIVE (10g):</b> ₹{marketData.gold.price} <span className="text-emerald-400 font-bold">{marketData.gold.change}</span></span>
             <span className="flex items-center gap-2">🟢 <b>SILVER LIVE (1kg):</b> ₹{marketData.silver.price} <span className="text-emerald-400 font-bold">{marketData.silver.change}</span></span>
           </div>
-          {/* Loop 2 */}
+          {/* Loop 2 for Seamless Streaming */}
           <div className="flex gap-16 items-center font-medium text-xs tracking-wider" aria-hidden="true">
             <span className="flex items-center gap-2">🟢 <b>NIFTY 50:</b> {marketData.nifty.price} <span className="text-emerald-400 font-bold">{marketData.nifty.change}</span></span>
             <span className="flex items-center gap-2">🟢 <b>SENSEX:</b> {marketData.sensex.price} <span className="text-emerald-400 font-bold">{marketData.sensex.change}</span></span>
             <span className="flex items-center gap-2">🔴 <b>BANK NIFTY:</b> {marketData.banknifty.price} <span className="text-rose-400 font-bold">{marketData.banknifty.change}</span></span>
-            <span className="flex items-center gap-2">🟢 <b>GOLD LIVE (10g):</b> ₹{marketData.gold.price} <span className="text-emerald-400 font-bold">{marketData.gold.change}</span></span>
-            <span className="flex items-center gap-2">🟢 <b>SILVER LIVE (1kg):</b> ₹{marketData.silver.price} <span className="text-emerald-400 font-bold">{marketData.silver.change}</span></span>
           </div>
         </div>
       </div>
       
-      {/* ✕ CLOSE BUTTON */}
+      {/* ✕ USER CLOSE INTERACTIVE BUTTON */}
       <button 
         onClick={() => {
           setIsVisible(false);
@@ -65,7 +63,7 @@ export default function MarketTicker() {
         ✕
       </button>
 
-      {/* 🛠️ Safe Global Style Injections (Restores menu positions perfectly) */}
+      {/* 🛠️ SPECIFIC NAVIGATION RESTORATION INTERFACES */}
       <style>{`
         @keyframes marquee {
           0% { transform: translateX(0%); }
@@ -78,11 +76,9 @@ export default function MarketTicker() {
         .animate-marquee:hover {
           animation-play-state: paused;
         }
-        /* Forces your main header box to shift down smoothly without breaking menu flex rows */
+        /* Safely translates navbar elements without affecting height grids */
         header, nav, [class*="Navbar"] {
-          top: 40px !important;
-          display: flex !important;
-          align-items: center !important;
+          padding-top: 40px !important;
         }
       `}</style>
     </div>
