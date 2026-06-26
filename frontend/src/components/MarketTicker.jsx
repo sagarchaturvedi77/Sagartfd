@@ -1,7 +1,11 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 
 export default function MarketTicker() {
+  const [isVisible, setIsVisible] = useState(true);
+
   useEffect(() => {
+    if (!isVisible) return;
+
     const existingScript = document.getElementById("tradingview-ticker-script");
     if (existingScript) existingScript.remove();
 
@@ -15,8 +19,8 @@ export default function MarketTicker() {
         { "proName": "NSE:NIFTY", "title": "NIFTY 50" },
         { "proName": "BSE:SENSEX", "title": "SENSEX" },
         { "proName": "NSE:BANKNIFTY", "title": "BANK NIFTY" },
-        { "proName": "MCX:GOLD1!", "title": "GOLD LIVE (MCX)" },
-        { "proName": "MCX:SILVER1!", "title": "SILVER LIVE (MCX)" }
+        { "proName": "MCX:GOLD1!", "title": "GOLD LIVE" },
+        { "proName": "MCX:SILVER1!", "title": "SILVER LIVE" }
       ],
       "colorTheme": "light",
       "isTransparent": false,
@@ -29,14 +33,44 @@ export default function MarketTicker() {
       container.innerHTML = '<div class="tradingview-widget-container__widget"></div>';
       container.appendChild(script);
     }
-  }, []);
+  }, [isVisible]);
+
+  // Agar user close button daba de, toh null return karo aur space clear karo
+  if (!isVisible) {
+    return (
+      <style>{`
+        body { padding-top: 0px !important; }
+        header, nav, .fixed-top, [class*="Navbar"], [class*="header"] { top: 0px !important; }
+      `}</style>
+    );
+  }
 
   return (
-    /* 🌐 Fixed Overlay Strip Layout to stop clipping behind logo */
-    <div className="w-full bg-[#FBF7EE] border-b border-[#E2D8C2] relative z-[100] print:hidden min-h-[40px] block clear-both">
-      <div id="tradingview-ticker-wrapper" className="tradingview-widget-container w-full">
+    /* 🌐 Fixed Top Container with Cross Button Control */
+    <div className="w-full fixed top-0 left-0 z-[99999] print:hidden bg-[#FBF7EE] flex items-center" style={{ height: "40px", overflow: "hidden" }}>
+      <div id="tradingview-ticker-wrapper" className="tradingview-widget-container flex-1">
         <div className="tradingview-widget-container__widget"></div>
       </div>
+      
+      {/* ✕ CROSS CLOSE BUTTON */}
+      <button 
+        onClick={() => setIsVisible(false)}
+        className="h-full px-3 bg-[#FBF7EE] border-l border-[#E2D8C2] text-[#5C677D] hover:text-[#C7102E] text-xs font-bold transition-colors z-[100000] relative cursor-pointer"
+        title="Hide Market Ticker"
+      >
+        ✕
+      </button>
+      
+      {/* 🛠️ GLOBAL LAYOUT DYNAMIC PADDING */}
+      <style>{`
+        body {
+          padding-top: 40px !important;
+        }
+        header, nav, .fixed-top, [class*="Navbar"], [class*="header"] {
+          top: 40px !important;
+          z-index: 9999 !important;
+        }
+      `}</style>
     </div>
   );
 }
