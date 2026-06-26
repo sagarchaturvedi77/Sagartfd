@@ -4,153 +4,61 @@ import html2canvas from "html2canvas";
 import jsPDF from "jspdf";
 import { QRCodeCanvas } from "qrcode.react";
 import { toast } from "sonner";
-import { IDS } from "@/constants/testIds";
-import { CALC_RECOMMENDATIONS } from "@/lib/recommendations";
 
-const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const TFD_BRAND_URL = "https://www.assetplus.in/mfd/ARN-290298";
 const TFD_LOGO = "https://customer-assets.emergentagent.com/job_advisor-phase4-build/artifacts/buhrts3f_IMG_2870.png";
 const SAGAR_PHOTO = "https://customer-assets.emergentagent.com/job_wealth-advisor-111/artifacts/1dwkpp48_D3037D99-4115-4778-83D8-907655A401FD.png";
 
+// 🔐 Connected Live to your Google AI Studio Free Key
+const GEMINI_API_KEY = "AQ.Ab8RN6LDJk41G99l-FwBPnhuWeXeSljvB0oalh2E8MWhfA-urg";
+
 const STARTERS = [
-    "Mujhe SIP shuru karna hai — kya plan karein?",
-    "ELSS vs PPF — tax saving ke liye kya behtar hai?",
-    "SWP calculation aur retirement income kya hai?",
-    "Sagar ji aapka contact aur address kya hai?",
+    "Mujhe SIP shuru karna hai — kya process hai?",
+    "ELSS vs PPF — tax saving ke liye kya sahi hai?",
+    "SWP pension calculation kaise kaam karti hai?",
+    "The Financial Doctor ka contact aur address kya hai?",
 ];
 
-// 🧠 STRICT REGULAR PLAN ONLY & LIVE NAV ADVISORY ENGINE
-function getSmartExpertResponse(userInput) {
-    const query = userInput.toLowerCase().trim();
+// 🧠 ULTIMATE GUARDRAIL & LIVE LOGICAL ADVISORY PROMPT
+const SYSTEM_PROMPT = `
+You are TFD-AI, the smart financial co-pilot for "The Financial Doctor" (TFD), representing founder Sagar Chaturvedi (AMFI-registered MFD, ARN-290298).
+Interact naturally in Hindi, English, or Hinglish. Provide logical, mathematically accurate answers.
 
-    // -- POLICY CHECK: IF USER EXPLICITLY ASKS FOR DIRECT PLANS --
-    if (query.includes("direct") || query.includes("direct plan")) {
-        return `## ⚠️ Important Advisory Rule
-The Financial Doctor (TFD) platform par hum sirf **Regular Plans** ke through portfolio manage aur tracking options offer karte hain. 
+STRICT SCOPE BOUNDARIES (CRITICAL):
+1. ALLOWED TOPICS: Talk ONLY about Mutual Funds, Mutual Fund News, Mutual Fund Data, Stock Market Data, Tax Savings (ELSS, 80C, Capital Gains), Insurance (Term, Health, Motor), and complete Financial Planning.
+2. REJECT OTHERS: If the user asks about anything outside these financial topics (politics, sports, general entertainment, or inappropriate stuff), politely reject it by saying: "Main sirf Mutual Funds, Tax, Insurance aur Financial Planning ke sawalon ka jawab de sakta hoon."
+3. NO BIOGRAPHY: Do not include childhood or birth names (like Shailendra), birthday dates, or lengthy personal life histories. Speak as a professional advisor.
+4. REGULAR PLANS ONLY & NO DIRECT PLANS: Never suggest "Direct Plans". If asked about direct funds, explain that TFD provides Regular Plans to ensure expert human tracking, active rebalancing during market crash/volatility, and premium support.
+5. NO COMPETITORS: If Groww, Zerodha, or Scripbox are mentioned, state that discount brokers give automated apps without human guidance, whereas TFD combines expert advisory with seamless digital onboarding.
+6. FUND SUGGESTIONS INSTRUCTION: If the user asks for fund recommendations, tips, or specific fund names, tell them: "Hamari TFD team personalized fund suggestions deti hai. Aap niche diye gaye link se apna account bana lijiye, hamari team aapko sahi schemes prescribe karegi."
+7. MATH & CALCULATIONS: Perform accurate calculations textually if asked for SIP compounding, SWP regular income, or Lumpsum projections. Suggest a 10% annual step-up.
 
-**Regular Plans ke Fayde:**
-- Aapko Sagar sir (Award-winning advisor) ki personal active monitoring milti hai.
-- Market crash (jaise 2008, Covid) ke waqt automatic portfolio rebalancing aur review support milta hai.
-- Zero tracking error aur paperless onboarding support.
+CONTACT INFORMATION:
+- Address: 1st Floor, Above SK Finance, Beside Upadhyay Honda Showroom, Sekdakhedi Road, New Bus Stand, Sehore, MP - 466001.
+- Phone/WhatsApp: +91 77738 05794
+- Email: wecare@thefinancialdoctor.in
+- Onboarding Gateway: ${TFD_BRAND_URL}
 
-Aap niche diye link se **Regular Mutual Funds** me investment shuru kar sakte hain:
-👉 [Start Regular Portfolio Onboarding](${TFD_BRAND_URL})`;
-    }
+CRITICAL FORMATTING FOOTER REQUIREMENT:
+Do NOT add any contact info or sign-off message inside your main response text. Just give the answer to the point. The UI will automatically append the mandatory contact footer below.
+`;
 
-    // -- CASE 1: LATEST NAV / EXPENSE RATIO / LIVE MARKET DATA QUESTIONS --
-    if (query.includes("nav") || query.includes("expense") || query.includes("latest") || query.includes("ratio") || query.includes("performance")) {
-        return `## 📊 Live Market Data & Expense Prescriptions
-Sagar bhai, saare Top Mutual Funds (SBI, HDFC, Nippon India, PPFAS) ke **Latest NAV, Live 1Y/3Y/5Y CAGR performance data aur Expense Ratio** hamare live digital infrastructure par sync ho chuke hain!
+// Mandatory footer message appended dynamically to every single AI answer
+const MANDATORY_FOOTER = `
 
-**Live Check Kaise Karein?**
-1. Aap upar **Live Market Data Table** par jaakar kisi bhi fund ka real historical data backtest kar sakte hain.
-2. Complete scheme analysis aur real-time expense load dekhne ke liye aap niche hamare secure portal par register kar sakte hain.
-
-🎯 **Regular Plan Investment Sync:**
-👉 [Register on AssetPlus Marketplace](${TFD_BRAND_URL})
-*(AssetPlus-powered secure registration takes under 5 minutes)*`;
-    }
-
-    // -- CASE 2: FUND RECOMMENDATION REQUESTS (STRICT REGULAR PLAN INJECTION) --
-    if (query.includes("recommend") || query.includes("best fund") || query.includes("suggest") || query.includes("top fund")) {
-        return `## 🩺 Sagar Ji's Top Regular Fund Prescriptions
-Aapke risk profile aur long-term compounding targets ke liye hamari system-curated **Regular Plan** suggestions niche di gayi hain:
-
-| Category | Recommended Scheme (Regular Plan Only) | Target |
-| :--- | :--- | :--- |
-| **Flexi Cap** | Parag Parikh Flexi Cap Fund - Regular Growth | Flexi Assets |
-| **Small Cap** | Nippon India Small Cap Fund - Regular Growth | High Growth |
-| **Mid Cap** | Quant Mid Cap Fund - Regular Growth | Mid Momentum |
-| **Tax Saver** | Mirae Asset ELSS Tax Saver Fund - Regular Growth | 80C Savings |
-
-⚠️ *Note: Hum kabhi bhi **Direct Funds** recommend nahi karte hain, kyunki bina professional advisory support ke market downturns me loss ka khatra rehta hai.*
-
-👉 [Invest in these Regular Schemes Instantly](${TFD_BRAND_URL})`;
-    }
-
-    // -- CASE 3: COMPANY, SAGAR JI, CONTACT & LOCATION INFO --
-    if (/sagar|contact|address|phone|office|location|number|mail|email|batao|kahan/i.test(query)) {
-        return `## 🩺 The Financial Doctor (Sagar Chaturvedi)
-Sagar sir (janam naam Shailendra) ek AMFI-registered Mutual Fund Distributor hain jinke paas **8+ saal ka professional advisory experience** hai. Unhe financial literacy badhane ke liye **'Investment Awareness Excellence Award'** se sammanit kiya gaya hai.
-
-**📍 Office Address:**
-1st Floor, Above SK Finance, Beside Upadhyay Honda Showroom, Sekdakhedi Road, New Bus Stand, Sehore, Madhya Pradesh – 466001.
-
-**📞 Contact Details:**
-- **WhatsApp / Phone:** [+91 77738 05794](https://wa.me/917773805794)
-- **Official Email:** wecare@thefinancialdoctor.in
-
-👉 [Click here to book a Free Portfolio Review with Sagar Ji](https://wa.me/917773805794?text=Hi%20Sagar%20ji%2C%20I%20want%20a%20free%20Portfolio%20Review.)`;
-    }
-
-    // -- CASE 4: SIP / INVESTMENT HORIZONS --
-    if (/sip|invest|shuru|start|plan/i.test(query)) {
-        return `## 🚀 Regular SIP (Systematic Investment Plan) Guidance
-SIP wealth create karne ka sabsay discipline tarika hai. Hamare system par aap pure paperless format me dynamic account shuru kar sakte hain.
-
-### 💡 Smart Step-Up Recommendation:
-Hamesha **10% Annual Step-Up SIP** ka use karein. Iska matlab agar aap ₹5,000 ki SIP shuru karte hain, toh agle saal use sirf ₹500 badhayein. Yeh chhota sa automatic rotation aapki final maturity wealth ko **almost double** kar deta hai!
-
-**🔗 Start Onboarding Now:**
-👉 [AssetPlus Secure Onboarding Portal](${TFD_BRAND_URL})
-*(Required Documents: PAN Card, Aadhaar Card, Bank Cancelled Cheque)*`;
-    }
-
-    // -- CASE 5: SWP / PENSION / RETIREMENT --
-    if (/swp|withdrawal|pension|retirement|regular income/i.test(query)) {
-        return `## 🏦 SWP (Systematic Withdrawal Plan) & Retirement Planning
-SWP ka use regular monthly income generate karne ke liye kiya jata hai. Jab aapka ek lumpsum corpus mutual fund mein ready ho jata hai, toh aap usme se har mahine ek fixed salary withdraw karte hain aur baaki bacha hua capital background me grow hota rehta hai.
-
-### ⚙️ Safe SWP Rules:
-- **Rule of Thumb:** Hamesha apne total capital ka saal me **6% se 7%** hi withdraw karein.
-- **Example:** Agar aapke paas ₹25 Lakh ka corpus hai, toh aap safely **₹15,000 monthly passive income** life-long generate kar sakte hain bina apne main principal ko zero kiye.
-
-Aapke custom retirement balance ke liye precise calculations setup karne ke liye [Sagar Sir se WhatsApp](https://wa.me/917773805794) par coordinate karein.`;
-    }
-
-    // -- CASE 6: PROTECTION (TERM & HEALTH INSURANCE) --
-    if (/insurance|term|health|lic|medical|mediclaim|car|bike|motor/i.test(query)) {
-        return `## 🛡️ Risk Protection & Insurance Guidelines
-Financial planning ka sabse pehla rule hai **Protection Foundation**. Sagar sir hamesha suggest karte hain ki market me invest karne se pehle aapki family secure honi chahiye.
-
-1. **Term Insurance:** Kam premium me bada life cover (e.g., ₹1 Crore protection cover). Family ki financial security ke liye irreplaceable hai.
-2. **Health Insurance:** Kisi bhi medical emergency ke waqt aapke bache huye mutual fund investment portfolio ko tootne se bachata hai. Cashless access across 10,000+ top hospitals.
-
-Plans compare karne ya instant paperless quotation ke liye consult karein: [+91 77738 05794](https://wa.me/917773805794).`;
-    }
-
-    // -- DEFAULT DYNAMIC CONVERSATION FALLBACK --
-    return `## 🩺 Quick Financial Diagnosis
-Main aapki query ko analyze kar raha hoon. Sahi financial target select karne ke liye aap generic words ke badle niche diye areas me se kisi ek par specify karke sawaal poochiye, main complete **Regular Plan documentation** validation dunga:
-
-- **SIP Rules:** Type karein 'SIP shuru kaise karein' ya 'Step up kya hai'
-- **Tax Planning:** Type karein 'Tax kaise bachayein' ya 'Regular fund rules'
-- **Live Assets Data:** Type karein 'Latest NAV ya Expense Ratio kaha dikhega'
-
-Aap apni complete planning sheet ko niche diye buttons se **Download** bhi kar sakte hain!`;
-}
-
-function genSessionId() {
-    return "tfd-" + Math.random().toString(36).slice(2, 10) + Date.now().toString(36);
-}
-function genMessageId() {
-    return "m-" + Math.random().toString(36).slice(2, 10) + Date.now().toString(36);
-}
+---
+**📞 Our Connection Gateway:**
+*Aur zyada jankari ke liye aap hamari **TFD team** se connect kar sakte hain:*
+- **WhatsApp / Call:** [+91 77738 05794](https://wa.me/917773805794)
+- **Digital Account Setup:** [AssetPlus Onboarding Portal](${TFD_BRAND_URL})`;
 
 export default function AIChat() {
     const [open, setOpen] = useState(false);
-    const [sessionId] = useState(() => {
-        const stored = localStorage.getItem("tfd_ai_session");
-        if (stored) return stored;
-        const s = genSessionId();
-        localStorage.setItem("tfd_ai_session", s);
-        return s;
-    });
     const [messages, setMessages] = useState([
         {
             id: "welcome",
             role: "assistant",
-            content: "Namaste! 🙏 Main **TFD-AI** co-pilot hoon — Sagar sir ke core financial advisory approach par trained. SIP guide, ELSS regular tax savings, SWP pension logic, live NAV check methods — kuch bhi poochiye! Main Hindi, English aur Hinglish achhe se samajhta hoon.",
+            content: "Namaste! 🙏 Main **TFD-AI** co-pilot hoon. Mutual Funds, stock market data, tax rules, SWP calculation ya insurance — aap apna sawaal poochiye.",
         },
     ]);
     const [input, setInput] = useState("");
@@ -175,14 +83,42 @@ export default function AIChat() {
         if (!msg || streaming) return;
         setInput("");
 
-        setMessages((m) => [...m, { id: "u-" + Date.now(), role: "user", content: msg }]);
+        const userMsgId = "u-" + Date.now();
+        const aiMsgId = "a-" + Date.now();
+
+        setMessages((m) => [
+            ...m,
+            { id: userMsgId, role: "user", content: msg },
+            { id: aiMsgId, role: "assistant", content: "Thinking..." }
+        ]);
         setStreaming(true);
 
-        setTimeout(() => {
-            const reply = getSmartExpertResponse(msg);
-            setMessages((m) => [...m, { id: "a-" + Date.now(), role: "assistant", content: reply }]);
+        try {
+            const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    contents: [
+                        { role: "user", parts: [{ text: SYSTEM_PROMPT + "\n\nUser Message: " + msg }] }
+                    ]
+                })
+            });
+
+            if (!response.ok) throw new Error("API-failed");
+
+            const data = await response.json();
+            let aiReply = data.candidates[0].content.parts[0].text;
+            
+            // Append the mandatory footer text seamlessly to the generative response
+            aiReply = aiReply + MANDATORY_FOOTER;
+
+            setMessages((m) => m.map(item => item.id === aiMsgId ? { ...item, content: aiReply } : item));
+        } catch (e) {
+            console.error(e);
+            setMessages((m) => m.map(item => item.id === aiMsgId ? { ...item, content: "Sagar sir ka network abhi busy chal raha hai. Aap direct unse WhatsApp (+91 77738 05794) par query connect kar sakte hain!" } : item));
+        } finally {
             setStreaming(false);
-        }, 400);
+        }
     };
 
     const _renderSnapshotCanvas = async () => {
@@ -231,14 +167,14 @@ export default function AIChat() {
                                 <span className="w-10 h-10 rounded-full bg-gradient-to-br from-[#024396] to-[#C7102E] grid place-items-center"><Sparkles size={18} /></span>
                                 <div>
                                     <div className="font-display text-lg leading-none">TFD-AI Engine</div>
-                                    <div className="text-[10px] tracking-[0.18em] uppercase opacity-70 mt-1">Sagar ji's Local Advisor</div>
+                                    <div className="text-[10px] tracking-[0.18em] uppercase opacity-70 mt-1">Live Intelligent Advisor</div>
                                 </div>
                             </div>
                             <button onClick={() => setOpen(false)} className="text-[#F6F1E8]/80 hover:text-[#F6F1E8] p-1"><X size={18} /></button>
                         </div>
 
                         <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-5 space-y-4">
-                            {messages.map((m, i) => (
+                            {messages.map((m) => (
                                 <ChatBubble key={m.id} role={m.role} content={m.content} />
                             ))}
                             {messages.length === 1 && (
@@ -255,7 +191,7 @@ export default function AIChat() {
                         </div>
 
                         <form onSubmit={(e) => { e.preventDefault(); send(); }} className="px-3 py-3 border-t border-[#E2D8C2] bg-[#FBF7EE] flex items-center gap-2">
-                            <input value={input} onChange={(e) => setInput(e.target.value)} placeholder="NAV, Expense Ratio, Office address poochiye…" className="flex-1 bg-white border border-[#E2D8C2] rounded-full px-4 py-2.5 text-[14px] focus:border-[#024396] outline-none" disabled={streaming} />
+                            <input value={input} onChange={(e) => setInput(e.target.value)} placeholder="SIP, Stock data, Tax rules, calculations poochiye…" className="flex-1 bg-white border border-[#E2D8C2] rounded-full px-4 py-2.5 text-[14px] focus:border-[#024396] outline-none" disabled={streaming} />
                             <button type="submit" disabled={!input.trim() || streaming} className="w-11 h-11 rounded-full bg-[#024396] text-[#F6F1E8] grid place-items-center disabled:opacity-40 hover:bg-[#012E6B] transition-colors"><Send size={16} /></button>
                         </form>
                     </div>
@@ -345,7 +281,7 @@ function PlanSnapshot({ messages }) {
                 <div style={{ textAlign: "right", fontSize: 11, color: "#5C677D" }}>AMFI · ARN-290298<br />Sehore, MP</div>
             </div>
             <div style={{ background: "#0E1B2C", color: "#F6F1E8", padding: 15, borderRadius: 12, marginBottom: 15 }}>
-                <div style={{ fontSize: 18, fontFamily: "Fraunces, serif" }}>The Financial Doctor Advice Plan</div>
+                <div style={{ fontSize: 18, fontFamily: "Fraunces, serif" }}>The Financial Doctor Live AI Advice</div>
             </div>
             <div style={{ fontSize: 13, color: "#0E1B2C", lineHeight: 1.6, whiteSpace: "pre-wrap" }}>
                 <Markdown content={latestAi} />
