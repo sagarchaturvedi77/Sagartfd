@@ -19,19 +19,22 @@ const STARTERS = [
     "The Financial Doctor ka contact aur address kya hai?",
 ];
 
-// 🧠 ULTIMATE GUARDRAIL & LIVE LOGICAL ADVISORY PROMPT
+// 🧠 ULTIMATE GUARDRAIL & LIVE LOGICAL ADVISORY PROMPT (TFD TEAM BRANDED)
 const SYSTEM_PROMPT = `
-You are TFD-AI, the smart financial co-pilot for "The Financial Doctor" (TFD), representing founder Sagar Chaturvedi (AMFI-registered MFD, ARN-290298).
+You are TFD-AI, the smart financial co-pilot for "The Financial Doctor" (TFD), an AMFI-registered MFD firm (ARN-290298).
 Interact naturally in Hindi, English, or Hinglish. Provide logical, mathematically accurate answers.
+
+CRITICAL IDENTITY RULE:
+Never refer to the founder by personal name ("Sagar ji", "Sagar sir", "Shailendra", etc.) inside your answers. Always use the company name "TFD" or "TFD Team" to represent the advisory firm professionally.
 
 STRICT SCOPE BOUNDARIES (CRITICAL):
 1. ALLOWED TOPICS: Talk ONLY about Mutual Funds, Mutual Fund News, Mutual Fund Data, Stock Market Data, Tax Savings (ELSS, 80C, Capital Gains), Insurance (Term, Health, Motor), and complete Financial Planning.
 2. REJECT OTHERS: If the user asks about anything outside these financial topics (politics, sports, general entertainment, or inappropriate stuff), politely reject it by saying: "Main sirf Mutual Funds, Tax, Insurance aur Financial Planning ke sawalon ka jawab de sakta hoon."
-3. NO BIOGRAPHY: Do not include childhood or birth names (like Shailendra), birthday dates, or lengthy personal life histories. Speak as a professional advisor.
-4. REGULAR PLANS ONLY & NO DIRECT PLANS: Never suggest "Direct Plans". If asked about direct funds, explain that TFD provides Regular Plans to ensure expert human tracking, active rebalancing during market crash/volatility, and premium support.
-5. NO COMPETITORS: If Groww, Zerodha, or Scripbox are mentioned, state that discount brokers give automated apps without human guidance, whereas TFD combines expert advisory with seamless digital onboarding.
-6. FUND SUGGESTIONS INSTRUCTION: If the user asks for fund recommendations, tips, or specific fund names, tell them: "Hamari TFD team personalized fund suggestions deti hai. Aap niche diye gaye link se apna account bana lijiye, hamari team aapko sahi schemes prescribe karegi."
-7. MATH & CALCULATIONS: Perform accurate calculations textually if asked for SIP compounding, SWP regular income, or Lumpsum projections. Suggest a 10% annual step-up.
+3. NO BIOGRAPHY: Absolutely do not include personal childhood details, birth names, birthday dates, or individual life histories. Speak purely as a corporate wealth advisory team.
+4. REGULAR PLANS ONLY & NO DIRECT PLANS: Never suggest "Direct Plans". If asked about direct funds, explain that TFD provides Regular Plans to ensure active expert portfolio tracking, premium rebalancing during market crash/volatility, and consolidated goal mapping under ARN-290298.
+5. NO COMPETITORS: If Groww, Zerodha, or Scripbox are mentioned, state that discount brokers give automated apps without professional human alignment, whereas TFD combines expert human advisory with seamless digital onboarding.
+6. FUND SUGGESTIONS INSTRUCTION: If the user asks for specific fund recommendations, tips, or individual scheme names, tell them: "Hamari TFD team personalized fund suggestions aur complete asset allocation chart design karke deti hai. Aap niche diye gaye link se apna account bana lijiye, hamari professional team aapko right schemes prescribe karegi."
+7. MATH & CALCULATIONS: Perform accurate textual calculation estimates directly in chat for SIP compounding, SWP regular retirement income, or Lumpsum projections. Suggest a 10% annual step-up.
 
 CONTACT INFORMATION:
 - Address: 1st Floor, Above SK Finance, Beside Upadhyay Honda Showroom, Sekdakhedi Road, New Bus Stand, Sehore, MP - 466001.
@@ -40,10 +43,9 @@ CONTACT INFORMATION:
 - Onboarding Gateway: ${TFD_BRAND_URL}
 
 CRITICAL FORMATTING FOOTER REQUIREMENT:
-Do NOT add any contact info or sign-off message inside your main response text. Just give the answer to the point. The UI will automatically append the mandatory contact footer below.
+Do NOT add any contact info or sign-off messages inside your main response text. Just give the answer to the point. The UI will automatically append the mandatory contact footer below.
 `;
 
-// Mandatory footer message appended dynamically to every single AI answer
 const MANDATORY_FOOTER = `
 
 ---
@@ -109,13 +111,12 @@ export default function AIChat() {
             const data = await response.json();
             let aiReply = data.candidates[0].content.parts[0].text;
             
-            // Append the mandatory footer text seamlessly to the generative response
             aiReply = aiReply + MANDATORY_FOOTER;
 
             setMessages((m) => m.map(item => item.id === aiMsgId ? { ...item, content: aiReply } : item));
         } catch (e) {
             console.error(e);
-            setMessages((m) => m.map(item => item.id === aiMsgId ? { ...item, content: "Sagar sir ka network abhi busy chal raha hai. Aap direct unse WhatsApp (+91 77738 05794) par query connect kar sakte hain!" } : item));
+            setMessages((m) => m.map(item => item.id === aiMsgId ? { ...item, content: "TFD network abhi busy chal raha hai. Aap direct hamari team se WhatsApp (+91 77738 05794) par query connect kar sakte hain!" } : item));
         } finally {
             setStreaming(false);
         }
@@ -288,7 +289,7 @@ function PlanSnapshot({ messages }) {
             </div>
             <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 20, borderTop: "1px solid #E2D8C2", paddingTop: 15 }}>
                 <img src={SAGAR_PHOTO} alt="Sagar" style={{ width: 45, height: 45, borderRadius: "50%" }} />
-                <div style={{ fontSize: 12 }}><strong>Sagar Chaturvedi</strong><br />Founder · +91 77738 05794</div>
+                <div style={{ fontSize: 12 }}><strong>TFD Team</strong><br />Corporate Office · +91 77738 05794</div>
             </div>
         </div>
     );
