@@ -2,8 +2,8 @@ import "./App.css";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Home from "./pages/Home";
 import { Toaster } from "sonner";
-// 🛠️ Fixed Path: Direct folder matching applied
-import { ModalProvider } from "./context/ModalContext"; 
+// 🛠️ FIXED SPACE PATH: Aapke folder me space hai, isliye isko exact map kar diya
+import { ModalProvider } from "./ context/ModalContext"; 
 
 function App() {
   return (
