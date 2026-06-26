@@ -177,8 +177,7 @@ function Slider({ value, onChange, min, max, step = 1, label, format, testid }) 
             <input
                 type="range"
                 className="brand"
-                min={min}
-                max={max}
+                min={min}max={max}
                 step={step}
                 value={value}
                 onChange={(e) => onChange(Number(e.target.value))}
@@ -504,7 +503,6 @@ function ResultCard({ tab, result, onDownload, onStart }) {
                     <button onClick={onDownload} className="btn-pill flex-1 md:flex-none justify-center py-2.5 text-xs font-bold bg-[#C7102E] text-white shadow-sm" data-testid={IDS.calc.download}>
                         <Download size={15} /> <span className="hidden sm:inline">Download</span> Proposal
                     </button>
-                    {/* 🎯 POPUP INJECTED CLEANLY HERE */}
                     <button onClick={onStart} className="btn-pill flex-1 md:flex-none justify-center py-2.5 text-xs font-bold bg-[#F6F1E8] text-[#0E1B2C] shadow-sm cursor-pointer" data-testid={IDS.calc.startPlan}>
                         Start <ArrowUpRight size={14} />
                     </button>
@@ -706,7 +704,7 @@ function SnapshotCard({ tab, result, state }) {
         if (tab === "lumpsum") return `Lumpsum Amount: ${fmtINR(state.lump)}`;
         if (tab === "swp") return `Monthly Withdrawal: ${fmtINR(state.swpMonthly)} from ${fmtINR(state.swpCorpus)} corpus`;
         if (tab === "goal") return `Target Corpus: ${fmtINR(state.goal)}`;
-        if (tab === "emi") return `Loan Amount: ${fmtINR(state.loan}`;
+        if (tab === "emi") return `Loan Amount: ${fmtINR(state.loan)}`;
         return "";
     })();
 
