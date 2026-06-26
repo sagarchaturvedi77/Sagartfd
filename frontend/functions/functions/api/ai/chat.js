@@ -29,7 +29,20 @@ function sse(text) {
   return `data: ${String(text).replace(/\r/g, "").replace(/\n/g, "\ndata: ")}\n\n`;
 }
 
-export async function onRequestPost(context) {
+export async function onRequest(context) {
+    if (context.request.method === "OPTIONS") {
+    return new Response(null, {
+      headers: {
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Methods": "POST, OPTIONS",
+        "Access-Control-Allow-Headers": "Content-Type",
+      },
+    });
+  }
+
+  if (context.request.method !== "POST") {
+    return new Response("Use POST", { status: 200 });
+  }
   try {
     const { request, env } = context;
     const body = await request.json();
