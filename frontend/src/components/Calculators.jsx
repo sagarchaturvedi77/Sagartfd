@@ -358,7 +358,7 @@ export default function Calculators() {
                                 <Slider label="Expected Return (p.a.)" value={dailyRate} onChange={setDailyRate} min={1} max={30} step={0.5} format={(v) => `${v}%`} />
                                 <div className="text-xs text-[#5C677D] bg-[#F6F1E8] border border-[#E2D8C2] rounded-lg p-3 leading-relaxed">
                                     Effective monthly SIP equivalent: <strong className="text-[#0E1B2C]">{fmtINR(result?.monthly || 0)}</strong>{" "}— calculated using 22 working days × ₹{dailyAmount}.
-                                </div>
+                               </div>
                             </div>
                         )}
                         {tab === "lumpsum" && (
@@ -504,7 +504,7 @@ function ResultCard({ tab, result, onDownload, onStart }) {
                     <button onClick={onDownload} className="btn-pill flex-1 md:flex-none justify-center py-2.5 text-xs font-bold bg-[#C7102E] text-white shadow-sm" data-testid={IDS.calc.download}>
                         <Download size={15} /> <span className="hidden sm:inline">Download</span> Proposal
                     </button>
-                    {/* 🎯 POPUP INJECTED: Attached onClick trigger directly */}
+                    {/* 🎯 POPUP INJECTED CLEANLY HERE */}
                     <button onClick={onStart} className="btn-pill flex-1 md:flex-none justify-center py-2.5 text-xs font-bold bg-[#F6F1E8] text-[#0E1B2C] shadow-sm cursor-pointer" data-testid={IDS.calc.startPlan}>
                         Start <ArrowUpRight size={14} />
                     </button>
@@ -703,9 +703,9 @@ function SnapshotCard({ tab, result, state }) {
             return s;
         }
         if (tab === "daily") return `Daily SIP: ${fmtINR(state.dailyAmount)}/day (22 working days/month)`;
-        if (tab === "lumpsum") return `Lumpsum Amount: ${fmtINR(state.lump}`;
+        if (tab === "lumpsum") return `Lumpsum Amount: ${fmtINR(state.lump)}`;
         if (tab === "swp") return `Monthly Withdrawal: ${fmtINR(state.swpMonthly)} from ${fmtINR(state.swpCorpus)} corpus`;
-        if (tab === "goal") return `Target Corpus: ${fmtINR(state.goal}`;
+        if (tab === "goal") return `Target Corpus: ${fmtINR(state.goal)}`;
         if (tab === "emi") return `Loan Amount: ${fmtINR(state.loan}`;
         return "";
     })();
@@ -773,7 +773,7 @@ function SnapshotCard({ tab, result, state }) {
                                 <div key={y} style={{background: "#FBF7EE", border: "1px solid #E2D8C2", borderRadius: 16, padding: "14px 12px", textAlign: "left"}}>
                                     <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 6 }}><span style={{ background: "#024396", color: "#F6F1E8", fontSize: 10, fontWeight: 700, padding: "3px 8px", borderRadius: 999 }}>+{y}Y</span><span style={{ fontSize: 10, color: "#5C677D" }}>({baseYears + y} yrs total)</span></div>
                                     <div style={{ fontFamily: "'Fraunces', serif", fontSize: 19, color: "#0E1B2C", lineHeight: 1.1 }}>{p ? fmtINR(p.fv) : "—"}</div>
-                                    <div style={{ fontSize: 10, color: "#024396", marginTop: 4, fontWeight: 600 }}>+{fmtINR(extraGains)} extra</div>
+                                    <div style={{ fontSize: 10, color: "#024396", marginTop: 4, fontBold: 600 }}>+{fmtINR(extraGains)} extra</div>
                                     {p && <div style={{ fontSize: 9, color: "#5C677D", marginTop: 3 }}>Invested {fmtINR(p.invested)}</div>}
                                 </div>
                             );
