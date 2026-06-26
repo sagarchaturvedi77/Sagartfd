@@ -1,10 +1,15 @@
 import React from "react";
 import { ArrowUpRight, MessageCircle, ShieldCheck, Stethoscope } from "lucide-react";
 import { IDS } from "@/constants/testIds";
+// 🛠️ Step 1: Hook Import
+import { useModal } from "../context/ModalContext";
 
 const SAGAR_PHOTO = "https://customer-assets.emergentagent.com/job_wealth-advisor-111/artifacts/1dwkpp48_D3037D99-4115-4778-83D8-907655A401FD.png";
 
 export default function Hero() {
+  // 🛠️ Step 2: Open function extract kiya
+  const { openGateway } = useModal();
+
   return (
     <section id="top" className="relative overflow-hidden pt-32 pb-20 md:pt-40 md:pb-24">
       <div aria-hidden className="absolute -top-32 -right-40 w-[700px] h-[700px] rounded-full opacity-40 blur-3xl" style={{ background: "radial-gradient(circle at center, rgba(2, 67, 150,0.35) 0%, transparent 60%)" }} />
@@ -20,9 +25,15 @@ export default function Hero() {
             Trusted by <strong>1000+ families</strong> in Sehore and across MP. Personalised mutual fund advisory, SIP planning, and end-to-end insurance — all under one roof, led by <strong>Sagar Chaturvedi</strong>.
           </p>
           <div className="mt-8 flex flex-wrap gap-3">
-            <a href="https://www.assetplus.in/mfd/ARN-290298" target="_blank" rel="noreferrer" data-testid={IDS?.hero?.startInvesting || "hero-cta"} className="btn-pill btn-primary">
+            {/* 🎯 "Start Investing" Button attached to central popup switcher */}
+            <button 
+              onClick={openGateway}
+              data-testid={IDS?.hero?.startInvesting || "hero-cta"} 
+              className="btn-pill btn-primary cursor-pointer text-sm"
+            >
               Start Investing <ArrowUpRight size={16} />
-            </a>
+            </button>
+            
             <a href="https://wa.me/917773805794?text=Hi%20Sagar%20ji%2C%20I%20want%20to%20know%20more%20about%20mutual%20fund%20investments." target="_blank" rel="noreferrer" data-testid={IDS?.hero?.whatsapp || "hero-wa"} className="btn-pill btn-ghost">
               <MessageCircle size={16} /> Talk on WhatsApp
             </a>
