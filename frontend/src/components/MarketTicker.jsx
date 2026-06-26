@@ -1,12 +1,9 @@
 import React, { useEffect, useRef } from "react";
-
 export default function MarketTicker() {
     const containerRef = useRef(null);
-
     useEffect(() => {
         if (!containerRef.current) return;
         containerRef.current.innerHTML = "";
-
         const script = document.createElement("script");
         script.src = "https://s3.tradingview.com/external-embed/embed-widget-ticker-tape.js";
         script.async = true;
@@ -24,14 +21,12 @@ export default function MarketTicker() {
             colorTheme: "dark",
             locale: "in",
         });
-
         containerRef.current.appendChild(script);
-
+        const node = containerRef.current;
         return () => {
-            if (containerRef.current) containerRef.current.innerHTML = "";
+            if (node) node.innerHTML = "";
         };
     }, []);
-
     return (
         <div
             className="w-full fixed top-0 left-0 z-[100001] print:hidden h-[40px] overflow-hidden"
