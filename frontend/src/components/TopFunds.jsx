@@ -20,6 +20,7 @@ const TFD_LOGO =
     "https://customer-assets.emergentagent.com/job_advisor-phase4-build/artifacts/buhrts3f_IMG_2870.png";
 const SAGAR_PHOTO =
     "https://customer-assets.emergentagent.com/job_wealth-advisor-111/artifacts/1dwkpp48_D3037D99-4115-4778-83D8-907655A401FD.png";
+const fundCache = new Map();
 
 const MASTER_FUNDS = [
     { code: "122639", category: "Flexi Cap", fund_house: "PPFAS Mutual Fund" },
@@ -143,13 +144,13 @@ function concatBytes(parts) {
     return out;
 }
 
-function singlePagePdfBlobFromJpeg(jpegBytes, pageW = 595.28, pageH = 841.89) {
+function singlePagePdfBlobFromJpeg(jpegBytes, imageW, imageH, pageW = 595.28, pageH = 841.89) {
     const pageStream = `q\n${pageW} 0 0 ${pageH} 0 0 cm\n/Im0 Do\nQ\n`;
     const objects = [
         "<< /Type /Catalog /Pages 2 0 R >>",
         "<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
         `<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${pageW} ${pageH}] /Resources << /XObject << /Im0 4 0 R >> >> /Contents 5 0 R >>`,
-        `<< /Type /XObject /Subtype /Image /Width 794 /Height 1123 /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length ${jpegBytes.length} >>\nstream\n__IMAGE__\nendstream`,
+        `<< /Type /XObject /Subtype /Image /Width ${imageW} /Height ${imageH} /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length ${jpegBytes.length} >>\nstream\n__IMAGE__\nendstream`,
         `<< /Length ${asciiBytes(pageStream).length} >>\nstream\n${pageStream}endstream`,
     ];
 
@@ -183,12 +184,13 @@ function singlePagePdfBlobFromJpeg(jpegBytes, pageW = 595.28, pageH = 841.89) {
 }
 
 async function fetchFund(code) {
+    if (fundCache.has(String(code))) return fundCache.get(String(code));
     const res = await fetch(`https://api.mfapi.in/mf/${code}`);
     if (!res.ok) throw new Error(`Unable to fetch scheme ${code}`);
     const d = await res.json();
     const history = normalizeHistory(d.data);
     const latest = history[0];
-    return {
+    const fund = {
         code,
         name: d.meta?.scheme_name || `Scheme ${code}`,
         fund_house: d.meta?.fund_house || "-",
@@ -199,6 +201,8 @@ async function fetchFund(code) {
         history,
         ...calculateTrailingReturns(history),
     };
+    fundCache.set(String(code), fund);
+    return fund;
 }
 
 export default function TopFunds() {
@@ -218,18 +222,25 @@ export default function TopFunds() {
         let mounted = true;
         const fetchAllMasterFunds = async () => {
             try {
-                const results = await Promise.all(
-                    MASTER_FUNDS.map(async (fund) => {
+                setData([]);
+                const results = [];
+                await Promise.allSettled(
+                    MASTER_FUNDS.map(async (fund, index) => {
                         const live = await fetchFund(fund.code);
-                        return {
+                        const row = {
                             ...fund,
                             ...live,
                             category: fund.category,
                             fund_house: live.fund_house || fund.fund_house,
                         };
+                        results[index] = row;
+                        if (mounted) {
+                            setData(results.filter(Boolean));
+                            setLoading(false);
+                        }
                     })
                 );
-                if (mounted) setData(results);
+                if (mounted) setData(results.filter(Boolean));
             } catch (e) {
                 console.error("Error fetching master funds:", e);
             } finally {
@@ -252,11 +263,23 @@ export default function TopFunds() {
             try {
                 const res = await fetch(`https://api.mfapi.in/mf/search?q=${encodeURIComponent(searchQ)}`);
                 const rawData = await res.json();
+                const cleanedQuery = searchQ.toLowerCase().trim();
                 const filteredGrowth = rawData.filter((f) => {
                     const name = f.schemeName.toLowerCase();
-                    return name.includes("growth") && !name.includes("direct") && !name.includes("idcw");
+                    return name.includes("growth") && !name.includes("idcw") && !name.includes("dividend");
                 });
-                setSearchResults(filteredGrowth.slice(0, 10));
+                const ranked = filteredGrowth.sort((a, b) => {
+                    const an = a.schemeName.toLowerCase();
+                    const bn = b.schemeName.toLowerCase();
+                    const aStarts = an.includes(cleanedQuery) ? 0 : 1;
+                    const bStarts = bn.includes(cleanedQuery) ? 0 : 1;
+                    if (aStarts !== bStarts) return aStarts - bStarts;
+                    const aDirect = an.includes("direct") ? 0 : 1;
+                    const bDirect = bn.includes("direct") ? 0 : 1;
+                    if (aDirect !== bDirect) return aDirect - bDirect;
+                    return a.schemeName.length - b.schemeName.length;
+                });
+                setSearchResults(ranked.slice(0, 25));
             } catch (e) {
                 console.error(e);
             } finally {
@@ -416,10 +439,15 @@ export default function TopFunds() {
                                             <td className="px-3 py-4 text-right text-[#024396] font-medium">{fmtPct(f.return_1y)}</td>
                                             <td className="px-3 py-4 text-right text-[#024396] font-medium">{fmtPct(f.return_3y)}</td>
                                             <td className="px-3 py-4 text-right text-[#024396] font-medium">{fmtPct(f.return_5y)}</td>
-                                            <td className="px-5 py-4 text-right">
-                                                <button onClick={() => openFundDetail(f.code)} className="text-xs font-bold text-white bg-[#024396] hover:bg-[#012E6B] px-4 py-2 rounded-lg transition-all shadow-sm">
-                                                    Past Returns Calculator
-                                                </button>
+                                            <td className="px-5 py-4">
+                                                <div className="flex justify-end gap-2">
+                                                    <button onClick={() => openFundDetail(f.code)} className="text-xs font-bold text-white bg-[#024396] hover:bg-[#012E6B] px-4 py-2 rounded-lg transition-all shadow-sm">
+                                                        Past Returns Calculator
+                                                    </button>
+                                                    <a href={ASSETPLUS} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-xs font-bold text-white bg-[#00A86B] hover:bg-[#078458] px-4 py-2 rounded-lg transition-all shadow-sm">
+                                                        Invest <ExternalLink size={13} />
+                                                    </a>
+                                                </div>
                                             </td>
                                         </tr>
                                     ))}
@@ -446,9 +474,14 @@ export default function TopFunds() {
                                         <span>3Y {fmtPct(f.return_3y)}</span>
                                         <span>5Y {fmtPct(f.return_5y)}</span>
                                     </div>
-                                    <button onClick={() => openFundDetail(f.code)} className="mt-4 w-full text-center text-xs font-bold text-white bg-[#024396] py-2.5 rounded-xl shadow-sm block">
-                                        Past Returns Calculator
-                                    </button>
+                                    <div className="grid grid-cols-2 gap-2 mt-4">
+                                        <button onClick={() => openFundDetail(f.code)} className="w-full text-center text-xs font-bold text-white bg-[#024396] py-2.5 rounded-xl shadow-sm block">
+                                            Past Calculator
+                                        </button>
+                                        <a href={ASSETPLUS} target="_blank" rel="noopener noreferrer" className="w-full inline-flex justify-center items-center gap-1 text-xs font-bold text-white bg-[#00A86B] py-2.5 rounded-xl shadow-sm">
+                                            Invest <ExternalLink size={13} />
+                                        </a>
+                                    </div>
                                 </article>
                             ))}
                     </div>
@@ -588,7 +621,7 @@ function FundModal({ data, onClose }) {
                 windowHeight: 1123,
             });
             const jpeg = canvas.toDataURL("image/jpeg", 0.96);
-            const blob = singlePagePdfBlobFromJpeg(jpegDataUrlToBytes(jpeg));
+            const blob = singlePagePdfBlobFromJpeg(jpegDataUrlToBytes(jpeg), canvas.width, canvas.height);
             const url = URL.createObjectURL(blob);
             const link = document.createElement("a");
             link.href = url;
