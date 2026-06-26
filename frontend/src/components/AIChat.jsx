@@ -4,89 +4,67 @@ import html2canvas from "html2canvas";
 import jsPDF from "jspdf";
 import { QRCodeCanvas } from "qrcode.react";
 import { toast } from "sonner";
+import { AI_PLAN_RECOMMENDATIONS } from "@/lib/recommendations";
 
+const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
+const CHAT_API_URL = BACKEND_URL ? `${BACKEND_URL}/api/ai/chat` : "/api/ai/chat";
 const TFD_BRAND_URL = "https://www.assetplus.in/mfd/ARN-290298";
-const TFD_LOGO = "https://customer-assets.emergentagent.com/job_advisor-phase4-build/artifacts/buhrts3f_IMG_2870.png";
-const SAGAR_PHOTO = "https://customer-assets.emergentagent.com/job_wealth-advisor-111/artifacts/1dwkpp48_D3037D99-4115-4778-83D8-907655A401FD.png";
-
-// 🔐 Connected Live to your Google AI Studio Free Key
-const GEMINI_API_KEY = "AQ.Ab8RN6LDJk41G99l-FwBPnhuWeXeSljvB0oalh2E8MWhfA-urg";
+const TFD_LOGO =
+    "https://customer-assets.emergentagent.com/job_advisor-phase4-build/artifacts/buhrts3f_IMG_2870.png";
+const SAGAR_PHOTO =
+    "https://customer-assets.emergentagent.com/job_wealth-advisor-111/artifacts/1dwkpp48_D3037D99-4115-4778-83D8-907655A401FD.png";
 
 const STARTERS = [
-    "Mujhe SIP shuru karna hai — kya process hai?",
-    "ELSS vs PPF — tax saving ke liye kya sahi hai?",
-    "SWP pension calculation kaise kaam karti hai?",
-    "The Financial Doctor ka contact aur address kya hai?",
+    "Mujhe 5000/month ka SIP shuru karna hai - kya plan karein?",
+    "ELSS vs PPF - tax saving ke liye kya behtar hai?",
+    "Mere paas Rs 1 lakh hai - Lumpsum karu ya STP karu?",
+    "30 saal ki age me term insurance lena chahiye?",
 ];
 
-// 🧠 ULTIMATE GUARDRAIL SYSTEM PROMPT
-const SYSTEM_PROMPT = `
-You are TFD-AI, the smart financial co-pilot for "The Financial Doctor" (TFD), an AMFI-registered MFD firm (ARN-290298).
-Interact naturally in Hindi, English, or Hinglish. Provide logical, mathematically accurate answers.
+const TFD_ASSISTANT_PROFILE = `
+You are TFD-AI, the official AI assistant for The Financial Doctor and Sagar Chaturvedi.
 
-CRITICAL IDENTITY RULE:
-Never refer to the founder by personal name ("Sagar ji", "Sagar sir", "Shailendra", etc.) inside your answers. Always use the company name "TFD" or "TFD Team" to represent the advisory firm professionally.
+Business rules:
+- Speak only about The Financial Doctor, Sagar Chaturvedi, and the user's financial planning needs.
+- Do not recommend, promote, compare, or name other advisory businesses, distributors, brokers, agencies, or competitor brands.
+- Answer in the user's language: Hindi, English, or Hinglish.
+- Cover mutual funds, SIP, STP, SWP, ELSS, PPF, NPS, tax planning, insurance, emergency fund, goal planning, retirement planning, and general company/financial questions.
+- Ask clarifying questions when age, income, dependents, risk profile, time horizon, tax regime, or goal amount is missing.
+- Refuse unrelated questions politely and bring the user back to finance, tax, insurance, or planning.
 
-STRICT SCOPE BOUNDARIES (CRITICAL):
-1. ALLOWED TOPICS: Talk ONLY about Mutual Funds, Mutual Fund News, Mutual Fund Data, Stock Market Data, Tax Savings (ELSS, 80C, Capital Gains), Insurance (Term, Health, Motor), and complete Financial Planning.
-2. REJECT OTHERS: If the user asks about anything outside these financial topics (politics, sports, general entertainment, or inappropriate stuff), politely reject it by saying: "Main sirf Mutual Funds, Tax, Insurance aur Financial Planning ke sawalon ka jawab de sakta hoon."
-3. NO BIOGRAPHY: Absolutely do not include personal childhood details, birth names, birthday dates, or individual life histories. Speak purely as a corporate wealth advisory team.
-4. REGULAR PLANS ONLY & NO DIRECT PLANS: Never suggest "Direct Plans". If asked about direct funds, explain that TFD provides Regular Plans to ensure active expert portfolio tracking, premium rebalancing during market crash/volatility, and consolidated goal mapping under ARN-290298.
-5. NO COMPETITORS: If Groww, Zerodha, or Scripbox are mentioned, state that discount brokers give automated apps without professional human alignment, whereas TFD combines expert human advisory with seamless digital onboarding.
-6. FUND SUGGESTIONS INSTRUCTION: If the user asks for specific fund recommendations, tips, or individual scheme names, tell them: "Hamari TFD team personalized fund suggestions aur complete asset allocation chart design karke deti hai. Aap niche diye gaye link se apna account bana lijiye, hamari professional team aapko right schemes prescribe karegi."
-7. MATH & CALCULATIONS: Perform accurate textual calculation estimates directly in chat for SIP compounding, SWP regular retirement income, or Lumpsum projections. Suggest a 10% annual step-up.
+Compliance rules:
+- Keep answers educational and suitable for an AMFI/MFD-style website assistant.
+- Do not promise guaranteed returns.
+- Do not give buy/sell/hold calls for stocks or specific schemes unless approved product data is provided by the backend.
+- Do not claim to be SEBI RIA, lawyer, CA, or tax filing authority.
+- For tax, explain general rules and ask the user to confirm with a qualified tax professional for final filing.
+- Always include short risk/disclaimer language when discussing investments or insurance.
+- Never collect sensitive data such as PAN, Aadhaar, OTP, card details, bank password, or full account number.
+`.trim();
 
-CONTACT INFORMATION:
-- Address: 1st Floor, Above SK Finance, Beside Upadhyay Honda Showroom, Sekdakhedi Road, New Bus Stand, Sehore, MP - 466001.
-- Phone/WhatsApp: +91 77738 05794
-- Email: wecare@thefinancialdoctor.in
-- Onboarding Gateway: ${TFD_BRAND_URL}
-`;
+function genSessionId() {
+    return "tfd-" + Math.random().toString(36).slice(2, 10) + Date.now().toString(36);
+}
 
-const MANDATORY_FOOTER = `
-
----
-**📞 Our Connection Gateway:**
-*Aur zyada jankari ke liye aap hamari **TFD team** se connect kar sakte hain:*
-- **WhatsApp / Call:** [+91 77738 05794](https://wa.me/917773805794)
-- **Digital Account Setup:** [AssetPlus Onboarding Portal](${TFD_BRAND_URL})`;
-
-// 🛠️ FAIL-SAFE INTELLIGENT EXPERT ENGINE
-function getSmartFallbackResponse(userInput) {
-    const query = userInput.toLowerCase().trim();
-
-    if (query.includes("direct")) {
-        return `## ⚠️ Important Advisory Rule\nTFD platform par hum sirf **Regular Plans** support karte hain.\n\nRegular plans me aapko professional portfolio tracking aur volatility review management support milti hai.\n\nAap niche diye link se onboarding setup shuru kar sakte hain:\n👉 [Start Regular Portfolio Onboarding](${TFD_BRAND_URL})`;
-    }
-    if (/nav|expense|latest|ratio|performance|market/i.test(query)) {
-        return `## 📊 Live Market Data & Expense Ratio\nTop Mutual Funds ki **Latest NAV aur Expense Ratio** data hamari website par sync ho chuki hain.\n\n**Check Process:**\n1. Aap upar scroll karke **Live Market Data Table** check kar sakte hain.\n2. Complete detailed scheme dashboard access ke liye register karein.\n\n👉 [Register on AssetPlus Marketplace](${TFD_BRAND_URL})`;
-    }
-    if (/recommend|best fund|suggest|top fund|kaunsa/i.test(query)) {
-        return `## 🩺 Recommended Schemes (Regular Plan Only)\nHamari **TFD Team** personalized fund suggestions aur complete asset allocation chart design karke deti hai. Aap niche diye gaye link se apna account bana lijiye, hamari professional team aapko right schemes prescribe karegi.\n\n👉 [AssetPlus Secure Onboarding Portal](${TFD_BRAND_URL})`;
-    }
-    if (/contact|address|phone|office|location|number|mail/i.test(query)) {
-        return `## 📞 Contact & Office Address\n**📍 Location:** 1st Floor, Above SK Finance, Beside Upadhyay Honda Showroom, Sekdakhedi Road, New Bus Stand, Sehore, MP – 466001.\n\n**Reach Us:**\n- **WhatsApp / Call:** [+91 77738 05794](https://wa.me/917773805794)\n- **Email:** wecare@thefinancialdoctor.in`;
-    }
-    if (/sip|invest|shuru|start|plan/i.test(query)) {
-        return `## 🚀 SIP Onboarding Process\nSIP shuru karne ke liye niche diye gaye process ko follow karein:\n\n1. Link par click karke register karein.\n2. **Documents ready rakhein:** PAN Card, Aadhaar Card aur Bank Passbook/Cheque.\n3. Account sync hote hi aapki automatic regular SIP activate ho jayegi.\n\n👉 [AssetPlus Secure Onboarding Portal](${TFD_BRAND_URL})`;
-    }
-    if (/swp|withdrawal|pension|retirement/i.test(query)) {
-        return `## 🏦 SWP (Systematic Withdrawal Plan) Mechanism\nSWP regular retirement income allocation ke liye best engine hai. Safe withdrawal ke liye corpus ka saal mein sirf **6% se 7%** format hi monthly withdraw karein. ₹25L ke corpus par aap safely **₹15,000 monthly income** lifecycle tak generate kar sakte hain.`;
-    }
-    if (/insurance|term|health|medical|car|bike/i.test(query)) {
-        return `## 🛡️ Protection & Insurance Guidelines\nInvestment portfolio se pehle protection zaroori hai. **Term Insurance** family security ke liye cover deta hai, aur **Health Insurance** medical bills portfolio safe rakhta hai.\n\n👉 [Get an Instant Policy Quotation](https://wa.me/917773805794)`;
-    }
-
-    return `## 🩺 TFD-AI Prescription Dashboard\nMain aapke financial query ko analyze kar raha hoon. Accurate planning charts aur calculations setup ke liye aap direct niche diye links se account bana sakte hain ya query parameters type kar sakte hain.`;
+function genMessageId() {
+    return "m-" + Math.random().toString(36).slice(2, 10) + Date.now().toString(36);
 }
 
 export default function AIChat() {
     const [open, setOpen] = useState(false);
+    const [sessionId] = useState(() => {
+        const stored = localStorage.getItem("tfd_ai_session");
+        if (stored) return stored;
+        const s = genSessionId();
+        localStorage.setItem("tfd_ai_session", s);
+        return s;
+    });
     const [messages, setMessages] = useState([
         {
             id: "welcome",
             role: "assistant",
-            content: "Namaste! 🙏 Main **TFD-AI** co-pilot hoon firm ke parameters par trained. Mutual Funds, stock market data, tax rules, SWP calculation ya insurance — aap apna sawaal poochiye.",
+            content:
+                "Namaste! Main **TFD-AI** hoon - The Financial Doctor aur Sagar ji ke financial planning approach ke hisaab se help karta hoon. SIP, ELSS, insurance, tax, retirement planning ya financial goals ke baare me poochiye.\n\n_Disclaimer: Main educational AI assistant hoon; final personalised advice ke liye Sagar ji se direct baat karein._",
         },
     ]);
     const [input, setInput] = useState("");
@@ -110,219 +88,934 @@ export default function AIChat() {
         const msg = (text ?? input).trim();
         if (!msg || streaming) return;
         setInput("");
-
-        const userMsgId = "u-" + Date.now();
-        const aiMsgId = "a-" + Date.now();
-
         setMessages((m) => [
             ...m,
-            { id: userMsgId, role: "user", content: msg },
-            { id: aiMsgId, role: "assistant", content: "Thinking..." }
+            { id: genMessageId(), role: "user", content: msg },
+            { id: genMessageId(), role: "assistant", content: "" },
         ]);
         setStreaming(true);
 
         try {
-            const combinedText = `${SYSTEM_PROMPT}\n\nUser Question: ${msg}`;
-            
-            const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`, {
+            const resp = await fetch(CHAT_API_URL, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
-                    contents: [{ parts: [{ text: combinedText }] }]
-                })
+                    session_id: sessionId,
+                    message: msg,
+                    assistant_profile: TFD_ASSISTANT_PROFILE,
+                }),
             });
-
-            if (!response.ok) throw new Error("API-handshake-failed");
-
-            const data = await response.json();
-            
-            if (data?.candidates?.[0]?.content?.parts?.[0]?.text) {
-                let aiReply = data.candidates[0].content.parts[0].text;
-                aiReply = aiReply + MANDATORY_FOOTER;
-                setMessages((m) => m.map(item => item.id === aiMsgId ? { ...item, content: aiReply } : item));
-            } else {
-                throw new Error("Parsing error");
+            if (!resp.ok || !resp.body) throw new Error("stream-failed");
+            const reader = resp.body.getReader();
+            const decoder = new TextDecoder();
+            let buf = "";
+            while (true) {
+                const { value, done } = await reader.read();
+                if (done) break;
+                buf += decoder.decode(value, { stream: true });
+                const parts = buf.split("\n\n");
+                buf = parts.pop() ?? "";
+                for (const block of parts) {
+                    if (block.startsWith("event: done")) continue;
+                    const dataLines = block
+                        .split("\n")
+                        .filter((l) => l.startsWith("data: "))
+                        .map((l) => l.slice(6));
+                    if (dataLines.length === 0) continue;
+                    const chunk = dataLines.join("\n");
+                    if (chunk === "[DONE]") continue;
+                    setMessages((m) => {
+                        if (m.length === 0) return m;
+                        const lastIdx = m.length - 1;
+                        const last = m[lastIdx];
+                        if (last.role !== "assistant") return m;
+                        // PURE update — replace the object, do NOT mutate.
+                        // (Strict Mode invokes updaters twice and would otherwise
+                        // append the same chunk twice into the same mutated object.)
+                        const updated = { ...last, content: (last.content || "") + chunk };
+                        const copy = m.slice();
+                        copy[lastIdx] = updated;
+                        return copy;
+                    });
+                }
             }
-
         } catch (e) {
-            console.warn("API Switch Triggered. Using clean embedded smart database logic.");
-            let fallbackReply = getSmartFallbackResponse(msg);
-            fallbackReply = fallbackReply + MANDATORY_FOOTER;
-            setMessages((m) => m.map(item => item.id === aiMsgId ? { ...item, content: fallbackReply } : item));
+            console.error("AI chat error", e);
+            setMessages((m) => {
+                if (m.length === 0) return m;
+                const lastIdx = m.length - 1;
+                const last = m[lastIdx];
+                if (last.role !== "assistant" || last.content) return m;
+                const updated = {
+                    ...last,
+                    content:
+                        "Sorry, abhi AI service connect nahi ho pa rahi hai. Thoda baad try karein, ya direct Sagar ji ko WhatsApp karein. Website owner ke liye note: backend par `/api/ai/chat` route aur AI API key configure honi chahiye.",
+                };
+                const copy = m.slice();
+                copy[lastIdx] = updated;
+                return copy;
+            });
         } finally {
             setStreaming(false);
         }
     };
 
+    // Generates the html2canvas of the snapshot DOM. Reused by PNG and PDF flows.
     const _renderSnapshotCanvas = async () => {
         if (!snapRef.current) return null;
-        return html2canvas(snapRef.current, { backgroundColor: "#F6F1E8", scale: 2, useCORS: true, logging: false });
+        const node = snapRef.current;
+        await new Promise((r) => setTimeout(r, 250));
+        return html2canvas(node, {
+            backgroundColor: "#F6F1E8",
+            scale: 2,
+            useCORS: true,
+            logging: false,
+            width: node.offsetWidth,
+            height: node.offsetHeight,
+            windowWidth: node.offsetWidth,
+            windowHeight: node.offsetHeight,
+        });
+    };
+
+    const _ensurePlanReady = () => {
+        const assistantMsgs = messages.filter(
+            (m) => m.role === "assistant" && m.content && m.content.trim().length > 0,
+        );
+        // First assistant is the welcome message — need at least one more substantial reply
+        if (assistantMsgs.length < 2) {
+            toast.error("Pehle TFD-AI se planning karwaiye, phir download karein.");
+            return false;
+        }
+        return true;
     };
 
     const downloadPlanning = async () => {
-        toast.loading("Generating PNG snapshot…", { id: "ai-snap" });
-        const canvas = await _renderSnapshotCanvas();
-        if (!canvas) return;
-        const link = document.createElement("a");
-        link.download = `TFD-AI-planning.png`;
-        link.href = canvas.toDataURL("image/png");
-        link.click();
-        toast.success("PNG downloaded successfully!", { id: "ai-snap" });
+        if (!_ensurePlanReady()) return;
+        try {
+            toast.loading("Generating your planning PNG…", { id: "ai-snap" });
+            const canvas = await _renderSnapshotCanvas();
+            if (!canvas) {
+                toast.error("Could not generate snapshot. Try again.", { id: "ai-snap" });
+                return;
+            }
+            const link = document.createElement("a");
+            link.download = `TFD-AI-planning-${Date.now()}.png`;
+            link.href = canvas.toDataURL("image/png");
+            link.click();
+            toast.success("PNG downloaded — share it on WhatsApp!", { id: "ai-snap" });
+        } catch (e) {
+            console.error(e);
+            toast.error("Could not generate snapshot. Try again.", { id: "ai-snap" });
+        }
     };
 
     const downloadPlanningPdf = async () => {
-        toast.loading("Generating PDF proposal…", { id: "ai-pdf" });
-        const canvas = await _renderSnapshotCanvas();
-        if (!canvas) return;
-        const pdf = new jsPDF({ unit: "pt", format: "a4", orientation: "portrait" });
-        pdf.addImage(canvas.toDataURL("image/jpeg", 0.92), "JPEG", 0, 0, 595, (canvas.height * 595) / canvas.width);
-        pdf.save(`TFD-AI-Financial-Plan.pdf`);
-        toast.success("PDF saved!", { id: "ai-pdf" });
+        if (!_ensurePlanReady()) return;
+        try {
+            toast.loading("Generating your planning PDF…", { id: "ai-pdf" });
+            const canvas = await _renderSnapshotCanvas();
+            if (!canvas) {
+                toast.error("Could not generate PDF. Try again.", { id: "ai-pdf" });
+                return;
+            }
+            // A4 portrait at 72dpi = 595 × 842 pt. Fit canvas to A4 width with auto-paging.
+            const pdf = new jsPDF({ unit: "pt", format: "a4", orientation: "portrait" });
+            const pageW = pdf.internal.pageSize.getWidth();
+            const pageH = pdf.internal.pageSize.getHeight();
+            const imgW = pageW;
+            const imgH = (canvas.height * pageW) / canvas.width;
+            const imgData = canvas.toDataURL("image/jpeg", 0.92);
+            if (imgH <= pageH) {
+                pdf.addImage(imgData, "JPEG", 0, 0, imgW, imgH, undefined, "FAST");
+            } else {
+                // Multi-page: slice the tall canvas into page-height strips.
+                let remaining = imgH;
+                let y = 0;
+                while (remaining > 0) {
+                    pdf.addImage(imgData, "JPEG", 0, y, imgW, imgH, undefined, "FAST");
+                    remaining -= pageH;
+                    if (remaining > 0) {
+                        pdf.addPage();
+                        y -= pageH;
+                    }
+                }
+            }
+            pdf.save(`TFD-AI-planning-${Date.now()}.pdf`);
+            toast.success("PDF downloaded — share it on WhatsApp!", { id: "ai-pdf" });
+        } catch (e) {
+            console.error(e);
+            toast.error("Could not generate PDF. Try again.", { id: "ai-pdf" });
+        }
     };
 
-    const hasPlan = messages.length > 1;
+    const hasPlan = messages.filter((m) => m.role === "assistant").length > 1;
 
     return (
         <>
-            <button 
-                onClick={() => setOpen(true)}
-                className="fixed bottom-6 right-6 z-40 bg-[#024396] hover:bg-[#012E6B] text-white p-3.5 rounded-full shadow-2xl flex items-center gap-2 cursor-pointer transition-all border border-white/20"
-            >
-                <Sparkles size={18} className="animate-pulse" />
-                <span className="text-xs font-bold font-display tracking-wide uppercase pr-1">Ask TFD-AI</span>
-            </button>
-
             {open && (
-                <div className="fixed inset-0 z-[70] grid place-items-end sm:place-items-center bg-[#0E1B2C]/40 backdrop-blur-sm p-3 sm:p-6" onClick={() => setOpen(false)}>
-                    <div onClick={(e) => e.stopPropagation()} className="bg-[#FBF7EE] border border-[#E2D8C2] rounded-3xl w-full max-w-[460px] h-[85vh] sm:h-[640px] flex flex-col shadow-2xl overflow-hidden">
+                <div
+                    className="fixed inset-0 z-[70] grid place-items-end sm:place-items-center bg-[#0E1B2C]/40 backdrop-blur-sm p-3 sm:p-6"
+                    onClick={() => setOpen(false)}
+                    data-testid="ai-chat-overlay"
+                >
+                    <div
+                        onClick={(e) => e.stopPropagation()}
+                        className="bg-[#FBF7EE] border border-[#E2D8C2] rounded-3xl w-full max-w-[460px] h-[85vh] sm:h-[640px] flex flex-col shadow-2xl overflow-hidden"
+                        data-testid="ai-chat-panel"
+                    >
+                        {/* Header */}
                         <div className="px-5 py-4 bg-[#0E1B2C] text-[#F6F1E8] flex items-center justify-between">
                             <div className="flex items-center gap-3">
-                                <span className="w-10 h-10 rounded-full bg-gradient-to-br from-[#024396] to-[#C7102E] grid place-items-center"><Sparkles size={18} /></span>
+                                <span className="w-10 h-10 rounded-full bg-gradient-to-br from-[#024396] to-[#C7102E] grid place-items-center">
+                                    <Sparkles size={18} />
+                                </span>
                                 <div>
-                                    <div className="font-display text-lg leading-none">TFD-AI Engine</div>
-                                    <div className="text-[10px] tracking-[0.18em] uppercase opacity-70 mt-1">Live Intelligent Advisor</div>
+                                    <div className="font-display text-lg leading-none">TFD-AI</div>
+                                    <div className="text-[10px] tracking-[0.18em] uppercase opacity-70 mt-1">
+                                        Sagar ji's AI assistant
+                                    </div>
                                 </div>
                             </div>
-                            <button onClick={() => setOpen(false)} className="text-[#F6F1E8]/80 hover:text-[#F6F1E8] p-1"><X size={18} /></button>
+                            <div className="flex items-center gap-2">
+                                {hasPlan && (
+                                    <>
+                                        <button
+                                            onClick={downloadPlanning}
+                                            className="hidden sm:inline-flex items-center gap-1.5 text-[12px] bg-[#C7102E] hover:bg-[#9B0D24] text-white px-3 py-1.5 rounded-full"
+                                            data-testid="ai-chat-download-header"
+                                            title="Download as PNG"
+                                        >
+                                            <Download size={13} /> PNG
+                                        </button>
+                                        <button
+                                            onClick={downloadPlanningPdf}
+                                            className="hidden sm:inline-flex items-center gap-1.5 text-[12px] bg-[#024396] hover:bg-[#012E6B] text-white px-3 py-1.5 rounded-full"
+                                            data-testid="ai-chat-download-pdf-header"
+                                            title="Download as PDF"
+                                        >
+                                            <FileText size={13} /> PDF
+                                        </button>
+                                    </>
+                                )}
+                                <button
+                                    onClick={() => setOpen(false)}
+                                    className="text-[#F6F1E8]/80 hover:text-[#F6F1E8] p-1"
+                                    data-testid="ai-chat-close"
+                                    aria-label="Close chat"
+                                >
+                                    <X size={18} />
+                                </button>
+                            </div>
                         </div>
 
-                        <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-5 space-y-4">
-                            {messages.map((m) => (
-                                <ChatBubble key={m.id} role={m.role} content={m.content} />
+                        {/* Messages */}
+                        <div
+                            ref={scrollRef}
+                            className="flex-1 overflow-y-auto px-4 py-5 space-y-4"
+                            data-testid="ai-chat-messages"
+                        >
+                            {messages.map((m, i) => (
+                                <ChatBubble
+                                    key={m.id || `msg-${i}`}
+                                    role={m.role}
+                                    content={m.content}
+                                    streaming={
+                                        streaming &&
+                                        i === messages.length - 1 &&
+                                        m.role === "assistant"
+                                    }
+                                />
                             ))}
-                            {messages.length === 1 && (
+
+                            {messages.length === 1 && !streaming && (
                                 <div className="pt-2 flex flex-wrap gap-2">
-                                    {STARTERS.map((s) => <button key={s} onClick={() => send(s)} className="text-[12px] bg-white border border-[#E2D8C2] text-[#0E1B2C] px-3 py-1.5 rounded-full hover:bg-[#024396] hover:text-white transition-colors">{s}</button>)}
+                                    {STARTERS.map((s) => (
+                                        <button
+                                            key={s}
+                                            onClick={() => send(s)}
+                                            className="text-[12px] bg-white border border-[#E2D8C2] text-[#0E1B2C] px-3 py-1.5 rounded-full hover:bg-[#024396] hover:text-[#F6F1E8] hover:border-transparent transition-colors"
+                                            data-testid="ai-chat-starter"
+                                        >
+                                            {s}
+                                        </button>
+                                    ))}
                                 </div>
                             )}
+
+                            {/* Inline download CTAs after at least one plan */}
                             {hasPlan && !streaming && (
-                                <div className="pt-2 flex gap-2">
-                                    <button onClick={downloadPlanning} className="inline-flex items-center gap-2 text-[12px] font-medium bg-[#024396] text-white px-4 py-2 rounded-full"><Download size={13} /> Save PNG</button>
-                                    <button onClick={downloadPlanningPdf} className="inline-flex items-center gap-2 text-[12px] font-medium bg-[#C7102E] text-white px-4 py-2 rounded-full"><FileText size={13} /> Save PDF</button>
+                                <div className="pt-2">
+                                    <div className="flex flex-wrap gap-2">
+                                        <button
+                                            onClick={downloadPlanning}
+                                            data-testid="ai-chat-download"
+                                            className="inline-flex items-center gap-2 text-[12px] font-medium bg-[#024396] hover:bg-[#012E6B] text-[#F6F1E8] px-4 py-2 rounded-full"
+                                        >
+                                            <Download size={13} /> Download as PNG
+                                        </button>
+                                        <button
+                                            onClick={downloadPlanningPdf}
+                                            data-testid="ai-chat-download-pdf"
+                                            className="inline-flex items-center gap-2 text-[12px] font-medium bg-[#C7102E] hover:bg-[#9B0D24] text-white px-4 py-2 rounded-full"
+                                        >
+                                            <FileText size={13} /> Download as PDF
+                                        </button>
+                                    </div>
+                                    <div className="text-[10px] text-[#5C677D] mt-1.5">
+                                        Save and share your AI-curated plan on WhatsApp.
+                                    </div>
                                 </div>
                             )}
                         </div>
 
-                        <form onSubmit={(e) => { e.preventDefault(); send(); }} className="px-3 py-3 border-t border-[#E2D8C2] bg-[#FBF7EE] flex items-center gap-2">
-                            <input value={input} onChange={(e) => setInput(e.target.value)} placeholder="SIP, Stock data, Tax rules, calculations poochiye…" className="flex-1 bg-white border border-[#E2D8C2] rounded-full px-4 py-2.5 text-[14px] focus:border-[#024396] outline-none" disabled={streaming} />
-                            <button type="submit" disabled={!input.trim() || streaming} className="w-11 h-11 rounded-full bg-[#024396] text-[#F6F1E8] grid place-items-center disabled:opacity-40 hover:bg-[#012E6B] transition-colors"><Send size={16} /></button>
+                        {/* Input */}
+                        <form
+                            onSubmit={(e) => {
+                                e.preventDefault();
+                                send();
+                            }}
+                            className="px-3 py-3 border-t border-[#E2D8C2] bg-[#FBF7EE] flex items-center gap-2"
+                        >
+                            <input
+                                value={input}
+                                onChange={(e) => setInput(e.target.value)}
+                                placeholder="Apna sawaal poochiye…"
+                                className="flex-1 bg-white border border-[#E2D8C2] rounded-full px-4 py-2.5 text-[14px] focus:border-[#024396] outline-none"
+                                disabled={streaming}
+                                data-testid="ai-chat-input"
+                            />
+                            <button
+                                type="submit"
+                                disabled={!input.trim() || streaming}
+                                className="w-11 h-11 rounded-full bg-[#024396] text-[#F6F1E8] grid place-items-center disabled:opacity-40 hover:bg-[#012E6B] transition-colors"
+                                data-testid="ai-chat-send"
+                                aria-label="Send"
+                            >
+                                <Send size={16} />
+                            </button>
                         </form>
+                        <div className="text-[10px] text-[#5C677D] text-center py-1.5 border-t border-[#E2D8C2] bg-[#F6F1E8]">
+                            AI assistant trained on Sagar ji's approach. Mutual fund investments are subject to market risks.
+                        </div>
                     </div>
                 </div>
             )}
+
+            {/* Hidden snapshot for PNG export */}
             <div style={{ position: "fixed", left: -10000, top: 0, zIndex: -1 }} aria-hidden>
-                <div ref={snapRef}><PlanSnapshot messages={messages} /></div>
+                <div ref={snapRef}>
+                    <PlanSnapshot messages={messages} />
+                </div>
             </div>
         </>
     );
 }
 
-function ChatBubble({ role, content }) {
-    const isUser = role === "user";
+function ChatBubble({ role, content, streaming }) {
+    if (role === "user") {
+        return (
+            <div className="flex justify-end">
+                <div className="max-w-[85%] bg-[#024396] text-[#F6F1E8] px-4 py-2.5 rounded-2xl rounded-br-md text-[14px] leading-relaxed whitespace-pre-wrap break-words">
+                    {content}
+                </div>
+            </div>
+        );
+    }
     return (
-        <div className={`flex ${isUser ? "justify-end" : "gap-2"}`}>
-            {!isUser && <span className="w-7 h-7 rounded-full bg-gradient-to-br from-[#024396] to-[#C7102E] grid place-items-center mt-0.5"><Sparkles size={12} className="text-white" /></span>}
-            <div className={`max-w-[85%] px-4 py-2.5 rounded-2xl text-[14px] leading-relaxed break-words overflow-hidden ${isUser ? "bg-[#024396] text-white rounded-br-md whitespace-pre-wrap" : "bg-white border border-[#E2D8C2] text-[#0E1B2C] rounded-bl-md"}`}>
+        <div className="flex gap-2">
+            <span className="w-7 h-7 rounded-full bg-gradient-to-br from-[#024396] to-[#C7102E] grid place-items-center shrink-0 mt-0.5">
+                <Sparkles size={12} className="text-white" />
+            </span>
+            <div className="max-w-[88%] bg-white border border-[#E2D8C2] px-4 py-2.5 rounded-2xl rounded-bl-md text-[14px] leading-relaxed text-[#0E1B2C] break-words overflow-hidden">
                 <Markdown content={content} />
+                {streaming && (
+                    <span className="inline-block w-1.5 h-4 ml-0.5 bg-[#024396] animate-pulse align-middle" />
+                )}
             </div>
         </div>
     );
 }
 
+// Markdown renderer (bold, italic, code, list, heading, link, table-row → mono row)
+// SAFE: uses React nodes only, no dangerouslySetInnerHTML — eliminates XSS.
 function Markdown({ content }) {
     if (!content) return null;
     const lines = content.split("\n");
     const out = [];
-    lines.forEach((line, i) => {
-        if (line.startsWith("## ")) {
-            out.push(<div key={i} className="font-display font-bold text-[15px] text-[#0E1B2C] mt-2 mb-1">{line.replace("## ", "")}</div>);
-        } else if (line.startsWith("### ")) {
-            out.push(<div key={i} className="font-bold text-[13.5px] text-[#024396] mt-1.5">{line.replace("### ", "")}</div>);
-        } else if (line.startsWith("- ") || line.startsWith("* ")) {
-            out.push(<li key={i} className="list-disc pl-4 text-xs text-[#2A364B] my-0.5">{renderInline(line.slice(2))}</li>);
-        } else if (line.startsWith("|")) {
-            if (line.includes("---")) return;
-            const cells = line.split("|").slice(1, -1).map(c => c.trim());
+    let listBuf = [];
+    const flushList = (key) => {
+        if (listBuf.length) {
+            const items = listBuf.slice();
             out.push(
-                <div key={i} className="grid gap-2 text-[12.5px] py-1 border-b border-[#E2D8C2]/40" style={{ gridTemplateColumns: `repeat(${cells.length}, minmax(0,1fr))` }}>
-                    {cells.map((c, ci) => <div key={ci} className="font-medium text-[#2A364B]">{renderInline(c)}</div>)}
+                <ul key={`ul-${key}`} className="list-disc pl-5 my-1 space-y-0.5">
+                    {items.map((it, i) => (
+                        <li key={`li-${key}-${i}-${it.slice(0, 12)}`}>{renderInline(it)}</li>
+                    ))}
+                </ul>
+            );
+            listBuf = [];
+        }
+    };
+    lines.forEach((raw, i) => {
+        const line = raw;
+        if (/^---+$/.test(line.trim())) {
+            flushList(i);
+            out.push(<hr key={`hr-${i}`} className="my-2 border-[#E2D8C2]" />);
+            return;
+        }
+        if (/^## /.test(line)) {
+            flushList(i);
+            out.push(
+                <div key={`h-${i}`} className="font-display text-[15px] text-[#0E1B2C] mt-2 mb-1">
+                    {line.replace(/^## /, "")}
                 </div>
             );
-        } else if (line.trim() !== "") {
-            out.push(<p key={i} className="text-[13.5px] text-[#2A364B] my-1">{renderInline(line)}</p>);
+            return;
+        }
+        if (/^# /.test(line)) {
+            flushList(i);
+            out.push(
+                <div key={`h1-${i}`} className="font-display text-[16px] text-[#0E1B2C] mt-2 mb-1">
+                    {line.replace(/^# /, "")}
+                </div>
+            );
+            return;
+        }
+        if (/^(-|\*) /.test(line.trim())) {
+            listBuf.push(line.trim().replace(/^(-|\*) /, ""));
+            return;
+        }
+        if (/^\s*\|.+\|\s*$/.test(line)) {
+            flushList(i);
+            // Skip pure separator row of table (e.g. |---|---|)
+            if (/^[\s|:\-]+$/.test(line)) return;
+            const cells = line.split("|").slice(1, -1).map((c) => c.trim());
+            out.push(
+                <div
+                    key={`tr-${i}`}
+                    className="grid gap-2 text-[12.5px] py-0.5"
+                    style={{ gridTemplateColumns: `repeat(${cells.length}, minmax(0,1fr))` }}
+                >
+                    {cells.map((c, ci) => (
+                        <div key={`td-${i}-${ci}`} className="text-[#2A364B]">
+                            {renderInline(c)}
+                        </div>
+                    ))}
+                </div>
+            );
+            return;
+        }
+        if (/^> /.test(line.trim())) {
+            flushList(i);
+            out.push(
+                <div
+                    key={`q-${i}`}
+                    className="border-l-2 border-[#C7102E] pl-3 my-1 text-[#2A364B] italic"
+                >
+                    {renderInline(line.replace(/^> /, ""))}
+                </div>
+            );
+            return;
+        }
+        flushList(i);
+        if (line.trim() === "") {
+            out.push(<div key={`s-${i}`} className="h-1.5" />);
+        } else {
+            out.push(<p key={`p-${i}-${line.slice(0, 16)}`}>{renderInline(line)}</p>);
         }
     });
+    flushList("end");
     return <div>{out}</div>;
 }
 
-function renderInline(s) {
-    if (!s) return null;
-    const pattern = /(\*\*([^*]+)\*\*)|(\[([^\]]+)\]\(([^)]+)\))/g;
-    const tokens = [];
-    let lastIndex = 0;
-    let match;
-    while ((match = pattern.exec(s)) !== null) {
-        if (match.index > lastIndex) {
-            tokens.push(s.slice(lastIndex, match.index));
-        }
-        if (match[1]) {
-            tokens.push(<strong key={match.index}>{match[2]}</strong>);
-        } else if (match[3]) {
-            tokens.push(<a key={match.index} href={match[5]} target="_blank" rel="noopener noreferrer" className="underline text-[#024396] font-semibold">{match[4]}</a>);
-        }
-        lastIndex = pattern.lastIndex;
+// Safe URL gate — only http(s) and mailto allowed in markdown links.
+function safeUrl(u) {
+    try {
+        const url = String(u).trim();
+        if (/^(https?:|mailto:)/i.test(url)) return url;
+        return "#";
+    } catch {
+        return "#";
     }
-    if (lastIndex < s.length) {
-        tokens.push(s.slice(lastIndex));
-    }
-    return tokens.length > 0 ? tokens : s;
 }
 
+// Tokenise inline markdown (`**bold**`, `*em*`, `` `code` ``, `[label](url)`) into React nodes.
+// Returns an array of strings + JSX elements — completely sanitiser-free since React escapes text.
+function renderInline(s) {
+    if (s == null || s === "") return null;
+    // Order matters: handle links and code first to avoid bold/italic eating their innards.
+    const tokens = [];
+    let remaining = String(s);
+    let safetyCounter = 0;
+    const pattern = /(\[([^\]]+)\]\(([^)]+)\))|(`([^`]+)`)|(\*\*([^*]+)\*\*)|(\*([^*]+)\*)/;
+    while (remaining && safetyCounter++ < 500) {
+        const m = remaining.match(pattern);
+        if (!m) {
+            tokens.push(remaining);
+            break;
+        }
+        const idx = m.index;
+        if (idx > 0) tokens.push(remaining.slice(0, idx));
+        if (m[1]) {
+            // link
+            tokens.push(
+                <a
+                    key={`a-${tokens.length}`}
+                    href={safeUrl(m[3])}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="underline text-[#024396]"
+                >
+                    {m[2]}
+                </a>
+            );
+        } else if (m[4]) {
+            // inline code
+            tokens.push(
+                <code
+                    key={`c-${tokens.length}`}
+                    className="bg-[#F6F1E8] px-1 rounded text-[12px]"
+                >
+                    {m[5]}
+                </code>
+            );
+        } else if (m[6]) {
+            tokens.push(<strong key={`b-${tokens.length}`}>{m[7]}</strong>);
+        } else if (m[8]) {
+            tokens.push(<em key={`i-${tokens.length}`}>{m[9]}</em>);
+        }
+        remaining = remaining.slice(idx + m[0].length);
+    }
+    return tokens;
+}
+
+// ---------- Plan Snapshot for PNG ----------
+// Strategy: capture ONLY the latest substantial AI plan (full content, no truncation)
+// + the user question that triggered it. This avoids cut-off on long chats and keeps
+// the snapshot focused on "the planning + recommendations" as the user requested.
 function PlanSnapshot({ messages }) {
-    const real = messages.slice(1);
+    const real = messages.slice(1); // skip the welcome message
+    // Find the latest non-empty assistant message
     let latestAi = "";
+    let latestAiIdx = -1;
     for (let i = real.length - 1; i >= 0; i--) {
-        if (real[i].role === "assistant" && real[i].content) {
+        if (real[i].role === "assistant" && real[i].content && real[i].content.trim().length > 0) {
             latestAi = real[i].content;
+            latestAiIdx = i;
             break;
         }
     }
+    // Find the user message that immediately precedes the latest AI message
+    let latestUser = "";
+    for (let i = latestAiIdx - 1; i >= 0; i--) {
+        if (real[i].role === "user") {
+            latestUser = real[i].content;
+            break;
+        }
+    }
+    // Count total turns so we can show context "Turn X of Y" if there were earlier ones
+    const totalUserTurns = real.filter((m) => m.role === "user").length;
+
     return (
-        <div style={{ width: 600, background: "#FBF7EE", padding: 25, borderRadius: 20, border: "2px solid #E2D8C2" }}>
-            <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 15 }}>
-                <img src={TFD_LOGO} alt="TFD" style={{ height: 45 }} />
-                <div style={{ textAlign: "right", fontSize: 11, color: "#5C677D" }}>AMFI · ARN-290298<br />Sehore, MP</div>
+        <div
+            style={{
+                width: 640,
+                background: "linear-gradient(160deg, #FBF7EE 0%, #EFE7D6 100%)",
+                color: "#0E1B2C",
+                borderRadius: 28,
+                border: "1px solid #E2D8C2",
+                padding: "28px 30px",
+                fontFamily: "'DM Sans', system-ui, sans-serif",
+                boxShadow: "0 30px 60px -25px rgba(14,27,44,0.25)",
+                position: "relative",
+                overflow: "hidden",
+            }}
+        >
+            {/* Decorative blob */}
+            <div
+                aria-hidden
+                style={{
+                    position: "absolute",
+                    top: -120,
+                    right: -120,
+                    width: 320,
+                    height: 320,
+                    borderRadius: "50%",
+                    background: "radial-gradient(circle, rgba(2, 67, 150,0.18) 0%, transparent 70%)",
+                }}
+            />
+            <div
+                aria-hidden
+                style={{
+                    position: "absolute",
+                    bottom: -140,
+                    left: -140,
+                    width: 360,
+                    height: 360,
+                    borderRadius: "50%",
+                    background: "radial-gradient(circle, rgba(199, 16, 46,0.15) 0%, transparent 70%)",
+                }}
+            />
+
+            {/* Header */}
+            <div
+                style={{
+                    position: "relative",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    marginBottom: 18,
+                }}
+            >
+                <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+                    <img
+                        src={TFD_LOGO}
+                        crossOrigin="anonymous"
+                        alt="TFD"
+                        style={{
+                            height: 64,
+                            width: "auto",
+                            objectFit: "contain",
+                            background: "#F6F1E8",
+                            borderRadius: 12,
+                            padding: 6,
+                            border: "1px solid #E2D8C2",
+                        }}
+                    />
+                    <div>
+                        <div
+                            style={{
+                                fontFamily: "'Fraunces', serif",
+                                fontSize: 22,
+                                color: "#0E1B2C",
+                                lineHeight: 1,
+                            }}
+                        >
+                            The Financial Doctor
+                        </div>
+                        <div
+                            style={{
+                                fontSize: 10,
+                                letterSpacing: "0.22em",
+                                textTransform: "uppercase",
+                                color: "#5C677D",
+                                marginTop: 6,
+                            }}
+                        >
+                            Treating Your Financial Health
+                        </div>
+                    </div>
+                </div>
+                <div style={{ textAlign: "right" }}>
+                    <div
+                        style={{
+                            fontSize: 10,
+                            letterSpacing: "0.22em",
+                            textTransform: "uppercase",
+                            color: "#5C677D",
+                        }}
+                    >
+                        AMFI · ARN-290298
+                    </div>
+                    <div
+                        style={{
+                            fontSize: 11,
+                            color: "#024396",
+                            marginTop: 4,
+                            fontWeight: 600,
+                        }}
+                    >
+                        Sehore · MP
+                    </div>
+                </div>
             </div>
-            <div style={{ background: "#0E1B2C", color: "#F6F1E8", padding: 15, borderRadius: 12, marginBottom: 15 }}>
-                <div style={{ fontSize: 18, fontFamily: "Fraunces, serif" }}>The Financial Doctor Live AI Advice</div>
+
+            {/* Title strip */}
+            <div
+                style={{
+                    background: "#0E1B2C",
+                    color: "#F6F1E8",
+                    borderRadius: 18,
+                    padding: "14px 18px",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    marginBottom: 16,
+                    position: "relative",
+                }}
+            >
+                <div>
+                    <div
+                        style={{
+                            fontSize: 10,
+                            letterSpacing: "0.22em",
+                            textTransform: "uppercase",
+                            color: "#C7102E",
+                            fontWeight: 700,
+                        }}
+                    >
+                        TFD-AI · Personalised Planning
+                    </div>
+                    <div
+                        style={{
+                            fontFamily: "'Fraunces', serif",
+                            fontSize: 22,
+                            marginTop: 4,
+                            lineHeight: 1.05,
+                        }}
+                    >
+                        Your AI-curated financial plan
+                    </div>
+                </div>
+                <div
+                    style={{
+                        background: "#C7102E",
+                        color: "#fff",
+                        borderRadius: 999,
+                        padding: "5px 12px",
+                        fontSize: 10,
+                        letterSpacing: "0.18em",
+                        textTransform: "uppercase",
+                        fontWeight: 700,
+                    }}
+                >
+                    Snapshot
+                </div>
             </div>
-            <div style={{ fontSize: 13, color: "#0E1B2C", lineHeight: 1.6, whiteSpace: "pre-wrap" }}>
-                <Markdown content={latestAi} />
+
+            {/* Latest plan — full content, no truncation */}
+            <div style={{ position: "relative", marginBottom: 18 }}>
+                {latestUser && (
+                    <div
+                        style={{
+                            background: "#024396",
+                            color: "#F6F1E8",
+                            padding: "10px 14px",
+                            borderRadius: "14px 14px 14px 4px",
+                            fontSize: 12.5,
+                            lineHeight: 1.45,
+                            maxWidth: "85%",
+                            marginBottom: 10,
+                            whiteSpace: "pre-wrap",
+                            wordBreak: "break-word",
+                        }}
+                    >
+                        <div
+                            style={{
+                                fontSize: 9,
+                                letterSpacing: "0.18em",
+                                textTransform: "uppercase",
+                                opacity: 0.75,
+                                marginBottom: 4,
+                                display: "flex",
+                                justifyContent: "space-between",
+                            }}
+                        >
+                            <span>You asked</span>
+                            {totalUserTurns > 1 && (
+                                <span>Latest of {totalUserTurns} questions</span>
+                            )}
+                        </div>
+                        {latestUser}
+                    </div>
+                )}
+                <div
+                    style={{
+                        background: "#FBF7EE",
+                        border: "1px solid #E2D8C2",
+                        padding: "14px 16px",
+                        borderRadius: "14px 14px 4px 14px",
+                        fontSize: 12,
+                        lineHeight: 1.6,
+                        color: "#0E1B2C",
+                        whiteSpace: "pre-wrap",
+                        wordBreak: "break-word",
+                    }}
+                >
+                    <div
+                        style={{
+                            fontSize: 9,
+                            letterSpacing: "0.18em",
+                            textTransform: "uppercase",
+                            color: "#024396",
+                            fontWeight: 700,
+                            marginBottom: 6,
+                        }}
+                    >
+                        TFD-AI · Planning &amp; Recommendations
+                    </div>
+                    {stripMdFull(latestAi)}
+                </div>
             </div>
-            <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 20, borderTop: "1px solid #E2D8C2", paddingTop: 15 }}>
-                <img src={SAGAR_PHOTO} alt="Sagar" style={{ width: 45, height: 45, borderRadius: "50%" }} />
-                <div style={{ fontSize: 12 }}><strong>TFD Team</strong><br />Corporate Office · +91 77738 05794</div>
+
+            {/* Bilingual Smart Tips */}
+            <div style={{ position: "relative", marginBottom: 14 }}>
+                <div style={{ fontSize: 10, letterSpacing: "0.22em", textTransform: "uppercase", color: "#C7102E", fontWeight: 700, marginBottom: 8, display: "flex", alignItems: "center", gap: 8 }}>
+                    <span style={{ width: 18, height: 18, borderRadius: 999, background: "#C7102E", color: "#fff", display: "grid", placeItems: "center", fontSize: 11 }}>💡</span>
+                    Smart tips · सुझाव
+                </div>
+                <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                    {AI_PLAN_RECOMMENDATIONS.slice(0, 3).map((tip, idx) => (
+                        <div
+                            key={`tip-${idx}-${(tip.en || "").slice(0, 12)}`}
+                            style={{
+                                background: "#FBF7EE",
+                                border: "1px solid #E2D8C2",
+                                borderRadius: 12,
+                                padding: "8px 12px",
+                                borderLeft: "3px solid #024396",
+                            }}
+                        >
+                            <div style={{ fontSize: 11.5, color: "#0E1B2C", lineHeight: 1.4 }}>
+                                <strong style={{ fontFamily: "'Fraunces', serif", fontWeight: 500, marginRight: 6, color: "#024396" }}>EN:</strong>
+                                {tip.en}
+                            </div>
+                            <div style={{ fontSize: 11.5, color: "#2A364B", lineHeight: 1.4, marginTop: 3 }}>
+                                <strong style={{ fontFamily: "'Fraunces', serif", fontWeight: 500, marginRight: 6, color: "#C7102E" }}>HI:</strong>
+                                {tip.hi}
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            </div>
+
+            {/* Footer: Sagar + QR */}
+            <div
+                style={{
+                    background: "#0E1B2C",
+                    color: "#F6F1E8",
+                    borderRadius: 18,
+                    padding: "16px 18px",
+                    display: "grid",
+                    gridTemplateColumns: "1fr auto",
+                    gap: 16,
+                    alignItems: "center",
+                    marginBottom: 12,
+                    position: "relative",
+                }}
+            >
+                <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                    <img
+                        src={SAGAR_PHOTO}
+                        crossOrigin="anonymous"
+                        alt="Sagar"
+                        style={{
+                            width: 56,
+                            height: 56,
+                            borderRadius: "50%",
+                            objectFit: "cover",
+                            border: "3px solid #C7102E",
+                        }}
+                    />
+                    <div>
+                        <div
+                            style={{
+                                fontFamily: "'Fraunces', serif",
+                                fontSize: 17,
+                                lineHeight: 1.1,
+                            }}
+                        >
+                            Sagar Chaturvedi
+                        </div>
+                        <div
+                            style={{
+                                fontSize: 10,
+                                opacity: 0.7,
+                                marginTop: 2,
+                                letterSpacing: "0.12em",
+                                textTransform: "uppercase",
+                            }}
+                        >
+                            Founder · MFD (AMFI Certified)
+                        </div>
+                        <div style={{ fontSize: 11, marginTop: 5 }}>📱 +91 77738 05794</div>
+                        <div style={{ fontSize: 11 }}>✉ wecare@thefinancialdoctor.in</div>
+                    </div>
+                </div>
+                <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
+                    <div style={{ background: "#fff", padding: 5, borderRadius: 10 }}>
+                        <QRCodeCanvas
+                            value={TFD_BRAND_URL}
+                            size={84}
+                            bgColor="#FFFFFF"
+                            fgColor="#0E1B2C"
+                            level="M"
+                            includeMargin={false}
+                        />
+                    </div>
+                    <div
+                        style={{
+                            fontSize: 9,
+                            marginTop: 5,
+                            color: "#C7102E",
+                            fontWeight: 700,
+                            letterSpacing: "0.15em",
+                            textTransform: "uppercase",
+                        }}
+                    >
+                        Scan to invest
+                    </div>
+                    <div style={{ fontSize: 9, opacity: 0.6 }}>AssetPlus · ARN-290298</div>
+                </div>
+            </div>
+
+            {/* Disclaimer */}
+            <div style={{ position: "relative", textAlign: "center" }}>
+                <div style={{ fontSize: 11, fontWeight: 600, marginBottom: 4 }}>
+                    thefinancialdoctor.in
+                </div>
+                <div
+                    style={{
+                        fontSize: 9,
+                        color: "#5C677D",
+                        fontStyle: "italic",
+                        lineHeight: 1.4,
+                    }}
+                >
+                    Generated by TFD-AI — an educational assistant trained on Sagar ji's approach. Not a
+                    substitute for personalised advice. Mutual fund investments are subject to market
+                    risks. Read all scheme-related documents carefully.
+                </div>
             </div>
         </div>
     );
+}
+
+function truncate(s, max) {
+    if (!s) return "";
+    return s.length > max ? s.slice(0, max - 1) + "…" : s;
+}
+
+function stripMd(s, max) {
+    return truncate(stripMdFull(s), max);
+}
+
+// Full markdown strip — preserves entire content (no truncation) for snapshot use.
+// Also collapses immediate duplicate lines/sentences that can leak in from streaming SSE chunks.
+function stripMdFull(s) {
+    if (!s) return "";
+    let out = s
+        .replace(/\*\*(.+?)\*\*/g, "$1")
+        .replace(/\*(.+?)\*/g, "$1")
+        .replace(/`([^`]+)`/g, "$1")
+        .replace(/^#+\s*/gm, "")
+        .replace(/^\s*[-*]\s+/gm, "• ")
+        .replace(/^\s*\|.+\|\s*$/gm, (l) =>
+            l
+                .split("|")
+                .slice(1, -1)
+                .map((c) => c.trim())
+                .filter(Boolean)
+                .join(" · "),
+        )
+        .replace(/^[\s|:\-]+$/gm, "")
+        .replace(/\n{3,}/g, "\n\n");
+    // Collapse exact duplicate adjacent lines (streaming SSE chunk-boundary artefact)
+    out = out
+        .split("\n")
+        .filter((line, i, arr) => i === 0 || line.trim() === "" || line.trim() !== arr[i - 1].trim())
+        .join("\n");
+    // Collapse "Sentence Sentence" → "Sentence" for ≥15-char repeated phrases on same line
+    out = out.replace(/\b([^.!?\n]{15,}?[.!?])\s+\1/g, "$1");
+    return out.trim();
 }
