@@ -25,85 +25,102 @@ or WhatsApp Sagar ji at +91 77738 05794.
 You speak as TFD-AI, not as Sagar ji himself.
 `;
 
+const headers = {
+  "Content-Type": "text/event-stream; charset=utf-8",
+  "Cache-Control": "no-cache",
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+  "Access-Control-Allow-Headers": "Content-Type",
+};
+
 function sse(text) {
   return `data: ${String(text).replace(/\r/g, "").replace(/\n/g, "\ndata: ")}\n\n`;
 }
 
+function done(text) {
+  return new Response(sse(text) + "event: done\ndata: [DONE]\n\n", {
+    status: 200,
+    headers,
+  });
+}
+
 export async function onRequest(context) {
-    if (context.request.method === "OPTIONS") {
-    return new Response(null, {
+  const { request, env } = context;
+
+  if (request.method === "OPTIONS") {
+    return new Response(null, { status: 204, headers });
+  }
+
+  if (request.method === "GET") {
+    return new Response("TFD AI function is live. Use POST for chat.", {
+      status: 200,
       headers: {
+        "Content-Type": "text/plain; charset=utf-8",
         "Access-Control-Allow-Origin": "*",
-        "Access-Control-Allow-Methods": "POST, OPTIONS",
-        "Access-Control-Allow-Headers": "Content-Type",
       },
     });
   }
 
-  if (context.request.method !== "POST") {
-    return new Response("Use POST", { status: 200 });
+  if (request.method !== "POST") {
+    return done("Use POST for TFD-AI chat.");
   }
+
   try {
-    const { request, env } = context;
     const body = await request.json();
     const message = String(body.message || "").trim();
 
     if (!message) {
-      return new Response(sse("Please apna question type karein.") + "event: done\ndata: [DONE]\n\n", {
-        headers: { "Content-Type": "text/event-stream" },
-      });
+      return done("Please apna question type karein.");
     }
 
     if (!env.GEMINI_API_KEY) {
-      return new Response(sse("GEMINI_API_KEY Cloudflare environment me set nahi hai.") + "event: done\ndata: [DONE]\n\n", {
-        headers: { "Content-Type": "text/event-stream" },
-      });
+      return done("GEMINI_API_KEY Cloudflare environment me set nahi hai.");
     }
 
-    const geminiResponse = await fetch("https://generativelanguage.googleapis.com/v1beta/interactions", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-goog-api-key": env.GEMINI_API_KEY,
-      },
-      body: JSON.stringify({
-        model: env.GEMINI_MODEL || "gemini-3.5-flash",
-        system_instruction: TFD_SYSTEM_PROMPT,
-        input: message,
-        generation_config: {
-          temperature: 0.4,
-          thinking_level: "low",
+    const model = env.GEMINI_MODEL || "gemini-2.0-flash";
+
+    const geminiResponse = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${env.GEMINI_API_KEY}`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
         },
-      }),
-    });
+        body: JSON.stringify({
+          systemInstruction: {
+            parts: [{ text: TFD_SYSTEM_PROMPT }],
+          },
+          contents: [
+            {
+              role: "user",
+              parts: [{ text: message }],
+            },
+          ],
+          generationConfig: {
+            temperature: 0.4,
+          },
+        }),
+      }
+    );
+
+    const data = await geminiResponse.json();
 
     if (!geminiResponse.ok) {
-      const detail = await geminiResponse.text();
-      console.log("Gemini error:", detail);
-
-      return new Response(
-        sse("Sorry, abhi AI service connect nahi ho pa rahi hai. Thoda baad try karein ya Sagar ji se direct baat karein.") +
-          "event: done\ndata: [DONE]\n\n",
-        { headers: { "Content-Type": "text/event-stream" } }
+      console.log("Gemini error:", JSON.stringify(data));
+      return done(
+        "Sorry, abhi Gemini AI service connect nahi ho pa rahi hai. API key/model check karein."
       );
     }
 
-    const data = await geminiResponse.json();
-    const answer = data.output_text || "Sorry, main abhi answer generate nahi kar pa raha hoon.";
+    const answer =
+      data?.candidates?.[0]?.content?.parts
+        ?.map((part) => part.text || "")
+        ?.join("") ||
+      "Sorry, main abhi answer generate nahi kar pa raha hoon.";
 
-    return new Response(sse(answer) + "event: done\ndata: [DONE]\n\n", {
-      headers: {
-        "Content-Type": "text/event-stream",
-        "Cache-Control": "no-cache",
-      },
-    });
+    return done(answer);
   } catch (error) {
     console.log("AI function error:", error);
-
-    return new Response(
-      sse("Sorry, abhi technical issue aa gaya hai. Kripya thoda baad try karein.") +
-        "event: done\ndata: [DONE]\n\n",
-      { headers: { "Content-Type": "text/event-stream" } }
-    );
+    return done("Sorry, abhi technical issue aa gaya hai. Kripya thoda baad try karein.");
   }
 }
