@@ -48,7 +48,7 @@ export default function Navbar({ onOpenCareer }) {
             className="h-12 sm:h-14 w-auto object-contain shrink-0"
           />
           <span className="hidden lg:inline-flex items-center border-l border-[#E2D8C2] pl-3 text-[10px] tracking-[0.2em] text-[#5C677D] uppercase">
-            ARN-290298
+            
           </span>
         </a>
 
