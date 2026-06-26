@@ -14,7 +14,7 @@ import html2canvas from "html2canvas";
 import { QRCodeCanvas } from "qrcode.react";
 import { toast } from "sonner";
 import { IDS } from "@/constants/testIds";
-// 🛠️ Step 1: Hook Import without any extra spaces
+// 🛠️ Context Hook Connect Kiya
 import { useModal } from "../context/ModalContext"; 
 
 const ASSETPLUS = "https://www.assetplus.in/mfd/ARN-290298";
@@ -220,7 +220,7 @@ export default function TopFunds() {
     const detailRequestId = useRef(0);
     const itemsPerPage = 4;
 
-    // 🛠️ Step 2: Extract central open hook 
+    // 🎯 Extract central open hook
     const { openGateway } = useModal(); 
 
     useEffect(() => {
@@ -449,7 +449,7 @@ export default function TopFunds() {
                                                     <button onClick={() => openFundDetail(f.code)} className="text-xs font-bold text-white bg-[#024396] hover:bg-[#012E6B] px-4 py-2 rounded-lg transition-all shadow-sm">
                                                         Past Returns Calculator
                                                     </button>
-                                                    {/* 🎯 DESKTOP TABLE BUTTON: Connected to Popup trigger */}
+                                                    {/* 🎯 DESKTOP TABLE BUTTON: Connected to Gateway Popup trigger */}
                                                     <button 
                                                         onClick={openGateway} 
                                                         className="inline-flex items-center gap-1 text-xs font-bold text-white bg-[#00A86B] hover:bg-[#078458] px-4 py-2 rounded-lg transition-all shadow-sm cursor-pointer"
@@ -487,7 +487,7 @@ export default function TopFunds() {
                                         <button onClick={() => openFundDetail(f.code)} className="w-full text-center text-xs font-bold text-white bg-[#024396] py-2.5 rounded-xl shadow-sm block">
                                             Past Calculator
                                         </button>
-                                        {/* 🎯 MOBILE CARD BUTTON: Connected to Popup trigger */}
+                                        {/* 🎯 MOBILE CARD BUTTON: Connected to Gateway Popup trigger */}
                                         <button 
                                             onClick={openGateway} 
                                             className="w-full inline-flex justify-center items-center gap-1 text-xs font-bold text-white bg-[#00A86B] py-2.5 rounded-xl shadow-sm cursor-pointer"
@@ -534,7 +534,7 @@ function FundModal({ data, onClose }) {
     const [downloading, setDownloading] = useState(false);
     const proposalRef = useRef(null);
     
-    // 🛠️ Step 3: Inside Popup Modal trigger fetch
+    // 🎯 Modal Popup Hook Connect
     const { openGateway } = useModal(); 
 
     const selectedStartDate = useMemo(() => {
@@ -815,7 +815,8 @@ function ProposalPage({ refEl, data, calcType, amount, result }) {
                 boxSizing: "border-box",
             }}
         >
-            <div style={{ display: "flex", alignItems: "center", justify= "space-between", marginBottom: 24 }}>
+            {/* 🛠️ FIXED SYNTAX HERE: Replaced equal sign (=) with colon (:) for correct object compilation */}
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 24 }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 18 }}>
                     <img src={TFD_LOGO} crossOrigin="anonymous" alt="TFD" style={{ width: 360, height: 95, objectFit: "contain", border: "1px solid #E2D8C2", borderRadius: 14, background: "#FBF7EE" }} />
                     <div>
