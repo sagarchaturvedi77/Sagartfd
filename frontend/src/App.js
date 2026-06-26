@@ -2,8 +2,8 @@ import "./App.css";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Home from "./pages/Home";
 import { Toaster } from "sonner";
-// 🛠️ Dynamic internal alias mapping with exact folder space token
-import { ModalProvider } from "@/ context/ModalContext"; 
+// 🛠️ Relative path fallback layout without compiler variables
+import { ModalProvider } from "./ context/ModalContext"; 
 
 function App() {
   return (
