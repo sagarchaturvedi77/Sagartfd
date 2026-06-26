@@ -289,98 +289,121 @@ async def fund_detail(code: str):
 
 # -------------- ROUTES: AI Chat (Sagar ji persona) --------------
 
-SAGAR_SYSTEM_PROMPT = """You are 'TFD-AI' — a friendly mutual fund & insurance advisor speaking on behalf of **Sagar Chaturvedi**, founder of **The Financial Doctor** (AMFI Registered MFD · ARN-290298 · Sehore, MP).
+SAGAR_SYSTEM_PROMPT = """
+You are TFD-AI, the official AI assistant for The Financial Doctor and Sagar Chaturvedi.
 
-Personality:
-- Warm, simple, and respectful. Use Hindi-English mix (Hinglish) when natural, otherwise English. Match the user's language.
-- Address users politely (ji, aap). Never be pushy.
-- Always be educational first, recommendation second.
+Business rules:
+- Speak only about The Financial Doctor, Sagar Chaturvedi, and the user's financial planning needs.
+- Do not recommend, promote, compare, or name other advisory businesses, distributors, brokers, agencies, or competitor brands.
+- Answer in the user's language: Hindi, English, or Hinglish.
+- Cover mutual funds, SIP, STP, SWP, ELSS, PPF, NPS, tax planning, insurance, emergency fund, goal planning, retirement planning, and general finance questions.
+- Ask clarifying questions when age, income, dependents, risk profile, time horizon, tax regime, or goal amount is missing.
+- If the question is unrelated, politely refuse and bring the user back to finance, tax, insurance, or planning.
 
-Topics you cover:
-- Mutual Funds: SIP, lumpsum, SWP, ELSS, large/mid/small/flexi cap, debt, hybrid
-- Insurance: term, health, life (endowment/ULIP), motor
-- Tax-saving (ELSS, 80C), goal-based planning (retirement, child education, home)
-- Basic personal finance hygiene (emergency fund, insurance before investment)
+Compliance rules:
+- Keep answers educational.
+- Do not promise guaranteed returns.
+- Do not give stock buy/sell/hold calls.
+- Do not recommend specific mutual fund schemes unless approved data is provided.
+- For tax, explain general rules and ask user to confirm with a qualified tax professional.
+- Never ask for PAN, Aadhaar, OTP, card details, bank password, or full account number.
+- Always add a short risk/disclaimer line for investment or insurance answers.
 
-Hard rules:
-- ALWAYS end recommendations with: "Mutual fund investments are subject to market risks. Read all scheme-related documents carefully."
-- NEVER promise specific returns. Use ranges or historical CAGR with a "past performance is not indicative of future returns" caveat.
-- NEVER share PAN/Aadhaar/OTP requests. If user shares sensitive info, politely tell them not to.
-- Do NOT recommend direct stock picks or speculative products (F&O, crypto).
-- ALWAYS recommend **Regular Plan (Growth option)** mutual funds — NEVER Direct plans. The Financial Doctor is an AMFI-registered distributor (ARN-290298) and only services Regular plans. If a user specifically asks about Direct plans, politely explain that personalised advisory, paperwork, and rebalancing support are provided through Regular plans via AssetPlus, and the small expense-ratio difference is compensated by ongoing hand-holding from Sagar ji.
-- For onboarding / actual investing, direct them to AssetPlus: https://www.assetplus.in/mfd/ARN-290298 or WhatsApp Sagar ji at +91 77738 05794.
-- Keep responses concise (3-6 short paragraphs max). Use markdown sparingly (bullets for lists).
-- If asked about specific NAVs or live returns, mention the user can check the "Top Funds" section on this website (all Regular Plan funds curated by Sagar ji).
-- If user is in distress / asks anything off-topic (politics, gossip), politely redirect to finance.
+For onboarding or actual investing, direct users to:
+https://www.assetplus.in/mfd/ARN-290298
+or WhatsApp Sagar ji at +91 77738 05794.
 
-Sign-off: When user says thanks/bye, sign off as: "— TFD-AI 💚 (on behalf of Sagar ji)"
-
-You speak as TFD-AI, not as Sagar ji himself. You can quote Sagar ji's advice but always clarify you are the AI assistant trained on his approach.
+You speak as TFD-AI, not as Sagar ji himself.
 """
 
 
 class AIChatRequest(BaseModel):
     session_id: str
     message: str = Field(min_length=1, max_length=2000)
+    assistant_profile: Optional[str] = None
 
 
 @api_router.post("/ai/chat")
 async def ai_chat(payload: AIChatRequest):
-    """Streaming SSE endpoint for TFD-AI chatbot using Claude Sonnet 4.6."""
-    try:
-        from emergentintegrations.llm.chat import LlmChat, UserMessage, TextDelta, StreamDone
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"emergentintegrations missing: {e}")
+    gemini_key = os.environ.get("GEMINI_API_KEY")
 
-    api_key = os.environ.get("EMERGENT_LLM_KEY")
-    if not api_key:
-        raise HTTPException(status_code=500, detail="EMERGENT_LLM_KEY not configured")
-
-    chat = LlmChat(
-        api_key=api_key,
-        session_id=payload.session_id,
-        system_message=SAGAR_SYSTEM_PROMPT,
-    ).with_model("anthropic", "claude-sonnet-4-6")
-
-    # Rehydrate history into the chat instance (library maintains its own list internally)
-    # The library will append new messages to its in-memory history per session, so we
-    # store each turn ourselves and pass prior turns in via the system message context if needed.
-    # For our scope, we keep history in MongoDB and stream tokens out.
+    if not gemini_key:
+        raise HTTPException(status_code=500, detail="GEMINI_API_KEY not configured")
 
     full_response_chunks: list[str] = []
 
     async def event_gen():
         try:
-            async for ev in chat.stream_message(UserMessage(text=payload.message)):
-                if isinstance(ev, TextDelta):
-                    full_response_chunks.append(ev.content)
-                    # SSE-style data line
-                    yield f"data: {ev.content}\n\n".replace("\n\n", "\n\n", 1) if False else _sse(ev.content)
-                elif isinstance(ev, StreamDone):
-                    break
+            async with httpx.AsyncClient(timeout=60.0) as cli:
+                response = await cli.post(
+                    "https://generativelanguage.googleapis.com/v1beta/interactions",
+                    headers={
+                        "Content-Type": "application/json",
+                        "x-goog-api-key": gemini_key,
+                    },
+                    json={
+                        "model": os.environ.get("GEMINI_MODEL", "gemini-3.5-flash"),
+                        "system_instruction": SAGAR_SYSTEM_PROMPT,
+                        "input": payload.message,
+                        "generation_config": {
+                            "temperature": 0.4,
+                            "thinking_level": "low",
+                        },
+                    },
+                )
+
+            if response.status_code != 200:
+                logger.warning(f"Gemini error: {response.text}")
+                msg = "Sorry, abhi AI service connect nahi ho pa rahi hai. Thoda baad try karein ya Sagar ji se direct baat karein."
+                full_response_chunks.append(msg)
+                yield _sse(msg)
+                yield "event: done\ndata: [DONE]\n\n"
+                return
+
+            data = response.json()
+            answer = data.get("output_text") or "Sorry, main abhi answer generate nahi kar pa raha hoon."
+
+            full_response_chunks.append(answer)
+            yield _sse(answer)
+            yield "event: done\ndata: [DONE]\n\n"
+
         except Exception as exc:
             logger.exception("AI chat stream error")
-            yield _sse(f"\n\n[error: {exc}]")
+            msg = "Sorry, abhi technical issue aa gaya hai. Kripya thoda baad try karein."
+            full_response_chunks.append(msg)
+            yield _sse(msg)
+            yield "event: done\ndata: [DONE]\n\n"
+
         finally:
-            # Persist the turn
             full_text = "".join(full_response_chunks)
             now = datetime.now(timezone.utc).isoformat()
+
             await db.ai_sessions.update_one(
                 {"session_id": payload.session_id},
                 {
-                    "$setOnInsert": {"session_id": payload.session_id, "created_at": now},
+                    "$setOnInsert": {
+                        "session_id": payload.session_id,
+                        "created_at": now,
+                    },
                     "$push": {
                         "messages": {
                             "$each": [
-                                {"role": "user", "content": payload.message, "ts": now},
-                                {"role": "assistant", "content": full_text, "ts": now},
+                                {
+                                    "role": "user",
+                                    "content": payload.message,
+                                    "ts": now,
+                                },
+                                {
+                                    "role": "assistant",
+                                    "content": full_text,
+                                    "ts": now,
+                                },
                             ]
                         }
                     },
                 },
                 upsert=True,
             )
-            yield "event: done\ndata: [DONE]\n\n"
 
     return StreamingResponse(
         event_gen(),
@@ -394,8 +417,7 @@ async def ai_chat(payload: AIChatRequest):
 
 
 def _sse(text: str) -> str:
-    # Encode preserving newlines using base64-free format: split on \n into multiple data: lines
-    lines = text.split("\n")
+    lines = str(text).replace("\r", "").split("\n")
     return "".join(f"data: {line}\n" for line in lines) + "\n"
 
 
@@ -405,9 +427,7 @@ async def ai_history(session_id: str):
     if not doc:
         return {"session_id": session_id, "messages": []}
     return doc
-
-
-# -------------- mount router --------------
+    # -------------- mount router --------------
 
 app.include_router(api_router)
 
