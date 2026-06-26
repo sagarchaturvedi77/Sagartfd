@@ -3,7 +3,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Home from "./pages/Home";
 import { Toaster } from "sonner";
 // 🛠️ Relative path fallback layout without compiler variables
-import { ModalProvider } from "./ context/ModalContext"; 
+import { ModalProvider } from "./context/ModalContext"; 
 
 function App() {
   return (
