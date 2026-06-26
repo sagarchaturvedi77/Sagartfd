@@ -6,6 +6,7 @@ export default function MarketTicker() {
   useEffect(() => {
     if (!isVisible) return;
 
+    // Purane scripts ko clear karna taaki duplicate na ho
     const existingScript = document.getElementById("tradingview-ticker-script");
     if (existingScript) existingScript.remove();
 
@@ -35,7 +36,7 @@ export default function MarketTicker() {
     }
   }, [isVisible]);
 
-  // Agar user close button daba de, toh null return karo aur space clear karo
+  // Agar user (✕) par click kare, toh layout margins ko automatic reset kar do
   if (!isVisible) {
     return (
       <style>{`
@@ -46,22 +47,22 @@ export default function MarketTicker() {
   }
 
   return (
-    /* 🌐 Fixed Top Container with Cross Button Control */
+    /* 🌐 Fixed Top Strip - Browser Security Safe Container */
     <div className="w-full fixed top-0 left-0 z-[99999] print:hidden bg-[#FBF7EE] flex items-center" style={{ height: "40px", overflow: "hidden" }}>
-      <div id="tradingview-ticker-wrapper" className="tradingview-widget-container flex-1">
+      <div id="tradingview-ticker-wrapper" className="tradingview-widget-container flex-1 h-full">
         <div className="tradingview-widget-container__widget"></div>
       </div>
       
-      {/* ✕ CROSS CLOSE BUTTON */}
+      {/* ✕ USER CONTROL HIDE BUTTON */}
       <button 
         onClick={() => setIsVisible(false)}
-        className="h-full px-3 bg-[#FBF7EE] border-l border-[#E2D8C2] text-[#5C677D] hover:text-[#C7102E] text-xs font-bold transition-colors z-[100000] relative cursor-pointer"
+        className="h-full px-4 bg-[#FBF7EE] border-l border-[#E2D8C2] text-[#5C677D] hover:text-[#C7102E] text-xs font-bold transition-colors z-[100000] relative cursor-pointer"
         title="Hide Market Ticker"
       >
         ✕
       </button>
       
-      {/* 🛠️ GLOBAL LAYOUT DYNAMIC PADDING */}
+      {/* 🛠️ INJECTING INLINE FIXED STYLE SHEETS */}
       <style>{`
         body {
           padding-top: 40px !important;
@@ -69,6 +70,9 @@ export default function MarketTicker() {
         header, nav, .fixed-top, [class*="Navbar"], [class*="header"] {
           top: 40px !important;
           z-index: 9999 !important;
+        }
+        .tradingview-widget-container {
+          height: 40px !important;
         }
       `}</style>
     </div>
