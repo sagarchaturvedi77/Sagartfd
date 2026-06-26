@@ -2,11 +2,8 @@ import React, { useEffect } from "react";
 
 export default function MarketTicker() {
   useEffect(() => {
-    // Purane hooks aur scripts clear karna warning blocks se bachne ke liye
     const existingScript = document.getElementById("tradingview-ticker-script");
-    if (existingScript) {
-      existingScript.remove();
-    }
+    if (existingScript) existingScript.remove();
 
     const script = document.createElement("script");
     script.id = "tradingview-ticker-script";
@@ -27,7 +24,7 @@ export default function MarketTicker() {
       "locale": "in"
     });
 
-    const container = document.getElementById("tradingview-ticker-outer-wrapper");
+    const container = document.getElementById("tradingview-ticker-wrapper");
     if (container) {
       container.innerHTML = '<div class="tradingview-widget-container__widget"></div>';
       container.appendChild(script);
@@ -35,9 +32,9 @@ export default function MarketTicker() {
   }, []);
 
   return (
-    /* 🌐 Premium Fixed Top Bar Layout Container */
-    <div className="w-full bg-[#FBF7EE] border-b border-[#E2D8C2] relative z-[100] print:hidden h-[40px] overflow-hidden">
-      <div id="tradingview-ticker-outer-wrapper" className="tradingview-widget-container w-full h-full">
+    /* 🌐 Fixed Overlay Strip Layout to stop clipping behind logo */
+    <div className="w-full bg-[#FBF7EE] border-b border-[#E2D8C2] relative z-[100] print:hidden min-h-[40px] block clear-both">
+      <div id="tradingview-ticker-wrapper" className="tradingview-widget-container w-full">
         <div className="tradingview-widget-container__widget"></div>
       </div>
     </div>
