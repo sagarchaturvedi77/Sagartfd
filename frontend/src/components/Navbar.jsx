@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from "react";
 import { Menu, X, MessageCircle } from "lucide-react";
 import { IDS } from "@/constants/testIds";
-// 👇 Custom Popup Context Hook Connect Kiya
-import { useModal } from "@/context/ModalContext"; 
+// 🛠️ FIXED SPACE PATH: Header path matching with folder space token
+import { useModal } from "../ context/ModalContext"; 
 
 const LOGO_URL = "https://customer-assets.emergentagent.com/job_advisor-phase4-build/artifacts/buhrts3f_IMG_2870.png";
 
@@ -18,7 +18,6 @@ const links = [
 export default function Navbar() {
   const [scrolled, setScrolled] = useState(false);
   const [open, setOpen] = useState(false);
-  // 👇 Destructured central gateway function
   const { openGateway } = useModal(); 
 
   useEffect(() => {
@@ -52,7 +51,7 @@ export default function Navbar() {
           </span>
         </a>
 
-        {/* DESKTOP NAV NAVIGATION */}
+        {/* DESKTOP NAVIGATION */}
         <nav className="hidden md:flex items-center gap-7 text-[15px] text-[#2A364B]">
           {links.map((l) => (
             <a
@@ -65,7 +64,7 @@ export default function Navbar() {
           ))}
         </nav>
 
-        {/* DESKTOP CTAs */}
+        {/* DESKTOP ACTION BUTTONS */}
         <div className="hidden md:flex items-center gap-6 ml-8">
           <a
             href="https://wa.me/917773805794?text=Hi%20Sagar%20ji%2C%20I%20want%20to%20know%20more%20about%20mutual%20fund%20investments."
@@ -77,7 +76,6 @@ export default function Navbar() {
             <MessageCircle size={16} /> WhatsApp
           </a>
           
-          {/* 🎯 DESKTOP TRIGGERS SECURE POPUP */}
           <button
             onClick={openGateway}
             data-testid={IDS.nav.cta}
@@ -87,7 +85,7 @@ export default function Navbar() {
           </button>
         </div>
 
-        {/* MOBILE BURGER TOGGLE CONTROLLER */}
+        {/* MOBILE BURGER TOGGLE */}
         <button
           onClick={() => setOpen(!open)}
           className="md:hidden text-[#0E1B2C] p-2"
@@ -98,7 +96,7 @@ export default function Navbar() {
         </button>
       </div>
 
-      {/* MOBILE RESPONSIVE DRAWERS SIDEBAR */}
+      {/* MOBILE RESPONSIVE DRAWERS */}
       {open && (
         <div className="md:hidden bg-[#F6F1E8] border-t border-[#E2D8C2] px-6 py-4">
           <ul className="space-y-4">
@@ -114,7 +112,6 @@ export default function Navbar() {
               </li>
             ))}
             <li>
-              {/* 🎯 MOBILE TRIGGERS SECURE POPUP AND CLOSES DRAWER */}
               <button
                 onClick={() => {
                   setOpen(false);
