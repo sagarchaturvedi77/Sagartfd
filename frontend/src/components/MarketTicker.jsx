@@ -6,7 +6,6 @@ export default function MarketTicker() {
   useEffect(() => {
     if (!isVisible) return;
 
-    // Purane scripts aur widgets ko completely clean karna
     const existingScript = document.getElementById("tradingview-tape-script");
     if (existingScript) existingScript.remove();
 
@@ -17,11 +16,11 @@ export default function MarketTicker() {
     script.async = true;
     script.innerHTML = JSON.stringify({
       "symbols": [
-        { "description": "NIFTY 50", "proName": "NSE:NIFTY" },
-        { "description": "SENSEX", "proName": "BSE:SENSEX" },
-        { "description": "BANK NIFTY", "proName": "NSE:BANKNIFTY" },
-        { "description": "GOLD LIVE", "proName": "MCX:GOLD1!" },
-        { "description": "SILVER LIVE", "proName": "MCX:SILVER1!" }
+        { "proName": "INDEX:NIFTY", "title": "NIFTY 50" },
+        { "proName": "INDEX:SENSEX", "title": "SENSEX" },
+        { "proName": "INDEX:BANKNIFTY", "title": "BANK NIFTY" },
+        { "proName": "FX_IDC:XAUUSD", "title": "GOLD LIVE" },
+        { "proName": "FX_IDC:XAGUSD", "title": "SILVER LIVE" }
       ],
       "showSymbolLogo": true,
       "colorTheme": "light",
@@ -37,7 +36,14 @@ export default function MarketTicker() {
     }
   }, [isVisible]);
 
-  if (!isVisible) return null;
+  if (!isVisible) {
+    return (
+      <style>{`
+        body { padding-top: 0px !important; }
+        header, nav { top: 0px !important; }
+      `}</style>
+    );
+  }
 
   return (
     /* 🌐 Fixed Sticky Top Ribbon Layout */
@@ -55,18 +61,16 @@ export default function MarketTicker() {
         ✕
       </button>
 
-      {/* 🛠️ Layout Fixes: Isse body niche shift hogi par header links apni jagah fix rahenge */}
+      {/* 🛠️ Safe Layout Adjustment Layout Without Breaking Alignment Links */}
       <style>{`
         body {
           padding-top: 40px !important;
         }
-        /* Navbar container adjust without breaking item alignments */
-        header, nav, .fixed-top, [class*="Navbar"] {
-          transform: translateY(40px);
-          position: fixed !important;
-          top: 0 !important;
-          left: 0;
-          right: 0;
+        header, nav, .fixed-top {
+          top: 40px !important;
+        }
+        .tradingview-widget-container {
+          height: 40px !important;
         }
       `}</style>
     </div>
