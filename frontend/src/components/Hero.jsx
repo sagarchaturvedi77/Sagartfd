@@ -1,118 +1,116 @@
 import React from "react";
-import { ArrowUpRight, MessageCircle, ShieldCheck, Stethoscope } from "lucide-react";
-import { IDS } from "@/constants/testIds";
+import { MessageCircle, Award, ShieldCheck, Users, Star } from "lucide-react";
+import Reveal from "@/components/Reveal";
+// 🛠️ Step 1: Hook Import
+import { useModal } from "../context/ModalContext";
 
-const SAGAR_PHOTO =
-    "https://customer-assets.emergentagent.com/job_wealth-advisor-111/artifacts/1dwkpp48_D3037D99-4115-4778-83D8-907655A401FD.png";
+const SAGAR_PHOTO = "https://customer-assets.emergentagent.com/job_wealth-advisor-111/artifacts/1dwkpp48_D3037D99-4115-4778-83D8-907655A401FD.png";
+const AWARD_PHOTO = "https://customer-assets.emergentagent.com/job_advisor-phase4-build/artifacts/mshasg7y_IMG_2874.JPG";
 
 export default function Hero() {
-    return (
-        <section id="top" className="relative overflow-hidden pt-32 pb-20 md:pt-40 md:pb-24">
-            {/* Decorative blob */}
-            <div
-                aria-hidden
-                className="absolute -top-32 -right-40 w-[700px] h-[700px] rounded-full opacity-40 blur-3xl"
-                style={{
-                    background:
-                        "radial-gradient(circle at center, rgba(2, 67, 150,0.35) 0%, transparent 60%)",
-                }}
-            />
-            <div
-                aria-hidden
-                className="absolute -bottom-40 -left-40 w-[600px] h-[600px] rounded-full opacity-30 blur-3xl"
-                style={{
-                    background:
-                        "radial-gradient(circle at center, rgba(199, 16, 46,0.35) 0%, transparent 60%)",
-                }}
-            />
+  // 🛠️ Step 2: Extract Trigger
+  const { openGateway } = useModal();
 
-            <div className="container-x px-6 grid md:grid-cols-12 gap-10 items-center relative">
-                {/* Left text */}
-                <div className="md:col-span-7">
-                    <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-[#E2D8C2] bg-[#FBF7EE]/60 text-xs tracking-[0.18em] uppercase text-[#024396] font-semibold">
-                        <ShieldCheck size={14} /> AMFI Registered · ARN-290298
-                    </div>
-
-                    <h1 className="h1 mt-6 text-[#0E1B2C]">
-                        Treating <span className="font-italic-serif text-[#024396]">your</span>
-                        <br /> financial <span className="font-italic-serif text-[#C7102E]">health</span>.
-                    </h1>
-
-                    <p className="mt-6 text-[1.05rem] md:text-lg text-[#2A364B] max-w-xl leading-relaxed">
-                        Trusted by <strong>1000+ families</strong> in Sehore and across MP. Personalised
-                        mutual fund advisory, SIP planning, and end-to-end insurance — all under one roof,
-                        led by <strong>Sagar Chaturvedi</strong>.
-                    </p>
-
-                    <div className="mt-8 flex flex-wrap gap-3">
-                        <a
-                            href="https://www.assetplus.in/mfd/ARN-290298"
-                            target="_blank"
-                            rel="noreferrer"
-                            data-testid={IDS.hero.startInvesting}
-                            className="btn-pill btn-primary"
-                        >
-                            Start Investing
-                            <ArrowUpRight size={16} />
-                        </a>
-                        <a
-                            href="https://wa.me/917773805794?text=Hi%20Sagar%20ji%2C%20I%20want%20to%20know%20more%20about%20mutual%20fund%20investments."
-                            target="_blank"
-                            rel="noreferrer"
-                            data-testid={IDS.hero.whatsapp}
-                            className="btn-pill btn-ghost"
-                        >
-                            <MessageCircle size={16} /> Talk on WhatsApp
-                        </a>
-                    </div>
-
-                    <div className="mt-12 grid grid-cols-3 gap-4 max-w-md">
-                        <div>
-                            <div className="font-display text-3xl text-[#0E1B2C]">1000+</div>
-                            <div className="text-xs uppercase tracking-wider text-[#5C677D] mt-1">
-                                Happy Clients
-                            </div>
-                        </div>
-                        <div>
-                            <div className="font-display text-3xl text-[#0E1B2C]">4.9</div>
-                            <div className="text-xs uppercase tracking-wider text-[#5C677D] mt-1">
-                                Google Rated
-                            </div>
-                        </div>
-                        <div>
-                            <div className="font-display text-3xl text-[#0E1B2C]">40+</div>
-                            <div className="text-xs uppercase tracking-wider text-[#5C677D] mt-1">
-                                AMC Partners
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                {/* Right photo */}
-                <div className="md:col-span-5 relative">
-                    <div className="relative w-full max-w-[460px] mx-auto">
-                        <div className="absolute -inset-6 rounded-[2.5rem] bg-[#024396]/10 -rotate-2" />
-                        <div className="absolute -inset-4 rounded-[2.5rem] bg-[#C7102E]/10 rotate-1" />
-                        <div className="relative rounded-[2.5rem] overflow-hidden border border-[#E2D8C2] bg-[#FBF7EE]">
-                            <img
-                                src={SAGAR_PHOTO}
-                                alt="Sagar Chaturvedi — Founder, The Financial Doctor"
-                                className="w-full h-auto object-cover"
-                                loading="eager"
-                            />
-                            <div className="absolute top-4 left-4 inline-flex items-center gap-2 bg-[#0E1B2C]/85 backdrop-blur text-[#F6F1E8] px-3 py-1.5 rounded-full text-xs">
-                                <Stethoscope size={12} /> Founder
-                            </div>
-                        </div>
-                        <div className="absolute -bottom-6 -left-6 bg-[#0E1B2C] text-[#F6F1E8] rounded-2xl px-5 py-4 max-w-[220px] shadow-xl">
-                            <div className="font-display text-xl">Sagar Chaturvedi</div>
-                            <div className="text-[11px] tracking-[0.18em] uppercase opacity-70 mt-1">
-                                MFD · AMFI Certified
-                            </div>
-                        </div>
-                    </div>
-                </div>
+  return (
+    <section id="top" className="relative min-h-[90vh] pt-32 pb-20 bg-[#F6F1E8] flex items-center overflow-hidden">
+      <div className="container-x grid lg:grid-cols-12 gap-12 items-center relative z-10">
+        
+        {/* LEFT TEXT CONTENT */}
+        <div className="lg:col-span-7 max-w-2xl">
+          <Reveal y={20}>
+            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#024396]/10 text-[#024396] text-xs font-bold uppercase tracking-wider mb-6">
+              <ShieldCheck size={14} /> AMFI Registered · ARN-290298
             </div>
-        </section>
-    );
+          </Reveal>
+          
+          <Reveal delay={100} y={30}>
+            <h1 className="h1 text-[#0E1B2C] leading-[1.1]">
+              Treating <span className="font-italic-serif text-[#024396]">your</span> <br />
+              financial health.
+            </h1>
+          </Reveal>
+
+          <Reveal delay={200} y={20}>
+            <p className="mt-6 text-base sm:text-lg text-[#2A364B] leading-relaxed">
+              Trusted by <b>1000+ families</b> in Sehore and across MP. Personalised mutual fund advisory, 
+              SIP planning, and end-to-end insurance — led by <b>Sagar Chaturvedi</b>.
+            </p>
+          </Reveal>
+
+          <Reveal delay={300} y={20}>
+            <div className="mt-8 flex flex-wrap gap-4">
+              {/* 🎯 TRIGGER FOR POPUP MODAL */}
+              <button 
+                onClick={openGateway}
+                className="btn-pill btn-primary text-sm shadow-md cursor-pointer"
+              >
+                Start Investing ↗
+              </button>
+              
+              <a 
+                href="https://wa.me/917773805794?text=Hi%20Sagar%20ji%2C%20I%20want%20to%20consult%20regarding%20investments." 
+                target="_blank" 
+                rel="noreferrer" 
+                className="btn-pill btn-ghost border border-[#E2D8C2] text-sm"
+              >
+                <MessageCircle size={16} /> Talk on WhatsApp
+              </a>
+            </div>
+          </Reveal>
+
+          {/* SOCIAL STATS TRACK */}
+          <Reveal delay={400} y={15}>
+            <div className="mt-12 grid grid-cols-3 gap-6 pt-8 border-t border-[#E2D8C2] max-w-md">
+              <div>
+                <div className="text-2xl sm:text-3xl font-serif font-bold text-[#0E1B2C]">1000+</div>
+                <div className="text-[10px] uppercase font-bold tracking-wider text-[#5C677D] mt-1">Happy Clients</div>
+              </div>
+              <div>
+                <div className="text-2xl sm:text-3xl font-serif font-bold text-[#0E1B2C] flex items-center gap-1">
+                  4.9 <Star size={16} className="fill-[#C7102E] text-[#C7102E]" />
+                </div>
+                <div className="text-[10px] uppercase font-bold tracking-wider text-[#5C677D] mt-1">Google Rated</div>
+              </div>
+              <div>
+                <div className="text-2xl sm:text-3xl font-serif font-bold text-[#0E1B2C]">40+</div>
+                <div className="text-[10px] uppercase font-bold tracking-wider text-[#5C677D] mt-1">AMC Partners</div>
+              </div>
+            </div>
+          </Reveal>
+        </div>
+
+        {/* RIGHT PICTURE BRANDING STAGE */}
+        <div className="lg:col-span-5 relative flex justify-center">
+          <Reveal delay={200} scale={0.95}>
+            <div className="relative w-[290px] sm:w-[340px] aspect-[4/5] bg-white rounded-3xl border border-[#E2D8C2] shadow-xl p-3 group">
+              <div className="absolute top-6 left-6 z-20 bg-[#0E1B2C] text-[#F6F1E8] px-3 py-1 rounded-full text-[10px] font-bold tracking-wider uppercase flex items-center gap-1.5">
+                <Users size={12} className="text-[#C7102E]" /> Founder
+              </div>
+              <div className="w-full h-full rounded-2xl overflow-hidden bg-[#FBF7EE] relative border border-[#F0EAE1]">
+                <img src={SAGAR_PHOTO} alt="Sagar Chaturvedi" className="w-full h-full object-cover object-top" />
+                <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-[#0E1B2C] to-transparent p-5 pt-20 text-center">
+                  <div className="font-serif text-lg font-bold text-white">Sagar Chaturvedi</div>
+                  <div className="text-[10px] tracking-widest text-[#F6F1E8]/70 uppercase font-bold mt-1">MFD · AMFI Certified</div>
+                </div>
+              </div>
+            </div>
+          </Reveal>
+
+          {/* FLOATING EXCELLENCE AWARD CARD */}
+          <div className="absolute -bottom-6 -left-6 sm:-left-12 max-w-[210px] bg-[#FBF7EE] border border-[#E2D8C2] rounded-2xl p-3 shadow-2xl flex gap-3 items-center animate-bounce-slow">
+            <div className="w-12 h-16 rounded-xl overflow-hidden shrink-0 border border-[#E2D8C2] bg-white">
+              <img src={AWARD_PHOTO} alt="Award" className="w-full h-full object-cover" />
+            </div>
+            <div>
+              <div className="text-[#C7102E] text-[9px] font-extrabold uppercase tracking-widest flex items-center gap-1">
+                <Award size={10} /> Awarded
+              </div>
+              <div className="font-serif text-[11px] font-bold text-[#0E1B2C] leading-tight mt-1">Excellence in Investment Awareness</div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </section>
+  );
 }
