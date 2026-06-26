@@ -1,2 +1,24 @@
 /* App-level styles intentionally minimal — see index.css for global tokens */
 .App { min-height: 100vh; }
+.market-ticker-track {
+    animation: marketTickerScroll 32s linear infinite;
+}
+
+.market-ticker-track:hover {
+    animation-play-state: paused;
+}
+
+@keyframes marketTickerScroll {
+    from {
+        transform: translateX(0);
+    }
+    to {
+        transform: translateX(-50%);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .market-ticker-track {
+        animation: none;
+    }
+}
