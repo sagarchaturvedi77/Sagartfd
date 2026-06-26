@@ -4,13 +4,28 @@ import { toast } from "sonner";
 
 const LOGO_URL = "https://customer-assets.emergentagent.com/job_advisor-phase4-build/artifacts/buhrts3f_IMG_2870.png";
 
+// Cloudinary config (unsigned upload preset — safe for client-side use)
+const CLOUDINARY_CLOUD_NAME = "dq6g81hma";
+const CLOUDINARY_UPLOAD_PRESET = "career_resumes";
+
+async function uploadToCloudinary(file) {
+  const url = `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/auto/upload`;
+  const data = new FormData();
+  data.append("file", file);
+  data.append("upload_preset", CLOUDINARY_UPLOAD_PRESET);
+  const res = await fetch(url, { method: "POST", body: data });
+  const json = await res.json();
+  if (!res.ok || !json.secure_url) {
+    throw new Error(json.error?.message || "Cloudinary upload failed");
+  }
+  return json.secure_url;
+}
+
 export default function CareerPage() {
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
-  
   const [photoFile, setPhotoFile] = useState(null);
   const [resumeFile, setResumeFile] = useState(null);
-
   const [formData, setFormData] = useState({
     fullName: "", fatherName: "", motherName: "", dob: "", gender: "", maritalStatus: "",
     mobile: "", altMobile: "", email: "", city: "", state: "", address: "",
@@ -21,7 +36,7 @@ export default function CareerPage() {
   });
 
   const skillsList = [
-    "MS Excel", "MS Office", "Mutual Fund Knowledge", 
+    "MS Excel", "MS Office", "Mutual Fund Knowledge",
     "Stock Market Knowledge", "Sales", "Customer Handling"
   ];
 
@@ -50,9 +65,16 @@ export default function CareerPage() {
     }
 
     setSubmitting(true);
-    const toastId = toast.loading("Submitting your application to TFD team...");
+    const toastId = toast.loading("Uploading documents...");
 
     try {
+      const [resumeUrl, photoUrl] = await Promise.all([
+        uploadToCloudinary(resumeFile),
+        uploadToCloudinary(photoFile)
+      ]);
+
+      toast.loading("Submitting your application to TFD team...", { id: toastId });
+
       const submissionBody = new FormData();
       submissionBody.append("access_key", "c9710201-be15-4e3f-853d-2e0c734746af");
       submissionBody.append("subject", `New Career Application for ${formData.position} - ${formData.fullName}`);
@@ -66,17 +88,16 @@ export default function CareerPage() {
         }
       });
 
-      // Files are appended directly into FormData container
-      submissionBody.append("Uploaded Resume", resumeFile);
-      submissionBody.append("Candidate Photo", photoFile);
+      submissionBody.append("Resume Link", resumeUrl);
+      submissionBody.append("Photo Link", photoUrl);
 
-      // Browser handles content-type and boundary automatically when headers are omitted
       const response = await fetch("https://api.web3forms.com/submit", {
         method: "POST",
         body: submissionBody
       });
 
       const result = await response.json();
+
       if (response.ok && result.success) {
         toast.success("Application submitted successfully!", { id: toastId });
         setSubmitted(true);
@@ -95,8 +116,6 @@ export default function CareerPage() {
   return (
     <div className="min-h-screen bg-[#FBF7EE] py-8 px-4 sm:px-6 lg:px-8">
       <div className="max-w-3xl mx-auto">
-        
-        {/* BRAND HEADER */}
         <div className="flex items-center justify-between border-b border-[#E2D8C2] pb-5 mb-8">
           <a href="/" className="flex items-center gap-3 group">
             <img
@@ -108,16 +127,14 @@ export default function CareerPage() {
               <span className="font-display text-lg sm:text-xl text-[#0E1B2C] block font-bold tracking-tight">The Financial Doctor</span>
             </div>
           </a>
-          
-          <button 
-            onClick={() => window.location.href = "/"} 
+          <button
+            onClick={() => window.location.href = "/"}
             className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-[#5C677D] hover:text-[#0E1B2C] transition-colors cursor-pointer bg-white px-3 py-2 rounded-xl border border-[#E2D8C2]"
           >
             <ArrowLeft size={14} /> Home
           </button>
         </div>
 
-        {/* WORK CULTURE */}
         <div className="bg-white border border-[#E2D8C2] rounded-3xl p-6 sm:p-8 mb-8 shadow-sm space-y-6">
           <div>
             <h1 className="font-serif text-2xl sm:text-3xl text-[#0E1B2C] font-bold">Work with The Financial Doctor (TFD)</h1>
@@ -125,7 +142,6 @@ export default function CareerPage() {
               We are a fast-growing financial tech-distribution platform providing goal-based regular mutual funds and comprehensive protection planning to families. At TFD, we believe in professional integrity, continuous learning, and a supportive, growth-oriented environment.
             </p>
           </div>
-
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
             <div className="flex gap-3 bg-[#FBF7EE]/60 border border-[#E2D8C2]/60 p-4 rounded-2xl">
               <Users className="text-[#024396] shrink-0" size={22} />
@@ -158,7 +174,6 @@ export default function CareerPage() {
           </div>
         </div>
 
-        {/* APPLICATION FORM */}
         <div className="bg-white border border-[#E2D8C2] rounded-3xl shadow-xl overflow-hidden">
           <div className="px-6 py-6 sm:px-8 bg-[#0E1B2C] text-[#F6F1E8] flex items-center gap-4">
             <div className="p-2.5 bg-white/10 rounded-2xl text-[#C7102E]">
@@ -172,9 +187,7 @@ export default function CareerPage() {
 
           <div className="p-6 sm:p-10">
             {!submitted ? (
-              <form onSubmit={handleSubmit} className="space-y-8" encType="multipart/form-data">
-                
-                {/* SECTION 1: Personal Details */}
+              <form onSubmit={handleSubmit} className="space-y-8">
                 <div>
                   <h4 className="text-xs font-bold uppercase tracking-wider text-[#024396] border-b border-[#E2D8C2] pb-1.5 mb-4">1. Personal Details</h4>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -214,7 +227,6 @@ export default function CareerPage() {
                   </div>
                 </div>
 
-                {/* SECTION 2: Contact Details */}
                 <div>
                   <h4 className="text-xs font-bold uppercase tracking-wider text-[#024396] border-b border-[#E2D8C2] pb-1.5 mb-4">2. Contact Details</h4>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -245,7 +257,6 @@ export default function CareerPage() {
                   </div>
                 </div>
 
-                {/* SECTION 3: Professional Info */}
                 <div>
                   <h4 className="text-xs font-bold uppercase tracking-wider text-[#024396] border-b border-[#E2D8C2] pb-1.5 mb-4">3. Position & Professional Info</h4>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -298,7 +309,6 @@ export default function CareerPage() {
                   </div>
                 </div>
 
-                {/* SECTION 4: Education */}
                 <div>
                   <h4 className="text-xs font-bold uppercase tracking-wider text-[#024396] border-b border-[#E2D8C2] pb-1.5 mb-4">4. Education Parameters</h4>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -326,7 +336,6 @@ export default function CareerPage() {
                   </div>
                 </div>
 
-                {/* SECTION 5: Skills */}
                 <div>
                   <h4 className="text-xs font-bold uppercase tracking-wider text-[#024396] border-b border-[#E2D8C2] pb-1.5 mb-4">5. Skill Repository Selection</h4>
                   <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-3">
@@ -343,19 +352,18 @@ export default function CareerPage() {
                   </div>
                 </div>
 
-                {/* SECTION 6: Document Uploads */}
                 <div>
                   <h4 className="text-xs font-bold uppercase tracking-wider text-[#024396] border-b border-[#E2D8C2] pb-1.5 mb-4">6. Document Uploads</h4>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                       <label className="block text-xs font-medium text-[#5C677D] mb-1.5">Upload Resume (PDF/DOC/DOCX) *</label>
                       <div className={`border border-dashed rounded-xl p-3 text-center transition-colors relative cursor-pointer ${resumeFile ? 'border-emerald-500 bg-emerald-50/20' : 'border-[#E2D8C2] bg-white hover:border-[#024396]'}`}>
-                        <input 
-                          type="file" 
-                          accept=".pdf,.doc,.docx" 
-                          required 
+                        <input
+                          type="file"
+                          accept=".pdf,.doc,.docx"
+                          required
                           onChange={e => setResumeFile(e.target.files[0])}
-                          className="absolute inset-0 opacity-0 cursor-pointer" 
+                          className="absolute inset-0 opacity-0 cursor-pointer"
                         />
                         <div className="flex items-center justify-center gap-2 text-xs text-[#2A364B]">
                           {resumeFile ? (
@@ -370,16 +378,15 @@ export default function CareerPage() {
                         </div>
                       </div>
                     </div>
-
                     <div>
                       <label className="block text-xs font-medium text-[#5C677D] mb-1.5">Candidate Photo *</label>
                       <div className={`border border-dashed rounded-xl p-3 text-center transition-colors relative cursor-pointer ${photoFile ? 'border-emerald-500 bg-emerald-50/20' : 'border-[#E2D8C2] bg-white hover:border-[#024396]'}`}>
-                        <input 
-                          type="file" 
-                          accept="image/*" 
-                          required 
-                          onChange={e => setPhotoFile(e.target.files[0])} 
-                          className="absolute inset-0 opacity-0 cursor-pointer" 
+                        <input
+                          type="file"
+                          accept="image/*"
+                          required
+                          onChange={e => setPhotoFile(e.target.files[0])}
+                          className="absolute inset-0 opacity-0 cursor-pointer"
                         />
                         <div className="flex items-center justify-center gap-2 text-xs text-[#2A364B]">
                           {photoFile ? (
@@ -394,7 +401,6 @@ export default function CareerPage() {
                         </div>
                       </div>
                     </div>
-
                     <div>
                       <label className="block text-xs font-medium text-[#5C677D] mb-1">Reference Name (Optional)</label>
                       <input type="text" placeholder="Enter reference name if applicable" value={formData.refName} onChange={e => setFormData({...formData, refName: e.target.value})} className="w-full bg-white border border-[#E2D8C2] rounded-xl px-4 py-2 text-sm focus:border-[#024396] outline-none" />
@@ -402,7 +408,6 @@ export default function CareerPage() {
                   </div>
                 </div>
 
-                {/* SECTION 7: Motivations */}
                 <div className="space-y-4">
                   <div>
                     <label className="block text-xs font-medium text-[#5C677D] mb-1">Why do you want to join The Financial Doctor? *</label>
@@ -414,7 +419,6 @@ export default function CareerPage() {
                   </div>
                 </div>
 
-                {/* Declarations */}
                 <div className="bg-[#FBF7EE]/60 border border-[#E2D8C2] p-4 rounded-2xl space-y-3">
                   <label className="flex items-start gap-2.5 text-xs text-[#2A364B] cursor-pointer select-none">
                     <input type="checkbox" required checked={formData.declaration1} onChange={e => setFormData({...formData, declaration1: e.target.checked})} className="mt-0.5 rounded text-[#024396] focus:ring-[#024396]" />
@@ -426,14 +430,11 @@ export default function CareerPage() {
                   </label>
                 </div>
 
-                {/* Action Button */}
                 <button type="submit" disabled={submitting} className="w-full bg-[#024396] hover:bg-[#012E6B] disabled:opacity-50 text-[#F6F1E8] font-display font-bold py-3 px-6 rounded-xl shadow-lg transition-colors flex items-center justify-center gap-2 cursor-pointer">
                   {submitting ? "Submitting Application..." : "Submit Application"} <ArrowUpRight size={16} />
                 </button>
               </form>
             ) : (
-              
-              /* SUCCESS THANK YOU CARD */
               <div className="text-center py-12 px-4 space-y-6 max-w-md mx-auto">
                 <div className="w-20 h-20 rounded-full bg-emerald-50 border-4 border-emerald-500/20 grid place-items-center mx-auto text-emerald-500">
                   <CheckCircle size={44} className="stroke-[2.5]" />
