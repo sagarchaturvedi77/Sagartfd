@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { Menu, X, MessageCircle } from "lucide-react";
 import { IDS } from "@/constants/testIds";
-// 🛠️ Absolute token lookup path for navbar matching
+// 🛠️ Exact copy code matching the absolute context space lookup
 import { useModal } from "@/ context/ModalContext"; 
 
 const LOGO_URL = "https://customer-assets.emergentagent.com/job_advisor-phase4-build/artifacts/buhrts3f_IMG_2870.png";
