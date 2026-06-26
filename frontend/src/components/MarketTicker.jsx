@@ -6,73 +6,67 @@ export default function MarketTicker() {
   useEffect(() => {
     if (!isVisible) return;
 
-    // Purane scripts ko clear karna taaki duplicate na ho
-    const existingScript = document.getElementById("tradingview-ticker-script");
+    // Purane scripts aur widgets ko completely clean karna
+    const existingScript = document.getElementById("tradingview-tape-script");
     if (existingScript) existingScript.remove();
 
     const script = document.createElement("script");
-    script.id = "tradingview-ticker-script";
-    script.src = "https://s3.tradingview.com/external-embedding/embed-widget-tickers.js";
+    script.id = "tradingview-tape-script";
+    script.src = "https://s3.tradingview.com/external-embedding/embed-widget-ticker-tape.js";
     script.type = "text/javascript";
     script.async = true;
     script.innerHTML = JSON.stringify({
       "symbols": [
-        { "proName": "NSE:NIFTY", "title": "NIFTY 50" },
-        { "proName": "BSE:SENSEX", "title": "SENSEX" },
-        { "proName": "NSE:BANKNIFTY", "title": "BANK NIFTY" },
-        { "proName": "MCX:GOLD1!", "title": "GOLD LIVE" },
-        { "proName": "MCX:SILVER1!", "title": "SILVER LIVE" }
+        { "description": "NIFTY 50", "proName": "NSE:NIFTY" },
+        { "description": "SENSEX", "proName": "BSE:SENSEX" },
+        { "description": "BANK NIFTY", "proName": "NSE:BANKNIFTY" },
+        { "description": "GOLD LIVE", "proName": "MCX:GOLD1!" },
+        { "description": "SILVER LIVE", "proName": "MCX:SILVER1!" }
       ],
+      "showSymbolLogo": true,
       "colorTheme": "light",
       "isTransparent": false,
-      "showSymbolLogo": true,
+      "displayMode": "adaptive",
       "locale": "in"
     });
 
-    const container = document.getElementById("tradingview-ticker-wrapper");
+    const container = document.getElementById("tradingview-tape-wrapper");
     if (container) {
       container.innerHTML = '<div class="tradingview-widget-container__widget"></div>';
       container.appendChild(script);
     }
   }, [isVisible]);
 
-  // Agar user (✕) par click kare, toh layout margins ko automatic reset kar do
-  if (!isVisible) {
-    return (
-      <style>{`
-        body { padding-top: 0px !important; }
-        header, nav, .fixed-top, [class*="Navbar"], [class*="header"] { top: 0px !important; }
-      `}</style>
-    );
-  }
+  if (!isVisible) return null;
 
   return (
-    /* 🌐 Fixed Top Strip - Browser Security Safe Container */
-    <div className="w-full fixed top-0 left-0 z-[99999] print:hidden bg-[#FBF7EE] flex items-center" style={{ height: "40px", overflow: "hidden" }}>
-      <div id="tradingview-ticker-wrapper" className="tradingview-widget-container flex-1 h-full">
+    /* 🌐 Fixed Sticky Top Ribbon Layout */
+    <div className="w-full fixed top-0 left-0 z-[99999] print:hidden bg-[#FBF7EE] flex items-center shadow-sm" style={{ height: "40px", overflow: "hidden" }}>
+      <div id="tradingview-tape-wrapper" className="tradingview-widget-container flex-1 h-full">
         <div className="tradingview-widget-container__widget"></div>
       </div>
       
-      {/* ✕ USER CONTROL HIDE BUTTON */}
+      {/* ✕ CLOSE BUTTON */}
       <button 
         onClick={() => setIsVisible(false)}
         className="h-full px-4 bg-[#FBF7EE] border-l border-[#E2D8C2] text-[#5C677D] hover:text-[#C7102E] text-xs font-bold transition-colors z-[100000] relative cursor-pointer"
-        title="Hide Market Ticker"
+        title="Hide Ticker"
       >
         ✕
       </button>
-      
-      {/* 🛠️ INJECTING INLINE FIXED STYLE SHEETS */}
+
+      {/* 🛠️ Layout Fixes: Isse body niche shift hogi par header links apni jagah fix rahenge */}
       <style>{`
         body {
           padding-top: 40px !important;
         }
-        header, nav, .fixed-top, [class*="Navbar"], [class*="header"] {
-          top: 40px !important;
-          z-index: 9999 !important;
-        }
-        .tradingview-widget-container {
-          height: 40px !important;
+        /* Navbar container adjust without breaking item alignments */
+        header, nav, .fixed-top, [class*="Navbar"] {
+          transform: translateY(40px);
+          position: fixed !important;
+          top: 0 !important;
+          left: 0;
+          right: 0;
         }
       `}</style>
     </div>
