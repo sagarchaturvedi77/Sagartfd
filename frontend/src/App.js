@@ -1,14 +1,13 @@
-import "@/App.css";
+import "./App.css";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
-import Home from "@/pages/Home";
+import Home from "./pages/Home";
 import { Toaster } from "sonner";
-// 👇 Step 2: ModalProvider ko import kiya
-import { ModalProvider } from "@/context/ModalContext"; 
+// 🛠️ Fixed Path: Direct folder matching applied
+import { ModalProvider } from "./context/ModalContext"; 
 
 function App() {
   return (
     <div className="App">
-      {/* 👇 Step 2: Poore app ko ModalProvider se wrap kar diya */}
       <ModalProvider> 
         <BrowserRouter>
           <Routes>
