@@ -1,0 +1,45 @@
+# ==========================================
+# 🩺 THE FINANCIAL DOCTOR - MASTER REDIRECTS
+# ==========================================
+
+# 🏢 CAREER RELATED WP URLS
+/career-with-us          /career   301
+/careers                 /career   301
+/jobs                    /career   301
+
+# 👥 PARTNER WITH US SEO PAGES
+/partner-with-us         /partner-with-us   301
+/partnership             /partner-with-us   301
+/our-team                /#about            301
+/about-us                /#about            301
+
+# 💼 INDIVIDUAL INSURANCE & SERVICES SEO PAGES
+/services                /#services         301
+/mutual-funds            /#services         301
+/term-insurance          /term-insurance    301
+/life-insurance          /term-insurance    301
+/health-insurance        /health-insurance  301
+/mediclaim               /health-insurance  301
+/motor-insurance         /motor-insurance   301
+/car-insurance           /motor-insurance   301
+/bike-insurance          /motor-insurance   301
+
+# 🧮 ALL WP CALCULATORS -> RE-ROUTING TO OUR SINGLE MAIN CALCULATOR SECTION
+/calculators             /#calculators   301
+/calculator              /#calculators   301
+/sip-calculator          /#calculators   301
+/lumpsum-calculator      /#calculators   301
+/retirement-calculator   /#calculators   301
+/marriage-calculator     /#calculators   301
+/education-calculator    /#calculators   301
+/child-education-calc    /#calculators   301
+/swp-calculator          /#calculators   301
+/stp-calculator          /#calculators   301
+/mutual-fund-calculator  /#calculators   301
+
+# 📞 CONTACT WP URLS
+/contact                 /#contact   301
+/contact-us              /#contact   301
+
+# 🚀 SPA FALLBACK RULE (REACT ROUTER PRESERVATION)
+/* /index.html   200
