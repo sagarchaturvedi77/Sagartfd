@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { Menu, X, MessageCircle } from "lucide-react";
 import { IDS } from "../constants/testIds";
 // 🛠️ Replaced absolute alias directly with clean relative folders pairing
-import { useModal } from "../ context/ModalContext"; 
+import { useModal } from "../context/ModalContext"; 
 
 const LOGO_URL = "https://customer-assets.emergentagent.com/job_advisor-phase4-build/artifacts/buhrts3f_IMG_2870.png";
 
