@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from "react";
 import { Menu, X, MessageCircle } from "lucide-react";
 import { IDS } from "@/constants/testIds";
-// 🛠️ FIXED SPACE PATH: Header path matching with folder space token
-import { useModal } from "../ context/ModalContext"; 
+// 🛠️ Absolute token lookup path for navbar matching
+import { useModal } from "@/ context/ModalContext"; 
 
 const LOGO_URL = "https://customer-assets.emergentagent.com/job_advisor-phase4-build/artifacts/buhrts3f_IMG_2870.png";
 
