@@ -2,35 +2,3 @@
 .App { 
   min-height: 100vh; 
 }
-
-/* 🌐 TradingView Widget Layout Box Fixing */
-.tradingview-widget-container {
-  height: 46px !important;
-  max-height: 46px !important;
-  overflow: hidden;
-  display: block;
-  width: 100%;
-  background-color: #FBF7EE;
-}
-
-/* 👤 Push the main header/nav down naturally so it never clips behind the ticker */
-header, nav, main {
-  position: relative;
-  z-index: 50;
-  clear: both;
-}
-
-/* Fallback ticker tracks code if any */
-.market-ticker-track {
-    animation: marketTickerScroll 32s linear infinite;
-}
-.market-ticker-track:hover {
-    animation-play-state: paused;
-}
-@keyframes marketTickerScroll {
-    from { transform: translateX(0); }
-    to { transform: translateX(-50%); }
-}
-@media (prefers-reduced-motion: reduce) {
-    .market-ticker-track { animation: none; }
-}
