@@ -2,12 +2,16 @@ import React, { useState } from "react";
 import { Upload, CheckCircle, Briefcase, Award, ArrowUpRight, ArrowLeft, Users, ShieldCheck, TrendingUp, Clock } from "lucide-react";
 import { toast } from "sonner";
 
-// 🩺 Official Logo Pairing
 const LOGO_URL = "https://customer-assets.emergentagent.com/job_advisor-phase4-build/artifacts/buhrts3f_IMG_2870.png";
 
 export default function CareerPage() {
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  
+  // File state tracking for UI confirmation
+  const [photoFile, setPhotoFile] = useState(null);
+  const [resumeFile, setResumeFile] = useState(null);
+
   const [formData, setFormData] = useState({
     fullName: "", fatherName: "", motherName: "", dob: "", gender: "", maritalStatus: "",
     mobile: "", altMobile: "", email: "", city: "", state: "", address: "",
@@ -37,34 +41,37 @@ export default function CareerPage() {
       toast.error("Please accept both declaration terms to proceed.");
       return;
     }
+    if (!resumeFile) {
+      toast.error("Please upload your resume.");
+      return;
+    }
+    if (!photoFile) {
+      toast.error("Please upload your candidate photo.");
+      return;
+    }
 
     setSubmitting(true);
-    toast.loading("Submitting your application to TFD team...", { id: "career-page-submit" });
-
-    const submissionBody = new FormData();
-    submissionBody.append("access_key", "c9710201-be15-4e3f-853d-2e0c734746af");
-    submissionBody.append("subject", `New Career Application for ${formData.position} - ${formData.fullName}`);
-    submissionBody.append("from_name", "TFD Career Portal");
-
-    Object.keys(formData).forEach(key => {
-      if (key === "skills") {
-        submissionBody.append("Selected Skills", formData.skills.join(", "));
-      } else {
-        submissionBody.append(key, formData[key]);
-      }
-    });
-
-    const photoFileInput = e.target.querySelector('input[type="file"][accept="image/*"]');
-    if (photoFileInput && photoFileInput.files[0]) {
-      submissionBody.append("Candidate Photo", photoFileInput.files[0]);
-    }
-
-    const resumeFileInput = e.target.querySelector('input[type="file"][accept=".pdf,.doc,.docx"]');
-    if (resumeFileInput && resumeFileInput.files[0]) {
-      submissionBody.append("Uploaded Resume", resumeFileInput.files[0]);
-    }
+    const toastId = toast.loading("Submitting your application to TFD team...");
 
     try {
+      const submissionBody = new FormData();
+      submissionBody.append("access_key", "c9710201-be15-4e3f-853d-2e0c734746af");
+      submissionBody.append("subject", `New Career Application for ${formData.position} - ${formData.fullName}`);
+      submissionBody.append("from_name", "TFD Career Portal");
+
+      // Append text fields
+      Object.keys(formData).forEach(key => {
+        if (key === "skills") {
+          submissionBody.append("Selected Skills", formData.skills.join(", "));
+        } else {
+          submissionBody.append(key, formData[key]);
+        }
+      });
+
+      // Append tracked files securely
+      submissionBody.append("Uploaded Resume", resumeFile);
+      submissionBody.append("Candidate Photo", photoFile);
+
       const response = await fetch("https://api.web3forms.com/submit", {
         method: "POST",
         body: submissionBody
@@ -72,15 +79,15 @@ export default function CareerPage() {
 
       const result = await response.json();
       if (response.ok && result.success) {
-        toast.success("Application submitted successfully!", { id: "career-page-submit" });
+        toast.success("Application submitted successfully!", { id: toastId });
         setSubmitted(true);
         window.scrollTo({ top: 0, behavior: 'smooth' });
       } else {
-        throw new Error(result.message || "Web3Forms submission failed");
+        throw new Error(result.message || "Submission failed");
       }
     } catch (err) {
       console.error(err);
-      toast.error("Submission failed. Please try again later.", { id: "career-page-submit" });
+      toast.error("Submission failed. Please try again later.", { id: toastId });
     } finally {
       setSubmitting(false);
     }
@@ -90,7 +97,7 @@ export default function CareerPage() {
     <div className="min-h-screen bg-[#FBF7EE] py-8 px-4 sm:px-6 lg:px-8">
       <div className="max-w-3xl mx-auto">
         
-        {/* BRAND HEADER */}
+        {/* BRAND HEADER (ARN Code & Sehore Text Removed Perfectly) */}
         <div className="flex items-center justify-between border-b border-[#E2D8C2] pb-5 mb-8">
           <a href="/" className="flex items-center gap-3 group">
             <img
@@ -99,8 +106,7 @@ export default function CareerPage() {
               className="h-12 sm:h-14 w-auto object-contain shrink-0 bg-white p-1 rounded-xl border border-[#E2D8C2]"
             />
             <div>
-              <span className="font-display text-lg sm:text-xl text-[#0E1B2C] block font-bold leading-none tracking-tight">The Financial Doctor</span>
-              <span className="text-[9px] tracking-[0.18em] uppercase text-[#5C677D] font-medium block mt-1">ARN-290298 · SEHORE</span>
+              <span className="font-display text-lg sm:text-xl text-[#0E1B2C] block font-bold tracking-tight">The Financial Doctor</span>
             </div>
           </a>
           
@@ -112,7 +118,7 @@ export default function CareerPage() {
           </button>
         </div>
 
-        {/* WORK CULTURE & BENEFITS CARD */}
+        {/* WORK CULTURE & BENEFITS */}
         <div className="bg-white border border-[#E2D8C2] rounded-3xl p-6 sm:p-8 mb-8 shadow-sm space-y-6">
           <div>
             <h1 className="font-serif text-2xl sm:text-3xl text-[#0E1B2C] font-bold">Work with The Financial Doctor (TFD)</h1>
@@ -129,7 +135,6 @@ export default function CareerPage() {
                 <p className="text-xs text-[#5C677D] mt-1 leading-normal">A friendly, supportive, and execution-oriented workspace where fresh ideas are always prioritized.</p>
               </div>
             </div>
-
             <div className="flex gap-3 bg-[#FBF7EE]/60 border border-[#E2D8C2]/60 p-4 rounded-2xl">
               <TrendingUp className="text-[#C7102E] shrink-0" size={22} />
               <div>
@@ -137,7 +142,6 @@ export default function CareerPage() {
                 <p className="text-xs text-[#5C677D] mt-1 leading-normal">Industry-standard compensation structure with transparent monthly performance incentives.</p>
               </div>
             </div>
-
             <div className="flex gap-3 bg-[#FBF7EE]/60 border border-[#E2D8C2]/60 p-4 rounded-2xl">
               <ShieldCheck className="text-[#024396] shrink-0" size={22} />
               <div>
@@ -145,7 +149,6 @@ export default function CareerPage() {
                 <p className="text-xs text-[#5C677D] mt-1 leading-normal">Complete guidance and support for NISM/AMFI certifications to build your career in wealth management.</p>
               </div>
             </div>
-
             <div className="flex gap-3 bg-[#FBF7EE]/60 border border-[#E2D8C2]/60 p-4 rounded-2xl">
               <Clock className="text-[#C7102E] shrink-0" size={22} />
               <div>
@@ -172,18 +175,10 @@ export default function CareerPage() {
             {!submitted ? (
               <form onSubmit={handleSubmit} className="space-y-8" encType="multipart/form-data">
                 
-                {/* SECTION 1: Personal Details */}
+                {/* SECTION 1: Personal Details (Photo Section Moved Out) */}
                 <div>
                   <h4 className="text-xs font-bold uppercase tracking-wider text-[#024396] border-b border-[#E2D8C2] pb-1.5 mb-4">1. Personal Details</h4>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="md:col-span-2">
-                      <label className="block text-xs font-medium text-[#5C677D] mb-1.5">Candidate Photo *</label>
-                      <div className="border border-dashed border-[#E2D8C2] bg-[#FBF7EE]/40 rounded-xl p-4 text-center hover:border-[#024396] transition-colors cursor-pointer relative">
-                        <input type="file" accept="image/*" required className="absolute inset-0 opacity-0 cursor-pointer" />
-                        <Upload size={20} className="mx-auto text-[#5C677D] mb-1" />
-                        <span className="text-xs text-[#2A364B]">Upload Profile Photo (Max 2MB)</span>
-                      </div>
-                    </div>
                     <div>
                       <label className="block text-xs font-medium text-[#5C677D] mb-1">Full Name *</label>
                       <input type="text" required value={formData.fullName} onChange={e => setFormData({...formData, fullName: e.target.value})} className="w-full bg-white border border-[#E2D8C2] rounded-xl px-4 py-2 text-sm focus:border-[#024396] outline-none" />
@@ -349,20 +344,64 @@ export default function CareerPage() {
                   </div>
                 </div>
 
-                {/* SECTION 6: Files Upload */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-xs font-medium text-[#5C677D] mb-1.5">Upload Resume (PDF/DOC/DOCX) *</label>
-                    <div className="border border-dashed border-[#E2D8C2] bg-white rounded-xl p-3 text-center hover:border-[#024396] transition-colors cursor-pointer relative">
-                      <input type="file" accept=".pdf,.doc,.docx" required className="absolute inset-0 opacity-0 cursor-pointer" />
-                      <div className="flex items-center justify-center gap-2 text-xs text-[#2A364B]">
-                        <Upload size={16} className="text-[#5C677D]" /> Choose Resume File
+                {/* SECTION 6: Files Upload & Candidate Photo Integration */}
+                <div>
+                  <h4 className="text-xs font-bold uppercase tracking-wider text-[#024396] border-b border-[#E2D8C2] pb-1.5 mb-4">6. Document Uploads</h4>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {/* Resume File Input */}
+                    <div>
+                      <label className="block text-xs font-medium text-[#5C677D] mb-1.5">Upload Resume (PDF/DOC/DOCX) *</label>
+                      <div className={`border border-dashed rounded-xl p-3 text-center transition-colors relative cursor-pointer ${resumeFile ? 'border-emerald-500 bg-emerald-50/20' : 'border-[#E2D8C2] bg-white hover:border-[#024396]'}`}>
+                        <input 
+                          type="file" 
+                          accept=".pdf,.doc,.docx" 
+                          required 
+                          onChange={e => setResumeFile(e.target.files[0])}
+                          className="absolute inset-0 opacity-0 cursor-pointer" 
+                        />
+                        <div className="flex items-center justify-center gap-2 text-xs text-[#2A364B]">
+                          {resumeFile ? (
+                            <div className="flex items-center gap-1.5 text-emerald-600 font-bold">
+                              <CheckCircle size={16} /> Selected: {resumeFile.name}
+                            </div>
+                          ) : (
+                            <>
+                              <Upload size={16} className="text-[#5C677D]" /> Choose Resume File
+                            </>
+                          )}
+                        </div>
                       </div>
                     </div>
-                  </div>
-                  <div>
-                    <label className="block text-xs font-medium text-[#5C677D] mb-1">Reference Name (Optional)</label>
-                    <input type="text" placeholder="Enter reference name if applicable" value={formData.refName} onChange={e => setFormData({...formData, refName: e.target.value})} className="w-full bg-white border border-[#E2D8C2] rounded-xl px-4 py-2 text-sm focus:border-[#024396] outline-none" />
+
+                    {/* 🎯 Candidate Photo Section Moved Right Below Resume */}
+                    <div>
+                      <label className="block text-xs font-medium text-[#5C677D] mb-1.5">Candidate Photo *</label>
+                      <div className={`border border-dashed rounded-xl p-3 text-center transition-colors relative cursor-pointer ${photoFile ? 'border-emerald-500 bg-emerald-50/20' : 'border-[#E2D8C2] bg-white hover:border-[#024396]'}`}>
+                        <input 
+                          type="file" 
+                          accept="image/*" 
+                          required 
+                          onChange={e => setPhotoFile(e.target.files[0])} 
+                          className="absolute inset-0 opacity-0 cursor-pointer" 
+                        />
+                        <div className="flex items-center justify-center gap-2 text-xs text-[#2A364B]">
+                          {photoFile ? (
+                            <div className="flex items-center gap-1.5 text-emerald-600 font-bold">
+                              <CheckCircle size={16} /> Photo Selected: {photoFile.name}
+                            </div>
+                          ) : (
+                            <>
+                              <Upload size={16} className="text-[#5C677D]" /> Upload Profile Photo (Max 2MB)
+                            </>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-medium text-[#5C677D] mb-1">Reference Name (Optional)</label>
+                      <input type="text" placeholder="Enter reference name if applicable" value={formData.refName} onChange={e => setFormData({...formData, refName: e.target.value})} className="w-full bg-white border border-[#E2D8C2] rounded-xl px-4 py-2 text-sm focus:border-[#024396] outline-none" />
+                    </div>
                   </div>
                 </div>
 
@@ -398,7 +437,7 @@ export default function CareerPage() {
             ) : (
               
               /* SUCCESS THANK YOU CARD */
-              <div className="text-center py-12 px-4 space-y-6 max-w-md mx-auto animate-fade-in">
+              <div className="text-center py-12 px-4 space-y-6 max-w-md mx-auto">
                 <div className="w-20 h-20 rounded-full bg-emerald-50 border-4 border-emerald-500/20 grid place-items-center mx-auto text-emerald-500">
                   <CheckCircle size={44} className="stroke-[2.5]" />
                 </div>
