@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { Menu, X, MessageCircle } from "lucide-react";
+import { Menu, X, Briefcase } from "lucide-react";
 import { IDS } from "../constants/testIds";
 // 🛠️ Replaced absolute alias directly with clean relative folders pairing
 import { useModal } from "../context/ModalContext"; 
@@ -13,9 +13,10 @@ const links = [
   { id: "services", label: "Services" },
   { id: "reviews", label: "Reviews" },
   { id: "contact", label: "Contact" },
+  { id: "career", label: "Career" }, // 🎯 Added Career right next to Contact
 ];
 
-export default function Navbar() {
+export default function Navbar({ onOpenCareer }) {
   const [scrolled, setScrolled] = useState(false);
   const [open, setOpen] = useState(false);
   const { openGateway } = useModal(); 
@@ -53,29 +54,33 @@ export default function Navbar() {
 
         {/* DESKTOP NAVIGATION */}
         <nav className="hidden md:flex items-center gap-7 text-[15px] text-[#2A364B]">
-          {links.map((l) => (
-            <a
-              key={l.id}
-              href={`#${l.id}`}
-              className="hover:text-[#024396] transition-colors relative"
-            >
-              {l.label}
-            </a>
-          ))}
+          {links.map((l) => {
+            // Check if link is Career to invoke popup state trigger safely
+            if (l.id === "career") {
+              return (
+                <button
+                  key={l.id}
+                  onClick={onOpenCareer}
+                  className="hover:text-[#024396] transition-colors relative font-medium text-[15px]"
+                >
+                  {l.label}
+                </button>
+              );
+            }
+            return (
+              <a
+                key={l.id}
+                href={`#${l.id}`}
+                className="hover:text-[#024396] transition-colors relative"
+              >
+                {l.label}
+              </a>
+            );
+          })}
         </nav>
 
-        {/* DESKTOP ACTION BUTTONS */}
+        {/* DESKTOP ACTION BUTTONS (WhatsApp Removed Perfectly) */}
         <div className="hidden md:flex items-center gap-6 ml-8">
-          <a
-            href="https://wa.me/917773805794?text=Hi%20Sagar%20ji%2C%20I%20want%20to%20know%20more%20about%20mutual%20fund%20investments."
-            target="_blank"
-            rel="noreferrer"
-            data-testid={IDS?.nav?.whatsapp || "nav-whatsapp"}
-            className="btn-pill btn-ghost text-sm"
-          >
-            <MessageCircle size={16} /> WhatsApp
-          </a>
-          
           <button
             onClick={openGateway}
             data-testid={IDS?.nav?.cta || "nav-cta"}
@@ -102,13 +107,25 @@ export default function Navbar() {
           <ul className="space-y-4">
             {links.map((l) => (
               <li key={l.id}>
-                <a
-                  href={`#${l.id}`}
-                  onClick={() => setOpen(false)}
-                  className="text-[#0E1B2C] text-lg font-display block"
-                >
-                  {l.label}
-                </a>
+                {l.id === "career" ? (
+                  <button
+                    onClick={() => {
+                      setOpen(false);
+                      onOpenCareer();
+                    }}
+                    className="text-[#0E1B2C] text-lg font-display block text-left w-full"
+                  >
+                    {l.label}
+                  </button>
+                ) : (
+                  <a
+                    href={`#${l.id}`}
+                    onClick={() => setOpen(false)}
+                    className="text-[#0E1B2C] text-lg font-display block"
+                  >
+                    {l.label}
+                  </a>
+                )}
               </li>
             ))}
             <li>
