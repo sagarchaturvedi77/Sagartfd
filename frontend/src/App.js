@@ -2,7 +2,7 @@ import "./App.css";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Home from "./pages/Home";
 import { Toaster } from "sonner";
-// 🛠️ Absolute internal compiler resolution path
+// 🛠️ Dynamic internal alias mapping with exact folder space token
 import { ModalProvider } from "@/ context/ModalContext"; 
 
 function App() {
