@@ -2,10 +2,11 @@ import "@/App.css";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Home from "@/pages/Home";
 import { Toaster } from "sonner";
-
+import MarketTicker from "@/components/MarketTicker";
 function App() {
     return (
         <div className="App">
+        <MarketTicker />
             <BrowserRouter>
                 <Routes>
                     <Route path="/" element={<Home />} />
