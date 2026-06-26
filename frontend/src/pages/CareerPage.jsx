@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { Upload, CheckCircle, Briefcase, Award, ArrowUpRight, ArrowLeft, Users, ShieldCheck, TrendingUp, Clock } from "lucide-react";
 import { toast } from "sonner";
 
-// 🩺 Exact Branded Logo pairing from your main Navbar layout
+// 🩺 Official Logo Pairing
 const LOGO_URL = "https://customer-assets.emergentagent.com/job_advisor-phase4-build/artifacts/buhrts3f_IMG_2870.png";
 
 export default function CareerPage() {
@@ -34,7 +34,7 @@ export default function CareerPage() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!formData.declaration1 || !formData.declaration2) {
-      toast.error("Kripya dono declaration conditions ko agree karein.");
+      toast.error("Please accept both declaration terms to proceed.");
       return;
     }
 
@@ -80,7 +80,7 @@ export default function CareerPage() {
       }
     } catch (err) {
       console.error(err);
-      toast.error("Submission fail ho gaya. Kripya baad me dobara try karein.", { id: "career-page-submit" });
+      toast.error("Submission failed. Please try again later.", { id: "career-page-submit" });
     } finally {
       setSubmitting(false);
     }
@@ -90,7 +90,7 @@ export default function CareerPage() {
     <div className="min-h-screen bg-[#FBF7EE] py-8 px-4 sm:px-6 lg:px-8">
       <div className="max-w-3xl mx-auto">
         
-        {/* 🩺 BRAND HEADER INTEGRATION WITH EXACT NAVBAR PAIRING */}
+        {/* BRAND HEADER */}
         <div className="flex items-center justify-between border-b border-[#E2D8C2] pb-5 mb-8">
           <a href="/" className="flex items-center gap-3 group">
             <img
@@ -112,12 +112,12 @@ export default function CareerPage() {
           </button>
         </div>
 
-        {/* 🏢 WORK CULTURE & BENEFITS HEADER CARD */}
+        {/* WORK CULTURE & BENEFITS CARD */}
         <div className="bg-white border border-[#E2D8C2] rounded-3xl p-6 sm:p-8 mb-8 shadow-sm space-y-6">
           <div>
             <h1 className="font-serif text-2xl sm:text-3xl text-[#0E1B2C] font-bold">Work with The Financial Doctor (TFD)</h1>
             <p className="text-sm text-[#2A364B] mt-2 leading-relaxed">
-              Hum ek fast-growing financial tech-distribution platform hain jo families ko target-based regular mutual funds aur complete protection planning provide karte hain. TFD me hum professional integrity, constant learning aur ek support-oriented system me believe karte hain.
+              We are a fast-growing financial tech-distribution platform providing goal-based regular mutual funds and comprehensive protection planning to families. At TFD, we believe in professional integrity, continuous learning, and a supportive, growth-oriented environment.
             </p>
           </div>
 
@@ -126,7 +126,7 @@ export default function CareerPage() {
               <Users className="text-[#024396] shrink-0" size={22} />
               <div>
                 <h3 className="text-sm font-bold text-[#0E1B2C]">Great Work Culture</h3>
-                <p className="text-xs text-[#5C677D] mt-1 leading-normal">Friendly, supportive aur execution-oriented workspace jahan har core ideas ko prioritize kiya jata hai.</p>
+                <p className="text-xs text-[#5C677D] mt-1 leading-normal">A friendly, supportive, and execution-oriented workspace where fresh ideas are always prioritized.</p>
               </div>
             </div>
 
@@ -134,7 +134,7 @@ export default function CareerPage() {
               <TrendingUp className="text-[#C7102E] shrink-0" size={22} />
               <div>
                 <h3 className="text-sm font-bold text-[#0E1B2C]">Growth & Incentives</h3>
-                <p className="text-xs text-[#5C677D] mt-1 leading-normal">Industry-best compensation benchmarks, performances tracking aur transparent payout setups.</p>
+                <p className="text-xs text-[#5C677D] mt-1 leading-normal">Industry-standard compensation structure with transparent monthly performance incentives.</p>
               </div>
             </div>
 
@@ -142,21 +142,21 @@ export default function CareerPage() {
               <ShieldCheck className="text-[#024396] shrink-0" size={22} />
               <div>
                 <h3 className="text-sm font-bold text-[#0E1B2C]">Training & Certification</h3>
-                <p className="text-xs text-[#5C677D] mt-1 leading-normal">NISM/AMFI guidance support start-to-finish, taaki aap real capital advisor ban sakein.</p>
+                <p className="text-xs text-[#5C677D] mt-1 leading-normal">Complete guidance and support for NISM/AMFI certifications to build your career in wealth management.</p>
               </div>
             </div>
 
             <div className="flex gap-3 bg-[#FBF7EE]/60 border border-[#E2D8C2]/60 p-4 rounded-2xl">
               <Clock className="text-[#C7102E] shrink-0" size={22} />
               <div>
-                <h3 className="text-sm font-bold text-[#0E1B2C]">Work-Life Flexibility</h3>
-                <p className="text-xs text-[#5C677D] mt-1 leading-normal">Discipline framework ke sath flexibility taaki aap apna best productivity render kar sakein.</p>
+                <h3 className="text-sm font-bold text-[#0E1B2C]">Work-Life Balance</h3>
+                <p className="text-xs text-[#5C677D] mt-1 leading-normal">Structured flexibility designed to support your productivity and personal growth.</p>
               </div>
             </div>
           </div>
         </div>
 
-        {/* APPLICATION FORM CARD CONTAINER */}
+        {/* APPLICATION FORM */}
         <div className="bg-white border border-[#E2D8C2] rounded-3xl shadow-xl overflow-hidden">
           <div className="px-6 py-6 sm:px-8 bg-[#0E1B2C] text-[#F6F1E8] flex items-center gap-4">
             <div className="p-2.5 bg-white/10 rounded-2xl text-[#C7102E]">
@@ -164,7 +164,7 @@ export default function CareerPage() {
             </div>
             <div>
               <h2 className="font-display text-xl sm:text-2xl font-bold tracking-tight">Career Application Form</h2>
-              <p className="text-xs text-[#F6F1E8]/70 mt-0.5">Neeche di gayi sabhi details ko dhyanpurvak fill karein.</p>
+              <p className="text-xs text-[#F6F1E8]/70 mt-0.5">Please carefully fill in all the details below.</p>
             </div>
           </div>
 
@@ -345,7 +345,7 @@ export default function CareerPage() {
                   </div>
                   <div>
                     <label className="block text-xs font-medium text-[#5C677D] mb-1">Other Skills</label>
-                    <input type="text" placeholder="Anya skills yahan likhein..." value={formData.otherSkills} onChange={e => setFormData({...formData, otherSkills: e.target.value})} className="w-full bg-white border border-[#E2D8C2] rounded-xl px-4 py-2 text-sm focus:border-[#024396] outline-none" />
+                    <input type="text" placeholder="Specify other skills here..." value={formData.otherSkills} onChange={e => setFormData({...formData, otherSkills: e.target.value})} className="w-full bg-white border border-[#E2D8C2] rounded-xl px-4 py-2 text-sm focus:border-[#024396] outline-none" />
                   </div>
                 </div>
 
@@ -362,7 +362,7 @@ export default function CareerPage() {
                   </div>
                   <div>
                     <label className="block text-xs font-medium text-[#5C677D] mb-1">Reference Name (Optional)</label>
-                    <input type="text" placeholder="Kiske reference se aaye hain" value={formData.refName} onChange={e => setFormData({...formData, refName: e.target.value})} className="w-full bg-white border border-[#E2D8C2] rounded-xl px-4 py-2 text-sm focus:border-[#024396] outline-none" />
+                    <input type="text" placeholder="Enter reference name if applicable" value={formData.refName} onChange={e => setFormData({...formData, refName: e.target.value})} className="w-full bg-white border border-[#E2D8C2] rounded-xl px-4 py-2 text-sm focus:border-[#024396] outline-none" />
                   </div>
                 </div>
 
@@ -403,15 +403,15 @@ export default function CareerPage() {
                   <CheckCircle size={44} className="stroke-[2.5]" />
                 </div>
                 <div className="space-y-2">
-                  <h3 className="font-serif text-3xl text-[#0E1B2C]">Thank You, Application Received!</h3>
+                  <h3 className="font-serif text-3xl text-[#0E1B2C]">Thank You!</h3>
                   <p className="text-sm text-[#5C677D] leading-relaxed">
-                    Aapki details successfully **TFD Team** ke paas safe pahunch gayi hain. Humari hiring aur management team aapke credentials aur verification files review karke jald hi direct mail ya contact number par aapse संपर्क karegi.
+                    Your application details have been successfully submitted to the **TFD HR Team**. Our recruitment management panel will review your profile and credentials and contact you shortly via email or phone.
                   </p>
                 </div>
                 <div className="bg-[#FBF7EE] border border-[#E2D8C2] p-4 rounded-2xl flex items-center gap-3 text-left">
                   <Award size={24} className="text-[#024396] shrink-0" />
                   <div className="text-xs text-[#2A364B] leading-normal">
-                    Aap tab tak home panel par back jaakar calculators ya active investment matrices check kar sakte hain.
+                    In the meantime, feel free to navigate back to our homepage to explore our investment matrices and wealth diagnostics dashboards.
                   </div>
                 </div>
                 <button onClick={() => window.location.href = "/"} className="w-full bg-[#0E1B2C] text-white py-2.5 rounded-xl font-medium text-sm cursor-pointer transition-colors hover:bg-black">
