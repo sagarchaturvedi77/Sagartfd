@@ -1,22 +1,21 @@
 import React, { useEffect, useState } from "react";
-import { Menu, X, Briefcase } from "lucide-react";
-import { IDS } from "../constants/testIds";
-// 🛠️ Replaced absolute alias directly with clean relative folders pairing
+import { Menu, X } from "lucide-react";
+import { IDS } from "../constants/testIds"; 
 import { useModal } from "../context/ModalContext"; 
 
 const LOGO_URL = "https://customer-assets.emergentagent.com/job_advisor-phase4-build/artifacts/buhrts3f_IMG_2870.png";
 
 const links = [
-  { id: "about", label: "About" },
-  { id: "calc", label: "Calculators" },
-  { id: "funds", label: "Top Funds" },
-  { id: "services", label: "Services" },
-  { id: "reviews", label: "Reviews" },
-  { id: "contact", label: "Contact" },
-  { id: "career", label: "Career" }, // 🎯 Added Career right next to Contact
+  { id: "about", label: "About", isRoute: false },
+  { id: "calc", label: "Calculators", isRoute: false },
+  { id: "funds", label: "Top Funds", isRoute: false },
+  { id: "services", label: "Services", isRoute: false },
+  { id: "reviews", label: "Reviews", isRoute: false },
+  { id: "contact", label: "Contact", isRoute: false },
+  { id: "career", label: "Career", isRoute: true }, // 🎯 Set as strict standalone page route
 ];
 
-export default function Navbar({ onOpenCareer }) {
+export default function Navbar() {
   const [scrolled, setScrolled] = useState(false);
   const [open, setOpen] = useState(false);
   const { openGateway } = useModal(); 
@@ -26,6 +25,25 @@ export default function Navbar({ onOpenCareer }) {
     window.addEventListener("scroll", onScroll);
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
+
+  // Standard click navigation filter handles both internal hash jumps and full layout transitions
+  const handleNavClick = (link, isMobile = false) => {
+    if (isMobile) setOpen(false);
+    
+    if (link.isRoute) {
+      window.location.href = `/${link.id}`;
+    } else {
+      // If client is already on career page, redirect home to clean anchor point
+      if (window.location.pathname !== "/") {
+        window.location.href = `/#${link.id}`;
+      } else {
+        const element = document.getElementById(link.id);
+        if (element) {
+          element.scrollIntoView({ behavior: "smooth" });
+        }
+      }
+    }
+  };
 
   return (
     <header
@@ -38,7 +56,7 @@ export default function Navbar({ onOpenCareer }) {
       <div className="container-x flex items-center justify-between py-4 px-6">
         {/* LOGO LINK */}
         <a
-          href="#top"
+          href="/"
           data-testid={IDS?.nav?.logo || "nav-logo"}
           className="flex items-center gap-3 group"
         >
@@ -47,39 +65,22 @@ export default function Navbar({ onOpenCareer }) {
             alt="The Financial Doctor"
             className="h-12 sm:h-14 w-auto object-contain shrink-0"
           />
-          <span className="hidden lg:inline-flex items-center border-l border-[#E2D8C2] pl-3 text-[10px] tracking-[0.2em] text-[#5C677D] uppercase">
-            
-          </span>
         </a>
 
         {/* DESKTOP NAVIGATION */}
         <nav className="hidden md:flex items-center gap-7 text-[15px] text-[#2A364B]">
-          {links.map((l) => {
-            // Check if link is Career to invoke popup state trigger safely
-            if (l.id === "career") {
-              return (
-                <button
-                  key={l.id}
-                  onClick={onOpenCareer}
-                  className="hover:text-[#024396] transition-colors relative font-medium text-[15px]"
-                >
-                  {l.label}
-                </button>
-              );
-            }
-            return (
-              <a
-                key={l.id}
-                href={`#${l.id}`}
-                className="hover:text-[#024396] transition-colors relative"
-              >
-                {l.label}
-              </a>
-            );
-          })}
+          {links.map((l) => (
+            <button
+              key={l.id}
+              onClick={() => handleNavClick(l)}
+              className="hover:text-[#024396] transition-colors relative font-medium text-[15px] cursor-pointer bg-transparent border-none outline-none"
+            >
+              {l.label}
+            </button>
+          ))}
         </nav>
 
-        {/* DESKTOP ACTION BUTTONS (WhatsApp Removed Perfectly) */}
+        {/* DESKTOP ACTION BUTTONS */}
         <div className="hidden md:flex items-center gap-6 ml-8">
           <button
             onClick={openGateway}
@@ -107,25 +108,12 @@ export default function Navbar({ onOpenCareer }) {
           <ul className="space-y-4">
             {links.map((l) => (
               <li key={l.id}>
-                {l.id === "career" ? (
-                  <button
-                    onClick={() => {
-                      setOpen(false);
-                      onOpenCareer();
-                    }}
-                    className="text-[#0E1B2C] text-lg font-display block text-left w-full"
-                  >
-                    {l.label}
-                  </button>
-                ) : (
-                  <a
-                    href={`#${l.id}`}
-                    onClick={() => setOpen(false)}
-                    className="text-[#0E1B2C] text-lg font-display block"
-                  >
-                    {l.label}
-                  </a>
-                )}
+                <button
+                  onClick={() => handleNavClick(l, true)}
+                  className="text-[#0E1B2C] text-lg font-display block text-left w-full cursor-pointer"
+                >
+                  {l.label}
+                </button>
               </li>
             ))}
             <li>
