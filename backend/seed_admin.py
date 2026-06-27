@@ -10,8 +10,8 @@ from auth_utils import hash_password
 from database import users_collection
 
 ADMIN_NAME = "Sagar Chaturvedi"
-ADMIN_EMAIL = "admin@thefinancialdoctor.in"   # change before running
-ADMIN_PASSWORD = "ChangeThisPassword123!"      # change before running
+ADMIN_EMAIL = "ceo@thefinancialdoctor.in"
+ADMIN_PASSWORD = "Sagar@123"
 
 
 async def seed():

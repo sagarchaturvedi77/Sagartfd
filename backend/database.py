@@ -1,7 +1,10 @@
 import os
+from pathlib import Path
+from dotenv import load_dotenv
 from motor.motor_asyncio import AsyncIOMotorClient
 
-# 🗄️ MongoDB connection. Set MONGO_URL and DB_NAME in your .env file.
+load_dotenv(Path(__file__).parent / '.env')
+
 MONGO_URL = os.environ.get("MONGO_URL", "mongodb://localhost:27017")
 DB_NAME = os.environ.get("DB_NAME", "tfd_crm")
 
