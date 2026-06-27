@@ -14,18 +14,12 @@ import { QRCodeCanvas } from "qrcode.react";
 import { toast } from "sonner";
 import { IDS } from "@/constants/testIds";
 import { CALC_RECOMMENDATIONS } from "@/lib/recommendations";
-// 🛠️ Step 1: Hook Import bina kisi space ke
+import { LINKS } from "@/lib/links";
+import { fmtINR } from "@/lib/format";
+import { LOGO_URL, SAGAR_PHOTO } from "@/lib/constants";
 import { useModal } from "../context/ModalContext";
 
-const TFD_BRAND_URL = "https://www.assetplus.in/mfd/ARN-290298";
-
-const fmtINR = (n) => {
-    if (!isFinite(n)) return "₹0";
-    if (n >= 1e7) return `₹${(n / 1e7).toFixed(2)} Cr`;
-    if (n >= 1e5) return `₹${(n / 1e5).toFixed(2)} L`;
-    if (n >= 1e3) return `₹${(n / 1e3).toFixed(1)} K`;
-    return `₹${Math.round(n).toLocaleString("en-IN")}`;
-};
+const TFD_BRAND_URL = LINKS.assetPlus;
 
 // ---------- Calculations ----------
 function sipCalc(monthly, years, rateAnnual, stepUpPct = 0) {
@@ -525,8 +519,7 @@ function Metric({ label, value, primary }) {
     );
 }
 
-const SAGAR_PHOTO = "https://customer-assets.emergentagent.com/job_wealth-advisor-111/artifacts/1dwkpp48_D3037D99-4115-4778-83D8-907655A401FD.png";
-const TFD_LOGO = "https://customer-assets.emergentagent.com/job_advisor-phase4-build/artifacts/buhrts3f_IMG_2870.png";
+const TFD_LOGO = LOGO_URL;
 
 function projectExtended(tab, baseState, extraYears) {
     switch (tab) {

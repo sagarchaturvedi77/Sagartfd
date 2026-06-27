@@ -1,8 +1,7 @@
 import React from "react";
 import { Instagram, Youtube, Linkedin, MessageCircle, Sparkles } from "lucide-react";
-
-const LOGO_URL =
-    "https://customer-assets.emergentagent.com/job_advisor-phase4-build/artifacts/buhrts3f_IMG_2870.png";
+import { LOGO_URL } from "@/lib/constants";
+import { LINKS } from "@/lib/links";
 
 export default function Footer() {
     return (
@@ -29,10 +28,10 @@ export default function Footer() {
                         Empowering 1000+ families across Madhya Pradesh with goal-based planning.
                     </p>
                     <div className="flex flex-wrap gap-3 mt-6">
-                        <Social href="https://www.instagram.com/the_financial.doctor" icon={Instagram} label="Instagram" />
-                        <Social href="https://youtube.com/@the_financial_doctor" icon={Youtube} label="YouTube" />
-                        <Social href="https://www.linkedin.com/in/sagarchaturvedisehore" icon={Linkedin} label="LinkedIn" />
-                        <Social href="https://chat.whatsapp.com/JEb2Ilngiq45oqyUQDMFSX" icon={MessageCircle} label="WhatsApp Community" />
+                        <Social href={LINKS.instagram} icon={Instagram} label="Instagram" />
+                        <Social href={LINKS.youtube} icon={Youtube} label="YouTube" />
+                        <Social href={LINKS.linkedin} icon={Linkedin} label="LinkedIn" />
+                        <Social href={LINKS.whatsappCommunity} icon={MessageCircle} label="WhatsApp Community" />
                     </div>
                     <a
                         href="#ai-chat"

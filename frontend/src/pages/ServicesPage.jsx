@@ -1,8 +1,6 @@
 import React from "react";
-import Navbar from "@/components/Navbar";
+import PageLayout from "@/components/PageLayout";
 import Services from "@/components/Services";
-import Footer from "@/components/Footer";
-import FloatingActions from "@/components/FloatingActions";
 import FAQSection from "@/components/FAQSection";
 
 const IMG_HEALTH = "https://images.unsplash.com/photo-1576091160550-2173dba999ef?w=800&q=80";
@@ -82,12 +80,9 @@ const servicesFAQ = {
 
 export default function ServicesPage() {
   return (
-    <div className="relative" data-testid="services-page-root">
-      <Navbar />
-      <main className="pt-24">
+    <PageLayout testId="services-page-root">
         <Services />
 
-        {/* INSURANCE TYPES — WHY EACH MATTERS */}
         <section className="bg-[#FBF7EE] py-16 px-6">
           <div className="container-x max-w-5xl mx-auto">
             <h2 className="text-3xl font-serif text-[#0E1B2C] mb-3 text-center">
@@ -120,9 +115,6 @@ export default function ServicesPage() {
         </section>
 
         <FAQSection title="Services — Frequently Asked Questions" data={servicesFAQ} />
-      </main>
-      <Footer />
-      <FloatingActions />
-    </div>
+    </PageLayout>
   );
 }

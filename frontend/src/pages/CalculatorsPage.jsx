@@ -1,8 +1,6 @@
 import React from "react";
-import Navbar from "@/components/Navbar";
+import PageLayout from "@/components/PageLayout";
 import Calculators from "@/components/Calculators";
-import Footer from "@/components/Footer";
-import FloatingActions from "@/components/FloatingActions";
 import FAQSection from "@/components/FAQSection";
 import StepUpSipCalculator from "@/components/StepUpSipCalculator";
 
@@ -38,12 +36,9 @@ const calcFAQ = {
 
 export default function CalculatorsPage() {
   return (
-    <div className="relative" data-testid="calculators-page-root">
-      <Navbar />
-      <main className="pt-24">
+    <PageLayout testId="calculators-page-root">
         <Calculators />
 
-        {/* EXTRA: STEP-UP SIP CALCULATOR */}
         <section className="bg-white py-16 px-6">
           <div className="container-x max-w-3xl mx-auto">
             <h2 className="text-3xl font-serif text-[#0E1B2C] mb-3 text-center">
@@ -57,7 +52,6 @@ export default function CalculatorsPage() {
           </div>
         </section>
 
-        {/* CALCULATOR GUIDE */}
         <section className="bg-[#FBF7EE] py-16 px-6">
           <div className="container-x max-w-5xl mx-auto">
             <h2 className="text-3xl font-serif text-[#0E1B2C] mb-3 text-center">
@@ -82,9 +76,6 @@ export default function CalculatorsPage() {
         </section>
 
         <FAQSection title="Calculators — Frequently Asked Questions" data={calcFAQ} />
-      </main>
-      <Footer />
-      <FloatingActions />
-    </div>
+    </PageLayout>
   );
 }

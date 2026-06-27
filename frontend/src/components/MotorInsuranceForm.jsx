@@ -1,5 +1,7 @@
 import React, { useState } from "react";
 import { X, Car, Send } from "lucide-react";
+import { WHATSAPP_NUMBER } from "@/lib/constants";
+import { FormFieldBlock as Field } from "@/components/FormField";
 
 const ADDONS = [
     "Zero Depreciation",
@@ -8,8 +10,6 @@ const ADDONS = [
     "Personal Accident Cover",
     "NCB Protection",
 ];
-
-const WHATSAPP_NUMBER = "917773805794";
 
 export default function MotorInsuranceForm({ open, onClose }) {
     const [form, setForm] = useState({
@@ -180,17 +180,6 @@ export default function MotorInsuranceForm({ open, onClose }) {
                     </p>
                 </form>
             </div>
-        </div>
-    );
-}
-
-function Field({ label, required, children }) {
-    return (
-        <div>
-            <label className="text-[12px] uppercase tracking-[0.1em] text-[#5C677D] mb-1.5 block">
-                {label} {required && <span className="text-[#C7102E]">*</span>}
-            </label>
-            {children}
         </div>
     );
 }

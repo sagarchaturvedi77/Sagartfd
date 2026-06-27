@@ -1,8 +1,6 @@
 import React from "react";
-import Navbar from "@/components/Navbar";
+import PageLayout from "@/components/PageLayout";
 import Contact from "@/components/Contact";
-import Footer from "@/components/Footer";
-import FloatingActions from "@/components/FloatingActions";
 import FAQSection from "@/components/FAQSection";
 
 const info = [
@@ -34,12 +32,9 @@ const contactFAQ = {
 
 export default function ContactPage() {
   return (
-    <div className="relative" data-testid="contact-page-root">
-      <Navbar />
-      <main className="pt-24">
+    <PageLayout testId="contact-page-root">
         <Contact />
 
-        {/* EXTRA DETAILED CONTENT */}
         <section className="bg-[#FBF7EE] py-16 px-6">
           <div className="container-x max-w-4xl mx-auto">
             <h2 className="text-2xl font-serif text-[#0E1B2C] mb-8 text-center">
@@ -57,9 +52,6 @@ export default function ContactPage() {
         </section>
 
         <FAQSection title="Contact — Frequently Asked Questions" data={contactFAQ} />
-      </main>
-      <Footer />
-      <FloatingActions />
-    </div>
+    </PageLayout>
   );
 }

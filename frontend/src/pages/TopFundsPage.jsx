@@ -1,8 +1,6 @@
 import React from "react";
-import Navbar from "@/components/Navbar";
+import PageLayout from "@/components/PageLayout";
 import TopFunds from "@/components/TopFunds";
-import Footer from "@/components/Footer";
-import FloatingActions from "@/components/FloatingActions";
 import FAQSection from "@/components/FAQSection";
 import CompareFunds from "@/components/CompareFunds";
 
@@ -41,12 +39,9 @@ const fundsFAQ = {
 
 export default function TopFundsPage() {
   return (
-    <div className="relative" data-testid="top-funds-page-root">
-      <Navbar />
-      <main className="pt-24">
+    <PageLayout testId="top-funds-page-root">
         <TopFunds />
 
-        {/* FUND CATEGORIES */}
         <section className="bg-[#FBF7EE] py-16 px-6">
           <div className="container-x max-w-5xl mx-auto">
             <h2 className="text-3xl font-serif text-[#0E1B2C] mb-3 text-center">
@@ -70,13 +65,9 @@ export default function TopFundsPage() {
           </div>
         </section>
 
-        {/* COMPARE FUNDS TOOL */}
         <CompareFunds />
 
         <FAQSection title="Top Funds — Frequently Asked Questions" data={fundsFAQ} />
-      </main>
-      <Footer />
-      <FloatingActions />
-    </div>
+    </PageLayout>
   );
 }

@@ -1,29 +1,18 @@
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import { X, Stethoscope, Phone, User, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import { api } from "@/lib/api";
+import usePopupDismiss from "@/hooks/usePopupDismiss";
 
 const STORAGE_KEY = "tfd_lead_popup_v1";
 const SHOW_AFTER_MS = 5000;
 
 export default function LeadPopup() {
-    const [open, setOpen] = useState(false);
+    const { open, setOpen, dismiss } = usePopupDismiss(STORAGE_KEY, SHOW_AFTER_MS);
     const [submitted, setSubmitted] = useState(false);
     const [name, setName] = useState("");
     const [phone, setPhone] = useState("");
     const [loading, setLoading] = useState(false);
-
-    useEffect(() => {
-        // If user has previously dismissed/submitted, don't show again
-        if (localStorage.getItem(STORAGE_KEY)) return;
-        const t = setTimeout(() => setOpen(true), SHOW_AFTER_MS);
-        return () => clearTimeout(t);
-    }, []);
-
-    const dismiss = (reason = "dismissed") => {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify({ reason, at: Date.now() }));
-        setOpen(false);
-    };
 
     const submit = async (e) => {
         e.preventDefault();

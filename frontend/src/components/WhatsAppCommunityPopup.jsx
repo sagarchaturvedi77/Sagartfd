@@ -1,9 +1,9 @@
 import React, { useEffect, useState } from "react";
 import { X, MessageCircle, Sparkles, TrendingUp, Bell, Lightbulb } from "lucide-react";
+import { LINKS } from "@/lib/links";
 
 const STORAGE_KEY = "tfd_wa_community_popup_v1";
 const SHOW_AFTER_MS = 10000;
-const COMMUNITY_LINK = "https://chat.whatsapp.com/JEb2Ilngiq45oqyUQDMFSX";
 
 const perks = [
     { icon: TrendingUp, text: "Daily MF picks & NAV updates" },
@@ -43,7 +43,7 @@ export default function WhatsAppCommunityPopup() {
 
     const join = () => {
         localStorage.setItem(STORAGE_KEY, JSON.stringify({ reason: "joined", at: Date.now() }));
-        window.open(COMMUNITY_LINK, "_blank", "noopener,noreferrer");
+        window.open(LINKS.whatsappCommunity, "_blank", "noopener,noreferrer");
         setOpen(false);
     };
 

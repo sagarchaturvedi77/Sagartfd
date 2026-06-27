@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { Upload, CheckCircle, Briefcase, Award, ArrowUpRight, ArrowLeft, Users, ShieldCheck, TrendingUp, Clock } from "lucide-react";
 import { toast } from "sonner";
 
-const LOGO_URL = "https://customer-assets.emergentagent.com/job_advisor-phase4-build/artifacts/buhrts3f_IMG_2870.png";
+import { LOGO_URL } from "@/lib/constants";
 
 // Cloudinary config (unsigned upload preset — safe for client-side use)
 const CLOUDINARY_CLOUD_NAME = "dq6g81hma";
