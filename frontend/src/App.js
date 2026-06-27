@@ -2,37 +2,51 @@ import "./App.css";
 import React from "react";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Home from "./pages/Home";
-import CareerPage from "./pages/CareerPage"; 
+import CareerPage from "./pages/CareerPage";
+import AboutPage from "./pages/AboutPage";
+import CalculatorsPage from "./pages/CalculatorsPage";
+import TopFundsPage from "./pages/TopFundsPage";
+import ServicesPage from "./pages/ServicesPage";
+import ReviewsPage from "./pages/ReviewsPage";
+import ContactPage from "./pages/ContactPage";
 import { Toaster } from "sonner";
-import { ModalProvider } from "./context/ModalContext"; 
+import { ModalProvider } from "./context/ModalContext";
 
 // 🩺 TEMPORARY PLACEHOLDERS (Design ready hone par inhe alag files me daal denge)
-const AboutPage = () => <div className="min-h-screen bg-[#FBF7EE] p-20 text-center text-3xl font-serif">About TFD Team (Coming Soon)</div>;
 const TermInsurancePage = () => <div className="min-h-screen bg-[#FBF7EE] p-20 text-center text-3xl font-serif">Term Insurance Solutions (Coming Soon)</div>;
 const HealthInsurancePage = () => <div className="min-h-screen bg-[#FBF7EE] p-20 text-center text-3xl font-serif">Health Insurance (Mediclaim) (Coming Soon)</div>;
 const MotorInsurancePage = () => <div className="min-h-screen bg-[#FBF7EE] p-20 text-center text-3xl font-serif">Motor (Car/Bike) Insurance (Coming Soon)</div>;
 const PartnerPage = () => <div className="min-h-screen bg-[#FBF7EE] p-20 text-center text-3xl font-serif">Partner With TFD Team (Coming Soon)</div>;
 
-// 🧮 UNIFIED CALCULATOR ROUTE (Har calculator link direct isi single page pr aayegi)
-const CalculatorsPage = () => <div className="min-h-screen bg-[#FBF7EE] p-20 text-center text-3xl font-serif">TFD All-in-One Money Calculators (Coming Soon)</div>;
-
 function App() {
   return (
     <div className="App">
-      <ModalProvider> 
+      <ModalProvider>
         <BrowserRouter>
           <Routes>
             {/* 🏠 Main Homepage */}
             <Route path="/" element={<Home />} />
-            
+
             {/* 🎯 Career & Hiring Page */}
             <Route path="/career" element={<CareerPage />} />
 
-            {/* 👤 About TFD Section */}
+            {/* 👤 About TFD Section — now its own dedicated page */}
             <Route path="/about" element={<AboutPage />} />
 
-            {/* 🧮 Single Unified Calculators Page (Handle all traffic) */}
+            {/* 🧮 Calculators — now its own dedicated page */}
             <Route path="/calculators" element={<CalculatorsPage />} />
+
+            {/* 📈 Top Funds — now its own dedicated page */}
+            <Route path="/top-funds" element={<TopFundsPage />} />
+
+            {/* 🛠️ Services — now its own dedicated page */}
+            <Route path="/services" element={<ServicesPage />} />
+
+            {/* ⭐ Reviews — now its own dedicated page */}
+            <Route path="/reviews" element={<ReviewsPage />} />
+
+            {/* 📞 Contact — now its own dedicated page (addon) */}
+            <Route path="/contact" element={<ContactPage />} />
 
             {/* 💼 Insurance Categories */}
             <Route path="/term-insurance" element={<TermInsurancePage />} />
