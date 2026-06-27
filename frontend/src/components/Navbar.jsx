@@ -1,24 +1,27 @@
 import React, { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Menu, X } from "lucide-react";
-import { IDS } from "../constants/testIds"; 
-import { useModal } from "../context/ModalContext"; 
+import { IDS } from "../constants/testIds";
+import { useModal } from "../context/ModalContext";
 
 const LOGO_URL = "https://customer-assets.emergentagent.com/job_advisor-phase4-build/artifacts/buhrts3f_IMG_2870.png";
 
+// 🎯 Every section now has its own dedicated page + URL
 const links = [
-  { id: "about", label: "About", isRoute: false },
-  { id: "calc", label: "Calculators", isRoute: false },
-  { id: "funds", label: "Top Funds", isRoute: false },
-  { id: "services", label: "Services", isRoute: false },
-  { id: "reviews", label: "Reviews", isRoute: false },
-  { id: "contact", label: "Contact", isRoute: false },
-  { id: "career", label: "Career", isRoute: true }, // 🎯 Set as strict standalone page route
+  { id: "about", label: "About", path: "/about" },
+  { id: "calc", label: "Calculators", path: "/calculators" },
+  { id: "funds", label: "Top Funds", path: "/top-funds" },
+  { id: "services", label: "Services", path: "/services" },
+  { id: "reviews", label: "Reviews", path: "/reviews" },
+  { id: "contact", label: "Contact", path: "/contact" },
+  { id: "career", label: "Career", path: "/career" },
 ];
 
 export default function Navbar() {
   const [scrolled, setScrolled] = useState(false);
   const [open, setOpen] = useState(false);
-  const { openGateway } = useModal(); 
+  const { openGateway } = useModal();
+  const navigate = useNavigate();
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 20);
@@ -26,23 +29,11 @@ export default function Navbar() {
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
-  // Standard click navigation filter handles both internal hash jumps and full layout transitions
+  // SPA navigation: no full page reload, instant route change
   const handleNavClick = (link, isMobile = false) => {
     if (isMobile) setOpen(false);
-    
-    if (link.isRoute) {
-      window.location.href = `/${link.id}`;
-    } else {
-      // If client is already on career page, redirect home to clean anchor point
-      if (window.location.pathname !== "/") {
-        window.location.href = `/#${link.id}`;
-      } else {
-        const element = document.getElementById(link.id);
-        if (element) {
-          element.scrollIntoView({ behavior: "smooth" });
-        }
-      }
-    }
+    navigate(link.path);
+    window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
   return (
