@@ -11,6 +11,7 @@ import ReviewsPage from "./pages/ReviewsPage";
 import ContactPage from "./pages/ContactPage";
 import { Toaster } from "sonner";
 import { ModalProvider } from "./context/ModalContext";
+import { LanguageProvider } from "./context/LanguageContext";
 
 // 🩺 TEMPORARY PLACEHOLDERS (Design ready hone par inhe alag files me daal denge)
 const TermInsurancePage = () => <div className="min-h-screen bg-[#FBF7EE] p-20 text-center text-3xl font-serif">Term Insurance Solutions (Coming Soon)</div>;
@@ -21,54 +22,56 @@ const PartnerPage = () => <div className="min-h-screen bg-[#FBF7EE] p-20 text-ce
 function App() {
   return (
     <div className="App">
-      <ModalProvider>
-        <BrowserRouter>
-          <Routes>
-            {/* 🏠 Main Homepage */}
-            <Route path="/" element={<Home />} />
+      <LanguageProvider>
+        <ModalProvider>
+          <BrowserRouter>
+            <Routes>
+              {/* 🏠 Main Homepage */}
+              <Route path="/" element={<Home />} />
 
-            {/* 🎯 Career & Hiring Page */}
-            <Route path="/career" element={<CareerPage />} />
+              {/* 🎯 Career & Hiring Page */}
+              <Route path="/career" element={<CareerPage />} />
 
-            {/* 👤 About TFD Section — now its own dedicated page */}
-            <Route path="/about" element={<AboutPage />} />
+              {/* 👤 About TFD Section — now its own dedicated page */}
+              <Route path="/about" element={<AboutPage />} />
 
-            {/* 🧮 Calculators — now its own dedicated page */}
-            <Route path="/calculators" element={<CalculatorsPage />} />
+              {/* 🧮 Calculators — now its own dedicated page */}
+              <Route path="/calculators" element={<CalculatorsPage />} />
 
-            {/* 📈 Top Funds — now its own dedicated page */}
-            <Route path="/top-funds" element={<TopFundsPage />} />
+              {/* 📈 Top Funds — now its own dedicated page */}
+              <Route path="/top-funds" element={<TopFundsPage />} />
 
-            {/* 🛠️ Services — now its own dedicated page */}
-            <Route path="/services" element={<ServicesPage />} />
+              {/* 🛠️ Services — now its own dedicated page */}
+              <Route path="/services" element={<ServicesPage />} />
 
-            {/* ⭐ Reviews — now its own dedicated page */}
-            <Route path="/reviews" element={<ReviewsPage />} />
+              {/* ⭐ Reviews — now its own dedicated page */}
+              <Route path="/reviews" element={<ReviewsPage />} />
 
-            {/* 📞 Contact — now its own dedicated page (addon) */}
-            <Route path="/contact" element={<ContactPage />} />
+              {/* 📞 Contact — now its own dedicated page */}
+              <Route path="/contact" element={<ContactPage />} />
 
-            {/* 💼 Insurance Categories */}
-            <Route path="/term-insurance" element={<TermInsurancePage />} />
-            <Route path="/health-insurance" element={<HealthInsurancePage />} />
-            <Route path="/motor-insurance" element={<MotorInsurancePage />} />
+              {/* 💼 Insurance Categories */}
+              <Route path="/term-insurance" element={<TermInsurancePage />} />
+              <Route path="/health-insurance" element={<HealthInsurancePage />} />
+              <Route path="/motor-insurance" element={<MotorInsurancePage />} />
 
-            {/* 👥 Partnership Onboarding */}
-            <Route path="/partner-with-us" element={<PartnerPage />} />
-          </Routes>
-        </BrowserRouter>
-        <Toaster
-          position="bottom-center"
-          toastOptions={{
-            style: {
-              background: "#0E1B2C",
-              color: "#F6F1E8",
-              border: "1px solid #2A364B",
-              fontFamily: "'DM Sans', sans-serif",
-            },
-          }}
-        />
-      </ModalProvider>
+              {/* 👥 Partnership Onboarding */}
+              <Route path="/partner-with-us" element={<PartnerPage />} />
+            </Routes>
+          </BrowserRouter>
+          <Toaster
+            position="bottom-center"
+            toastOptions={{
+              style: {
+                background: "#0E1B2C",
+                color: "#F6F1E8",
+                border: "1px solid #2A364B",
+                fontFamily: "'DM Sans', sans-serif",
+              },
+            }}
+          />
+        </ModalProvider>
+      </LanguageProvider>
     </div>
   );
 }
