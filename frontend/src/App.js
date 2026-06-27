@@ -13,6 +13,13 @@ import { Toaster } from "sonner";
 import { ModalProvider } from "./context/ModalContext";
 import { LanguageProvider } from "./context/LanguageContext";
 
+// 🔐 Staff Portal (Admin + Employee)
+import { AuthProvider } from "./context/AuthContext";
+import ProtectedRoute from "./components/ProtectedRoute";
+import PortalLogin from "./pages/PortalLogin";
+import AdminDashboard from "./pages/AdminDashboard";
+import EmployeeDashboard from "./pages/EmployeeDashboard";
+
 // 🩺 TEMPORARY PLACEHOLDERS (Design ready hone par inhe alag files me daal denge)
 const TermInsurancePage = () => <div className="min-h-screen bg-[#FBF7EE] p-20 text-center text-3xl font-serif">Term Insurance Solutions (Coming Soon)</div>;
 const HealthInsurancePage = () => <div className="min-h-screen bg-[#FBF7EE] p-20 text-center text-3xl font-serif">Health Insurance (Mediclaim) (Coming Soon)</div>;
@@ -24,52 +31,73 @@ function App() {
     <div className="App">
       <LanguageProvider>
         <ModalProvider>
-          <BrowserRouter>
-            <Routes>
-              {/* 🏠 Main Homepage */}
-              <Route path="/" element={<Home />} />
+          <AuthProvider>
+            <BrowserRouter>
+              <Routes>
+                {/* 🏠 Main Homepage */}
+                <Route path="/" element={<Home />} />
 
-              {/* 🎯 Career & Hiring Page */}
-              <Route path="/career" element={<CareerPage />} />
+                {/* 🎯 Career & Hiring Page */}
+                <Route path="/career" element={<CareerPage />} />
 
-              {/* 👤 About TFD Section — now its own dedicated page */}
-              <Route path="/about" element={<AboutPage />} />
+                {/* 👤 About TFD Section */}
+                <Route path="/about" element={<AboutPage />} />
 
-              {/* 🧮 Calculators — now its own dedicated page */}
-              <Route path="/calculators" element={<CalculatorsPage />} />
+                {/* 🧮 Calculators */}
+                <Route path="/calculators" element={<CalculatorsPage />} />
 
-              {/* 📈 Top Funds — now its own dedicated page */}
-              <Route path="/top-funds" element={<TopFundsPage />} />
+                {/* 📈 Top Funds */}
+                <Route path="/top-funds" element={<TopFundsPage />} />
 
-              {/* 🛠️ Services — now its own dedicated page */}
-              <Route path="/services" element={<ServicesPage />} />
+                {/* 🛠️ Services */}
+                <Route path="/services" element={<ServicesPage />} />
 
-              {/* ⭐ Reviews — now its own dedicated page */}
-              <Route path="/reviews" element={<ReviewsPage />} />
+                {/* ⭐ Reviews */}
+                <Route path="/reviews" element={<ReviewsPage />} />
 
-              {/* 📞 Contact — now its own dedicated page */}
-              <Route path="/contact" element={<ContactPage />} />
+                {/* 📞 Contact */}
+                <Route path="/contact" element={<ContactPage />} />
 
-              {/* 💼 Insurance Categories */}
-              <Route path="/term-insurance" element={<TermInsurancePage />} />
-              <Route path="/health-insurance" element={<HealthInsurancePage />} />
-              <Route path="/motor-insurance" element={<MotorInsurancePage />} />
+                {/* 💼 Insurance Categories */}
+                <Route path="/term-insurance" element={<TermInsurancePage />} />
+                <Route path="/health-insurance" element={<HealthInsurancePage />} />
+                <Route path="/motor-insurance" element={<MotorInsurancePage />} />
 
-              {/* 👥 Partnership Onboarding */}
-              <Route path="/partner-with-us" element={<PartnerPage />} />
-            </Routes>
-          </BrowserRouter>
-          <Toaster
-            position="bottom-center"
-            toastOptions={{
-              style: {
-                background: "#0E1B2C",
-                color: "#F6F1E8",
-                border: "1px solid #2A364B",
-                fontFamily: "'DM Sans', sans-serif",
-              },
-            }}
-          />
+                {/* 👥 Partnership Onboarding */}
+                <Route path="/partner-with-us" element={<PartnerPage />} />
+
+                {/* 🔐 STAFF PORTAL — Admin + Employee */}
+                <Route path="/portal/login" element={<PortalLogin />} />
+                <Route
+                  path="/portal/admin"
+                  element={
+                    <ProtectedRoute requiredRole="admin">
+                      <AdminDashboard />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/portal/employee"
+                  element={
+                    <ProtectedRoute requiredRole="employee">
+                      <EmployeeDashboard />
+                    </ProtectedRoute>
+                  }
+                />
+              </Routes>
+            </BrowserRouter>
+            <Toaster
+              position="bottom-center"
+              toastOptions={{
+                style: {
+                  background: "#0E1B2C",
+                  color: "#F6F1E8",
+                  border: "1px solid #2A364B",
+                  fontFamily: "'DM Sans', sans-serif",
+                },
+              }}
+            />
+          </AuthProvider>
         </ModalProvider>
       </LanguageProvider>
     </div>
