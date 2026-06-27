@@ -70,7 +70,7 @@ export default function About() {
                     <a
                         href="https://wa.me/917773805794?text=Hi%20Sagar%20ji%2C%20I%20want%20a%20free%20portfolio%20review."
                         target="_blank"
-                        rel="noreferrer"
+                        rel="noopener noreferrer"
                         className="btn-pill btn-primary mt-8"
                         data-testid="about-book-review"
                     >

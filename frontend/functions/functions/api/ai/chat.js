@@ -80,11 +80,12 @@ export async function onRequest(context) {
     const model = env.GEMINI_MODEL || "gemini-2.0-flash";
 
     const geminiResponse = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${env.GEMINI_API_KEY}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`,
       {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
+          "x-goog-api-key": env.GEMINI_API_KEY,
         },
         body: JSON.stringify({
           systemInstruction: {

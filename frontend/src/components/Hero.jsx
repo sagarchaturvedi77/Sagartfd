@@ -34,7 +34,7 @@ export default function Hero() {
               Start Investing <ArrowUpRight size={16} />
             </button>
             
-            <a href="https://wa.me/917773805794?text=Hi%20Sagar%20ji%2C%20I%20want%20to%20know%20more%20about%20mutual%20fund%20investments." target="_blank" rel="noreferrer" data-testid={IDS?.hero?.whatsapp || "hero-wa"} className="btn-pill btn-ghost">
+            <a href="https://wa.me/917773805794?text=Hi%20Sagar%20ji%2C%20I%20want%20to%20know%20more%20about%20mutual%20fund%20investments." target="_blank" rel="noopener noreferrer" data-testid={IDS?.hero?.whatsapp || "hero-wa"} className="btn-pill btn-ghost">
               <MessageCircle size={16} /> Talk on WhatsApp
             </a>
           </div>

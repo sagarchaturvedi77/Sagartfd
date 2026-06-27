@@ -23,7 +23,7 @@ mongo_url = os.environ['MONGO_URL']
 client = AsyncIOMotorClient(mongo_url)
 db = client[os.environ['DB_NAME']]
 
-app = FastAPI(title="The Financial Doctor API")
+app = FastAPI(title="The Financial Doctor API", docs_url=None, redoc_url=None)
 api_router = APIRouter(prefix="/api")
 
 # -------------- MODELS --------------
@@ -58,10 +58,10 @@ class ContactRequest(BaseModel):
 
 class ContactCreate(BaseModel):
     full_name: str = Field(min_length=2, max_length=80)
-    phone: str = Field(min_length=8, max_length=15)
-    email: Optional[str] = None
-    service: Optional[str] = None
-    message: Optional[str] = None
+    phone: str = Field(min_length=8, max_length=15, pattern=r'^[\d\s\+\-()]+$')
+    email: Optional[EmailStr] = None
+    service: Optional[str] = Field(default=None, max_length=100)
+    message: Optional[str] = Field(default=None, max_length=1000)
 
 
 # -------------- ROUTES: meta --------------
@@ -81,7 +81,7 @@ async def create_review(payload: ReviewCreate):
 
 
 @api_router.get("/reviews", response_model=List[Review])
-async def list_reviews(limit: int = 50):
+async def list_reviews(limit: int = Query(default=50, ge=1, le=200)):
     items = await db.reviews.find({"approved": True}, {"_id": 0}).sort("created_at", -1).to_list(limit)
     return items
 
@@ -107,25 +107,31 @@ async def create_contact(payload: ContactCreate):
     await db.contact_requests.insert_one(obj.model_dump())
     
     # EmailJS se email bhejo
-    try:
-        async with httpx.AsyncClient(timeout=10.0) as cli:
-            await cli.post(
-                "https://api.emailjs.com/api/v1.0/email/send",
-                json={
-                    "service_id": "service_tgaf18k",
-                    "template_id": "template_ikee3pt",
-                    "user_id": "FvB3BN4WHB03ZhD5R",
-                    "template_params": {
-                        "from_name": payload.full_name,
-                        "phone": payload.phone,
-                        "email": payload.email or "Not provided",
-                        "service": payload.service or "Not selected",
-                        "message": payload.message or "No message",
+    emailjs_service = os.environ.get('EMAILJS_SERVICE_ID')
+    emailjs_template = os.environ.get('EMAILJS_TEMPLATE_ID')
+    emailjs_user = os.environ.get('EMAILJS_USER_ID')
+    if emailjs_service and emailjs_template and emailjs_user:
+        try:
+            async with httpx.AsyncClient(timeout=10.0) as cli:
+                await cli.post(
+                    "https://api.emailjs.com/api/v1.0/email/send",
+                    json={
+                        "service_id": emailjs_service,
+                        "template_id": emailjs_template,
+                        "user_id": emailjs_user,
+                        "template_params": {
+                            "from_name": payload.full_name,
+                            "phone": payload.phone,
+                            "email": payload.email or "Not provided",
+                            "service": payload.service or "Not selected",
+                            "message": payload.message or "No message",
+                        }
                     }
-                }
-            )
-    except Exception as e:
-        logger.warning(f"EmailJS send failed: {e}")
+                )
+        except Exception as e:
+            logger.warning(f"EmailJS send failed: {e}")
+    else:
+        logger.warning("EmailJS credentials not configured — skipping email notification")
     
     return obj
 
@@ -268,7 +274,7 @@ async def fund_detail(code: str):
     try:
         data = await fetch_fund(code)
     except Exception as e:
-        raise HTTPException(status_code=404, detail=f"Fund not found: {e}")
+        raise HTTPException(status_code=404, detail="Fund not found")
     meta = data.get("meta", {})
     navs = data.get("data", [])
     latest = navs[0] if navs else {}
@@ -434,9 +440,9 @@ app.include_router(api_router)
 app.add_middleware(
     CORSMiddleware,
     allow_credentials=True,
-    allow_origins=os.environ.get('CORS_ORIGINS', '*').split(','),
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_origins=os.environ.get('CORS_ORIGINS', 'https://thefinancialdoctor.in,https://www.thefinancialdoctor.in').split(','),
+    allow_methods=["GET", "POST", "OPTIONS"],
+    allow_headers=["Content-Type", "Authorization"],
 )
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')

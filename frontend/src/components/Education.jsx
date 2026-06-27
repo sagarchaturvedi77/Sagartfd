@@ -111,7 +111,7 @@ export default function Education() {
                     <a
                         href="https://chat.whatsapp.com/JEb2Ilngiq45oqyUQDMFSX"
                         target="_blank"
-                        rel="noreferrer"
+                        rel="noopener noreferrer"
                         className="btn-pill"
                         style={{ background: "#C7102E", color: "#fff" }}
                     >
