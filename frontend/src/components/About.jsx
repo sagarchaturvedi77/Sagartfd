@@ -1,6 +1,7 @@
 import React from "react";
 import { Award, BadgeCheck } from "lucide-react";
 import Reveal from "@/components/Reveal";
+import { LINKS } from "@/lib/links";
 
 const AWARD =
     "https://customer-assets.emergentagent.com/job_wealth-advisor-111/artifacts/xqwjwi4k_IMG_9401.jpeg";
@@ -68,7 +69,7 @@ export default function About() {
                     </ul>
 
                     <a
-                        href="https://wa.me/917773805794?text=Hi%20Sagar%20ji%2C%20I%20want%20a%20free%20portfolio%20review."
+                        href={`${LINKS.whatsappDM.split('?')[0]}?text=${encodeURIComponent('Hi Sagar ji, I want a free portfolio review.')}`}
                         target="_blank"
                         rel="noreferrer"
                         className="btn-pill btn-primary mt-8"

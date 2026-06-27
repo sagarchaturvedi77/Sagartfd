@@ -14,14 +14,13 @@ import html2canvas from "html2canvas";
 import { QRCodeCanvas } from "qrcode.react";
 import { toast } from "sonner";
 import { IDS } from "@/constants/testIds";
-// 🛠️ Context Hook Connect Kiya
-import { useModal } from "../context/ModalContext"; 
+import { LINKS } from "@/lib/links";
+import { LOGO_URL, SAGAR_PHOTO } from "@/lib/constants";
+import { fmtINR as sharedFmtINR, fmtINRFull, fmtPct } from "@/lib/format";
+import { useModal } from "../context/ModalContext";
 
-const ASSETPLUS = "https://www.assetplus.in/mfd/ARN-290298";
-const TFD_LOGO =
-    "https://customer-assets.emergentagent.com/job_advisor-phase4-build/artifacts/buhrts3f_IMG_2870.png";
-const SAGAR_PHOTO =
-    "https://customer-assets.emergentagent.com/job_wealth-advisor-111/artifacts/1dwkpp48_D3037D99-4115-4778-83D8-907655A401FD.png";
+const ASSETPLUS = LINKS.assetPlus;
+const TFD_LOGO = LOGO_URL;
 const fundCache = new Map();
 
 const MASTER_FUNDS = [
@@ -42,16 +41,8 @@ const MASTER_FUNDS = [
     { code: "119775", category: "ELSS Tax Saver", fund_house: "SBI Mutual Fund" },
 ];
 
-const fmtPct = (v) => (v === null || v === undefined || Number.isNaN(Number(v)) ? "-" : `${Number(v).toFixed(1)}%`);
-const fmtINR = (n) => {
-    if (!Number.isFinite(Number(n))) return "Rs. 0";
-    const v = Number(n);
-    if (v >= 1e7) return `Rs. ${(v / 1e7).toFixed(2)} Cr`;
-    if (v >= 1e5) return `Rs. ${(v / 1e5).toFixed(2)} L`;
-    if (v >= 1e3) return `Rs. ${(v / 1e3).toFixed(1)} K`;
-    return `Rs. ${Math.round(v).toLocaleString("en-IN")}`;
-};
-const fmtFullINR = (n) => `Rs. ${Math.round(Number(n) || 0).toLocaleString("en-IN")}`;
+const fmtINR = sharedFmtINR;
+const fmtFullINR = fmtINRFull;
 
 function parseMfDate(dateStr) {
     const [d, m, y] = String(dateStr || "").split("-").map(Number);

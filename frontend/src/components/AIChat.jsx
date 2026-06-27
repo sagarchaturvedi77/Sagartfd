@@ -5,14 +5,13 @@ import jsPDF from "jspdf";
 import { QRCodeCanvas } from "qrcode.react";
 import { toast } from "sonner";
 import { AI_PLAN_RECOMMENDATIONS } from "@/lib/recommendations";
+import { LINKS } from "@/lib/links";
+import { LOGO_URL, SAGAR_PHOTO } from "@/lib/constants";
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const CHAT_API_URL = BACKEND_URL ? `${BACKEND_URL}/api/ai/chat` : "/api/ai/chat";
-const TFD_BRAND_URL = "https://www.assetplus.in/mfd/ARN-290298";
-const TFD_LOGO =
-    "https://customer-assets.emergentagent.com/job_advisor-phase4-build/artifacts/buhrts3f_IMG_2870.png";
-const SAGAR_PHOTO =
-    "https://customer-assets.emergentagent.com/job_wealth-advisor-111/artifacts/1dwkpp48_D3037D99-4115-4778-83D8-907655A401FD.png";
+const TFD_BRAND_URL = LINKS.assetPlus;
+const TFD_LOGO = LOGO_URL;
 
 const STARTERS = [
     "Mujhe 5000/month ka SIP shuru karna hai - kya plan karein?",

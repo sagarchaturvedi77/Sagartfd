@@ -1,12 +1,8 @@
 import React from "react";
-import Navbar from "@/components/Navbar";
+import PageLayout from "@/components/PageLayout";
 import About from "@/components/About";
-import Footer from "@/components/Footer";
-import FloatingActions from "@/components/FloatingActions";
 import FAQSection from "@/components/FAQSection";
 
-// 📸 Placeholder professional images — replace with your own branded/licensed
-// photography before going live (these are temporary stock placeholders).
 const IMG_TEAM = "https://images.unsplash.com/photo-1556761175-5973dc0f32e7?w=900&q=80";
 const IMG_CLIENT = "https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?w=900&q=80";
 const IMG_PARTNER = "https://images.unsplash.com/photo-1521791136064-7986c2920216?w=900&q=80";
@@ -52,12 +48,9 @@ const aboutFAQ = {
 
 export default function AboutPage() {
   return (
-    <div className="relative" data-testid="about-page-root">
-      <Navbar />
-      <main className="pt-24">
+    <PageLayout testId="about-page-root">
         <About />
 
-        {/* COMPANY STORY — focus on the company & where it's headed, not personal stats */}
         <section className="bg-[#FBF7EE] py-16 px-6">
           <div className="container-x max-w-5xl mx-auto grid md:grid-cols-2 gap-10 items-center mb-16">
             <div>
@@ -84,7 +77,6 @@ export default function AboutPage() {
             />
           </div>
 
-          {/* PARTNERS */}
           <div className="container-x max-w-5xl mx-auto mb-16">
             <h3 className="text-2xl font-serif text-[#0E1B2C] mb-8 text-center">
               Backed by Trusted Partners
@@ -99,7 +91,6 @@ export default function AboutPage() {
             </div>
           </div>
 
-          {/* PHOTO STRIP */}
           <div className="container-x max-w-5xl mx-auto grid md:grid-cols-2 gap-6">
             <img src={IMG_CLIENT} alt="Client consultation" className="rounded-2xl shadow-sm w-full h-64 object-cover" />
             <img src={IMG_PARTNER} alt="Partnership and growth" className="rounded-2xl shadow-sm w-full h-64 object-cover" />
@@ -107,9 +98,6 @@ export default function AboutPage() {
         </section>
 
         <FAQSection title="About Us — Frequently Asked Questions" data={aboutFAQ} />
-      </main>
-      <Footer />
-      <FloatingActions />
-    </div>
+    </PageLayout>
   );
 }

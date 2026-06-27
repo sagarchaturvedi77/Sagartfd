@@ -1,5 +1,6 @@
 import React from "react";
 import { Briefcase, Award, Users, Sparkles } from "lucide-react";
+import { LINKS } from "@/lib/links";
 
 const perks = [
     {
@@ -42,7 +43,7 @@ export default function Partnership() {
                         </p>
                         <div className="mt-7 flex flex-wrap gap-3">
                             <a
-                                href="https://wa.me/917773805794?text=Hi%20Sagar%20ji%2C%20I%27m%20interested%20in%20partnering%20with%20The%20Financial%20Doctor%20as%20a%20sub-broker%20%2F%20referral%20partner.%20Please%20share%20details."
+                                href={`${LINKS.whatsappDM.split('?')[0]}?text=${encodeURIComponent('Hi Sagar ji, I\'m interested in partnering with The Financial Doctor as a sub-broker / referral partner. Please share details.')}`}
                                 target="_blank"
                                 rel="noreferrer"
                                 className="btn-pill btn-primary"

@@ -1,5 +1,6 @@
 import React, { createContext, useState, useContext } from "react";
 import { LogIn, UserPlus, X, ShieldCheck } from "lucide-react";
+import { LINKS } from "@/lib/links";
 
 const ModalContext = createContext();
 
@@ -57,7 +58,7 @@ export function ModalProvider({ children }) {
 
               {/* OPTION 2: SIGNUP / NEW ACCOUNT */}
               <a 
-                href="https://www.assetplus.in/mfd/ARN-290298" 
+                href={LINKS.assetPlus} 
                 target="_blank" 
                 rel="noopener noreferrer"
                 onClick={closeGateway}

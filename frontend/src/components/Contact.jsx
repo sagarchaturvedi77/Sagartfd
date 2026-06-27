@@ -3,6 +3,8 @@ import { Phone, Mail, MapPin, Send, MessageCircle } from "lucide-react";
 import { toast } from "sonner";
 import { api } from "@/lib/api";
 import { IDS } from "@/constants/testIds";
+import { LINKS } from "@/lib/links";
+import { FormFieldInline as Field } from "@/components/FormField";
 
 const SERVICES = [
     "Mutual Funds / SIP",
@@ -177,7 +179,7 @@ export default function Contact() {
                             <Send size={16} /> {loading ? "Sending…" : "Send Request"}
                         </button>
                         <a
-                            href="https://wa.me/917773805794?text=Hi%20Sagar%20ji%2C%20I%20want%20to%20know%20more%20about%20mutual%20fund%20investments."
+                            href={LINKS.whatsappDM}
                             target="_blank"
                             rel="noreferrer"
                             className="btn-pill btn-ghost justify-center"
@@ -205,17 +207,5 @@ export default function Contact() {
                 </form>
             </div>
         </section>
-    );
-}
-
-function Field({ label, required, children }) {
-    return (
-        <label className="block">
-            <span className="block text-[11px] uppercase tracking-[0.18em] text-[#5C677D] mb-2">
-                {label}
-                {required && <span className="text-[#C7102E] ml-0.5">*</span>}
-            </span>
-            {children}
-        </label>
     );
 }

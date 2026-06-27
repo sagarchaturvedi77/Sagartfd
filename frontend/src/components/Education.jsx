@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { LINKS } from "@/lib/links";
 
 const content = {
     English: [
@@ -109,7 +110,7 @@ export default function Education() {
                         </p>
                     </div>
                     <a
-                        href="https://chat.whatsapp.com/JEb2Ilngiq45oqyUQDMFSX"
+                        href={LINKS.whatsappCommunity}
                         target="_blank"
                         rel="noreferrer"
                         className="btn-pill"

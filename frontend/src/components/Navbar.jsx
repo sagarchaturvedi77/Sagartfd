@@ -4,7 +4,7 @@ import { Menu, X } from "lucide-react";
 import { IDS } from "../constants/testIds";
 import { useModal } from "../context/ModalContext";
 
-const LOGO_URL = "https://customer-assets.emergentagent.com/job_advisor-phase4-build/artifacts/buhrts3f_IMG_2870.png";
+import { LOGO_URL } from "@/lib/constants";
 
 // 🎯 Every section now has its own dedicated page + URL
 const links = [

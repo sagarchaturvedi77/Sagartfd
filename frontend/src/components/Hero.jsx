@@ -1,10 +1,9 @@
 import React from "react";
 import { ArrowUpRight, MessageCircle, ShieldCheck, Stethoscope } from "lucide-react";
 import { IDS } from "@/constants/testIds";
-// 🛠️ Step 1: Hook Import
+import { LINKS } from "@/lib/links";
+import { SAGAR_PHOTO } from "@/lib/constants";
 import { useModal } from "../context/ModalContext";
-
-const SAGAR_PHOTO = "https://customer-assets.emergentagent.com/job_wealth-advisor-111/artifacts/1dwkpp48_D3037D99-4115-4778-83D8-907655A401FD.png";
 
 export default function Hero() {
   // 🛠️ Step 2: Open function extract kiya
@@ -34,7 +33,7 @@ export default function Hero() {
               Start Investing <ArrowUpRight size={16} />
             </button>
             
-            <a href="https://wa.me/917773805794?text=Hi%20Sagar%20ji%2C%20I%20want%20to%20know%20more%20about%20mutual%20fund%20investments." target="_blank" rel="noreferrer" data-testid={IDS?.hero?.whatsapp || "hero-wa"} className="btn-pill btn-ghost">
+            <a href={LINKS.whatsappDM} target="_blank" rel="noreferrer" data-testid={IDS?.hero?.whatsapp || "hero-wa"} className="btn-pill btn-ghost">
               <MessageCircle size={16} /> Talk on WhatsApp
             </a>
           </div>

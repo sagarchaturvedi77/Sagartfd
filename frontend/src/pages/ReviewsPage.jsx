@@ -1,12 +1,8 @@
 import React from "react";
-import Navbar from "@/components/Navbar";
+import PageLayout from "@/components/PageLayout";
 import Reviews from "@/components/Reviews";
-import Footer from "@/components/Footer";
-import FloatingActions from "@/components/FloatingActions";
 import FAQSection from "@/components/FAQSection";
-
-// 🔗 Replace with your actual Google Business review link
-const GOOGLE_REVIEW_LINK = "https://g.page/r/your-business-id/review";
+import { LINKS } from "@/lib/links";
 
 const reviewsFAQ = {
   en: [
@@ -31,12 +27,9 @@ const reviewsFAQ = {
 
 export default function ReviewsPage() {
   return (
-    <div className="relative" data-testid="reviews-page-root">
-      <Navbar />
-      <main className="pt-24">
+    <PageLayout testId="reviews-page-root">
         <Reviews />
 
-        {/* REVIEW CTA — encourages happy clients to leave a review */}
         <section className="bg-[#0E1B2C] py-14 px-6 text-center">
           <div className="container-x max-w-2xl mx-auto">
             <h2 className="text-2xl md:text-3xl font-serif text-[#F6F1E8] mb-3">
@@ -48,7 +41,7 @@ export default function ReviewsPage() {
               minute to share yours.
             </p>
             <a
-              href={GOOGLE_REVIEW_LINK}
+              href={LINKS.googleReviews}
               target="_blank"
               rel="noopener noreferrer"
               className="inline-block bg-[#024396] text-white px-8 py-3 rounded-full font-display hover:bg-[#0356c4] transition-colors"
@@ -59,9 +52,6 @@ export default function ReviewsPage() {
         </section>
 
         <FAQSection title="Reviews — Frequently Asked Questions" data={reviewsFAQ} />
-      </main>
-      <Footer />
-      <FloatingActions />
-    </div>
+    </PageLayout>
   );
 }

@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { TrendingUp, ShieldCheck, Heart, Activity, Car, Stethoscope } from "lucide-react";
 import Reveal from "@/components/Reveal";
 import MotorInsuranceForm from "@/components/MotorInsuranceForm";
-// 🛠️ Step 1: Central Context Hook Connected cleanly
+import { LINKS } from "@/lib/links";
 import { useModal } from "../context/ModalContext"; 
 
 const items = [
@@ -28,7 +28,7 @@ const items = [
         title: "Life Insurance",
         body: "Endowment, ULIP, child & retirement plans tailored to your family goals and risk appetite.",
         cta: "Talk to Advisor",
-        href: "https://wa.me/917773805794?text=Hi%20Sagar%20ji%2C%20I%20want%20to%20discuss%20Life%20Insurance.",
+        href: `${LINKS.whatsappDM.split('?')[0]}?text=${encodeURIComponent('Hi Sagar ji, I want to discuss Life Insurance.')}`,
     },
     {
         icon: Activity,
@@ -52,7 +52,7 @@ const items = [
         title: "Portfolio Review",
         body: "Free annual health-check of your existing portfolio. We diagnose underperforming funds and rebalance.",
         cta: "Book Review",
-        href: "https://wa.me/917773805794?text=Hi%20Sagar%20ji%2C%20I%20want%20a%20free%20Portfolio%20Review.",
+        href: `${LINKS.whatsappDM.split('?')[0]}?text=${encodeURIComponent('Hi Sagar ji, I want a free Portfolio Review.')}`,
     },
 ];
 
