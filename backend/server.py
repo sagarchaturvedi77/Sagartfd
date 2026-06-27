@@ -431,6 +431,9 @@ async def ai_history(session_id: str):
 
 app.include_router(api_router)
 
+from auth_routes import router as auth_router
+app.include_router(auth_router)
+
 app.add_middleware(
     CORSMiddleware,
     allow_credentials=True,
@@ -446,3 +449,9 @@ logger = logging.getLogger(__name__)
 @app.on_event("shutdown")
 async def shutdown_db_client():
     client.close()
+
+
+if __name__ == "__main__":
+    import uvicorn
+    port = int(os.environ.get("PORT", 8001))
+    uvicorn.run("server:app", host="0.0.0.0", port=port)
