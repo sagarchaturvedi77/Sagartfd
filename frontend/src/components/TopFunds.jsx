@@ -210,12 +210,14 @@ async function fetchFund(code) {
 export default function TopFunds() {
     const [data, setData] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [fetchError, setFetchError] = useState(null);
     const [category, setCategory] = useState("All");
     const [searchQ, setSearchQ] = useState("");
     const [searchResults, setSearchResults] = useState([]);
     const [searchingDetail, setSearchingDetail] = useState(null);
     const [loadingDetails, setLoadingDetails] = useState(false);
     const [searching, setSearching] = useState(false);
+    const [searchError, setSearchError] = useState(null);
     const [currentPage, setCurrentPage] = useState(1);
     const detailRequestId = useRef(0);
     const itemsPerPage = 4;
@@ -228,8 +230,9 @@ export default function TopFunds() {
         const fetchAllMasterFunds = async () => {
             try {
                 setData([]);
+                setFetchError(null);
                 const results = [];
-                await Promise.allSettled(
+                const settlements = await Promise.allSettled(
                     MASTER_FUNDS.map(async (fund, index) => {
                         const live = await fetchFund(fund.code);
                         const row = {
@@ -245,9 +248,18 @@ export default function TopFunds() {
                         }
                     })
                 );
-                if (mounted) setData(results.filter(Boolean));
+                const failures = settlements.filter((s) => s.status === "rejected");
+                if (mounted) {
+                    setData(results.filter(Boolean));
+                    if (failures.length > 0 && results.filter(Boolean).length === 0) {
+                        setFetchError("Fund data load nahi ho paya. Please refresh karein.");
+                    } else if (failures.length > 0) {
+                        setFetchError(`${failures.length} fund(s) ka data load nahi hua — partial results shown.`);
+                    }
+                }
             } catch (e) {
                 console.error("Error fetching master funds:", e);
+                if (mounted) setFetchError("Fund data load nahi ho paya. Please refresh karein.");
             } finally {
                 if (mounted) setLoading(false);
             }
@@ -264,9 +276,13 @@ export default function TopFunds() {
             return undefined;
         }
         setSearching(true);
+        setSearchError(null);
         const t = setTimeout(async () => {
             try {
                 const res = await fetch(`https://api.mfapi.in/mf/search?q=${encodeURIComponent(searchQ)}`);
+                if (!res.ok) {
+                    throw new Error(`Search API returned ${res.status}`);
+                }
                 const rawData = await res.json();
                 const cleanedQuery = searchQ.toLowerCase().trim();
                 const filteredGrowth = rawData.filter((f) => {
@@ -286,7 +302,9 @@ export default function TopFunds() {
                 });
                 setSearchResults(ranked.slice(0, 25));
             } catch (e) {
-                console.error(e);
+                console.error("Fund search error:", e);
+                setSearchError("Search failed — please try again.");
+                toast.error("Fund search nahi ho paya. Please try again.");
             } finally {
                 setSearching(false);
             }
@@ -355,7 +373,13 @@ export default function TopFunds() {
                         className="w-full bg-[#FBF7EE] border border-[#E2D8C2] rounded-full pl-11 pr-4 py-3 text-[#0E1B2C] placeholder:text-[#8A93A6] focus:border-[#024396] text-sm"
                     />
 
-                    {searchResults.length > 0 && (
+                    {searchError && searchResults.length === 0 && (
+                    <div className="absolute z-20 left-0 right-0 mt-2 bg-[#FBF7EE] border border-red-200 rounded-2xl px-4 py-3 shadow-xl text-sm text-red-600">
+                        {searchError}
+                    </div>
+                )}
+
+                {searchResults.length > 0 && (
                         <div
                             data-testid={IDS.funds.searchResults}
                             className="absolute z-20 left-0 right-0 mt-2 bg-[#FBF7EE] border border-[#E2D8C2] rounded-2xl max-h-[280px] overflow-y-auto shadow-xl divide-y divide-[#E2D8C2]/40"
@@ -381,6 +405,12 @@ export default function TopFunds() {
                 {loadingDetails && (
                     <div className="flex items-center gap-2 text-xs text-[#024396] mb-4 bg-[#024396]/10 px-4 py-2 rounded-xl w-fit">
                         <Loader2 className="animate-spin" size={14} /> Fetching selected fund history...
+                    </div>
+                )}
+
+                {fetchError && data.length > 0 && (
+                    <div className="mb-4 bg-yellow-50 border border-yellow-200 text-yellow-800 text-xs px-4 py-2 rounded-xl">
+                        {fetchError}
                     </div>
                 )}
 
@@ -420,7 +450,14 @@ export default function TopFunds() {
                                         </td>
                                     </tr>
                                 )}
-                                {!loading && paginatedFunds.length === 0 && (
+                                {!loading && fetchError && paginatedFunds.length === 0 && (
+                                    <tr>
+                                        <td colSpan={7} className="px-5 py-10 text-center text-red-600">
+                                            {fetchError}
+                                        </td>
+                                    </tr>
+                                )}
+                                {!loading && !fetchError && paginatedFunds.length === 0 && (
                                     <tr>
                                         <td colSpan={7} className="px-5 py-10 text-center text-[#5C677D]">
                                             No records found.

@@ -18,10 +18,18 @@ from datetime import datetime, timezone
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
 
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
+
 # MongoDB connection
-mongo_url = os.environ['MONGO_URL']
+mongo_url = os.environ.get('MONGO_URL')
+if not mongo_url:
+    raise RuntimeError("MONGO_URL environment variable is required but not set")
+db_name = os.environ.get('DB_NAME')
+if not db_name:
+    raise RuntimeError("DB_NAME environment variable is required but not set")
 client = AsyncIOMotorClient(mongo_url)
-db = client[os.environ['DB_NAME']]
+db = client[db_name]
 
 app = FastAPI(title="The Financial Doctor API")
 api_router = APIRouter(prefix="/api")
@@ -107,9 +115,11 @@ async def create_contact(payload: ContactCreate):
     await db.contact_requests.insert_one(obj.model_dump())
     
     # EmailJS se email bhejo
+    email_sent = False
+    email_error = None
     try:
         async with httpx.AsyncClient(timeout=10.0) as cli:
-            await cli.post(
+            resp = await cli.post(
                 "https://api.emailjs.com/api/v1.0/email/send",
                 json={
                     "service_id": "service_tgaf18k",
@@ -124,10 +134,20 @@ async def create_contact(payload: ContactCreate):
                     }
                 }
             )
+            if resp.status_code == 200:
+                email_sent = True
+            else:
+                email_error = f"EmailJS returned status {resp.status_code}"
+                logger.warning(f"EmailJS send failed: {email_error}")
     except Exception as e:
+        email_error = str(e)
         logger.warning(f"EmailJS send failed: {e}")
     
-    return obj
+    result = obj.model_dump()
+    result["email_notification_sent"] = email_sent
+    if email_error:
+        result["email_notification_error"] = email_error
+    return JSONResponse(content=result)
 
 
 # -------------- ROUTES: MF Data (proxy MFAPI.in with caching) --------------
@@ -378,32 +398,35 @@ async def ai_chat(payload: AIChatRequest):
             full_text = "".join(full_response_chunks)
             now = datetime.now(timezone.utc).isoformat()
 
-            await db.ai_sessions.update_one(
-                {"session_id": payload.session_id},
-                {
-                    "$setOnInsert": {
-                        "session_id": payload.session_id,
-                        "created_at": now,
+            try:
+                await db.ai_sessions.update_one(
+                    {"session_id": payload.session_id},
+                    {
+                        "$setOnInsert": {
+                            "session_id": payload.session_id,
+                            "created_at": now,
+                        },
+                        "$push": {
+                            "messages": {
+                                "$each": [
+                                    {
+                                        "role": "user",
+                                        "content": payload.message,
+                                        "ts": now,
+                                    },
+                                    {
+                                        "role": "assistant",
+                                        "content": full_text,
+                                        "ts": now,
+                                    },
+                                ]
+                            }
+                        },
                     },
-                    "$push": {
-                        "messages": {
-                            "$each": [
-                                {
-                                    "role": "user",
-                                    "content": payload.message,
-                                    "ts": now,
-                                },
-                                {
-                                    "role": "assistant",
-                                    "content": full_text,
-                                    "ts": now,
-                                },
-                            ]
-                        }
-                    },
-                },
-                upsert=True,
-            )
+                    upsert=True,
+                )
+            except Exception as db_err:
+                logger.error(f"Failed to save AI session history: {db_err}")
 
     return StreamingResponse(
         event_gen(),
@@ -438,10 +461,6 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-logger = logging.getLogger(__name__)
-
 
 @app.on_event("shutdown")
 async def shutdown_db_client():
