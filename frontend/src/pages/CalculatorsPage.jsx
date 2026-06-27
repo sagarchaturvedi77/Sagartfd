@@ -5,6 +5,12 @@ import Footer from "@/components/Footer";
 import FloatingActions from "@/components/FloatingActions";
 import FAQSection from "@/components/FAQSection";
 import StepUpSipCalculator from "@/components/StepUpSipCalculator";
+import EMICalculator from "@/components/EMICalculator";
+import IncomeTaxCalculator from "@/components/IncomeTaxCalculator";
+import GSTCalculator from "@/components/GSTCalculator";
+import FutureGoalCalculator from "@/components/FutureGoalCalculator";
+import LanguageToggle from "@/components/LanguageToggle";
+import { useModal } from "../context/ModalContext";
 
 const calcInfo = [
   { title: "SIP Calculator", text: "Estimate the future value of your monthly SIP investments based on expected annual returns and investment duration." },
@@ -19,41 +25,68 @@ const calcFAQ = {
   en: [
     { q: "What is a Step-up SIP?", a: "It's a SIP where you increase your monthly investment amount every year by a fixed percentage, matching your rising income over time." },
     { q: "Why is Step-up SIP better than a flat SIP?", a: "Since most people's income grows over time, a step-up SIP helps you invest more as you earn more, leading to a significantly larger corpus over the long run." },
-    { q: "Are these calculators accurate?", a: "They provide estimates based on the inputs and assumed rate of return you enter — actual market returns will vary and are never guaranteed." },
+    { q: "What's the difference between Reducing Balance and Fixed Rate EMI?", a: "Reducing Balance calculates interest only on the outstanding loan amount (most bank loans work this way). Fixed Rate charges interest on the full original amount throughout the tenure, making it costlier overall." },
+    { q: "How does the Interest-Free SIP suggestion work?", a: "It calculates your total interest payable on the loan, then works out the monthly SIP (at an assumed 12% p.a. return) that could grow to roughly the same amount by the time your loan ends." },
+    { q: "Which tax regime should I choose?", a: "If you have significant 80C investments, HRA, or other deductions, the Old Regime is often better. If you have few deductions, the New Regime's lower slabs usually work out cheaper. The calculator shows you both." },
+    { q: "Are these calculators accurate?", a: "They provide estimates based on the inputs and assumed rates you enter — actual returns, inflation, and tax rules can vary and are never guaranteed." },
     { q: "Can I get a personalized calculation from an advisor?", a: "Yes, these calculators are a starting point — for a detailed, personalized plan, book a free consultation with our team." },
-  ],
-  hi: [
-    { q: "Step-up SIP क्या है?", a: "यह एक SIP है जिसमें आप हर साल अपनी मासिक निवेश राशि को एक तय प्रतिशत से बढ़ाते हैं, जैसे-जैसे आपकी इनकम बढ़ती है।" },
-    { q: "Step-up SIP फ्लैट SIP से बेहतर क्यों है?", a: "क्योंकि ज्यादातर लोगों की इनकम समय के साथ बढ़ती है, Step-up SIP आपको ज्यादा कमाने पर ज्यादा निवेश करने में मदद करता है, जिससे लंबे समय में बड़ा फंड बनता है।" },
-    { q: "क्या ये कैलकुलेटर सटीक हैं?", a: "ये आपके दिए गए इनपुट और अनुमानित रिटर्न के आधार पर अनुमान देते हैं — असली मार्केट रिटर्न अलग हो सकता है और गारंटीड नहीं होता।" },
-    { q: "क्या मुझे एडवाइजर से personalized calculation मिल सकती है?", a: "हाँ, ये कैलकुलेटर शुरुआत हैं — विस्तृत और personalized प्लान के लिए हमारी टीम से फ्री कंसल्टेशन बुक करें।" },
   ],
   hinglish: [
     { q: "Step-up SIP kya hota hai?", a: "Yeh ek SIP hai jisme aap har saal apni monthly investment amount ko ek fixed percentage se badhate ho, jaise jaise aapki income badhti hai." },
     { q: "Step-up SIP flat SIP se better kyu hai?", a: "Kyunki zyada tar logo ki income time ke saath badhti hai, Step-up SIP aapko zyada earn karne pe zyada invest karne mein help karta hai, jisse long term mein bada corpus banta hai." },
-    { q: "Kya yeh calculators accurate hain?", a: "Yeh aapke diye gaye input aur assumed return ke base pe estimate dete hain — actual market returns vary kar sakte hain aur guaranteed nahi hote." },
+    { q: "Reducing Balance aur Fixed Rate EMI mein kya farak hai?", a: "Reducing Balance mein interest sirf bache hue loan amount pe lagta hai (zyada tar bank loans aise hote hain). Fixed Rate mein interest poore original amount pe lagta hai pure tenure tak, jisse total cost zyada ho jata hai." },
+    { q: "Interest-Free SIP suggestion kaise kaam karta hai?", a: "Yeh aapke loan ka total interest calculate karta hai, phir batata hai ki kitni monthly SIP (12% p.a. return maan kar) se loan khatam hone tak roughly utna hi amount ban sakta hai." },
+    { q: "Mujhe kaunsa tax regime choose karna chahiye?", a: "Agar aapke 80C investments, HRA ya doosri deductions zyada hain, to Old Regime often better hota hai. Kam deductions ho to New Regime ke lower slabs usually cheaper padte hain. Calculator dono dikhata hai." },
+    { q: "Kya yeh calculators accurate hain?", a: "Yeh aapke diye gaye input aur assumed rates ke base pe estimate dete hain — actual returns, inflation aur tax rules vary kar sakte hain, guaranteed nahi hote." },
     { q: "Kya mujhe advisor se personalized calculation mil sakti hai?", a: "Haan, yeh calculators ek starting point hain — detailed aur personalized plan ke liye hamari team se free consultation book karo." },
   ],
 };
 
 export default function CalculatorsPage() {
+  const { openGateway } = useModal();
+
   return (
     <div className="relative" data-testid="calculators-page-root">
       <Navbar />
       <main className="pt-24">
         <Calculators />
 
-        {/* EXTRA: STEP-UP SIP CALCULATOR */}
-        <section className="bg-white py-16 px-6">
+        <div className="flex justify-center pt-10">
+          <LanguageToggle />
+        </div>
+
+        {/* EMI CALCULATOR WITH SIP SUGGESTION */}
+        <section className="bg-white py-12 px-6">
           <div className="container-x max-w-3xl mx-auto">
-            <h2 className="text-3xl font-serif text-[#0E1B2C] mb-3 text-center">
-              Plan Smarter: Step-up SIP
-            </h2>
-            <p className="text-[#2A364B]/80 text-center mb-8">
-              See how increasing your SIP every year — instead of keeping it flat —
-              can grow your final corpus.
-            </p>
+            <EMICalculator onStartSip={openGateway} />
+          </div>
+        </section>
+
+        {/* STEP-UP SIP CALCULATOR */}
+        <section className="bg-[#FBF7EE] py-12 px-6">
+          <div className="container-x max-w-3xl mx-auto">
             <StepUpSipCalculator />
+          </div>
+        </section>
+
+        {/* INCOME TAX CALCULATOR */}
+        <section className="bg-white py-12 px-6">
+          <div className="container-x max-w-3xl mx-auto">
+            <IncomeTaxCalculator onExploreElss={openGateway} />
+          </div>
+        </section>
+
+        {/* GST CALCULATOR */}
+        <section className="bg-[#FBF7EE] py-12 px-6">
+          <div className="container-x max-w-3xl mx-auto">
+            <GSTCalculator />
+          </div>
+        </section>
+
+        {/* FUTURE GOAL / INFLATION CALCULATOR */}
+        <section className="bg-white py-12 px-6">
+          <div className="container-x max-w-3xl mx-auto">
+            <FutureGoalCalculator onPlanGoal={openGateway} />
           </div>
         </section>
 
