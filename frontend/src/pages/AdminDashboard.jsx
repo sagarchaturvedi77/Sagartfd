@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { useAuth } from "../context/AuthContext";
 
 const API_BASE = process.env.REACT_APP_BACKEND_URL || "";
@@ -11,18 +11,18 @@ export default function AdminDashboard() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
 
-  const fetchEmployees = async () => {
+  const fetchEmployees = useCallback(async () => {
     setLoading(true);
     const res = await fetch(`${API_BASE}/api/auth/employees`, {
       headers: { Authorization: `Bearer ${token}` },
     });
     if (res.ok) setEmployees(await res.json());
     setLoading(false);
-  };
+  }, [token]);
 
   useEffect(() => {
     fetchEmployees();
-  }, []);
+  }, [fetchEmployees]);
 
   const handleAddEmployee = async (e) => {
     e.preventDefault();
