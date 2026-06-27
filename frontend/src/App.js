@@ -13,12 +13,16 @@ import { Toaster } from "sonner";
 import { ModalProvider } from "./context/ModalContext";
 import { LanguageProvider } from "./context/LanguageContext";
 
-// 🔐 Staff Portal (Admin + Employee)
+// Staff Portal (Admin + Employee)
 import { AuthProvider } from "./context/AuthContext";
 import ProtectedRoute from "./components/ProtectedRoute";
 import PortalLogin from "./pages/PortalLogin";
 import AdminDashboard from "./pages/AdminDashboard";
+import AdminAttendance from "./pages/AdminAttendance";
+import AdminTargets from "./pages/AdminTargets";
 import EmployeeDashboard from "./pages/EmployeeDashboard";
+import EmployeeAttendance from "./pages/EmployeeAttendance";
+import EmployeeTargets from "./pages/EmployeeTargets";
 
 // 🩺 TEMPORARY PLACEHOLDERS (Design ready hone par inhe alag files me daal denge)
 const TermInsurancePage = () => <div className="min-h-screen bg-[#FBF7EE] p-20 text-center text-3xl font-serif">Term Insurance Solutions (Coming Soon)</div>;
@@ -77,10 +81,42 @@ function App() {
                   }
                 />
                 <Route
+                  path="/portal/admin/attendance"
+                  element={
+                    <ProtectedRoute requiredRole="admin">
+                      <AdminAttendance />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/portal/admin/targets"
+                  element={
+                    <ProtectedRoute requiredRole="admin">
+                      <AdminTargets />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
                   path="/portal/employee"
                   element={
                     <ProtectedRoute requiredRole="employee">
                       <EmployeeDashboard />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/portal/employee/attendance"
+                  element={
+                    <ProtectedRoute requiredRole="employee">
+                      <EmployeeAttendance />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/portal/employee/targets"
+                  element={
+                    <ProtectedRoute requiredRole="employee">
+                      <EmployeeTargets />
                     </ProtectedRoute>
                   }
                 />

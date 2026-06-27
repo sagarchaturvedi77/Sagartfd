@@ -434,6 +434,12 @@ app.include_router(api_router)
 from auth_routes import router as auth_router
 app.include_router(auth_router)
 
+from attendance_routes import router as attendance_router
+app.include_router(attendance_router)
+
+from target_routes import router as target_router
+app.include_router(target_router)
+
 app.add_middleware(
     CORSMiddleware,
     allow_credentials=True,

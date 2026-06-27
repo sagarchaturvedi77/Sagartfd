@@ -1,0 +1,41 @@
+from pydantic import BaseModel, Field
+from typing import Optional
+from datetime import datetime
+import uuid
+
+
+class TargetCreate(BaseModel):
+    """Admin sets a monthly target for an employee."""
+    employee_id: str
+    month: int                             # 1-12
+    year: int
+    target_amount: float                   # e.g. 10,00,000 (in rupees)
+    target_type: str = "SIP"               # SIP / Lumpsum / Insurance / Mixed
+
+
+class TargetUpdate(BaseModel):
+    achieved_amount: float
+
+
+class TargetInDB(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    employee_id: str
+    employee_name: str
+    month: int
+    year: int
+    target_amount: float
+    achieved_amount: float = 0
+    target_type: str = "SIP"
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+
+
+class TargetOut(BaseModel):
+    id: str
+    employee_id: str
+    employee_name: str
+    month: int
+    year: int
+    target_amount: float
+    achieved_amount: float
+    target_type: str
+    progress_pct: float                    # computed field
