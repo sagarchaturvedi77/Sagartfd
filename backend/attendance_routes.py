@@ -67,6 +67,8 @@ async def clock_out(payload: dict = Depends(get_current_user_payload)):
     clock_in_time = record["clock_in"]
     if isinstance(clock_in_time, str):
         clock_in_time = datetime.fromisoformat(clock_in_time)
+    if clock_in_time.tzinfo is None:
+        clock_in_time = clock_in_time.replace(tzinfo=timezone.utc)
     total_hours = round((now - clock_in_time).total_seconds() / 3600, 2)
     status = "present" if total_hours >= 4 else "half-day"
 
