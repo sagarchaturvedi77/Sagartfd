@@ -13,6 +13,9 @@ class UserCreate(BaseModel):
     role: Role = "employee"
     phone: Optional[str] = None
     designation: Optional[str] = None   # e.g. "Relationship Manager"
+    base_salary: Optional[float] = None
+    training_days: Optional[int] = None
+    training_salary: Optional[bool] = False
 
 class UserLogin(BaseModel):
     email: EmailStr
@@ -32,6 +35,12 @@ class UserOut(BaseModel):
     phone: Optional[str] = None
     designation: Optional[str] = None
     created_at: datetime
+    training_days: Optional[int] = None
+    training_salary: Optional[bool] = None
+    training_start_date: Optional[str] = None
+    base_salary: Optional[float] = None
+    profile_completed: Optional[bool] = None
+    join_date: Optional[str] = None
 
 class UserInDB(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
@@ -43,6 +52,12 @@ class UserInDB(BaseModel):
     designation: Optional[str] = None
     created_at: datetime = Field(default_factory=datetime.utcnow)
     is_active: bool = True
+    base_salary: Optional[float] = None
+    training_days: Optional[int] = None
+    training_salary: Optional[bool] = False
+    training_start_date: Optional[str] = None
+    profile_completed: Optional[bool] = False
+    join_date: Optional[str] = None
 
 class TokenResponse(BaseModel):
     access_token: str

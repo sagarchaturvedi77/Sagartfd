@@ -17,6 +17,22 @@ export default function EmployeeDashboard() {
   const [targets, setTargets] = useState([]);
   const [history, setHistory] = useState([]);
   const [actionLoading, setActionLoading] = useState(false);
+  const [profileStatus, setProfileStatus] = useState(null);
+
+  const fetchProfileStatus = useCallback(async () => {
+    try {
+      const res = await fetch(`${API_BASE}/api/profile-status`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setProfileStatus(data);
+        if (!data.profile_completed) {
+          navigate("/portal/employee/onboarding");
+        }
+      }
+    } catch { /* silent */ }
+  }, [token, navigate]);
 
   const fetchToday = useCallback(async () => {
     const res = await fetch(`${API_BASE}/api/attendance/today`, {
@@ -39,7 +55,7 @@ export default function EmployeeDashboard() {
     if (res.ok) setHistory(await res.json());
   }, [token, month, year]);
 
-  useEffect(() => { fetchToday(); fetchTargets(); fetchHistory(); }, [fetchToday, fetchTargets, fetchHistory]);
+  useEffect(() => { fetchProfileStatus(); fetchToday(); fetchTargets(); fetchHistory(); }, [fetchProfileStatus, fetchToday, fetchTargets, fetchHistory]);
 
   const punch = async (action) => {
     setActionLoading(true);
@@ -103,6 +119,21 @@ export default function EmployeeDashboard() {
           </div>
         </div>
       </div>
+
+      {/* Training period banner */}
+      {profileStatus?.training_days > 0 && (
+        <div className="bg-orange-50 border border-orange-200 rounded-2xl p-4 mb-6 flex items-center gap-3">
+          <div className="w-10 h-10 rounded-full bg-orange-100 flex items-center justify-center text-orange-600 shrink-0">
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          </div>
+          <div>
+            <p className="text-sm font-semibold text-orange-800">You are on Training Period</p>
+            <p className="text-xs text-orange-600">{profileStatus.training_days} days training — only present/login days are counted</p>
+          </div>
+        </div>
+      )}
 
       {/* Stats grid */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">

@@ -8,9 +8,11 @@ export default function AdminDashboard() {
   const { token } = useAuth();
   const [employees, setEmployees] = useState([]);
   const [showAddForm, setShowAddForm] = useState(false);
-  const [form, setForm] = useState({ name: "", email: "", password: "", phone: "", designation: "" });
+  const [form, setForm] = useState({ name: "", email: "", password: "", phone: "", designation: "", base_salary: "", training_days: "", training_salary: false });
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
+  const [viewEmp, setViewEmp] = useState(null); // employee detail modal
+  const [empDetail, setEmpDetail] = useState(null);
 
   const fetchEmployees = useCallback(async () => {
     setLoading(true);
@@ -28,20 +30,38 @@ export default function AdminDashboard() {
   const handleAddEmployee = async (e) => {
     e.preventDefault();
     setError("");
+    const payload = {
+      ...form,
+      role: "employee",
+      base_salary: form.base_salary ? Number(form.base_salary) : null,
+      training_days: form.training_days ? Number(form.training_days) : null,
+    };
     const res = await fetch(`${API_BASE}/api/auth/create-employee`, {
       method: "POST",
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-      body: JSON.stringify({ ...form, role: "employee" }),
+      body: JSON.stringify(payload),
     });
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
       setError(err.detail || "Could not create employee");
       return;
     }
-    setForm({ name: "", email: "", password: "", phone: "", designation: "" });
+    setForm({ name: "", email: "", password: "", phone: "", designation: "", base_salary: "", training_days: "", training_salary: false });
     setShowAddForm(false);
     fetchEmployees();
   };
+
+  const viewEmployee = async (emp) => {
+    setViewEmp(emp);
+    try {
+      const res = await fetch(`${API_BASE}/api/employees/${emp.id}/full`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (res.ok) setEmpDetail(await res.json());
+    } catch { /* silent */ }
+  };
+
+  const formatCurrency = (v) => v ? new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR", maximumFractionDigits: 0 }).format(v) : "-";
 
   return (
     <PortalLayout>
@@ -76,7 +96,7 @@ export default function AdminDashboard() {
           </button>
         </div>
 
-        {/* Add form */}
+        {/* Add form with training + salary fields */}
         {showAddForm && (
           <form onSubmit={handleAddEmployee} className="p-6 bg-[#FBF7EE]/50 border-b border-[#E2D8C2]">
             <div className="grid sm:grid-cols-2 gap-4">
@@ -84,7 +104,14 @@ export default function AdminDashboard() {
               <FormInput required type="email" placeholder="Email (login ID)" value={form.email} onChange={v => setForm({...form, email: v})} />
               <FormInput required type="password" placeholder="Temporary Password" value={form.password} onChange={v => setForm({...form, password: v})} />
               <FormInput placeholder="Phone Number" value={form.phone} onChange={v => setForm({...form, phone: v})} />
-              <FormInput placeholder="Designation (e.g. Relationship Manager)" value={form.designation} onChange={v => setForm({...form, designation: v})} className="sm:col-span-2" />
+              <FormInput placeholder="Designation (e.g. Relationship Manager)" value={form.designation} onChange={v => setForm({...form, designation: v})} />
+              <FormInput type="number" placeholder="Base Salary (monthly)" value={form.base_salary} onChange={v => setForm({...form, base_salary: v})} />
+              <FormInput type="number" placeholder="Training Period (days)" value={form.training_days} onChange={v => setForm({...form, training_days: v})} />
+              <div className="flex items-center gap-2 px-4">
+                <input type="checkbox" id="training_salary" checked={form.training_salary} onChange={e => setForm({...form, training_salary: e.target.checked})}
+                  className="rounded border-[#E2D8C2]" />
+                <label htmlFor="training_salary" className="text-sm text-[#2A364B]/70">Salary during training?</label>
+              </div>
             </div>
             {error && (
               <p className="text-sm text-red-600 mt-3 flex items-center gap-1">
@@ -106,7 +133,7 @@ export default function AdminDashboard() {
           </div>
         ) : employees.length === 0 ? (
           <div className="p-12 text-center">
-            <p className="text-[#2A364B]/40 text-sm">No employees added yet. Click "Add Employee" to get started.</p>
+            <p className="text-[#2A364B]/40 text-sm">No employees added yet. Click &quot;Add Employee&quot; to get started.</p>
           </div>
         ) : (
           <div className="overflow-x-auto">
@@ -116,7 +143,9 @@ export default function AdminDashboard() {
                   <th className="text-left p-4 text-xs font-semibold text-[#2A364B]/60 uppercase tracking-wider">Name</th>
                   <th className="text-left p-4 text-xs font-semibold text-[#2A364B]/60 uppercase tracking-wider">Email</th>
                   <th className="text-left p-4 text-xs font-semibold text-[#2A364B]/60 uppercase tracking-wider">Designation</th>
-                  <th className="text-left p-4 text-xs font-semibold text-[#2A364B]/60 uppercase tracking-wider">Phone</th>
+                  <th className="text-left p-4 text-xs font-semibold text-[#2A364B]/60 uppercase tracking-wider hidden md:table-cell">Salary</th>
+                  <th className="text-left p-4 text-xs font-semibold text-[#2A364B]/60 uppercase tracking-wider hidden lg:table-cell">Training</th>
+                  <th className="text-left p-4 text-xs font-semibold text-[#2A364B]/60 uppercase tracking-wider">Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -127,7 +156,12 @@ export default function AdminDashboard() {
                         <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#024396] to-[#0356c4] flex items-center justify-center text-white text-xs font-bold">
                           {emp.name?.charAt(0)}
                         </div>
-                        <span className="font-medium text-[#0E1B2C]">{emp.name}</span>
+                        <div>
+                          <span className="font-medium text-[#0E1B2C]">{emp.name}</span>
+                          {emp.profile_completed && (
+                            <span className="ml-1 text-emerald-500" title="Profile complete">&#10003;</span>
+                          )}
+                        </div>
                       </div>
                     </td>
                     <td className="p-4 text-[#2A364B]/70">{emp.email}</td>
@@ -138,7 +172,20 @@ export default function AdminDashboard() {
                         <span className="text-[#2A364B]/30">-</span>
                       )}
                     </td>
-                    <td className="p-4 text-[#2A364B]/70">{emp.phone || "-"}</td>
+                    <td className="p-4 text-[#2A364B]/70 hidden md:table-cell">{formatCurrency(emp.base_salary)}</td>
+                    <td className="p-4 hidden lg:table-cell">
+                      {emp.training_days ? (
+                        <span className="text-xs text-orange-600 bg-orange-50 px-2 py-0.5 rounded-full">{emp.training_days} days</span>
+                      ) : (
+                        <span className="text-[#2A364B]/30 text-xs">No training</span>
+                      )}
+                    </td>
+                    <td className="p-4">
+                      <button onClick={() => viewEmployee(emp)}
+                        className="text-xs text-[#024396] hover:underline font-medium">
+                        View Details
+                      </button>
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -146,7 +193,100 @@ export default function AdminDashboard() {
           </div>
         )}
       </div>
+
+      {/* Employee Detail Modal */}
+      {viewEmp && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm px-4">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg p-6 max-h-[85vh] overflow-y-auto">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-serif text-[#0E1B2C]">{viewEmp.name}</h3>
+              <button onClick={() => { setViewEmp(null); setEmpDetail(null); }}
+                className="text-xs text-[#2A364B]/50 hover:text-[#0E1B2C]">Close</button>
+            </div>
+
+            {!empDetail ? (
+              <div className="flex justify-center py-8"><div className="w-6 h-6 border-2 border-[#024396] border-t-transparent rounded-full animate-spin" /></div>
+            ) : (
+              <div className="space-y-4">
+                {/* Photo */}
+                {empDetail.uploads?.photo?.data && (
+                  <div className="text-center">
+                    <img src={empDetail.uploads.photo.data} alt="Employee" className="w-20 h-20 rounded-full mx-auto object-cover border-4 border-[#024396]/20" />
+                  </div>
+                )}
+
+                {/* Basic Info */}
+                <div className="grid grid-cols-2 gap-3 text-xs">
+                  <InfoRow label="Email" value={empDetail.user?.email} />
+                  <InfoRow label="Phone" value={empDetail.user?.phone} />
+                  <InfoRow label="Designation" value={empDetail.user?.designation} />
+                  <InfoRow label="Join Date" value={empDetail.user?.join_date} />
+                  <InfoRow label="Base Salary" value={formatCurrency(empDetail.user?.base_salary)} />
+                  <InfoRow label="Training" value={empDetail.user?.training_days ? `${empDetail.user.training_days} days` : "None"} />
+                  <InfoRow label="Training Salary" value={empDetail.user?.training_salary ? "Yes" : "No"} />
+                  <InfoRow label="Profile" value={empDetail.user?.profile_completed ? "Completed" : "Pending"} />
+                </div>
+
+                {/* Profile details (if filled) */}
+                {empDetail.profile?.full_name && (
+                  <>
+                    <h4 className="text-sm font-semibold text-[#0E1B2C] pt-2 border-t border-[#E2D8C2]">Personal Details</h4>
+                    <div className="grid grid-cols-2 gap-3 text-xs">
+                      <InfoRow label="Full Name" value={empDetail.profile.full_name} />
+                      <InfoRow label="DOB" value={empDetail.profile.dob} />
+                      <InfoRow label="Gender" value={empDetail.profile.gender} />
+                      <InfoRow label="Marital Status" value={empDetail.profile.marital_status} />
+                      <InfoRow label="Contact" value={empDetail.profile.contact_no} />
+                      <InfoRow label="Father" value={empDetail.profile.father_name} />
+                      <InfoRow label="Mother" value={empDetail.profile.mother_name} />
+                      <InfoRow label="PAN" value={empDetail.profile.pan_number || "-"} />
+                      <InfoRow label="Aadhar" value={empDetail.profile.aadhar_number ? `****${empDetail.profile.aadhar_number.slice(-4)}` : "-"} />
+                    </div>
+                    <InfoRow label="Address" value={empDetail.profile.address} />
+
+                    <h4 className="text-sm font-semibold text-[#0E1B2C] pt-2 border-t border-[#E2D8C2]">Bank Details</h4>
+                    <div className="grid grid-cols-2 gap-3 text-xs">
+                      <InfoRow label="Bank" value={empDetail.profile.bank_name} />
+                      <InfoRow label="A/C No." value={empDetail.profile.bank_account_number} />
+                      <InfoRow label="IFSC" value={empDetail.profile.bank_ifsc} />
+                      <InfoRow label="Branch" value={empDetail.profile.bank_branch} />
+                    </div>
+                  </>
+                )}
+
+                {/* Documents */}
+                {Object.keys(empDetail.uploads || {}).length > 0 && (
+                  <>
+                    <h4 className="text-sm font-semibold text-[#0E1B2C] pt-2 border-t border-[#E2D8C2]">Documents</h4>
+                    <div className="grid grid-cols-3 gap-3">
+                      {Object.entries(empDetail.uploads).map(([key, val]) => (
+                        <div key={key} className="text-center">
+                          {val.data?.startsWith("data:image") ? (
+                            <img src={val.data} alt={key} className="h-16 mx-auto rounded-lg object-contain border border-[#E2D8C2]" />
+                          ) : (
+                            <div className="h-16 bg-[#FBF7EE] rounded-lg flex items-center justify-center text-[10px] text-[#2A364B]/50">PDF</div>
+                          )}
+                          <p className="text-[10px] text-[#2A364B]/50 mt-1 capitalize">{key.replace(/_/g, " ")}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </PortalLayout>
+  );
+}
+
+function InfoRow({ label, value }) {
+  return (
+    <div>
+      <span className="text-[#2A364B]/50">{label}:</span>{" "}
+      <span className="font-medium text-[#0E1B2C]">{value || "-"}</span>
+    </div>
   );
 }
 

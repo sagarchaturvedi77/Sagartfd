@@ -13,6 +13,12 @@ def to_user_out(doc: dict) -> UserOut:
         id=doc["id"], name=doc["name"], email=doc["email"], role=doc["role"],
         phone=doc.get("phone"), designation=doc.get("designation"),
         created_at=doc["created_at"],
+        training_days=doc.get("training_days"),
+        training_salary=doc.get("training_salary"),
+        training_start_date=doc.get("training_start_date"),
+        base_salary=doc.get("base_salary"),
+        profile_completed=doc.get("profile_completed"),
+        join_date=doc.get("join_date"),
     )
 
 
@@ -35,10 +41,14 @@ async def create_employee(payload: UserCreate, admin=Depends(require_admin)):
     if existing:
         raise HTTPException(status_code=400, detail="An account with this email already exists")
 
+    training_start = datetime.utcnow().strftime("%Y-%m-%d") if payload.training_days else None
     new_user = UserInDB(
         name=payload.name, email=payload.email,
         password_hash=hash_password(payload.password),
         role=payload.role, phone=payload.phone, designation=payload.designation,
+        base_salary=payload.base_salary, training_days=payload.training_days,
+        training_salary=payload.training_salary, training_start_date=training_start,
+        join_date=datetime.utcnow().strftime("%Y-%m-%d"),
     )
     await users_collection.insert_one(new_user.dict())
     return to_user_out(new_user.dict())

@@ -14,13 +14,28 @@ const STATUS_COLORS = {
   converted: "bg-emerald-100 text-emerald-700", lost: "bg-red-100 text-red-700",
 };
 const STATUS_OPTIONS = ["new", "contacted", "follow_up", "interested", "converted", "lost"];
+const CALL_STATUS_OPTIONS = [
+  { value: "picked", label: "Call Picked", color: "text-emerald-600" },
+  { value: "not_picked", label: "Not Picked", color: "text-red-500" },
+  { value: "busy", label: "Busy", color: "text-orange-500" },
+  { value: "switched_off", label: "Switched Off", color: "text-gray-500" },
+];
+const INTEREST_OPTIONS = [
+  { value: "yes", label: "Interested" },
+  { value: "no", label: "Not Interested" },
+  { value: "maybe", label: "Maybe Later" },
+];
 
 export default function EmployeeLeads() {
   const { token } = useAuth();
   const [leads, setLeads] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [updating, setUpdating] = useState(null); // lead id being updated
+  const [updating, setUpdating] = useState(null);
   const [statusForm, setStatusForm] = useState({ status: "", follow_up_note: "", follow_up_date: "" });
+  const [callModal, setCallModal] = useState(null); // lead for call log
+  const [callForm, setCallForm] = useState({ call_status: "picked", interested: "", discussed: "", follow_up_date: "" });
+  const [callLogs, setCallLogs] = useState([]);
+  const [showLogs, setShowLogs] = useState(null);
 
   const headers = { Authorization: `Bearer ${token}`, "Content-Type": "application/json" };
 
@@ -49,15 +64,38 @@ export default function EmployeeLeads() {
     load();
   };
 
+  const openCallLog = (lead) => {
+    setCallModal(lead);
+    setCallForm({ call_status: "picked", interested: "", discussed: "", follow_up_date: "" });
+  };
+
+  const submitCallLog = async (e) => {
+    e.preventDefault();
+    await fetch(`${API_BASE}/api/leads/${callModal.id}/call-log`, {
+      method: "POST", headers,
+      body: JSON.stringify(callForm),
+    });
+    setCallModal(null);
+    load();
+  };
+
+  const viewCallLogs = async (leadId) => {
+    setShowLogs(leadId);
+    const res = await fetch(`${API_BASE}/api/leads/${leadId}/call-logs`, { headers });
+    if (res.ok) setCallLogs(await res.json());
+  };
+
   const statCounts = {};
   leads.forEach(l => { statCounts[l.status] = (statCounts[l.status] || 0) + 1; });
+
+  const field = "w-full border border-[#E2D8C2] rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#024396]/30";
 
   return (
     <PortalLayout>
       <div className="space-y-6">
         <div>
           <h2 className="text-xl font-serif text-[#0E1B2C]">My Leads</h2>
-          <p className="text-xs text-[#2A364B]/50">Leads assigned to you — update status & follow up</p>
+          <p className="text-xs text-[#2A364B]/50">Leads assigned to you — call, update status & follow up</p>
         </div>
 
         {/* Quick stats */}
@@ -76,25 +114,99 @@ export default function EmployeeLeads() {
             <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6">
               <h3 className="font-semibold text-[#0E1B2C] mb-4">Update Lead Status</h3>
               <form onSubmit={submitStatus} className="space-y-3">
-                <select value={statusForm.status} onChange={(e) => setStatusForm({ ...statusForm, status: e.target.value })}
-                  className="w-full border border-[#E2D8C2] rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#024396]/30">
+                <select value={statusForm.status} onChange={(e) => setStatusForm({ ...statusForm, status: e.target.value })} className={field}>
                   {STATUS_OPTIONS.map(s => <option key={s} value={s}>{STATUS_LABELS[s]}</option>)}
                 </select>
                 <textarea placeholder="Follow-up note (optional)" rows={3} value={statusForm.follow_up_note}
                   onChange={(e) => setStatusForm({ ...statusForm, follow_up_note: e.target.value })}
-                  className="w-full border border-[#E2D8C2] rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#024396]/30 resize-none" />
+                  className={`${field} resize-none`} />
                 <input type="date" value={statusForm.follow_up_date}
-                  onChange={(e) => setStatusForm({ ...statusForm, follow_up_date: e.target.value })}
-                  className="w-full border border-[#E2D8C2] rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#024396]/30" />
+                  onChange={(e) => setStatusForm({ ...statusForm, follow_up_date: e.target.value })} className={field} />
                 <div className="flex gap-3 pt-2">
                   <button type="button" onClick={() => setUpdating(null)}
                     className="flex-1 py-2.5 rounded-xl text-sm font-medium text-[#2A364B]/70 border border-[#E2D8C2]">Cancel</button>
                   <button type="submit"
-                    className="flex-1 py-2.5 rounded-xl text-sm font-semibold text-white bg-gradient-to-r from-[#024396] to-[#0356c4]">
-                    Save
-                  </button>
+                    className="flex-1 py-2.5 rounded-xl text-sm font-semibold text-white bg-gradient-to-r from-[#024396] to-[#0356c4]">Save</button>
                 </div>
               </form>
+            </div>
+          </div>
+        )}
+
+        {/* Call log modal */}
+        {callModal && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm px-4">
+            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6">
+              <h3 className="font-semibold text-[#0E1B2C] mb-1">Call Log — {callModal.name}</h3>
+              <p className="text-xs text-[#2A364B]/50 mb-4">{callModal.phone}</p>
+              <form onSubmit={submitCallLog} className="space-y-3">
+                <div>
+                  <label className="text-xs text-[#2A364B]/60 mb-1 block">Call Status *</label>
+                  <div className="grid grid-cols-2 gap-2">
+                    {CALL_STATUS_OPTIONS.map(opt => (
+                      <button type="button" key={opt.value} onClick={() => setCallForm({ ...callForm, call_status: opt.value })}
+                        className={`py-2 rounded-xl text-xs font-medium border transition-all ${callForm.call_status === opt.value ? "border-[#024396] bg-[#024396]/5 text-[#024396]" : "border-[#E2D8C2] text-[#2A364B]/60"}`}>
+                        {opt.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                {callForm.call_status === "picked" && (
+                  <div>
+                    <label className="text-xs text-[#2A364B]/60 mb-1 block">Interest Level</label>
+                    <div className="flex gap-2">
+                      {INTEREST_OPTIONS.map(opt => (
+                        <button type="button" key={opt.value} onClick={() => setCallForm({ ...callForm, interested: opt.value })}
+                          className={`flex-1 py-2 rounded-xl text-xs font-medium border transition-all ${callForm.interested === opt.value ? "border-[#024396] bg-[#024396]/5 text-[#024396]" : "border-[#E2D8C2] text-[#2A364B]/60"}`}>
+                          {opt.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                <textarea placeholder="What was discussed? Notes..." rows={3} value={callForm.discussed}
+                  onChange={(e) => setCallForm({ ...callForm, discussed: e.target.value })}
+                  className={`${field} resize-none`} />
+                <input type="date" value={callForm.follow_up_date} placeholder="Follow-up date"
+                  onChange={(e) => setCallForm({ ...callForm, follow_up_date: e.target.value })} className={field} />
+                <div className="flex gap-3 pt-2">
+                  <button type="button" onClick={() => setCallModal(null)}
+                    className="flex-1 py-2.5 rounded-xl text-sm font-medium text-[#2A364B]/70 border border-[#E2D8C2]">Cancel</button>
+                  <button type="submit"
+                    className="flex-1 py-2.5 rounded-xl text-sm font-semibold text-white bg-gradient-to-r from-[#024396] to-[#0356c4]">Save Log</button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
+
+        {/* Call logs viewer */}
+        {showLogs && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm px-4">
+            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6 max-h-[80vh] overflow-y-auto">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="font-semibold text-[#0E1B2C]">Call History</h3>
+                <button onClick={() => setShowLogs(null)} className="text-xs text-[#2A364B]/50 hover:text-[#0E1B2C]">Close</button>
+              </div>
+              {callLogs.length === 0 ? (
+                <p className="text-xs text-[#2A364B]/50 text-center py-4">No call logs yet</p>
+              ) : (
+                <div className="space-y-3">
+                  {callLogs.map(log => (
+                    <div key={log.id} className="bg-[#FBF7EE] rounded-xl p-3 text-xs space-y-1">
+                      <div className="flex items-center justify-between">
+                        <span className={`font-semibold ${log.call_status === "picked" ? "text-emerald-600" : log.call_status === "not_picked" ? "text-red-500" : "text-orange-500"}`}>
+                          {CALL_STATUS_OPTIONS.find(o => o.value === log.call_status)?.label || log.call_status}
+                        </span>
+                        <span className="text-[#2A364B]/40">{new Date(log.created_at).toLocaleDateString("en-IN")}</span>
+                      </div>
+                      {log.interested && <p className="text-[#024396]">Interest: {INTEREST_OPTIONS.find(o => o.value === log.interested)?.label || log.interested}</p>}
+                      {log.discussed && <p className="text-[#2A364B]/70">{log.discussed}</p>}
+                      {log.follow_up_date && <p className="text-[#2A364B]/50">Follow-up: {log.follow_up_date}</p>}
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
         )}
@@ -139,9 +251,27 @@ export default function EmployeeLeads() {
 
                 <div className="flex gap-2 pt-1">
                   <button onClick={() => openUpdate(lead)}
-                    className="flex-1 py-2 rounded-xl text-xs font-semibold text-white bg-gradient-to-r from-[#024396] to-[#0356c4] transition-all">
+                    className="flex-1 py-2 rounded-xl text-xs font-semibold text-white bg-gradient-to-r from-[#024396] to-[#0356c4]">
                     Update Status
                   </button>
+                  {/* Direct Call */}
+                  <a href={`tel:+91${lead.phone.replace(/\D/g, "")}`}
+                    onClick={() => openCallLog(lead)}
+                    className="w-9 h-9 rounded-xl bg-blue-50 flex items-center justify-center text-blue-600 hover:bg-blue-100 transition-colors shrink-0"
+                    title="Call">
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                    </svg>
+                  </a>
+                  {/* Call History */}
+                  <button onClick={() => viewCallLogs(lead.id)}
+                    className="w-9 h-9 rounded-xl bg-violet-50 flex items-center justify-center text-violet-600 hover:bg-violet-100 transition-colors shrink-0"
+                    title="Call History">
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                  </button>
+                  {/* WhatsApp */}
                   <a href={`https://wa.me/91${lead.phone.replace(/\D/g, "")}`}
                     target="_blank" rel="noopener noreferrer"
                     className="w-9 h-9 rounded-xl bg-emerald-50 flex items-center justify-center text-emerald-600 hover:bg-emerald-100 transition-colors shrink-0"
