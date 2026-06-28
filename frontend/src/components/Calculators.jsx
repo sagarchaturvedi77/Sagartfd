@@ -124,7 +124,65 @@ function emiCalc(principal, years, rateAnnual) {
             });
         }
     }
-    return { emi, total, interest, series };
+    // 💡 Interest-Free Loan via SIP — monthly SIP (at 12% p.a.) needed to
+    // accumulate an amount roughly equal to the total interest payable.
+    const sipR = 0.12 / 12;
+    const sipFactor = ((Math.pow(1 + sipR, months) - 1) / sipR) * (1 + sipR);
+    const interestFreeSip = interest / sipFactor;
+
+    return { emi, total, interest, series, interestFreeSip };
+}
+
+// 💰 Income Tax — simplified Old vs New regime comparison (FY 2025-26 style slabs)
+function incomeTaxCalc(income, deductions80C) {
+    const oldStdDeduction = 50000;
+    const oldTaxable = Math.max(0, income - oldStdDeduction - Math.min(deductions80C, 150000));
+    let oldTax = 0;
+    if (oldTaxable > 1000000) oldTax += (oldTaxable - 1000000) * 0.3;
+    if (oldTaxable > 500000) oldTax += (Math.min(oldTaxable, 1000000) - 500000) * 0.2;
+    if (oldTaxable > 250000) oldTax += (Math.min(oldTaxable, 500000) - 250000) * 0.05;
+    oldTax = Math.round(oldTax * 1.04);
+
+    const newStdDeduction = 75000;
+    const newTaxable = Math.max(0, income - newStdDeduction);
+    let newTax = 0;
+    if (newTaxable > 1500000) newTax += (newTaxable - 1500000) * 0.3;
+    if (newTaxable > 1200000) newTax += (Math.min(newTaxable, 1500000) - 1200000) * 0.2;
+    if (newTaxable > 1000000) newTax += (Math.min(newTaxable, 1200000) - 1000000) * 0.15;
+    if (newTaxable > 700000) newTax += (Math.min(newTaxable, 1000000) - 700000) * 0.1;
+    if (newTaxable > 300000) newTax += (Math.min(newTaxable, 700000) - 300000) * 0.05;
+    if (newTaxable <= 700000) newTax = 0; // rebate
+    newTax = Math.round(newTax * 1.04);
+
+    const remainingElssRoom = Math.max(0, 150000 - deductions80C);
+    const elssSaving = Math.round(remainingElssRoom * 0.3 * 1.04);
+
+    return { oldTax, newTax, elssSaving, better: oldTax <= newTax ? "Old Regime" : "New Regime" };
+}
+
+// 🧾 GST breakup
+function gstCalc(amount, rate, type) {
+    let base, gst, total;
+    if (type === "exclusive") {
+        base = amount;
+        gst = (amount * rate) / 100;
+        total = base + gst;
+    } else {
+        total = amount;
+        base = (amount * 100) / (100 + rate);
+        gst = total - base;
+    }
+    return { base: Math.round(base), gst: Math.round(gst), total: Math.round(total), half: Math.round(gst / 2) };
+}
+
+// 🎯 Future Goal / Inflation
+function inflationGoalCalc(currentCost, years, inflationRate, returnRate) {
+    const futureCost = currentCost * Math.pow(1 + inflationRate / 100, years);
+    const months = years * 12;
+    const r = returnRate / 100 / 12;
+    const sipFactor = ((Math.pow(1 + r, months) - 1) / r) * (1 + r);
+    const requiredSip = futureCost / sipFactor;
+    return { futureCost: Math.round(futureCost), requiredSip: Math.round(requiredSip), currentCost };
 }
 
 // ---------- Slider ----------
@@ -199,7 +257,13 @@ const TABS = [
     { id: "swp", label: "SWP", testid: IDS.calc.tabSwp },
     { id: "goal", label: "Goal", testid: IDS.calc.tabGoal },
     { id: "emi", label: "EMI", testid: IDS.calc.tabEmi },
+    { id: "tax", label: "Income Tax" },
+    { id: "gst", label: "GST" },
+    { id: "inflation", label: "Future Goal" },
 ];
+
+// Tabs that have a time-series growth chart (SIP/lumpsum style)
+const CHART_TABS = ["sip", "daily", "lumpsum", "swp", "goal", "emi"];
 
 export default function Calculators() {
     const [tab, setTab] = useState("sip");
@@ -231,6 +295,21 @@ export default function Calculators() {
     const [loanYears, setLoanYears] = useState(20);
     const [loanRate, setLoanRate] = useState(9);
 
+    // 🆕 Income Tax
+    const [taxIncome, setTaxIncome] = useState(1200000);
+    const [taxDeductions, setTaxDeductions] = useState(50000);
+
+    // 🆕 GST
+    const [gstAmount, setGstAmount] = useState(10000);
+    const [gstRate, setGstRate] = useState(18);
+    const [gstType, setGstType] = useState("exclusive");
+
+    // 🆕 Future Goal / Inflation
+    const [inflCost, setInflCost] = useState(1000000);
+    const [inflYears, setInflYears] = useState(10);
+    const [inflRate, setInflRate] = useState(7);
+    const [inflReturn, setInflReturn] = useState(12);
+
     // 🛠️ Step 2: Extract open trigger hook
     const { openGateway } = useModal();
 
@@ -250,6 +329,12 @@ export default function Calculators() {
                 return { kind: "goal", ...goalCalc(goal, goalYears, goalRate) };
             case "emi":
                 return { kind: "emi", ...emiCalc(loan, loanYears, loanRate) };
+            case "tax":
+                return { kind: "tax", ...incomeTaxCalc(taxIncome, taxDeductions) };
+            case "gst":
+                return { kind: "gst", ...gstCalc(gstAmount, gstRate, gstType) };
+            case "inflation":
+                return { kind: "inflation", ...inflationGoalCalc(inflCost, inflYears, inflRate, inflReturn) };
             default:
                 return null;
         }
@@ -261,6 +346,9 @@ export default function Calculators() {
         swpCorpus, swpMonthly, swpYears, swpRate,
         goal, goalYears, goalRate,
         loan, loanYears, loanRate,
+        taxIncome, taxDeductions,
+        gstAmount, gstRate, gstType,
+        inflCost, inflYears, inflRate, inflReturn,
     ]);
 
     const snapRef = useRef(null);
@@ -297,9 +385,9 @@ export default function Calculators() {
                             Money math, <span className="font-italic-serif text-[#024396]">made visual.</span>
                         </h2>
                         <p className="mt-3 text-xs md:text-sm text-[#2A364B] max-w-2xl">
-                            See exactly how your wealth compounds. Try SIP, Daily SIP, Lumpsum, SWP, Goal &
-                            EMI scenarios — then download a personalised snapshot to share or onboard via
-                            AssetPlus.
+                            See exactly how your wealth compounds. Try SIP, Daily SIP, Lumpsum, SWP, Goal,
+                            EMI, Income Tax, GST & Future Goal scenarios — then download a personalised
+                            snapshot to share or onboard via AssetPlus.
                         </p>
                     </div>
                     <div className="hidden md:inline-flex items-center gap-2 text-xs text-[#5C677D] bg-[#FBF7EE] border border-[#E2D8C2] rounded-full px-3 py-2">
@@ -310,7 +398,7 @@ export default function Calculators() {
 
                 {/* Tabs Grid */}
                 <div className="mb-6">
-                    <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
+                    <div className="grid grid-cols-3 sm:grid-cols-5 lg:grid-cols-9 gap-2">
                         {TABS.map((t) => (
                             <button
                                 key={t.id}
@@ -389,50 +477,150 @@ export default function Calculators() {
                                 <Slider label="Interest (p.a.)" value={loanRate} onChange={setLoanRate} min={5} max={20} step={0.1} format={(v) => `${v}%`} />
                             </div>
                         )}
+                        {tab === "tax" && (
+                            <div className="space-y-6">
+                                <Slider label="Annual Income" value={taxIncome} onChange={setTaxIncome} min={300000} max={10000000} step={50000} format={fmtINR} />
+                                <Slider label="80C Investments (Old Regime only)" value={taxDeductions} onChange={setTaxDeductions} min={0} max={150000} step={5000} format={fmtINR} />
+                                <div className="text-xs text-[#5C677D] bg-[#F6F1E8] border border-[#E2D8C2] rounded-lg p-3 leading-relaxed">
+                                    Income Tax · Income Tax — Old vs New regime ka comparison. Estimates simplified hain, exact filing ke liye CA se consult karein.
+                                </div>
+                            </div>
+                        )}
+                        {tab === "gst" && (
+                            <div className="space-y-6">
+                                <Slider label="Amount" value={gstAmount} onChange={setGstAmount} min={100} max={10000000} step={100} format={fmtINR} />
+                                <div>
+                                    <label className="text-[12px] md:text-[13px] uppercase tracking-[0.15em] text-[#5C677D] block mb-2">GST Rate</label>
+                                    <div className="flex gap-2 flex-wrap">
+                                        {[5, 12, 18, 28].map((r) => (
+                                            <button key={r} onClick={() => setGstRate(r)}
+                                                className={`px-4 py-1.5 rounded-full text-sm border transition-colors ${gstRate === r ? "bg-[#024396] text-white border-[#024396]" : "bg-white border-[#E2D8C2] text-[#2A364B]"}`}>
+                                                {r}%
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+                                <div>
+                                    <label className="text-[12px] md:text-[13px] uppercase tracking-[0.15em] text-[#5C677D] block mb-2">Amount Type</label>
+                                    <select value={gstType} onChange={(e) => setGstType(e.target.value)} className="w-full border border-[#E2D8C2] rounded-lg px-3 py-2 bg-white">
+                                        <option value="exclusive">Exclusive (GST to be added)</option>
+                                        <option value="inclusive">Inclusive (GST already included)</option>
+                                    </select>
+                                </div>
+                                <div className="text-xs text-[#5C677D] bg-[#F6F1E8] border border-[#E2D8C2] rounded-lg p-3 leading-relaxed">
+                                    GST · GST Calculator — kisi bhi amount ka quick breakup nikalein.
+                                </div>
+                            </div>
+                        )}
+                        {tab === "inflation" && (
+                            <div className="space-y-6">
+                                <Slider label="Current Cost of Goal" value={inflCost} onChange={setInflCost} min={50000} max={50000000} step={50000} format={fmtINR} />
+                                <Slider label="Years Until Goal" value={inflYears} onChange={setInflYears} min={1} max={40} step={1} format={(v) => `${v} Yr`} />
+                                <Slider label="Expected Inflation (p.a.)" value={inflRate} onChange={setInflRate} min={3} max={15} step={0.5} format={(v) => `${v}%`} />
+                                <Slider label="Expected Investment Return (p.a.)" value={inflReturn} onChange={setInflReturn} min={1} max={30} step={0.5} format={(v) => `${v}%`} />
+                                <div className="text-xs text-[#5C677D] bg-[#F6F1E8] border border-[#E2D8C2] rounded-lg p-3 leading-relaxed">
+                                    Future Goal · Inflation-adjusted future cost aur required monthly SIP dekhein.
+                                </div>
+                            </div>
+                        )}
                     </div>
 
                     {/* Chart + Result Column */}
                     <div className="lg:col-span-8 grid grid-rows-[1fr_auto] gap-4 md:gap-6">
-                        {/* 🛠️ GRAPH WRAPPER: Hidden completely on mobile using hidden md:block */}
-                        <div className="hidden md:block card-cream p-4 sm:p-5 md:p-6">
-                            <div className="flex items-center justify-between mb-3">
-                                <div className="text-[11px] tracking-[0.2em] uppercase text-[#5C677D]">
-                                    Projection
+                        {/* 🛠️ GRAPH WRAPPER: only for tabs with a growth series; hidden on mobile too */}
+                        {CHART_TABS.includes(tab) && (
+                            <div className="hidden md:block card-cream p-4 sm:p-5 md:p-6">
+                                <div className="flex items-center justify-between mb-3">
+                                    <div className="text-[11px] tracking-[0.2em] uppercase text-[#5C677D]">
+                                        Projection
+                                    </div>
+                                    <div className="flex items-center gap-3 sm:gap-4 text-[11px] sm:text-xs text-[#5C677D]">
+                                        <span className="inline-flex items-center gap-1.5">
+                                            <span className="w-2.5 h-2.5 rounded-full bg-[#C7102E]" />
+                                            Invested
+                                        </span>
+                                        <span className="inline-flex items-center gap-1.5">
+                                            <span className="w-2.5 h-2.5 rounded-full bg-[#024396]" />
+                                            {tab === "emi" ? "Outstanding" : "Value"}
+                                        </span>
+                                    </div>
                                 </div>
-                                <div className="flex items-center gap-3 sm:gap-4 text-[11px] sm:text-xs text-[#5C677D]">
-                                    <span className="inline-flex items-center gap-1.5">
-                                        <span className="w-2.5 h-2.5 rounded-full bg-[#C7102E]" />
-                                        Invested
-                                    </span>
-                                    <span className="inline-flex items-center gap-1.5">
-                                        <span className="w-2.5 h-2.5 rounded-full bg-[#024396]" />
-                                        {tab === "emi" ? "Outstanding" : "Value"}
-                                    </span>
+                                <div className="h-[220px] sm:h-[260px] md:h-[280px]">
+                                    <ResponsiveContainer width="100%" height="100%">
+                                        <AreaChart data={result?.series || []}>
+                                            <defs>
+                                                <linearGradient id="gv" x1="0" y1="0" x2="0" y2="1">
+                                                    <stop offset="0%" stopColor="#024396" stopOpacity={0.45} />
+                                                    <stop offset="100%" stopColor="#024396" stopOpacity={0} />
+                                                </linearGradient>
+                                                <linearGradient id="gi" x1="0" y1="0" x2="0" y2="1">
+                                                    <stop offset="0%" stopColor="#C7102E" stopOpacity={0.4} />
+                                                    <stop offset="100%" stopColor="#C7102E" stopOpacity={0} />
+                                                </linearGradient>
+                                            </defs>
+                                            <CartesianGrid strokeDasharray="3 3" stroke="#E2D8C2" />
+                                            <XAxis dataKey="label" stroke="#5C677D" tick={{ fontSize: 11 }} />
+                                            <YAxis stroke="#5C677D" tick={{ fontSize: 10 }} tickFormatter={fmtINR} width={56} />
+                                            <Tooltip contentStyle={{background: "#0E1B2C", border: "none", borderRadius: 12, color: "#F6F1E8", fontSize: 12}} formatter={(v) => fmtINR(v)} />
+                                            <Area type="monotone" dataKey="invested" stroke="#C7102E" strokeWidth={2} fill="url(#gi)" />
+                                            <Area type="monotone" dataKey="value" stroke="#024396" strokeWidth={2.4} fill="url(#gv)" />
+                                        </AreaChart>
+                                    </ResponsiveContainer>
                                 </div>
                             </div>
-                            <div className="h-[220px] sm:h-[260px] md:h-[280px]">
-                                <ResponsiveContainer width="100%" height="100%">
-                                    <AreaChart data={result?.series || []}>
-                                        <defs>
-                                            <linearGradient id="gv" x1="0" y1="0" x2="0" y2="1">
-                                                <stop offset="0%" stopColor="#024396" stopOpacity={0.45} />
-                                                <stop offset="100%" stopColor="#024396" stopOpacity={0} />
-                                            </linearGradient>
-                                            <linearGradient id="gi" x1="0" y1="0" x2="0" y2="1">
-                                                <stop offset="0%" stopColor="#C7102E" stopOpacity={0.4} />
-                                                <stop offset="100%" stopColor="#C7102E" stopOpacity={0} />
-                                            </linearGradient>
-                                        </defs>
-                                        <CartesianGrid strokeDasharray="3 3" stroke="#E2D8C2" />
-                                        <XAxis dataKey="label" stroke="#5C677D" tick={{ fontSize: 11 }} />
-                                        <YAxis stroke="#5C677D" tick={{ fontSize: 10 }} tickFormatter={fmtINR} width={56} />
-                                        <Tooltip contentStyle={{background: "#0E1B2C", border: "none", borderRadius: 12, color: "#F6F1E8", fontSize: 12}} formatter={(v) => fmtINR(v)} />
-                                        <Area type="monotone" dataKey="invested" stroke="#C7102E" strokeWidth={2} fill="url(#gi)" />
-                                        <Area type="monotone" dataKey="value" stroke="#024396" strokeWidth={2.4} fill="url(#gv)" />
-                                    </AreaChart>
-                                </ResponsiveContainer>
+                        )}
+
+                        {/* Non-chart comparison panels for Tax / GST / Future Goal */}
+                        {tab === "tax" && result && (
+                            <div className="hidden md:block card-cream p-4 sm:p-5 md:p-6">
+                                <div className="text-[11px] tracking-[0.2em] uppercase text-[#5C677D] mb-4">Old vs New Regime</div>
+                                <div className="grid grid-cols-2 gap-6">
+                                    {[{ label: "Old Regime", value: result.oldTax }, { label: "New Regime", value: result.newTax }].map((b) => {
+                                        const maxVal = Math.max(result.oldTax, result.newTax, 1);
+                                        const heightPct = Math.max(6, (b.value / maxVal) * 100);
+                                        return (
+                                            <div key={b.label} className="flex flex-col items-center justify-end h-[220px]">
+                                                <div className="font-display text-[#0E1B2C] mb-2">{fmtINR(b.value)}</div>
+                                                <div className="w-20 rounded-t-xl bg-[#024396]" style={{ height: `${heightPct}%` }} />
+                                                <div className="text-xs text-[#5C677D] mt-2 uppercase tracking-wide">{b.label}</div>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                                <div className="text-xs text-[#5C677D] mt-4 text-center">Better choice for you: <strong className="text-[#024396]">{result.better}</strong></div>
                             </div>
-                        </div>
+                        )}
+                        {tab === "gst" && result && (
+                            <div className="hidden md:block card-cream p-4 sm:p-5 md:p-6">
+                                <div className="text-[11px] tracking-[0.2em] uppercase text-[#5C677D] mb-4">GST Breakup</div>
+                                <div className="space-y-3">
+                                    {[{ label: "Base Amount", value: result.base, color: "#5C677D" }, { label: "CGST", value: result.half, color: "#024396" }, { label: "SGST", value: result.half, color: "#024396" }, { label: "Total Amount", value: result.total, color: "#0E1B2C" }].map((row) => (
+                                        <div key={row.label} className="flex items-center justify-between border-b border-[#E2D8C2] pb-2">
+                                            <span className="text-sm text-[#2A364B]">{row.label}</span>
+                                            <span className="font-display" style={{ color: row.color }}>{fmtINR(row.value)}</span>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+                        {tab === "inflation" && result && (
+                            <div className="hidden md:block card-cream p-4 sm:p-5 md:p-6">
+                                <div className="text-[11px] tracking-[0.2em] uppercase text-[#5C677D] mb-4">Today vs Future Cost</div>
+                                <div className="grid grid-cols-2 gap-6">
+                                    {[{ label: "Today", value: result.currentCost }, { label: `In ${inflYears} Yrs`, value: result.futureCost }].map((b) => {
+                                        const maxVal = Math.max(result.currentCost, result.futureCost, 1);
+                                        const heightPct = Math.max(6, (b.value / maxVal) * 100);
+                                        return (
+                                            <div key={b.label} className="flex flex-col items-center justify-end h-[220px]">
+                                                <div className="font-display text-[#0E1B2C] mb-2">{fmtINR(b.value)}</div>
+                                                <div className="w-20 rounded-t-xl bg-[#C7102E]" style={{ height: `${heightPct}%` }} />
+                                                <div className="text-xs text-[#5C677D] mt-2 uppercase tracking-wide">{b.label}</div>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+                        )}
 
                         <ResultCard
                             data-testid={IDS.calc.result}
@@ -457,6 +645,9 @@ export default function Calculators() {
                                 swpCorpus, swpMonthly, swpYears, swpRate,
                                 goal, goalYears, goalRate,
                                 loan, loanYears, loanRate,
+                                taxIncome, taxDeductions,
+                                gstAmount, gstRate, gstType,
+                                inflCost, inflYears, inflRate, inflReturn,
                                 result,
                             }}
                         />
@@ -491,6 +682,24 @@ function ResultCard({ tab, result, onDownload, onStart }) {
                             <Metric label="Total Invested" value={fmtINR(result.invested)} />
                             <Metric label="Target" value={fmtINR(result.target)} />
                         </>
+                    ) : tab === "tax" ? (
+                        <>
+                            <Metric label="Old Regime Tax" value={fmtINR(result.oldTax)} />
+                            <Metric label="New Regime Tax" value={fmtINR(result.newTax)} />
+                            <Metric label="Better Choice" value={result.better} primary />
+                        </>
+                    ) : tab === "gst" ? (
+                        <>
+                            <Metric label="Base Amount" value={fmtINR(result.base)} />
+                            <Metric label="GST Amount" value={fmtINR(result.gst)} />
+                            <Metric label="Total Amount" value={fmtINR(result.total)} primary />
+                        </>
+                    ) : tab === "inflation" ? (
+                        <>
+                            <Metric label="Today's Cost" value={fmtINR(result.currentCost)} />
+                            <Metric label="Future Cost" value={fmtINR(result.futureCost)} />
+                            <Metric label="Monthly SIP Needed" value={fmtINR(result.requiredSip)} primary />
+                        </>
                     ) : (
                         <>
                             <Metric label="Invested" value={fmtINR(result.invested)} />
@@ -508,6 +717,36 @@ function ResultCard({ tab, result, onDownload, onStart }) {
                     </button>
                 </div>
             </div>
+
+            {/* 💡 Interest-Free Loan via SIP suggestion — EMI tab only */}
+            {tab === "emi" && result.interestFreeSip > 0 && (
+                <div className="mt-5 pt-5 border-t border-[#F6F1E8]/15">
+                    <div className="text-[10px] tracking-[0.2em] uppercase text-[#C7102E] font-bold mb-1.5">
+                        💡 Make This Loan Interest-Free · Is Loan Ko Interest-Free Banayein
+                    </div>
+                    <p className="text-xs sm:text-sm text-[#F6F1E8]/85 leading-relaxed">
+                        Start a monthly SIP of <strong className="text-[#F6F1E8]">{fmtINR(result.interestFreeSip)}</strong> alongside
+                        this loan (assuming 12% p.a. return). By the time your loan ends, it could grow to roughly
+                        offset your total interest cost — effectively making this loan interest-free.
+                        <br className="hidden sm:block" />
+                        <span className="text-[#F6F1E8]/60 text-[11px]">Estimate only — actual market returns are not guaranteed.</span>
+                    </p>
+                </div>
+            )}
+            {/* 💡 ELSS suggestion — Income Tax tab only */}
+            {tab === "tax" && result.elssSaving > 0 && (
+                <div className="mt-5 pt-5 border-t border-[#F6F1E8]/15">
+                    <div className="text-[10px] tracking-[0.2em] uppercase text-[#C7102E] font-bold mb-1.5">
+                        💡 Save More with ELSS · ELSS Se Aur Bachat Karein
+                    </div>
+                    <p className="text-xs sm:text-sm text-[#F6F1E8]/85 leading-relaxed">
+                        If you haven't used your full ₹1,50,000 limit under Section 80C, investing the remaining
+                        amount in an ELSS mutual fund (Old Regime) could save you up to{" "}
+                        <strong className="text-[#F6F1E8]">{fmtINR(result.elssSaving)}</strong> in tax — while
+                        your money also grows with equity exposure.
+                    </p>
+                </div>
+            )}
         </div>
     );
 }
@@ -657,6 +896,9 @@ function SnapshotCard({ tab, result, state }) {
         swp: "SWP Calculator",
         goal: "Goal Planner",
         emi: "EMI Calculator",
+        tax: "Income Tax Calculator",
+        gst: "GST Calculator",
+        inflation: "Future Goal Calculator",
     };
 
     const extendable = ["sip", "daily", "lumpsum", "goal"].includes(tab);
@@ -670,6 +912,7 @@ function SnapshotCard({ tab, result, state }) {
             case "swp": return state.swpYears;
             case "goal": return state.goalYears;
             case "emi": return state.loanYears;
+            case "inflation": return state.inflYears;
             default: return 0;
         }
     })();
@@ -682,6 +925,7 @@ function SnapshotCard({ tab, result, state }) {
             case "swp": return state.swpRate;
             case "goal": return state.goalRate;
             case "emi": return state.loanRate;
+            case "inflation": return state.inflReturn;
             default: return 12;
         }
     })();
@@ -690,6 +934,9 @@ function SnapshotCard({ tab, result, state }) {
         if (tab === "emi") return { label: "Monthly EMI", value: fmtINR(result.emi) };
         if (tab === "swp") return { label: "Balance left", value: fmtINR(result.fv) };
         if (tab === "goal") return { label: "Monthly SIP needed", value: fmtINR(result.requiredSip) };
+        if (tab === "tax") return { label: "Better Regime", value: result.better };
+        if (tab === "gst") return { label: "Total Amount", value: fmtINR(result.total) };
+        if (tab === "inflation") return { label: "Future Cost", value: fmtINR(result.futureCost) };
         return { label: "Future Value", value: fmtINR(result.fv) };
     })();
 
@@ -705,6 +952,9 @@ function SnapshotCard({ tab, result, state }) {
         if (tab === "swp") return `Monthly Withdrawal: ${fmtINR(state.swpMonthly)} from ${fmtINR(state.swpCorpus)} corpus`;
         if (tab === "goal") return `Target Corpus: ${fmtINR(state.goal)}`;
         if (tab === "emi") return `Loan Amount: ${fmtINR(state.loan)}`;
+        if (tab === "tax") return `Annual Income: ${fmtINR(state.taxIncome)} · 80C: ${fmtINR(state.taxDeductions)}`;
+        if (tab === "gst") return `Amount: ${fmtINR(state.gstAmount)} (${state.gstType}) @ ${state.gstRate}% GST`;
+        if (tab === "inflation") return `Current Cost: ${fmtINR(state.inflCost)} · Inflation: ${state.inflRate}% p.a.`;
         return "";
     })();
 
@@ -729,7 +979,7 @@ function SnapshotCard({ tab, result, state }) {
                 <div>
                     <div style={{ fontSize: 10, letterSpacing: "0.22em", textTransform: "uppercase", color: "#C7102E", fontWeight: 600 }}>{labels[tab]}</div>
                     <div style={{ fontFamily: "'Fraunces', serif", fontSize: 26, marginTop: 6, lineHeight: 1 }}>{headlineMetric.value}</div>
-                    <div style={{ fontSize: 11, color: "#F6F1E8", opacity: 0.7, marginTop: 4 }}>{headlineMetric.label} · over {baseYears} years @ {rateUsed}% p.a.</div>
+                    <div style={{ fontSize: 11, color: "#F6F1E8", opacity: 0.7, marginTop: 4 }}>{headlineMetric.label}{baseYears ? ` · over ${baseYears} years @ ${rateUsed}% p.a.` : ""}</div>
                     <div style={{ fontSize: 12, color: "#F6F1E8", marginTop: 6, fontWeight: 600 }}>{investedLine}</div>
                 </div>
                 <div style={{background: "#C7102E", color: "#fff", borderRadius: 999, padding: "5px 12px", fontSize: 10, letterSpacing: "0.18em", textTransform: "uppercase", fontWeight: 700}}>Snapshot</div>
@@ -752,6 +1002,24 @@ function SnapshotCard({ tab, result, state }) {
                         <BigStat label="Target" value={fmtINR(result.target)} />
                         <BigStat label="You Invest" value={fmtINR(result.invested)} />
                         <BigStat label="Required SIP" value={fmtINR(result.requiredSip)} accent />
+                    </>
+                ) : tab === "tax" ? (
+                    <>
+                        <BigStat label="Old Regime Tax" value={fmtINR(result.oldTax)} />
+                        <BigStat label="New Regime Tax" value={fmtINR(result.newTax)} />
+                        <BigStat label="ELSS Saving" value={fmtINR(result.elssSaving)} accent />
+                    </>
+                ) : tab === "gst" ? (
+                    <>
+                        <BigStat label="Base Amount" value={fmtINR(result.base)} />
+                        <BigStat label="GST Amount" value={fmtINR(result.gst)} />
+                        <BigStat label="Total Amount" value={fmtINR(result.total)} accent />
+                    </>
+                ) : tab === "inflation" ? (
+                    <>
+                        <BigStat label="Today's Cost" value={fmtINR(result.currentCost)} />
+                        <BigStat label="Future Cost" value={fmtINR(result.futureCost)} />
+                        <BigStat label="Monthly SIP Needed" value={fmtINR(result.requiredSip)} accent />
                     </>
                 ) : (
                     <>
@@ -779,11 +1047,25 @@ function SnapshotCard({ tab, result, state }) {
                     </div>
                 </div>
             )}
-            <div style={{ position: "relative", marginBottom: 18 }}>
-                <div style={{ fontSize: 10, letterSpacing: "0.22em", textTransform: "uppercase", color: "#5C677D", marginBottom: 8 }}>Year-on-year growth</div>
-                <div style={{ background: "#FBF7EE", border: "1px solid #E2D8C2", borderRadius: 12, padding: 12 }}><SnapshotChart series={result.series || []} tab={tab} /></div>
-                <div style={{ display: "flex", justifyContent: "space-between", marginTop: 6, fontSize: 10, color: "#5C677D" }}><span style={{ display: "inline-flex", alignItems: "center", gap: 5 }}><span style={{ width: 8, height: 8, borderRadius: 999, background: "#C7102E" }} />Invested</span><span style={{ display: "inline-flex", alignItems: "center", gap: 5 }}><span style={{ width: 8, height: 8, borderRadius: 999, background: "#024396" }} />{tab === "emi" ? "Outstanding" : "Value"}</span></div>
-            </div>
+            {result.series && result.series.length > 0 && (
+                <div style={{ position: "relative", marginBottom: 18 }}>
+                    <div style={{ fontSize: 10, letterSpacing: "0.22em", textTransform: "uppercase", color: "#5C677D", marginBottom: 8 }}>Year-on-year growth</div>
+                    <div style={{ background: "#FBF7EE", border: "1px solid #E2D8C2", borderRadius: 12, padding: 12 }}><SnapshotChart series={result.series || []} tab={tab} /></div>
+                    <div style={{ display: "flex", justifyContent: "space-between", marginTop: 6, fontSize: 10, color: "#5C677D" }}><span style={{ display: "inline-flex", alignItems: "center", gap: 5 }}><span style={{ width: 8, height: 8, borderRadius: 999, background: "#C7102E" }} />Invested</span><span style={{ display: "inline-flex", alignItems: "center", gap: 5 }}><span style={{ width: 8, height: 8, borderRadius: 999, background: "#024396" }} />{tab === "emi" ? "Outstanding" : "Value"}</span></div>
+                </div>
+            )}
+            {tab === "emi" && result.interestFreeSip > 0 && (
+                <div style={{background: "#FBF7EE", border: "1px solid #E2D8C2", borderLeft: "3px solid #C7102E", borderRadius: 12, padding: "12px 14px", marginBottom: 18}}>
+                    <div style={{ fontSize: 10, letterSpacing: "0.18em", textTransform: "uppercase", color: "#C7102E", fontWeight: 700, marginBottom: 6 }}>💡 Make This Loan Interest-Free</div>
+                    <div style={{ fontSize: 11.5, color: "#0E1B2C", lineHeight: 1.4 }}>Start a SIP of <strong>{fmtINR(result.interestFreeSip)}/month</strong> (12% p.a. assumed) to roughly offset your total interest of {fmtINR(result.interest)}.</div>
+                </div>
+            )}
+            {tab === "tax" && result.elssSaving > 0 && (
+                <div style={{background: "#FBF7EE", border: "1px solid #E2D8C2", borderLeft: "3px solid #C7102E", borderRadius: 12, padding: "12px 14px", marginBottom: 18}}>
+                    <div style={{ fontSize: 10, letterSpacing: "0.18em", textTransform: "uppercase", color: "#C7102E", fontWeight: 700, marginBottom: 6 }}>💡 Save More with ELSS</div>
+                    <div style={{ fontSize: 11.5, color: "#0E1B2C", lineHeight: 1.4 }}>Investing your remaining 80C room in ELSS could save up to <strong>{fmtINR(result.elssSaving)}</strong> in tax.</div>
+                </div>
+            )}
             <div style={{ position: "relative", marginBottom: 18 }}>
                 <div style={{ fontSize: 10, letterSpacing: "0.22em", textTransform: "uppercase", color: "#C7102E", fontWeight: 700, marginBottom: 10, display: "flex", alignItems: "center", gap: 8 }}><span style={{ width: 18, height: 18, borderRadius: 999, background: "#C7102E", color: "#fff", display: "grid", placeItems: "center", fontSize: 11 }}>💡</span>Boost your wealth · Smart suggestions</div>
                 <div style={{ display: "flex", flexDirection: "column", gap: 7 }}>
