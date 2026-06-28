@@ -25,8 +25,14 @@ import EmployeeDashboard from "./pages/EmployeeDashboard";
 import EmployeeAttendance from "./pages/EmployeeAttendance";
 import EmployeeTargets from "./pages/EmployeeTargets";
 import EmployeeSettings from "./pages/EmployeeSettings";
+import EmployeeLeads from "./pages/EmployeeLeads";
+import EmployeeSalary from "./pages/EmployeeSalary";
 import AdminAnnounce from "./pages/AdminAnnounce";
 import AdminWebsite from "./pages/AdminWebsite";
+import AdminLeads from "./pages/AdminLeads";
+import AdminSalary from "./pages/AdminSalary";
+import AdminTasks from "./pages/AdminTasks";
+import AdminReports from "./pages/AdminReports";
 import AnalyticsTracker from "./components/AnalyticsTracker";
 import WebsiteNotificationPrompt from "./components/WebsiteNotificationPrompt";
 
@@ -107,10 +113,42 @@ function App() {
                   }
                 />
                 <Route
+                  path="/portal/admin/leads"
+                  element={
+                    <ProtectedRoute requiredRole="admin">
+                      <AdminLeads />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
                   path="/portal/admin/website"
                   element={
                     <ProtectedRoute requiredRole="admin">
                       <AdminWebsite />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/portal/admin/salary"
+                  element={
+                    <ProtectedRoute requiredRole="admin">
+                      <AdminSalary />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/portal/admin/tasks"
+                  element={
+                    <ProtectedRoute requiredRole="admin">
+                      <AdminTasks />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/portal/admin/reports"
+                  element={
+                    <ProtectedRoute requiredRole="admin">
+                      <AdminReports />
                     </ProtectedRoute>
                   }
                 />
@@ -143,6 +181,22 @@ function App() {
                   element={
                     <ProtectedRoute requiredRole="employee">
                       <EmployeeTargets />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/portal/employee/salary"
+                  element={
+                    <ProtectedRoute requiredRole="employee">
+                      <EmployeeSalary />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/portal/employee/leads"
+                  element={
+                    <ProtectedRoute requiredRole="employee">
+                      <EmployeeLeads />
                     </ProtectedRoute>
                   }
                 />

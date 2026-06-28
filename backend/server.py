@@ -446,6 +446,15 @@ app.include_router(notification_router)
 from analytics_routes import router as analytics_router
 app.include_router(analytics_router)
 
+from lead_routes import router as lead_router
+app.include_router(lead_router)
+
+from salary_routes import router as salary_router
+app.include_router(salary_router)
+
+from task_routes import router as task_router
+app.include_router(task_router)
+
 app.add_middleware(
     CORSMiddleware,
     allow_credentials=True,
