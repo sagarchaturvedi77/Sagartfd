@@ -12,6 +12,7 @@ import ContactPage from "./pages/ContactPage";
 import { Toaster } from "sonner";
 import { ModalProvider } from "./context/ModalContext";
 import { LanguageProvider } from "./context/LanguageContext";
+import EducationPortal from './pages/EducationPortal';
 
 // Staff Portal (Admin + Employee)
 import { AuthProvider } from "./context/AuthContext";
@@ -66,6 +67,8 @@ function App() {
                 <Route path="/term-insurance" element={<TermInsurancePage />} />
                 <Route path="/health-insurance" element={<HealthInsurancePage />} />
                 <Route path="/motor-insurance" element={<MotorInsurancePage />} />
+
+                <Route path="/research-learning-hub" element={<EducationPortal />} />
 
                 {/* 👥 Partnership Onboarding */}
                 <Route path="/partner-with-us" element={<PartnerPage />} />
