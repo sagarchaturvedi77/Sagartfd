@@ -455,6 +455,9 @@ app.include_router(salary_router)
 from task_routes import router as task_router
 app.include_router(task_router)
 
+from onboarding_routes import router as onboarding_router
+app.include_router(onboarding_router)
+
 app.add_middleware(
     CORSMiddleware,
     allow_credentials=True,

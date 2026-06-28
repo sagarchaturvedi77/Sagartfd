@@ -35,6 +35,10 @@ import AdminTasks from "./pages/AdminTasks";
 import AdminReports from "./pages/AdminReports";
 import AnalyticsTracker from "./components/AnalyticsTracker";
 import WebsiteNotificationPrompt from "./components/WebsiteNotificationPrompt";
+import EmployeeOnboarding from "./pages/EmployeeOnboarding";
+import EmployeeIDCard from "./pages/EmployeeIDCard";
+import EmployeeProfile from "./pages/EmployeeProfile";
+import AdminWebsiteContent from "./pages/AdminWebsiteContent";
 
 // 🩺 TEMPORARY PLACEHOLDERS (Design ready hone par inhe alag files me daal denge)
 const TermInsurancePage = () => <div className="min-h-screen bg-[#FBF7EE] p-20 text-center text-3xl font-serif">Term Insurance Solutions (Coming Soon)</div>;
@@ -205,6 +209,38 @@ function App() {
                   element={
                     <ProtectedRoute requiredRole="employee">
                       <EmployeeSettings />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/portal/employee/onboarding"
+                  element={
+                    <ProtectedRoute requiredRole="employee">
+                      <EmployeeOnboarding />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/portal/employee/documents"
+                  element={
+                    <ProtectedRoute requiredRole="employee">
+                      <EmployeeIDCard />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/portal/employee/profile"
+                  element={
+                    <ProtectedRoute requiredRole="employee">
+                      <EmployeeProfile />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/portal/admin/website-content"
+                  element={
+                    <ProtectedRoute requiredRole="admin">
+                      <AdminWebsiteContent />
                     </ProtectedRoute>
                   }
                 />
