@@ -17,6 +17,12 @@ class TargetUpdate(BaseModel):
     achieved_amount: float
 
 
+class EmployeeTargetUpdate(BaseModel):
+    """Employee self-reports achieved amount + work details for their target."""
+    achieved_amount: float
+    note: Optional[str] = None
+
+
 class TargetInDB(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     employee_id: str
@@ -26,6 +32,8 @@ class TargetInDB(BaseModel):
     target_amount: float
     achieved_amount: float = 0
     target_type: str = "SIP"
+    note: Optional[str] = None
+    updated_at: Optional[datetime] = None
     created_at: datetime = Field(default_factory=datetime.utcnow)
 
 
@@ -39,3 +47,5 @@ class TargetOut(BaseModel):
     achieved_amount: float
     target_type: str
     progress_pct: float                    # computed field
+    note: Optional[str] = None
+    updated_at: Optional[datetime] = None

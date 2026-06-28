@@ -1,8 +1,11 @@
 from fastapi import APIRouter, HTTPException, Depends
 
-from target_models import TargetCreate, TargetUpdate, TargetInDB, TargetOut
+from datetime import datetime
+
+from target_models import TargetCreate, TargetUpdate, EmployeeTargetUpdate, TargetInDB, TargetOut
 from auth_utils import get_current_user_payload, require_admin
 from database import targets_collection, users_collection
+from notification_service import create_notification
 
 router = APIRouter(prefix="/api/targets", tags=["targets"])
 
@@ -21,6 +24,8 @@ def to_target_out(doc: dict) -> TargetOut:
         achieved_amount=achieved,
         target_type=doc.get("target_type", "SIP"),
         progress_pct=pct,
+        note=doc.get("note"),
+        updated_at=doc.get("updated_at"),
     )
 
 
@@ -76,6 +81,48 @@ async def update_progress(
         {"$set": {"achieved_amount": data.achieved_amount}},
     )
     target["achieved_amount"] = data.achieved_amount
+    return to_target_out(target)
+
+
+@router.patch("/my/{target_id}/progress", response_model=TargetOut)
+async def employee_update_progress(
+    target_id: str,
+    data: EmployeeTargetUpdate,
+    payload: dict = Depends(get_current_user_payload),
+):
+    """Employee self-reports achieved amount + work details for their own target.
+    Progress auto-updates and admins get notified."""
+    target = await targets_collection.find_one({"id": target_id})
+    if not target:
+        raise HTTPException(status_code=404, detail="Target not found")
+    if target["employee_id"] != payload["sub"]:
+        raise HTTPException(status_code=403, detail="This is not your target")
+    if data.achieved_amount < 0:
+        raise HTTPException(status_code=400, detail="Achieved amount cannot be negative")
+
+    await targets_collection.update_one(
+        {"id": target_id},
+        {"$set": {
+            "achieved_amount": data.achieved_amount,
+            "note": data.note,
+            "updated_at": datetime.utcnow(),
+        }},
+    )
+    target["achieved_amount"] = data.achieved_amount
+    target["note"] = data.note
+    target["updated_at"] = datetime.utcnow()
+
+    # Notify all admins about the self-reported progress
+    emp_name = target.get("employee_name", "An employee")
+    async for admin in users_collection.find({"role": "admin"}):
+        await create_notification(
+            user_id=admin["id"],
+            title=f"Target update: {emp_name}",
+            body=f"{emp_name} reported ₹{data.achieved_amount:,.0f} achieved"
+                 + (f" — {data.note}" if data.note else ""),
+            n_type="target",
+            link="/portal/admin/targets",
+        )
     return to_target_out(target)
 
 

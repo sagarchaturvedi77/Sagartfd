@@ -440,8 +440,11 @@ app.include_router(attendance_router)
 from target_routes import router as target_router
 app.include_router(target_router)
 
-#from routes.education_routes import router as education_router
-#app.include_router(education_router)
+from notification_routes import router as notification_router
+app.include_router(notification_router)
+
+from analytics_routes import router as analytics_router
+app.include_router(analytics_router)
 
 app.add_middleware(
     CORSMiddleware,

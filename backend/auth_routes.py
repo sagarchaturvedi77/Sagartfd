@@ -1,7 +1,7 @@
 from fastapi import APIRouter, HTTPException, Depends, status
 from datetime import datetime
 
-from auth_models import UserCreate, UserLogin, UserOut, UserInDB, TokenResponse
+from auth_models import UserCreate, UserLogin, UserOut, UserInDB, TokenResponse, PasswordChange
 from auth_utils import hash_password, verify_password, create_access_token, require_admin, get_current_user_payload
 from database import users_collection
 
@@ -50,6 +50,26 @@ async def get_me(payload: dict = Depends(get_current_user_payload)):
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
     return to_user_out(user)
+
+
+@router.post("/change-password")
+async def change_password(
+    data: PasswordChange,
+    payload: dict = Depends(get_current_user_payload),
+):
+    """Any logged-in user changes their own password."""
+    user = await users_collection.find_one({"id": payload["sub"]})
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    if not verify_password(data.current_password, user["password_hash"]):
+        raise HTTPException(status_code=400, detail="Current password is incorrect")
+    if len(data.new_password) < 6:
+        raise HTTPException(status_code=400, detail="New password must be at least 6 characters")
+    await users_collection.update_one(
+        {"id": payload["sub"]},
+        {"$set": {"password_hash": hash_password(data.new_password)}},
+    )
+    return {"status": "password_changed"}
 
 
 @router.get("/employees", response_model=list[UserOut])

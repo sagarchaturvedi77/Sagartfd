@@ -1,8 +1,7 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
-
-const LOGO_URL = "https://customer-assets.emergentagent.com/job_advisor-phase4-build/artifacts/buhrts3f_IMG_2870.png";
+import BrandLogo from "../components/BrandLogo";
 
 export default function PortalLogin() {
   const [email, setEmail] = useState("");
@@ -39,16 +38,16 @@ export default function PortalLogin() {
           {/* Logo */}
           <div className="flex justify-center mb-8">
             <div className="bg-[#0E1B2C] rounded-2xl p-4 shadow-lg">
-              <img src={LOGO_URL} alt="The Financial Doctor" className="h-12 object-contain" />
+              <BrandLogo className="h-14" />
             </div>
           </div>
 
           {/* Header */}
           <h1 className="text-3xl font-serif text-[#0E1B2C] text-center mb-1 tracking-tight">
-            Staff Portal
+            TFD Workspace
           </h1>
           <p className="text-sm text-[#2A364B]/60 text-center mb-8">
-            Secure login for Admin & Employee
+            Team Portal &middot; The Financial Doctor
           </p>
 
           {/* Form */}
@@ -127,7 +126,7 @@ export default function PortalLogin() {
 
         {/* Branding below card */}
         <p className="text-center text-xs text-white/30 mt-6">
-          The Financial Doctor &middot; Staff Management System
+          The Financial Doctor &middot; Team Workspace
         </p>
       </div>
     </div>

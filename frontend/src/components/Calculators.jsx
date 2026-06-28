@@ -16,6 +16,7 @@ import { IDS } from "@/constants/testIds";
 import { CALC_RECOMMENDATIONS } from "@/lib/recommendations";
 // 🛠️ Step 1: Hook Import bina kisi space ke
 import { useModal } from "../context/ModalContext";
+import { trackEvent } from "./AnalyticsTracker";
 
 const TFD_BRAND_URL = "https://www.assetplus.in/mfd/ARN-290298";
 
@@ -266,7 +267,8 @@ const TABS = [
 const CHART_TABS = ["sip", "daily", "lumpsum", "swp", "goal", "emi"];
 
 export default function Calculators() {
-    const [tab, setTab] = useState("sip");
+    const [tab, setTabRaw] = useState("sip");
+    const setTab = (t) => { setTabRaw(t); trackEvent("calculator_use", TABS.find(x => x.id === t)?.label || t); };
 
     const [sipAmount, setSipAmount] = useState(10000);
     const [sipDailyAddon, setSipDailyAddon] = useState(0);
@@ -369,6 +371,7 @@ export default function Calculators() {
             link.href = canvas.toDataURL("image/png");
             link.click();
             toast.success("Snapshot downloaded — share it on WhatsApp!", { id: "snap" });
+            trackEvent("proposal_generate", TABS.find(x => x.id === tab)?.label || tab);
         } catch (e) {
             console.error(e);
             toast.error("Could not generate snapshot. Try again.", { id: "snap" });

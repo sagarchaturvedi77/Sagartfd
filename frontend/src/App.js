@@ -24,6 +24,11 @@ import AdminTargets from "./pages/AdminTargets";
 import EmployeeDashboard from "./pages/EmployeeDashboard";
 import EmployeeAttendance from "./pages/EmployeeAttendance";
 import EmployeeTargets from "./pages/EmployeeTargets";
+import EmployeeSettings from "./pages/EmployeeSettings";
+import AdminAnnounce from "./pages/AdminAnnounce";
+import AdminWebsite from "./pages/AdminWebsite";
+import AnalyticsTracker from "./components/AnalyticsTracker";
+import WebsiteNotificationPrompt from "./components/WebsiteNotificationPrompt";
 
 // 🩺 TEMPORARY PLACEHOLDERS (Design ready hone par inhe alag files me daal denge)
 const TermInsurancePage = () => <div className="min-h-screen bg-[#FBF7EE] p-20 text-center text-3xl font-serif">Term Insurance Solutions (Coming Soon)</div>;
@@ -38,6 +43,8 @@ function App() {
         <ModalProvider>
           <AuthProvider>
             <BrowserRouter>
+              <AnalyticsTracker />
+              <WebsiteNotificationPrompt />
               <Routes>
                 {/* 🏠 Main Homepage */}
                 <Route path="/" element={<Home />} />
@@ -100,6 +107,22 @@ function App() {
                   }
                 />
                 <Route
+                  path="/portal/admin/website"
+                  element={
+                    <ProtectedRoute requiredRole="admin">
+                      <AdminWebsite />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/portal/admin/announce"
+                  element={
+                    <ProtectedRoute requiredRole="admin">
+                      <AdminAnnounce />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
                   path="/portal/employee"
                   element={
                     <ProtectedRoute requiredRole="employee">
@@ -120,6 +143,14 @@ function App() {
                   element={
                     <ProtectedRoute requiredRole="employee">
                       <EmployeeTargets />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/portal/employee/settings"
+                  element={
+                    <ProtectedRoute requiredRole="employee">
+                      <EmployeeSettings />
                     </ProtectedRoute>
                   }
                 />
