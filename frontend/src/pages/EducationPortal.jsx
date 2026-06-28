@@ -68,17 +68,9 @@ const EducationPortal = () => {
     setShowAgreementModal(true);
   };
 
-  const const handleAgreementApprove = () => {
-  if (!agreedToTerms) return;
-  
-  // In future, this payload will hit our backend MongoDB model...
-  console.log("Saving Lead & Agreement Metadata to MongoDB:", { ... });
-
-  setShowAgreementModal(false);
-  setIsSubmitted(true);
-}; = () => {
+  const handleAgreementApprove = () => {
     if (!agreedToTerms) return;
-    
+
     // In future, this payload will hit our backend MongoDB model (backend/models/EducationLead.py)
     console.log("Saving Lead & Agreement Metadata to MongoDB:", {
       ...formData,
