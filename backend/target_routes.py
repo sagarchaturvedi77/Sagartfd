@@ -23,8 +23,10 @@ def to_target_out(doc: dict) -> TargetOut:
         target_amount=target_amt,
         achieved_amount=achieved,
         target_type=doc.get("target_type", "SIP"),
+        target_description=doc.get("target_description"),
         progress_pct=pct,
         note=doc.get("note"),
+        details=doc.get("details"),
         updated_at=doc.get("updated_at"),
     )
 
@@ -47,10 +49,12 @@ async def set_target(data: TargetCreate, admin: dict = Depends(require_admin)):
             {"$set": {
                 "target_amount": data.target_amount,
                 "target_type": data.target_type,
+                "target_description": data.target_description,
             }},
         )
         existing["target_amount"] = data.target_amount
         existing["target_type"] = data.target_type
+        existing["target_description"] = data.target_description
         return to_target_out(existing)
 
     target = TargetInDB(
@@ -100,16 +104,21 @@ async def employee_update_progress(
     if data.achieved_amount < 0:
         raise HTTPException(status_code=400, detail="Achieved amount cannot be negative")
 
+    updates = {
+        "achieved_amount": data.achieved_amount,
+        "note": data.note,
+        "updated_at": datetime.utcnow(),
+    }
+    if data.details is not None:
+        updates["details"] = data.details
     await targets_collection.update_one(
         {"id": target_id},
-        {"$set": {
-            "achieved_amount": data.achieved_amount,
-            "note": data.note,
-            "updated_at": datetime.utcnow(),
-        }},
+        {"$set": updates},
     )
     target["achieved_amount"] = data.achieved_amount
     target["note"] = data.note
+    if data.details is not None:
+        target["details"] = data.details
     target["updated_at"] = datetime.utcnow()
 
     # Notify all admins about the self-reported progress

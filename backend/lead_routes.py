@@ -14,17 +14,21 @@ Employee:
   POST   /api/leads/{id}/status — update lead status + follow-up note
 """
 
+import io
+import random
 from datetime import datetime, timezone
 from typing import Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile, File, Request
 
 from lead_models import LeadCreate, LeadUpdate, LeadStatusUpdate, LeadInDB, LeadOut
 from auth_utils import get_current_user_payload, require_admin
-from database import leads_collection, users_collection
+from database import leads_collection, users_collection, db
 from notification_service import create_notification
 
 router = APIRouter(prefix="/api/leads", tags=["leads"])
+
+web_leads_collection = db["web_leads"]
 
 VALID_STATUSES = {"new", "contacted", "follow_up", "interested", "converted", "lost"}
 
@@ -236,3 +240,125 @@ async def update_lead_status(
             )
 
     return {"status": "updated", "new_status": data.status}
+
+
+# ── Excel Import ─────────────────────────────────────────────────
+
+@router.post("/import-excel")
+async def import_leads_excel(file: UploadFile = File(...), admin: dict = Depends(require_admin)):
+    import openpyxl
+    data = await file.read()
+    wb = openpyxl.load_workbook(io.BytesIO(data), read_only=True)
+    ws = wb.active
+    rows = list(ws.iter_rows(min_row=2, values_only=True))
+    headers_row = list(ws.iter_rows(min_row=1, max_row=1, values_only=True))[0]
+    headers_lower = [str(h).strip().lower() if h else "" for h in headers_row]
+    col_map = {}
+    for i, h in enumerate(headers_lower):
+        if "name" in h and "name" not in col_map:
+            col_map["name"] = i
+        elif "phone" in h or "contact" in h or "mobile" in h:
+            col_map["phone"] = i
+        elif "mail" in h or "email" in h:
+            col_map["email"] = i
+        elif "from" in h or "source" in h:
+            col_map["source"] = i
+        elif "for" in h or "service" in h or "interest" in h:
+            col_map["service_interest"] = i
+        elif "city" in h:
+            col_map["city"] = i
+    if "name" not in col_map or "phone" not in col_map:
+        raise HTTPException(status_code=400, detail="Excel must have Name and Phone/Contact columns")
+    imported = 0
+    for row in rows:
+        name = str(row[col_map["name"]]).strip() if row[col_map["name"]] else ""
+        phone = str(row[col_map["phone"]]).strip() if row[col_map["phone"]] else ""
+        if not name or not phone:
+            continue
+        lead = LeadInDB(
+            name=name,
+            phone=phone,
+            email=str(row[col_map["email"]]).strip() if "email" in col_map and row[col_map["email"]] else None,
+            source=str(row[col_map["source"]]).strip() if "source" in col_map and row[col_map["source"]] else "excel",
+            service_interest=str(row[col_map["service_interest"]]).strip() if "service_interest" in col_map and row[col_map["service_interest"]] else None,
+            city=str(row[col_map["city"]]).strip() if "city" in col_map and row[col_map["city"]] else None,
+        )
+        await leads_collection.insert_one(lead.model_dump())
+        imported += 1
+    wb.close()
+    return {"status": "imported", "count": imported}
+
+
+# ── Shuffle & Assign leads to employees ──────────────────────────
+
+@router.post("/shuffle-assign")
+async def shuffle_assign_leads(request: Request, admin: dict = Depends(require_admin)):
+    body = await request.json()
+    lead_ids = body.get("lead_ids", [])
+    employee_ids = body.get("employee_ids", [])
+    if not lead_ids or not employee_ids:
+        raise HTTPException(status_code=400, detail="Provide lead_ids and employee_ids")
+    random.shuffle(lead_ids)
+    emp_names = {}
+    for eid in employee_ids:
+        emp = await users_collection.find_one({"id": eid})
+        if emp:
+            emp_names[eid] = emp.get("name", "")
+    assignments = []
+    for i, lid in enumerate(lead_ids):
+        eid = employee_ids[i % len(employee_ids)]
+        await leads_collection.update_one(
+            {"id": lid},
+            {"$set": {"assigned_to": eid, "assigned_to_name": emp_names.get(eid, ""), "updated_at": datetime.now(timezone.utc).isoformat()}},
+        )
+        assignments.append({"lead_id": lid, "employee_id": eid, "employee_name": emp_names.get(eid, "")})
+    for eid in employee_ids:
+        count = sum(1 for a in assignments if a["employee_id"] == eid)
+        if count > 0:
+            await create_notification(
+                user_id=eid,
+                title=f"{count} Leads Assigned",
+                body=f"{count} new leads have been assigned to you",
+                n_type="lead",
+                link="/portal/employee/leads",
+            )
+    return {"status": "assigned", "total": len(assignments), "assignments": assignments}
+
+
+# ── Website Leads (from contact form/popup) ──────────────────────
+
+@router.get("/website")
+async def get_website_leads(admin: dict = Depends(require_admin)):
+    cursor = web_leads_collection.find().sort("created_at", -1)
+    leads = []
+    async for doc in cursor:
+        doc.pop("_id", None)
+        leads.append(doc)
+    return leads
+
+
+@router.post("/website/{web_lead_id}/convert")
+async def convert_web_lead(web_lead_id: str, admin: dict = Depends(require_admin)):
+    wl = await web_leads_collection.find_one({"id": web_lead_id})
+    if not wl:
+        raise HTTPException(status_code=404, detail="Website lead not found")
+    lead = LeadInDB(
+        name=wl.get("full_name") or wl.get("name", "Unknown"),
+        phone=wl.get("phone", ""),
+        email=wl.get("email"),
+        city=wl.get("city"),
+        source="website",
+        service_interest=wl.get("service"),
+        notes=wl.get("message"),
+    )
+    await leads_collection.insert_one(lead.model_dump())
+    await web_leads_collection.update_one({"id": web_lead_id}, {"$set": {"converted": True}})
+    return {"status": "converted", "lead_id": lead.id}
+
+
+@router.delete("/website/{web_lead_id}")
+async def delete_web_lead(web_lead_id: str, admin: dict = Depends(require_admin)):
+    result = await web_leads_collection.delete_one({"id": web_lead_id})
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Not found")
+    return {"status": "deleted"}
