@@ -440,6 +440,9 @@ app.include_router(attendance_router)
 from target_routes import router as target_router
 app.include_router(target_router)
 
+from routes.education_routes import router as education_router
+app.include_router(education_router)
+
 app.add_middleware(
     CORSMiddleware,
     allow_credentials=True,
@@ -461,5 +464,3 @@ if __name__ == "__main__":
     import uvicorn
     port = int(os.environ.get("PORT", 8001))
     uvicorn.run("server:app", host="0.0.0.0", port=port)
-from routes.education_routes import education_bp
-app.register_blueprint(education_bp)
