@@ -12,6 +12,12 @@ export default function EmployeeTargets() {
   const [targets, setTargets] = useState([]);
   const [loading, setLoading] = useState(true);
 
+  const [showForm, setShowForm] = useState(false);
+  const [achieved, setAchieved] = useState("");
+  const [note, setNote] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [msg, setMsg] = useState("");
+
   const fetchTargets = useCallback(async () => {
     setLoading(true);
     const res = await fetch(`${API_BASE}/api/targets/my?month=${month}&year=${year}`, {
@@ -27,6 +33,36 @@ export default function EmployeeTargets() {
   const formatCurrency = (v) => new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR", maximumFractionDigits: 0 }).format(v);
 
   const currentTarget = targets[0];
+
+  const openForm = () => {
+    setAchieved(currentTarget ? String(currentTarget.achieved_amount || "") : "");
+    setNote(currentTarget?.note || "");
+    setMsg("");
+    setShowForm(true);
+  };
+
+  const submitProgress = async (e) => {
+    e.preventDefault();
+    setSaving(true);
+    setMsg("");
+    try {
+      const res = await fetch(`${API_BASE}/api/targets/my/${currentTarget.id}/progress`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ achieved_amount: Number(achieved), note: note || null }),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.detail || "Update failed");
+      }
+      await fetchTargets();
+      setShowForm(false);
+    } catch (err) {
+      setMsg(err.message);
+    } finally {
+      setSaving(false);
+    }
+  };
 
   return (
     <PortalLayout>
@@ -115,6 +151,57 @@ export default function EmployeeTargets() {
                 </p>
               </div>
             )}
+
+            {currentTarget.note && (
+              <div className="mt-4 bg-[#FBF7EE] rounded-xl p-3 text-sm text-[#2A364B]/70">
+                <span className="text-[10px] uppercase tracking-wider text-[#2A364B]/40 block mb-0.5">Last update note</span>
+                {currentTarget.note}
+              </div>
+            )}
+
+            {/* Self-update */}
+            <div className="mt-6 pt-6 border-t border-[#E2D8C2]">
+              {!showForm ? (
+                <button
+                  onClick={openForm}
+                  className="w-full py-3 rounded-xl text-sm font-semibold text-white bg-gradient-to-r from-[#024396] to-[#0356c4] hover:from-[#023580] transition-all shadow-lg shadow-[#024396]/25"
+                >
+                  Update My Progress
+                </button>
+              ) : (
+                <form onSubmit={submitProgress} className="space-y-4">
+                  <div>
+                    <label className="block text-xs font-medium text-[#2A364B]/70 mb-1">Total achieved amount (₹)</label>
+                    <input
+                      type="number" min="0" required value={achieved}
+                      onChange={(e) => setAchieved(e.target.value)}
+                      placeholder="e.g. 500000"
+                      className="w-full border border-[#E2D8C2] rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#024396]/30"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-[#2A364B]/70 mb-1">Work details / note (optional)</label>
+                    <textarea
+                      rows={3} value={note}
+                      onChange={(e) => setNote(e.target.value)}
+                      placeholder="What did you achieve? e.g. Closed 3 SIPs, 1 insurance policy..."
+                      className="w-full border border-[#E2D8C2] rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#024396]/30 resize-none"
+                    />
+                  </div>
+                  {msg && <p className="text-sm text-red-600">{msg}</p>}
+                  <div className="flex gap-3">
+                    <button type="button" onClick={() => setShowForm(false)}
+                      className="flex-1 py-2.5 rounded-xl text-sm font-medium text-[#2A364B]/70 border border-[#E2D8C2] hover:bg-[#F5F1EB] transition-all">
+                      Cancel
+                    </button>
+                    <button type="submit" disabled={saving}
+                      className="flex-1 py-2.5 rounded-xl text-sm font-semibold text-white bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 transition-all disabled:opacity-60">
+                      {saving ? "Saving..." : "Submit"}
+                    </button>
+                  </div>
+                </form>
+              )}
+            </div>
           </div>
 
           {/* All targets history */}

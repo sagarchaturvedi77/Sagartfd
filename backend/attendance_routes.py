@@ -1,7 +1,7 @@
 from fastapi import APIRouter, HTTPException, Depends
 from datetime import datetime, timezone
 
-from attendance_models import AttendanceRecord, AttendanceOut
+from attendance_models import AttendanceRecord, AttendanceOut, PunchLocation
 from auth_utils import get_current_user_payload, require_admin
 from database import attendance_collection, users_collection
 
@@ -12,9 +12,22 @@ def to_attendance_out(doc: dict) -> AttendanceOut:
     return AttendanceOut(**{k: doc.get(k) for k in AttendanceOut.model_fields})
 
 
+def _loc_label(loc: PunchLocation | None) -> str | None:
+    if not loc:
+        return None
+    if loc.address:
+        return loc.address
+    if loc.lat is not None and loc.lng is not None:
+        return f"{loc.lat:.5f}, {loc.lng:.5f}"
+    return None
+
+
 @router.post("/clock-in", response_model=AttendanceOut)
-async def clock_in(payload: dict = Depends(get_current_user_payload)):
-    """Employee clocks in for the day."""
+async def clock_in(
+    loc: PunchLocation = PunchLocation(),
+    payload: dict = Depends(get_current_user_payload),
+):
+    """Employee clocks in for the day (optionally with geolocation)."""
     employee_id = payload["sub"]
     today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
 
@@ -29,13 +42,17 @@ async def clock_in(payload: dict = Depends(get_current_user_payload)):
         raise HTTPException(status_code=404, detail="User not found")
 
     now = datetime.now(timezone.utc)
+    loc_fields = {
+        "clock_in_location": _loc_label(loc),
+        "clock_in_lat": loc.lat,
+        "clock_in_lng": loc.lng,
+    }
     if existing:
         await attendance_collection.update_one(
             {"id": existing["id"]},
-            {"$set": {"clock_in": now, "status": "present"}},
+            {"$set": {"clock_in": now, "status": "present", **loc_fields}},
         )
-        existing["clock_in"] = now
-        existing["status"] = "present"
+        existing.update({"clock_in": now, "status": "present", **loc_fields})
         return to_attendance_out(existing)
 
     record = AttendanceRecord(
@@ -44,14 +61,20 @@ async def clock_in(payload: dict = Depends(get_current_user_payload)):
         date=today,
         clock_in=now,
         status="present",
+        clock_in_location=loc_fields["clock_in_location"],
+        clock_in_lat=loc.lat,
+        clock_in_lng=loc.lng,
     )
     await attendance_collection.insert_one(record.dict())
     return to_attendance_out(record.dict())
 
 
 @router.post("/clock-out", response_model=AttendanceOut)
-async def clock_out(payload: dict = Depends(get_current_user_payload)):
-    """Employee clocks out for the day."""
+async def clock_out(
+    loc: PunchLocation = PunchLocation(),
+    payload: dict = Depends(get_current_user_payload),
+):
+    """Employee clocks out for the day (optionally with geolocation)."""
     employee_id = payload["sub"]
     today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
 
@@ -72,13 +95,16 @@ async def clock_out(payload: dict = Depends(get_current_user_payload)):
     total_hours = round((now - clock_in_time).total_seconds() / 3600, 2)
     status = "present" if total_hours >= 4 else "half-day"
 
+    loc_fields = {
+        "clock_out_location": _loc_label(loc),
+        "clock_out_lat": loc.lat,
+        "clock_out_lng": loc.lng,
+    }
     await attendance_collection.update_one(
         {"id": record["id"]},
-        {"$set": {"clock_out": now, "total_hours": total_hours, "status": status}},
+        {"$set": {"clock_out": now, "total_hours": total_hours, "status": status, **loc_fields}},
     )
-    record["clock_out"] = now
-    record["total_hours"] = total_hours
-    record["status"] = status
+    record.update({"clock_out": now, "total_hours": total_hours, "status": status, **loc_fields})
     return to_attendance_out(record)
 
 

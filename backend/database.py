@@ -20,3 +20,10 @@ attendance_collection = db["attendance"]
 payments_collection = db["payments"]
 targets_collection = db["targets"]
 salary_collection = db["salary"]
+notifications_collection = db["notifications"]          # in-app notifications
+push_subscriptions_collection = db["push_subscriptions"]  # web-push endpoints (portal users)
+
+# Website analytics & public push
+page_views_collection = db["page_views"]
+events_collection = db["events"]           # calculator_use, proposal_generate, etc.
+web_push_collection = db["web_push_subs"]  # website visitor push subscriptions

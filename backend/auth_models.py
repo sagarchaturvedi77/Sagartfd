@@ -18,6 +18,11 @@ class UserLogin(BaseModel):
     email: EmailStr
     password: str
 
+class PasswordChange(BaseModel):
+    """Used by any logged-in user to change their own password."""
+    current_password: str
+    new_password: str
+
 class UserOut(BaseModel):
     """Safe user object returned to frontend (no password)."""
     id: str

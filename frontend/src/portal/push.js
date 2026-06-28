@@ -1,0 +1,60 @@
+// Service worker registration + Web Push subscription helpers.
+import { API_BASE, apiGet, apiSend } from "./api";
+
+export function pushSupported() {
+  return "serviceWorker" in navigator && "PushManager" in window && "Notification" in window;
+}
+
+export async function registerServiceWorker() {
+  if (!("serviceWorker" in navigator)) return null;
+  try {
+    return await navigator.serviceWorker.register("/service-worker.js");
+  } catch (e) {
+    return null;
+  }
+}
+
+function urlBase64ToUint8Array(base64String) {
+  const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
+  const base64 = (base64String + padding).replace(/-/g, "+").replace(/_/g, "/");
+  const raw = window.atob(base64);
+  const arr = new Uint8Array(raw.length);
+  for (let i = 0; i < raw.length; i++) arr[i] = raw.charCodeAt(i);
+  return arr;
+}
+
+// Subscribe the current browser to push and persist the subscription on the server.
+export async function enablePush() {
+  if (!pushSupported()) return { ok: false, reason: "unsupported" };
+
+  const permission = await Notification.requestPermission();
+  if (permission !== "granted") return { ok: false, reason: "denied" };
+
+  let vapid;
+  try {
+    vapid = await apiGet("/api/notifications/vapid-public-key");
+  } catch (e) {
+    return { ok: false, reason: "no-vapid" };
+  }
+  if (!vapid || !vapid.enabled || !vapid.key) return { ok: false, reason: "no-vapid" };
+
+  const reg = (await navigator.serviceWorker.getRegistration()) || (await registerServiceWorker());
+  if (!reg) return { ok: false, reason: "no-sw" };
+
+  await navigator.serviceWorker.ready;
+  let sub = await reg.pushManager.getSubscription();
+  if (!sub) {
+    sub = await reg.pushManager.subscribe({
+      userVisibleOnly: true,
+      applicationServerKey: urlBase64ToUint8Array(vapid.key),
+    });
+  }
+  const json = sub.toJSON();
+  await apiSend("/api/notifications/subscribe", "POST", {
+    endpoint: json.endpoint,
+    keys: json.keys,
+  });
+  return { ok: true };
+}
+
+export { API_BASE };
