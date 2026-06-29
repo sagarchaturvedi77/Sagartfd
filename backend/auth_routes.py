@@ -5,6 +5,7 @@ from auth_models import UserCreate, UserLogin, UserOut, UserInDB, TokenResponse,
 from auth_utils import hash_password, verify_password, create_access_token, require_admin, get_current_user_payload
 from database import users_collection
 from utils.employee import gen_employee_id_from_phone
+from utils.audit import write_audit
 
 router = APIRouter(prefix="/api/auth", tags=["auth"])
 
@@ -63,6 +64,24 @@ async def create_employee(payload: UserCreate, admin=Depends(require_admin)):
         join_date=datetime.utcnow().strftime("%Y-%m-%d"),
     )
     await users_collection.insert_one(new_user.dict())
+
+    # Audit log: user.create
+    try:
+        admin_id = admin.get("sub") if isinstance(admin, dict) else None
+        admin_email = admin.get("email") if isinstance(admin, dict) else None
+        await write_audit(
+            event="user.create",
+            actor_id=admin_id,
+            actor_email=admin_email,
+            target_id=emp_id,
+            target_email=payload.email,
+            meta={"phone": payload.phone, "role": payload.role},
+            result="success",
+        )
+    except Exception:
+        # audit errors should not block the main flow
+        pass
+
     return to_user_out(new_user.dict())
 
 
