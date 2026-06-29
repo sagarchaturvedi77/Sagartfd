@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Download TFD Workspace App</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #0E1B2C 0%, #1a2940 50%, #0E1B2C 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        .card {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 24px;
+            padding: 48px 40px;
+            max-width: 420px;
+            width: 100%;
+            text-align: center;
+        }
+        .logo { width: 80px; height: 80px; margin: 0 auto 24px; border-radius: 18px; }
+        h1 { color: #fff; font-size: 24px; margin-bottom: 8px; }
+        .subtitle { color: #94a3b8; font-size: 14px; margin-bottom: 32px; }
+        .features {
+            text-align: left;
+            margin-bottom: 32px;
+            background: rgba(37, 99, 235, 0.08);
+            border-radius: 12px;
+            padding: 20px;
+        }
+        .features li {
+            color: #cbd5e1;
+            font-size: 14px;
+            margin-bottom: 10px;
+            list-style: none;
+            padding-left: 24px;
+            position: relative;
+        }
+        .features li::before {
+            content: "\2713";
+            position: absolute;
+            left: 0;
+            color: #22c55e;
+            font-weight: bold;
+        }
+        .download-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            background: linear-gradient(135deg, #2563eb, #1d4ed8);
+            color: #fff;
+            text-decoration: none;
+            padding: 16px 36px;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            box-shadow: 0 8px 24px rgba(37, 99, 235, 0.3);
+        }
+        .download-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 12px 32px rgba(37, 99, 235, 0.4);
+        }
+        .download-btn svg { width: 20px; height: 20px; }
+        .size { color: #64748b; font-size: 12px; margin-top: 12px; }
+        .note {
+            color: #94a3b8;
+            font-size: 12px;
+            margin-top: 24px;
+            padding: 12px;
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.06);
+        }
+        .version { color: #64748b; font-size: 11px; margin-top: 16px; }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <img src="/icon-192.png" alt="TFD Logo" class="logo" />
+        <h1>TFD Workspace</h1>
+        <p class="subtitle">The Financial Doctor — Team Portal App</p>
+        
+        <ul class="features">
+            <li>Attendance Punch with GPS Location</li>
+            <li>Lead Management & Call Tracking</li>
+            <li>Monthly Targets & Progress</li>
+            <li>Salary Slips & Reports</li>
+            <li>Push Notifications</li>
+            <li>Works Offline (PWA)</li>
+        </ul>
+
+        <a href="/TFD-Workspace.apk" class="download-btn" download>
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+            </svg>
+            Download APK
+        </a>
+        <p class="size">Size: ~4.6 MB | Android 5.0+</p>
+
+        <div class="note">
+            <strong>Install kaise karein:</strong><br/>
+            1. Download karo<br/>
+            2. Phone Settings → "Install from unknown sources" ON karo<br/>
+            3. Downloaded file open karo → Install<br/>
+            4. Login karo apne credentials se
+        </div>
+        <p class="version">Version 1.0.0 | Package: in.thefinancialdoctor.workspace</p>
+    </div>
+</body>
+</html>
