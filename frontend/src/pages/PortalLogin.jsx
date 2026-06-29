@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import BrandLogo from "../components/BrandLogo";
+import WelcomeAnimation from "../components/WelcomeAnimation";
 
 export default function PortalLogin() {
   const [email, setEmail] = useState("");
@@ -9,6 +10,8 @@ export default function PortalLogin() {
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [showWelcome, setShowWelcome] = useState(false);
+  const [loggedInUser, setLoggedInUser] = useState(null);
   const { login } = useAuth();
   const navigate = useNavigate();
 
@@ -18,15 +21,28 @@ export default function PortalLogin() {
     setSubmitting(true);
     try {
       const user = await login(email, password);
-      navigate(user.role === "admin" ? "/portal/admin" : "/portal/employee");
+      setLoggedInUser(user);
+      setShowWelcome(true);
     } catch (err) {
       setError(err.message || "Login failed. Check your credentials.");
-    } finally {
       setSubmitting(false);
     }
   };
 
+  const handleWelcomeComplete = () => {
+    if (loggedInUser) {
+      navigate(loggedInUser.role === "admin" ? "/portal/admin" : "/portal/employee");
+    }
+  };
+
   return (
+    <>
+    {showWelcome && (
+      <WelcomeAnimation
+        userName={loggedInUser?.name}
+        onComplete={handleWelcomeComplete}
+      />
+    )}
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-[#0E1B2C] via-[#162d4a] to-[#0E1B2C] px-4 relative overflow-hidden">
       {/* Decorative elements */}
       <div className="absolute top-0 left-0 w-72 h-72 bg-[#024396]/20 rounded-full blur-3xl -translate-x-1/2 -translate-y-1/2" />
@@ -36,18 +52,13 @@ export default function PortalLogin() {
         {/* Card */}
         <div className="bg-white/95 backdrop-blur-sm rounded-3xl shadow-2xl p-8 sm:p-10 border border-white/20">
           {/* Logo */}
-          <div className="flex justify-center mb-8">
-            <div className="bg-[#0E1B2C] rounded-2xl p-4 shadow-lg">
-              <BrandLogo className="h-14" />
-            </div>
+          <div className="flex justify-center mb-6">
+            <BrandLogo className="h-24" />
           </div>
 
           {/* Header */}
-          <h1 className="text-3xl font-serif text-[#0E1B2C] text-center mb-1 tracking-tight">
-            TFD Workspace
-          </h1>
           <p className="text-sm text-[#2A364B]/60 text-center mb-8">
-            Team Portal &middot; The Financial Doctor
+            Work Smart. Grow Together.
           </p>
 
           {/* Form */}
@@ -130,5 +141,6 @@ export default function PortalLogin() {
         </p>
       </div>
     </div>
+    </>
   );
 }

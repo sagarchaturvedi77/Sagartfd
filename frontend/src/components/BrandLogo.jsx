@@ -1,8 +1,7 @@
 import React from "react";
 
-// Local TFD logo asset (served from /public). Falls back to a styled monogram
-// if the image fails to load so the UI never shows a broken-image icon.
-export default function BrandLogo({ className = "h-10", rounded = false }) {
+// TFD Workspace logo (served from /public). Falls back to a styled monogram.
+export default function BrandLogo({ className = "h-10", rounded = false, variant = "workspace" }) {
   const [failed, setFailed] = React.useState(false);
 
   if (failed) {
@@ -15,10 +14,12 @@ export default function BrandLogo({ className = "h-10", rounded = false }) {
     );
   }
 
+  const src = variant === "workspace" ? "/tfd-workspace-logo.png" : "/tfd-logo.png";
+
   return (
     <img
-      src="/tfd-logo.png"
-      alt="The Financial Doctor"
+      src={src}
+      alt="TFD Workspace"
       onError={() => setFailed(true)}
       className={`${className} object-contain ${rounded ? "rounded-xl" : ""}`}
     />
