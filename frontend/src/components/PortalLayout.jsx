@@ -50,11 +50,8 @@ export default function PortalLayout({ children }) {
       <header className="bg-[#0E1B2C] text-white shadow-lg">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 flex items-center justify-between h-16">
           <div className="flex items-center gap-3">
-            <div className="bg-white/10 rounded-xl p-1.5">
-              <BrandLogo className="h-8" />
-            </div>
+            <BrandLogo className="h-10" />
             <div className="hidden sm:block">
-              <h1 className="text-sm font-semibold leading-tight">The Financial Doctor</h1>
               <p className="text-[10px] text-white/50 leading-tight">
                 {isAdmin ? "Admin Control Panel" : "Employee Portal"}
               </p>
