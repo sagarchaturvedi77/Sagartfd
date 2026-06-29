@@ -4,6 +4,7 @@ from datetime import datetime
 from auth_models import UserCreate, UserLogin, UserOut, UserInDB, TokenResponse, PasswordChange
 from auth_utils import hash_password, verify_password, create_access_token, require_admin, get_current_user_payload
 from database import users_collection
+from utils.employee import gen_employee_id_from_phone
 
 router = APIRouter(prefix="/api/auth", tags=["auth"])
 
@@ -42,7 +43,18 @@ async def create_employee(payload: UserCreate, admin=Depends(require_admin)):
         raise HTTPException(status_code=400, detail="An account with this email already exists")
 
     training_start = datetime.utcnow().strftime("%Y-%m-%d") if payload.training_days else None
+
+    # Generate employee id from phone (format: TFD + first2 + 5th&6th + last2)
+    emp_id = gen_employee_id_from_phone(payload.phone)
+    # Ensure uniqueness; if collision, append short suffix
+    suffix = 0
+    base_id = emp_id
+    while await users_collection.find_one({"id": emp_id}):
+        suffix += 1
+        emp_id = f"{base_id}-{suffix}"
+
     new_user = UserInDB(
+        id=emp_id,
         name=payload.name, email=payload.email,
         password_hash=hash_password(payload.password),
         role=payload.role, phone=payload.phone, designation=payload.designation,
@@ -75,10 +87,7 @@ async def change_password(
         raise HTTPException(status_code=400, detail="Current password is incorrect")
     if len(data.new_password) < 6:
         raise HTTPException(status_code=400, detail="New password must be at least 6 characters")
-    await users_collection.update_one(
-        {"id": payload["sub"]},
-        {"$set": {"password_hash": hash_password(data.new_password)}},
-    )
+    await users_collection.update_one({"id": payload["sub"]}, {"$set": {"password_hash": hash_password(data.new_password)}})
     return {"status": "password_changed"}
 
 
