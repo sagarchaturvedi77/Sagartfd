@@ -1,0 +1,12 @@
+/* Prevent mobile browsers from triggering the default pull-to-refresh/overscroll refresh
+   when scrolling inside the designated scroll container(s). Add the class to your main
+   content wrapper (e.g., <div className="scroll-container">...). */
+.scroll-container {
+  height: 100%;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain; /* modern browsers */
+}
+
+/* Fallback to recommend preventing touchmove on body in very old browsers - use sparingly. */
+/* document.body.addEventListener('touchmove', function(e){ e.preventDefault(); }, { passive: false }); */
