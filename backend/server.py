@@ -434,6 +434,12 @@ app.include_router(target_router)
 from notification_routes import router as notification_router
 app.include_router(notification_router)
 
+from pipeline_routes import router as pipeline_router
+from notification_ack import router as notification_ack_router
+
+app.include_router(pipeline_router)
+app.include_router(notification_ack_router)
+
 from analytics_routes import router as analytics_router
 app.include_router(analytics_router)
 
