@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="4" skipped="0" tests="17" time="6.544" timestamp="2026-06-23T00:19:11.378880+00:00" hostname="agent-env-b5bdc974-d281-49b4-ae00-02a351f61a60"><testcase classname="backend.tests.test_phase4_ai.TestAIChat" name="test_ai_chat_stream_returns_finance_content" time="0.001"><failure message="requests.exceptions.MissingSchema: Invalid URL '/api/ai/chat': No scheme supplied. Perhaps you meant https:///api/ai/chat?">backend/tests/test_phase4_ai.py:22: in test_ai_chat_stream_returns_finance_content
+    with requests.post(f"{API}/ai/chat", json=payload, stream=True, timeout=60) as r:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/root/.venv/lib/python3.11/site-packages/requests/api.py:134: in post
+    return request("post", url, data=data, json=json, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/root/.venv/lib/python3.11/site-packages/requests/api.py:71: in request
+    return session.request(method=method, url=url, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/root/.venv/lib/python3.11/site-packages/requests/sessions.py:635: in request
+    prep = self.prepare_request(req)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^
+/root/.venv/lib/python3.11/site-packages/requests/sessions.py:541: in prepare_request
+    p.prepare(
+/root/.venv/lib/python3.11/site-packages/requests/models.py:439: in prepare
+    self.prepare_url(url, params)
+/root/.venv/lib/python3.11/site-packages/requests/models.py:514: in prepare_url
+    raise MissingSchema(
+E   requests.exceptions.MissingSchema: Invalid URL '/api/ai/chat': No scheme supplied. Perhaps you meant https:///api/ai/chat?</failure></testcase><testcase classname="backend.tests.test_phase4_ai.TestAIChat" name="test_ai_history_persisted" time="2.001"><failure message="requests.exceptions.MissingSchema: Invalid URL '/api/ai/history/TEST-6fe3052561': No scheme supplied. Perhaps you meant https:///api/ai/history/TEST-6fe3052561?">backend/tests/test_phase4_ai.py:59: in test_ai_history_persisted
+    r = requests.get(f"{API}/ai/history/{session_id}", timeout=15)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/root/.venv/lib/python3.11/site-packages/requests/api.py:87: in get
+    return request("get", url, params=params, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/root/.venv/lib/python3.11/site-packages/requests/api.py:71: in request
+    return session.request(method=method, url=url, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/root/.venv/lib/python3.11/site-packages/requests/sessions.py:635: in request
+    prep = self.prepare_request(req)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^
+/root/.venv/lib/python3.11/site-packages/requests/sessions.py:541: in prepare_request
+    p.prepare(
+/root/.venv/lib/python3.11/site-packages/requests/models.py:439: in prepare
+    self.prepare_url(url, params)
+/root/.venv/lib/python3.11/site-packages/requests/models.py:514: in prepare_url
+    raise MissingSchema(
+E   requests.exceptions.MissingSchema: Invalid URL '/api/ai/history/TEST-6fe3052561': No scheme supplied. Perhaps you meant https:///api/ai/history/TEST-6fe3052561?</failure></testcase><testcase classname="backend.tests.test_phase4_ai.TestAIChat" name="test_ai_history_empty_for_unknown" time="0.001"><failure message="requests.exceptions.MissingSchema: Invalid URL '/api/ai/history/UNKNOWN-4ebd1bb5d94a44c8ab64f6f8b4d5ffb7': No scheme supplied. Perhaps you meant https:///api/ai/history/UNKNOWN-4ebd1bb5d94a44c8ab64f6f8b4d5ffb7?">backend/tests/test_phase4_ai.py:72: in test_ai_history_empty_for_unknown
+    r = requests.get(f"{API}/ai/history/UNKNOWN-{uuid.uuid4().hex}", timeout=15)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/root/.venv/lib/python3.11/site-packages/requests/api.py:87: in get
+    return request("get", url, params=params, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/root/.venv/lib/python3.11/site-packages/requests/api.py:71: in request
+    return session.request(method=method, url=url, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/root/.venv/lib/python3.11/site-packages/requests/sessions.py:635: in request
+    prep = self.prepare_request(req)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^
+/root/.venv/lib/python3.11/site-packages/requests/sessions.py:541: in prepare_request
+    p.prepare(
+/root/.venv/lib/python3.11/site-packages/requests/models.py:439: in prepare
+    self.prepare_url(url, params)
+/root/.venv/lib/python3.11/site-packages/requests/models.py:514: in prepare_url
+    raise MissingSchema(
+E   requests.exceptions.MissingSchema: Invalid URL '/api/ai/history/UNKNOWN-4ebd1bb5d94a44c8ab64f6f8b4d5ffb7': No scheme supplied. Perhaps you meant https:///api/ai/history/UNKNOWN-4ebd1bb5d94a44c8ab64f6f8b4d5ffb7?</failure></testcase><testcase classname="backend.tests.test_phase4_ai.TestAIChat" name="test_ai_chat_validation_short_message" time="0.001"><failure message="requests.exceptions.MissingSchema: Invalid URL '/api/ai/chat': No scheme supplied. Perhaps you meant https:///api/ai/chat?">backend/tests/test_phase4_ai.py:77: in test_ai_chat_validation_short_message
+    r = requests.post(f"{API}/ai/chat", json={"session_id": "x", "message": ""}, timeout=15)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/root/.venv/lib/python3.11/site-packages/requests/api.py:134: in post
+    return request("post", url, data=data, json=json, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/root/.venv/lib/python3.11/site-packages/requests/api.py:71: in request
+    return session.request(method=method, url=url, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/root/.venv/lib/python3.11/site-packages/requests/sessions.py:635: in request
+    prep = self.prepare_request(req)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^
+/root/.venv/lib/python3.11/site-packages/requests/sessions.py:541: in prepare_request
+    p.prepare(
+/root/.venv/lib/python3.11/site-packages/requests/models.py:439: in prepare
+    self.prepare_url(url, params)
+/root/.venv/lib/python3.11/site-packages/requests/models.py:514: in prepare_url
+    raise MissingSchema(
+E   requests.exceptions.MissingSchema: Invalid URL '/api/ai/chat': No scheme supplied. Perhaps you meant https:///api/ai/chat?</failure></testcase><testcase classname="backend.tests.test_phase4" name="test_root" time="0.276" /><testcase classname="backend.tests.test_phase4.TestReviews" name="test_create_review_valid" time="0.061" /><testcase classname="backend.tests.test_phase4.TestReviews" name="test_create_review_short_message" time="0.063" /><testcase classname="backend.tests.test_phase4.TestReviews" name="test_create_review_bad_rating" time="0.050" /><testcase classname="backend.tests.test_phase4.TestReviews" name="test_list_reviews_contains_created" time="0.054" /><testcase classname="backend.tests.test_phase4.TestReviews" name="test_review_stats" time="0.051" /><testcase classname="backend.tests.test_phase4.TestContact" name="test_contact_required_only" time="0.052" /><testcase classname="backend.tests.test_phase4.TestContact" name="test_contact_full" time="0.050" /><testcase classname="backend.tests.test_phase4.TestContact" name="test_contact_missing_phone" time="0.049" /><testcase classname="backend.tests.test_phase4.TestMFData" name="test_top_funds" time="1.651" /><testcase classname="backend.tests.test_phase4.TestMFData" name="test_search_parag" time="0.877" /><testcase classname="backend.tests.test_phase4.TestMFData" name="test_fund_detail_parag_flexi" time="0.064" /><testcase classname="backend.tests.test_phase4.TestMFData" name="test_fund_detail_invalid" time="0.847" /></testsuite></testsuites>

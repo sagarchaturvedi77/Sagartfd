@@ -1,0 +1,3 @@
+motor
+pyjwt
+passlib[bcrypt]
