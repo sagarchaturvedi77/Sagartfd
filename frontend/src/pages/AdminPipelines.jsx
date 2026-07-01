@@ -1,1 +1,37 @@
-import React, { useState, useEffect, useCallback } from "react"; import PortalLayout from "../components/PortalLayout"; import { useAuth } from "../context/AuthContext"; const API_BASE = process.env.REACT_APP_BACKEND_URL || ""; export default function AdminPipelines() { const { token } = useAuth(); const [pipelines, setPipelines] = useState([]); const [loading, setLoading] = useState(true); const headers = { Authorization: "Bearer " + token, "Content-Type": "application/json" }; const load = useCallback(async () => { try { const res = await fetch(API_BASE + "/api/pipelines/", { headers }); if (res.ok) setPipelines(await res.json()); } catch (e) {} setLoading(false); }, [token]); useEffect(() => { load(); }, [load]); if (loading) return <PortalLayout><div className="py-20 text-center">Loading...</div></PortalLayout>; return (<PortalLayout><div className="space-y-6"><h1 className="text-2xl font-serif text-[#0E1B2C]">Lead Pipelines</h1><p className="text-sm text-[#2A364B]/60">Pipeline builder coming soon.</p></div></PortalLayout>); }
+import React, { useState, useEffect, useCallback, useMemo } from "react";
+import PortalLayout from "../components/PortalLayout";
+import { useAuth } from "../context/AuthContext";
+
+const API_BASE = process.env.REACT_APP_BACKEND_URL || "";
+
+export default function AdminPipelines() {
+  const { token } = useAuth();
+  const [pipelines, setPipelines] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  const headers = useMemo(
+    () => ({ Authorization: "Bearer " + token, "Content-Type": "application/json" }),
+    [token]
+  );
+
+  const load = useCallback(async () => {
+    try {
+      const res = await fetch(API_BASE + "/api/pipelines/", { headers });
+      if (res.ok) setPipelines(await res.json());
+    } catch (e) {}
+    setLoading(false);
+  }, [headers]);
+
+  useEffect(() => { load(); }, [load]);
+
+  if (loading) return <PortalLayout><div className="py-20 text-center">Loading...</div></PortalLayout>;
+
+  return (
+    <PortalLayout>
+      <div className="space-y-6">
+        <h1 className="text-2xl font-serif text-[#0E1B2C]">Lead Pipelines</h1>
+        <p className="text-sm text-[#2A364B]/60">Pipeline builder coming soon.</p>
+      </div>
+    </PortalLayout>
+  );
+}
