@@ -1,4 +1,4 @@
-import React, { useMemo, useRef, useState } from "react";
+import React, { useMemo, useRef, useState, useEffect } from "react";
 import {
     AreaChart,
     Area,
@@ -10,6 +10,7 @@ import {
 } from "recharts";
 import { Download, ArrowUpRight, Calculator as CalcIcon, Sparkles, Lightbulb } from "lucide-react";
 import html2canvas from "html2canvas";
+import jsPDF from "jspdf";
 import { QRCodeCanvas } from "qrcode.react";
 import { toast } from "sonner";
 import { IDS } from "@/constants/testIds";
@@ -200,66 +201,34 @@ function inflationGoalCalc(currentCost, years, inflationRate, returnRate) {
 }
 
 // ---------- Slider ----------
-function Slider({ value, onChange, min, max, step = 1, label, format, testid }) {
-    const pct = ((value - min) / (max - min)) * 100;
-    const [editing, setEditing] = useState(false);
-    const [tempValue, setTempValue] = useState(value);
-
-    const commitValue = () => {
-        let v = Number(tempValue);
-        if (isNaN(v)) v = value;
-        if (v < min) v = min;
-        if (v > max) v = max;
-        onChange(v);
-        setEditing(false);
-    };
-
+function Slider({ value, onChange, min, max, label, format, testid }) {
     return (
         <div>
-            <div className="flex items-baseline justify-between mb-2">
-                <label className="text-[12px] md:text-[13px] uppercase tracking-[0.15em] text-[#5C677D]">
-                    {label}
-                </label>
-                {editing ? (
-                    <input
-                        type="number"
-                        autoFocus
-                        value={tempValue}
-                        onChange={(e) => setTempValue(e.target.value)}
-                        onBlur={commitValue}
-                        onKeyDown={(e) => {
-                            if (e.key === "Enter") commitValue();
-                            if (e.key === "Escape") setEditing(false);
-                        }}
-                        className="font-display text-lg md:text-xl text-[#0E1B2C] w-28 text-right border-b border-[#024396] outline-none bg-transparent"
-                    />
-                ) : (
-                    <div
-                        className="font-display text-lg md:text-xl text-[#0E1B2C] cursor-pointer hover:text-[#024396]"
-                        onClick={() => {
-                            setTempValue(value);
-                            setEditing(true);
-                        }}
-                        title="Click to type a custom value"
-                    >
-                        {format ? format(value) : value}
-                    </div>
-                )}
-            </div>
+            <label className="text-[12px] md:text-[13px] uppercase tracking-[0.15em] text-[#5C677D] block mb-2">
+                {label}
+            </label>
             <input
-                type="range"
-                className="brand"
-                min={min}max={max}
-                step={step}
+                type="number"
                 value={value}
-                onChange={(e) => onChange(Number(e.target.value))}
-                style={{ "--p": `${pct}%` }}
+                onChange={(e) => {
+                    const raw = e.target.value;
+                    if (raw === "") { onChange(0); return; }
+                    const v = Number(raw);
+                    if (!isNaN(v)) onChange(v);
+                }}
+                onBlur={(e) => {
+                    let v = Number(e.target.value);
+                    if (isNaN(v)) v = min ?? 0;
+                    if (min !== undefined && v < min) v = min;
+                    if (max !== undefined && v > max) v = max;
+                    onChange(v);
+                }}
+                className="w-full border border-[#E2D8C2] rounded-xl px-3 py-2.5 text-base font-semibold text-[#0E1B2C] outline-none focus:border-[#024396] bg-white"
                 data-testid={testid}
             />
-            <div className="flex justify-between mt-1 text-[11px] text-[#5C677D]">
-                <span>{format ? format(min) : min}</span>
-                <span>{format ? format(max) : max}</span>
-            </div>
+            {format && (
+                <div className="text-xs text-[#5C677D] mt-1">{format(value)}</div>
+            )}
         </div>
     );
 }
@@ -279,7 +248,7 @@ const TABS = [
 // Tabs that have a time-series growth chart (SIP/lumpsum style)
 const CHART_TABS = ["sip", "daily", "lumpsum", "swp", "goal", "emi"];
 
-export default function Calculators() {
+export default function Calculators({ variant = "public", employeeInfo = null }) {
     const [tab, setTabRaw] = useState("sip");
     const setTab = (t) => { setTabRaw(t); trackEvent("calculator_use", TABS.find(x => x.id === t)?.label || t); };
 
@@ -328,6 +297,30 @@ export default function Calculators() {
 
     // 🛠️ Step 2: Extract open trigger hook
     const { openGateway } = useModal();
+
+    // 🆕 Employee-mode proposal flow: client details, generated image, share message
+    const [showClientModal, setShowClientModal] = useState(false);
+    const [clientInfo, setClientInfo] = useState({ name: "", phone: "" });
+    const [showSharePopup, setShowSharePopup] = useState(false);
+    const [generatedImage, setGeneratedImage] = useState(null); // { dataUrl, blob }
+    const [msgTemplate, setMsgTemplate] = useState("english"); // "english" | "hinglish"
+    const [shareMessage, setShareMessage] = useState("");
+
+    const buildShareMessage = (template, client, employee) => {
+        const clientName = client?.name?.trim();
+        const empName = employee?.name || "TFD Team";
+        if (template === "hinglish") {
+            return `Namaste${clientName ? " " + clientName : ""} ji,\n\nAapke liye ek personalised financial proposal taiyar kiya hai *The Financial Doctor* ki taraf se 📊\n\nEk baar dekh lijiye — koi bhi sawaal ho to bejhijhak puchiye.\n\nDhanyawad,\n${empName}\nThe Financial Doctor`;
+        }
+        return `Hi${clientName ? " " + clientName : ""},\n\nHere's your personalised financial proposal from *The Financial Doctor* 📊\n\nTake a look, and feel free to reach out if you have any questions.\n\nRegards,\n${empName}\nThe Financial Doctor`;
+    };
+
+    useEffect(() => {
+        if (showSharePopup) {
+            setShareMessage(buildShareMessage(msgTemplate, clientInfo, employeeInfo));
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [showSharePopup, msgTemplate]);
 
     const result = useMemo(() => {
         switch (tab) {
@@ -392,9 +385,95 @@ export default function Calculators() {
         }
     };
 
+    // 🆕 Employee-mode: generate proposal image, then show a Download/Share popup
+    const generateSnapshot = async () => {
+        if (!snapRef.current) return;
+        try {
+            toast.loading("Generating your proposal…", { id: "snap" });
+            await new Promise((r) => setTimeout(r, 150));
+            const canvas = await html2canvas(snapRef.current, {
+                backgroundColor: "#ffffff",
+                scale: 2,
+                useCORS: true,
+                logging: false,
+            });
+            const dataUrl = canvas.toDataURL("image/png"); // used for popup preview thumbnail
+
+            // Build a proper single-page A4 PDF from the captured proposal
+            const pdf = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
+            const pageWidth = pdf.internal.pageSize.getWidth();
+            const pageHeight = pdf.internal.pageSize.getHeight();
+            let imgWidth = pageWidth;
+            let imgHeight = (canvas.height * pageWidth) / canvas.width;
+            if (imgHeight > pageHeight) {
+                imgHeight = pageHeight;
+                imgWidth = (canvas.width * pageHeight) / canvas.height;
+            }
+            const marginX = (pageWidth - imgWidth) / 2;
+            const marginY = (pageHeight - imgHeight) / 2;
+            pdf.addImage(dataUrl, "PNG", marginX, marginY, imgWidth, imgHeight);
+            const pdfBlob = pdf.output("blob");
+
+            setGeneratedImage({ dataUrl, blob: pdfBlob, isPdf: true });
+            setShowSharePopup(true);
+            toast.success("Proposal ready!", { id: "snap" });
+            trackEvent("proposal_generate", TABS.find(x => x.id === tab)?.label || tab);
+        } catch (e) {
+            console.error(e);
+            toast.error("Could not generate proposal. Try again.", { id: "snap" });
+        }
+    };
+
+    const handleDownloadClick = () => {
+        if (variant === "employee") {
+            setShowClientModal(true);
+        } else {
+            downloadSnapshot();
+        }
+    };
+
+    const handleDownloadImage = () => {
+        if (!generatedImage) return;
+        const safeName = (clientInfo.name || tab).replace(/[^a-zA-Z0-9]+/g, "-");
+        const ext = generatedImage.isPdf ? "pdf" : "png";
+        const mime = generatedImage.isPdf ? "application/pdf" : "image/png";
+        const link = document.createElement("a");
+        link.download = `TFD-Proposal-${safeName}.${ext}`;
+        link.href = generatedImage.isPdf ? URL.createObjectURL(new Blob([generatedImage.blob], { type: mime })) : generatedImage.dataUrl;
+        link.click();
+    };
+
+    const handleShareImage = async () => {
+        if (!generatedImage) return;
+        try {
+            const isPdf = !!generatedImage.isPdf;
+            const fileName = isPdf ? "TFD-Proposal.pdf" : "TFD-Proposal.png";
+            const mime = isPdf ? "application/pdf" : "image/png";
+            if (navigator.share) {
+                const file = new File([generatedImage.blob], fileName, { type: mime });
+                const canShareFiles = navigator.canShare && navigator.canShare({ files: [file] });
+                if (canShareFiles) {
+                    await navigator.share({ files: [file], text: shareMessage, title: "Financial Proposal" });
+                    return;
+                }
+                await navigator.share({ text: shareMessage, title: "Financial Proposal" });
+                handleDownloadImage();
+                return;
+            }
+            if (navigator.clipboard) {
+                await navigator.clipboard.writeText(shareMessage);
+                toast.info("Message copied — file downloading, paste the message while sharing.");
+            }
+            handleDownloadImage();
+        } catch (e) {
+            console.warn(e);
+        }
+    };
+
     return (
         <section id="calc" className="py-12 md:py-20 bg-[#F6F1E8]/20">
             <div className="container-x px-4 md:px-6">
+                {variant !== "employee" && (
                 <div className="flex items-end justify-between flex-wrap gap-4 mb-6 md:mb-8">
                     <div>
                         <div className="eyebrow text-xs md:text-sm">Plan · Visualise · Act</div>
@@ -412,6 +491,7 @@ export default function Calculators() {
                         Daily SIP uses <strong className="text-[#0E1B2C] mx-1">22 working days</strong> / month
                     </div>
                 </div>
+                )}
 
                 {/* Tabs Grid */}
                 <div className="mb-6">
@@ -564,9 +644,9 @@ export default function Calculators() {
                     </div>
 
                     {/* Chart + Result Column */}
-                    <div className="lg:col-span-8 grid grid-rows-[1fr_auto] gap-4 md:gap-6">
-                        {/* 🛠️ GRAPH WRAPPER: only for tabs with a growth series; hidden on mobile too */}
-                        {CHART_TABS.includes(tab) && (
+                    <div className={`lg:col-span-8 grid ${variant === "employee" ? "" : "grid-rows-[1fr_auto]"} gap-4 md:gap-6`}>
+                        {/* 🛠️ GRAPH WRAPPER: only for tabs with a growth series; hidden on mobile too; hidden entirely for employee portal (simple calculator mode) */}
+                        {variant !== "employee" && CHART_TABS.includes(tab) && (
                             <div className="hidden md:block card-cream p-4 sm:p-5 md:p-6">
                                 <div className="flex items-center justify-between mb-3">
                                     <div className="text-[11px] tracking-[0.2em] uppercase text-[#5C677D]">
@@ -609,7 +689,7 @@ export default function Calculators() {
                         )}
 
                         {/* Non-chart comparison panels for Tax / GST / Future Goal */}
-                        {tab === "tax" && result && (
+                        {variant !== "employee" && tab === "tax" && result && (
                             <div className="hidden md:block card-cream p-4 sm:p-5 md:p-6">
                                 <div className="text-[11px] tracking-[0.2em] uppercase text-[#5C677D] mb-4">Old vs New Regime</div>
                                 <div className="grid grid-cols-2 gap-6">
@@ -628,7 +708,7 @@ export default function Calculators() {
                                 <div className="text-xs text-[#5C677D] mt-4 text-center">Better choice for you: <strong className="text-[#024396]">{result.better}</strong></div>
                             </div>
                         )}
-                        {tab === "gst" && result && (
+                        {variant !== "employee" && tab === "gst" && result && (
                             <div className="hidden md:block card-cream p-4 sm:p-5 md:p-6">
                                 <div className="text-[11px] tracking-[0.2em] uppercase text-[#5C677D] mb-4">GST Breakup</div>
                                 <div className="space-y-3">
@@ -641,7 +721,7 @@ export default function Calculators() {
                                 </div>
                             </div>
                         )}
-                        {tab === "inflation" && result && (
+                        {variant !== "employee" && tab === "inflation" && result && (
                             <div className="hidden md:block card-cream p-4 sm:p-5 md:p-6">
                                 <div className="text-[11px] tracking-[0.2em] uppercase text-[#5C677D] mb-4">Today vs Future Cost</div>
                                 <div className="grid grid-cols-2 gap-6">
@@ -664,39 +744,153 @@ export default function Calculators() {
                             data-testid={IDS.calc.result}
                             tab={tab}
                             result={result}
-                            onDownload={downloadSnapshot}
+                            onDownload={handleDownloadClick}
                             onStart={openGateway}
+                            variant={variant}
                         />
                     </div>
                 </div>
 
-                {/* Hidden snapshot card for PNG export */}
+                {/* Hidden snapshot/proposal card for export (PNG for public site, A4 PDF for employee portal) */}
                 <div style={{ position: "fixed", left: -10000, top: 0, zIndex: -1 }} aria-hidden>
                     <div ref={snapRef} data-testid={IDS.calc.snapshot}>
-                        <SnapshotCard
-                            tab={tab}
-                            result={result}
-                            state={{
-                                sipAmount, sipDailyAddon, sipStepUp, sipYears, sipRate,
-                                dailyAmount, dailyYears, dailyRate,
-                                lump, lumpYears, lumpRate,
-                                swpCorpus, swpMonthly, swpYears, swpRate,
-                                goal, goalYears, goalRate,
-                                loan, loanYears, loanRate, loanMode,
-                                taxIncome, taxDeductions,
-                                gstAmount, gstRate, gstType,
-                                inflCost, inflYears, inflRate, inflReturn,
-                                result,
-                            }}
-                        />
+                        {variant === "employee" ? (
+                            <ProposalDocument
+                                tab={tab}
+                                result={result}
+                                employeeInfo={employeeInfo}
+                                clientInfo={clientInfo}
+                                state={{
+                                    sipAmount, sipDailyAddon, sipStepUp, sipYears, sipRate,
+                                    dailyAmount, dailyYears, dailyRate,
+                                    lump, lumpYears, lumpRate,
+                                    swpCorpus, swpMonthly, swpYears, swpRate,
+                                    goal, goalYears, goalRate,
+                                    loan, loanYears, loanRate, loanMode,
+                                    taxIncome, taxDeductions,
+                                    gstAmount, gstRate, gstType,
+                                    inflCost, inflYears, inflRate, inflReturn,
+                                    result,
+                                }}
+                            />
+                        ) : (
+                            <SnapshotCard
+                                tab={tab}
+                                result={result}
+                                variant={variant}
+                                employeeInfo={employeeInfo}
+                                clientInfo={null}
+                                state={{
+                                    sipAmount, sipDailyAddon, sipStepUp, sipYears, sipRate,
+                                    dailyAmount, dailyYears, dailyRate,
+                                    lump, lumpYears, lumpRate,
+                                    swpCorpus, swpMonthly, swpYears, swpRate,
+                                    goal, goalYears, goalRate,
+                                    loan, loanYears, loanRate, loanMode,
+                                    taxIncome, taxDeductions,
+                                    gstAmount, gstRate, gstType,
+                                    inflCost, inflYears, inflRate, inflReturn,
+                                    result,
+                                }}
+                            />
+                        )}
                     </div>
                 </div>
+
+                {/* 🆕 Employee-mode: Client details modal (name optional, shown once per proposal) */}
+                {variant === "employee" && showClientModal && (
+                    <div className="fixed inset-0 z-[100] bg-black/50 flex items-center justify-center p-4" onClick={() => setShowClientModal(false)}>
+                        <div className="bg-white rounded-2xl p-6 max-w-sm w-full space-y-4" onClick={(e) => e.stopPropagation()}>
+                            <h3 className="font-serif text-lg text-[#0E1B2C]">Client Details</h3>
+                            <p className="text-xs text-[#5C677D]">Client ka naam daalein — proposal isi naam se banega. (Optional bhi hai)</p>
+                            <div>
+                                <label className="text-xs text-[#5C677D] block mb-1">Client Name</label>
+                                <input
+                                    autoFocus
+                                    value={clientInfo.name}
+                                    onChange={(e) => setClientInfo({ ...clientInfo, name: e.target.value })}
+                                    placeholder="e.g. Ramesh Kumar"
+                                    className="w-full border border-[#E2D8C2] rounded-xl px-3 py-2 text-sm outline-none focus:border-[#024396]"
+                                />
+                            </div>
+                            <div>
+                                <label className="text-xs text-[#5C677D] block mb-1">Client Phone (optional)</label>
+                                <input
+                                    value={clientInfo.phone}
+                                    onChange={(e) => setClientInfo({ ...clientInfo, phone: e.target.value })}
+                                    placeholder="+91 98765 43210"
+                                    className="w-full border border-[#E2D8C2] rounded-xl px-3 py-2 text-sm outline-none focus:border-[#024396]"
+                                />
+                            </div>
+                            <div className="flex gap-2">
+                                <button
+                                    onClick={() => { setShowClientModal(false); setClientInfo({ name: "", phone: "" }); generateSnapshot(); }}
+                                    className="flex-1 py-2.5 rounded-xl bg-[#F6F1E8] text-[#0E1B2C] text-xs font-semibold"
+                                >
+                                    Skip
+                                </button>
+                                <button
+                                    onClick={() => { setShowClientModal(false); generateSnapshot(); }}
+                                    className="flex-1 py-2.5 rounded-xl bg-[#024396] text-white text-sm font-semibold"
+                                >
+                                    Generate Proposal
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+                {/* 🆕 Employee-mode: Download / Share popup with English & Hinglish message templates */}
+                {variant === "employee" && showSharePopup && generatedImage && (
+                    <div className="fixed inset-0 z-[100] bg-black/50 flex items-center justify-center p-4" onClick={() => setShowSharePopup(false)}>
+                        <div className="bg-white rounded-2xl p-5 max-w-sm w-full space-y-3 max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+                            <h3 className="font-serif text-lg text-[#0E1B2C]">Proposal Ready 🎉</h3>
+                            <p className="text-[10px] text-[#5C677D] -mt-2">Preview below — actual file downloads/shares as an A4 PDF.</p>
+                            <img src={generatedImage.dataUrl} alt="Proposal preview" className="w-full rounded-xl border border-[#E2D8C2]" />
+
+                            <div>
+                                <label className="text-xs text-[#5C677D] block mb-1">Message Template</label>
+                                <div className="flex gap-2">
+                                    <button
+                                        onClick={() => setMsgTemplate("english")}
+                                        className={`flex-1 text-xs py-2 rounded-lg border ${msgTemplate === "english" ? "bg-[#024396] text-white border-[#024396]" : "bg-white border-[#E2D8C2] text-[#0E1B2C]"}`}
+                                    >
+                                        English
+                                    </button>
+                                    <button
+                                        onClick={() => setMsgTemplate("hinglish")}
+                                        className={`flex-1 text-xs py-2 rounded-lg border ${msgTemplate === "hinglish" ? "bg-[#024396] text-white border-[#024396]" : "bg-white border-[#E2D8C2] text-[#0E1B2C]"}`}
+                                    >
+                                        Hinglish
+                                    </button>
+                                </div>
+                                <p className="text-[10px] text-[#5C677D] mt-1">Apna custom template banane ka option jald aa raha hai</p>
+                            </div>
+
+                            <div>
+                                <label className="text-xs text-[#5C677D] block mb-1">Message (edit karke bhi bhej sakte hain)</label>
+                                <textarea
+                                    value={shareMessage}
+                                    onChange={(e) => setShareMessage(e.target.value)}
+                                    rows={6}
+                                    className="w-full border border-[#E2D8C2] rounded-xl px-3 py-2 text-xs outline-none focus:border-[#024396]"
+                                />
+                            </div>
+
+                            <div className="flex gap-3">
+                                <button onClick={handleDownloadImage} className="flex-1 py-2.5 rounded-xl bg-[#0E1B2C] text-white text-sm font-semibold">⬇️ Download</button>
+                                <button onClick={handleShareImage} className="flex-1 py-2.5 rounded-xl bg-green-600 text-white text-sm font-semibold">📤 Share</button>
+                            </div>
+                            <button onClick={() => setShowSharePopup(false)} className="w-full text-xs text-[#5C677D] text-center pt-1">Close</button>
+                        </div>
+                    </div>
+                )}
             </div>
         </section>
     );
 }
 
-function ResultCard({ tab, result, onDownload, onStart }) {
+function ResultCard({ tab, result, onDownload, onStart, variant }) {
     if (!result) return null;
     return (
         <div className="card-ink p-4 sm:p-6 md:p-7" data-testid={IDS.calc.result}>
@@ -748,7 +942,7 @@ function ResultCard({ tab, result, onDownload, onStart }) {
                 </div>
                 <div className="flex flex-row md:flex-col gap-2 md:ml-auto w-full md:w-auto mt-2 md:mt-0">
                     <button onClick={onDownload} className="btn-pill flex-1 md:flex-none justify-center py-2.5 text-xs font-bold bg-[#C7102E] text-white shadow-sm" data-testid={IDS.calc.download}>
-                        <Download size={15} /> <span className="hidden sm:inline">Download</span> Proposal
+                        <Download size={15} /> {variant === "employee" ? "Generate Proposal" : (<><span className="hidden sm:inline">Download</span> Proposal</>)}
                     </button>
                     <button onClick={onStart} className="btn-pill flex-1 md:flex-none justify-center py-2.5 text-xs font-bold bg-[#F6F1E8] text-[#0E1B2C] shadow-sm cursor-pointer" data-testid={IDS.calc.startPlan}>
                         Start <ArrowUpRight size={14} />
@@ -792,7 +986,7 @@ function ResultCard({ tab, result, onDownload, onStart }) {
 function Metric({ label, value, primary }) {
     return (
         <div className="min-w-0">
-            <div className="text-[8px] sm:text-[10px] uppercase tracking-[0.18em] opacity-60 truncate font-semibold">
+            <div className="text-[8px] sm:text-[10px] uppercase tracking-[0.18em] opacity-60 font-semibold leading-tight">
                 {label}
             </div>
             <div className={`font-display mt-1 tracking-tight break-words font-bold ${primary ? "text-base sm:text-xl md:text-2xl text-[#F6F1E8]" : "text-xs sm:text-base md:text-lg text-[#F6F1E8]/85"}`}>
@@ -925,7 +1119,257 @@ function upsellScenarios(tab, state, result) {
     return out.slice(0, 3);
 }
 
-function SnapshotCard({ tab, result, state }) {
+// 🆕 A4 classic PDF proposal (employee portal) — no charts, everything in clean tables.
+const TD = (children, extra = {}) => {
+    const { colSpan, ...styleExtra } = extra;
+    return (
+        <td colSpan={colSpan} style={{ padding: "6px 10px", fontSize: 11, color: "#0E1B2C", border: "1px solid #E2D8C2", ...styleExtra }}>{children}</td>
+    );
+};
+const TH = (children, extra = {}) => (
+    <th style={{ padding: "6px 10px", fontSize: 10, textTransform: "uppercase", letterSpacing: "0.06em", color: "#5C677D", background: "#FBF7EE", border: "1px solid #E2D8C2", textAlign: "left", ...extra }}>{children}</th>
+);
+
+function ProposalDocument({ tab, result, state, employeeInfo = null, clientInfo = null }) {
+    if (!result) return null;
+    const labels = {
+        sip: "SIP Calculator",
+        daily: "Daily SIP Calculator",
+        lumpsum: "Lumpsum Calculator",
+        swp: "SWP Calculator",
+        goal: "Goal Planner",
+        emi: "EMI Calculator",
+        tax: "Income Tax Calculator",
+        gst: "GST Calculator",
+        inflation: "Future Goal Calculator",
+    };
+
+    const extendable = ["sip", "daily", "lumpsum", "goal"].includes(tab);
+    const periods = extendable ? [2, 5, 10] : [];
+    const projections = periods.map((y) => ({ y, p: projectExtended(tab, state, y) }));
+
+    const baseYears = (() => {
+        switch (tab) {
+            case "sip": return state.sipYears;
+            case "daily": return state.dailyYears;
+            case "lumpsum": return state.lumpYears;
+            case "swp": return state.swpYears;
+            case "goal": return state.goalYears;
+            case "emi": return state.loanYears;
+            case "inflation": return state.inflYears;
+            default: return 0;
+        }
+    })();
+
+    const rateUsed = (() => {
+        switch (tab) {
+            case "sip": return state.sipRate;
+            case "daily": return state.dailyRate;
+            case "lumpsum": return state.lumpRate;
+            case "swp": return state.swpRate;
+            case "goal": return state.goalRate;
+            case "emi": return state.loanRate;
+            case "inflation": return state.inflReturn;
+            default: return 12;
+        }
+    })();
+
+    const headlineMetric = (() => {
+        if (tab === "emi") return { label: "Monthly EMI", value: fmtINR(result.emi) };
+        if (tab === "swp") return { label: "Balance left", value: fmtINR(result.fv) };
+        if (tab === "goal") return { label: "Monthly SIP needed", value: fmtINR(result.requiredSip) };
+        if (tab === "tax") return { label: "Better Regime", value: result.better };
+        if (tab === "gst") return { label: "Total Amount", value: fmtINR(result.total) };
+        if (tab === "inflation") return { label: "Future Cost", value: fmtINR(result.futureCost) };
+        return { label: "Future Value", value: fmtINR(result.fv) };
+    })();
+
+    const investedLine = (() => {
+        if (tab === "sip") {
+            let s = `Monthly SIP: ${fmtINR(state.sipAmount)}`;
+            if (state.sipDailyAddon > 0) s += ` + Daily top-up ${fmtINR(state.sipDailyAddon)}/day`;
+            if (state.sipStepUp > 0) s += ` · ${state.sipStepUp}% annual step-up`;
+            return s;
+        }
+        if (tab === "daily") return `Daily SIP: ${fmtINR(state.dailyAmount)}/day (22 working days/month)`;
+        if (tab === "lumpsum") return `Lumpsum Amount: ${fmtINR(state.lump)}`;
+        if (tab === "swp") return `Monthly Withdrawal: ${fmtINR(state.swpMonthly)} from ${fmtINR(state.swpCorpus)} corpus`;
+        if (tab === "goal") return `Target Corpus: ${fmtINR(state.goal)}`;
+        if (tab === "emi") return `Loan Amount: ${fmtINR(state.loan)}`;
+        if (tab === "tax") return `Annual Income: ${fmtINR(state.taxIncome)} · 80C: ${fmtINR(state.taxDeductions)}`;
+        if (tab === "gst") return `Amount: ${fmtINR(state.gstAmount)} (${state.gstType}) @ ${state.gstRate}% GST`;
+        if (tab === "inflation") return `Current Cost: ${fmtINR(state.inflCost)} · Inflation: ${state.inflRate}% p.a.`;
+        return "";
+    })();
+
+    const bigStats = (() => {
+        if (tab === "emi") return [["Loan Amount", fmtINR(state.loan)], ["Total Interest", fmtINR(result.interest)], ["Total Payable", fmtINR(result.total)]];
+        if (tab === "swp") return [["Initial Corpus", fmtINR(result.invested)], ["Total Withdrawn", fmtINR(result.gains)], ["Balance Left", fmtINR(result.fv)]];
+        if (tab === "goal") return [["Target", fmtINR(result.target)], ["You Invest", fmtINR(result.invested)], ["Required SIP", fmtINR(result.requiredSip)]];
+        if (tab === "tax") return [["Old Regime Tax", fmtINR(result.oldTax)], ["New Regime Tax", fmtINR(result.newTax)], ["ELSS Saving", fmtINR(result.elssSaving)]];
+        if (tab === "gst") return [["Base Amount", fmtINR(result.base)], ["GST Amount", fmtINR(result.gst)], ["Total Amount", fmtINR(result.total)]];
+        if (tab === "inflation") return [["Today's Cost", fmtINR(result.currentCost)], ["Future Cost", fmtINR(result.futureCost)], ["Monthly SIP Needed", fmtINR(result.requiredSip)]];
+        return [["Total Invested", fmtINR(result.invested)], ["Est. Returns", fmtINR(result.gains)], ["Future Value", fmtINR(result.fv)]];
+    })();
+
+    // Cap year-on-year rows so a long tenure still fits comfortably on one A4 page
+    const fullSeries = result.series || [];
+    let yearRows = fullSeries;
+    if (fullSeries.length > 12) {
+        const step = Math.ceil(fullSeries.length / 12);
+        yearRows = fullSeries.filter((_, i) => i % step === 0 || i === fullSeries.length - 1);
+    }
+
+    const suggestions = upsellScenarios(tab, state, result);
+    const tip = (CALC_RECOMMENDATIONS[tab] || [])[0];
+    const genDate = new Date().toLocaleDateString("en-IN", { day: "numeric", month: "long", year: "numeric" });
+
+    return (
+        <div style={{
+            width: 794, minHeight: 1123, background: "#fff", position: "relative",
+            fontFamily: "'DM Sans', Arial, sans-serif", color: "#0E1B2C",
+            padding: "36px 44px 30px", boxSizing: "border-box", display: "flex", flexDirection: "column",
+        }}>
+            {/* Watermark */}
+            <div aria-hidden style={{
+                position: "absolute", top: "48%", left: "50%", transform: "translate(-50%,-50%) rotate(-28deg)",
+                fontSize: 64, color: "rgba(2,67,150,0.055)", fontWeight: 800, whiteSpace: "nowrap",
+                letterSpacing: 6, pointerEvents: "none",
+            }}>THE FINANCIAL DOCTOR</div>
+
+            {/* Header */}
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: "2px solid #024396", paddingBottom: 12, marginBottom: 18 }}>
+                <img src={TFD_LOGO} crossOrigin="anonymous" alt="TFD" style={{ height: 50, objectFit: "contain" }} />
+                <div style={{ textAlign: "right" }}>
+                    <div style={{ fontSize: 10.5, color: "#5C677D", letterSpacing: "0.08em" }}>AMFI · ARN-290298</div>
+                    <div style={{ fontSize: 10.5, color: "#5C677D", marginTop: 2 }}>Date: {genDate}</div>
+                </div>
+            </div>
+
+            <h1 style={{ fontFamily: "'Fraunces', serif", fontSize: 22, margin: "0 0 4px", color: "#0E1B2C" }}>{labels[tab]} — Financial Proposal</h1>
+            <p style={{ fontSize: 10.5, color: "#5C677D", margin: "0 0 16px" }}>Illustrative proposal prepared for review. Figures are projections, not guarantees.</p>
+
+            {/* Client + Advisor info */}
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, marginBottom: 16 }}>
+                <div style={{ border: "1px solid #E2D8C2", borderRadius: 8, padding: 10 }}>
+                    <div style={{ fontSize: 9.5, textTransform: "uppercase", letterSpacing: "0.1em", color: "#024396", fontWeight: 700, marginBottom: 4 }}>Prepared For</div>
+                    <div style={{ fontSize: 13.5, fontWeight: 700 }}>{clientInfo?.name || "Valued Client"}</div>
+                    {clientInfo?.phone && <div style={{ fontSize: 10.5, color: "#5C677D", marginTop: 2 }}>📱 {clientInfo.phone}</div>}
+                </div>
+                <div style={{ border: "1px solid #E2D8C2", borderRadius: 8, padding: 10 }}>
+                    <div style={{ fontSize: 9.5, textTransform: "uppercase", letterSpacing: "0.1em", color: "#024396", fontWeight: 700, marginBottom: 4 }}>Prepared By</div>
+                    <div style={{ fontSize: 13.5, fontWeight: 700 }}>{employeeInfo?.name || "TFD Team"}</div>
+                    {employeeInfo?.phone && <div style={{ fontSize: 10.5, color: "#5C677D", marginTop: 2 }}>📱 {employeeInfo.phone}</div>}
+                </div>
+            </div>
+
+            {/* Headline summary */}
+            <div style={{ background: "#0E1B2C", color: "#F6F1E8", borderRadius: 10, padding: "12px 16px", marginBottom: 16 }}>
+                <div style={{ fontSize: 9.5, color: "#C7102E", textTransform: "uppercase", letterSpacing: "0.1em", fontWeight: 700 }}>{labels[tab]}</div>
+                <div style={{ fontFamily: "'Fraunces', serif", fontSize: 22, marginTop: 4 }}>{headlineMetric.value}</div>
+                <div style={{ fontSize: 10.5, opacity: 0.75, marginTop: 2 }}>{headlineMetric.label}{baseYears ? ` · over ${baseYears} years @ ${rateUsed}% p.a.` : ""}</div>
+                <div style={{ fontSize: 11.5, marginTop: 6, fontWeight: 600 }}>{investedLine}</div>
+            </div>
+
+            {/* Big stats row */}
+            <table style={{ width: "100%", borderCollapse: "collapse", marginBottom: 18 }}>
+                <tbody>
+                    <tr>{bigStats.map(([l]) => TH(l))}</tr>
+                    <tr>{bigStats.map(([, v], i) => TD(<strong style={{ fontSize: 13 }}>{v}</strong>, i === bigStats.length - 1 ? { color: "#024396" } : {}))}</tr>
+                </tbody>
+            </table>
+
+            {/* What if invested longer — table */}
+            {extendable && (
+                <div style={{ marginBottom: 18 }}>
+                    <div style={{ fontSize: 11.5, fontWeight: 700, color: "#024396", marginBottom: 6 }}>What If You Stay Invested Longer?</div>
+                    <table style={{ width: "100%", borderCollapse: "collapse" }}>
+                        <thead>
+                            <tr>{TH("Extension")}{TH("Total Tenure")}{TH("Total Invested")}{TH("Future Value")}{TH("Extra Gain")}</tr>
+                        </thead>
+                        <tbody>
+                            {projections.map(({ y, p }) => (
+                                <tr key={y}>
+                                    {TD(`+${y} Years`)}
+                                    {TD(`${baseYears + y} Yrs`)}
+                                    {TD(p ? fmtINR(p.invested) : "—")}
+                                    {TD(p ? fmtINR(p.fv) : "—", { fontWeight: 700 })}
+                                    {TD(p ? `+${fmtINR(p.fv - result.fv)}` : "—", { color: "#024396", fontWeight: 700 })}
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
+            )}
+
+            {/* Year-on-year growth — table */}
+            {yearRows.length > 0 && (
+                <div style={{ marginBottom: 18 }}>
+                    <div style={{ fontSize: 11.5, fontWeight: 700, color: "#024396", marginBottom: 6 }}>Year-on-Year Growth</div>
+                    <table style={{ width: "100%", borderCollapse: "collapse" }}>
+                        <thead>
+                            <tr>{TH("Year")}{TH("Invested")}{TH(tab === "emi" ? "Outstanding" : "Value")}</tr>
+                        </thead>
+                        <tbody>
+                            {yearRows.map((r) => (
+                                <tr key={r.label}>
+                                    {TD(r.label)}
+                                    {TD(fmtINR(r.invested))}
+                                    {TD(fmtINR(r.value), { fontWeight: 700 })}
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
+            )}
+
+            {/* Suggestions */}
+            {(suggestions.length > 0 || tip) && (
+                <div style={{ marginBottom: 18 }}>
+                    <div style={{ fontSize: 11.5, fontWeight: 700, color: "#C7102E", marginBottom: 6 }}>💡 Suggestions to Boost Your Wealth</div>
+                    <table style={{ width: "100%", borderCollapse: "collapse" }}>
+                        <tbody>
+                            {suggestions.map((s, idx) => (
+                                <tr key={`sg-${idx}`}>
+                                    {TD(<><strong>{s.title}</strong> <span style={{ color: "#5C677D" }}>· {s.titleHi}</span><div style={{ fontSize: 10, color: "#5C677D", marginTop: 2 }}>{s.detail}</div></>)}
+                                    {TD(<strong style={{ color: "#024396" }}>+{fmtINR(s.extra)}</strong>, { textAlign: "right", whiteSpace: "nowrap" })}
+                                </tr>
+                            ))}
+                            {tip && (
+                                <tr>
+                                    {TD(<><strong>EN:</strong> {tip.en}<br /><strong>HI:</strong> {tip.hi}</>, { colSpan: 2 })}
+                                </tr>
+                            )}
+                        </tbody>
+                    </table>
+                </div>
+            )}
+
+            {/* Spacer pushes footer to bottom when content is short */}
+            <div style={{ flex: 1 }} />
+
+            {/* Footer */}
+            <div style={{ borderTop: "1px solid #E2D8C2", paddingTop: 14, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16 }}>
+                <div style={{ flex: 1 }}>
+                    <div style={{ fontSize: 11, fontWeight: 700, color: "#0E1B2C" }}>The Financial Doctor · thefinancialdoctor.in</div>
+                    <div style={{ fontSize: 9, color: "#5C677D", fontStyle: "italic", marginTop: 4, lineHeight: 1.4 }}>
+                        This document is an illustrative proposal only and does not constitute investment advice. Mutual fund
+                        investments are subject to market risks. Read all scheme-related documents carefully. Calculations are
+                        based on assumed rates and actual returns may vary. Generated on {genDate}.
+                    </div>
+                </div>
+                <div style={{ textAlign: "center", flexShrink: 0 }}>
+                    <div style={{ background: "#fff", padding: 4, borderRadius: 8, border: "1px solid #E2D8C2" }}>
+                        <QRCodeCanvas value={TFD_BRAND_URL} size={64} bgColor="#FFFFFF" fgColor="#0E1B2C" level="M" includeMargin={false} />
+                    </div>
+                    <div style={{ fontSize: 8, marginTop: 3, color: "#C7102E", fontWeight: 700, textTransform: "uppercase" }}>Scan to invest</div>
+                </div>
+            </div>
+        </div>
+    );
+}
+
+function SnapshotCard({ tab, result, state, variant = "public", employeeInfo = null, clientInfo = null }) {
     if (!result) return null;
     const labels = {
         sip: "SIP Calculator",
@@ -1001,16 +1445,9 @@ function SnapshotCard({ tab, result, state }) {
             <div aria-hidden style={{position: "absolute", top: -120, right: -120, width: 320, height: 320, borderRadius: "50%", background: "radial-gradient(circle, rgba(2, 67, 150,0.18) 0%, transparent 70%)"}} />
             <div aria-hidden style={{position: "absolute", bottom: -140, left: -140, width: 360, height: 360, borderRadius: "50%", background: "radial-gradient(circle, rgba(199, 16, 46,0.15) 0%, transparent 70%)"}} />
             <div style={{ position: "relative", display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 22 }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-                    <img src={TFD_LOGO} crossOrigin="anonymous" alt="TFD" style={{height: 72, width: "auto", objectFit: "contain", background: "#F6F1E8", borderRadius: 12, padding: 6, border: "1px solid #E2D8C2"}} />
-                    <div>
-                        <div style={{ fontFamily: "'Fraunces', serif", fontSize: 22, color: "#0E1B2C", lineHeight: 1 }}>The Financial Doctor</div>
-                        <div style={{ fontSize: 10, letterSpacing: "0.22em", textTransform: "uppercase", color: "#5C677D", marginTop: 6 }}>Treating Your Financial Health</div>
-                    </div>
-                </div>
+                <img src={TFD_LOGO} crossOrigin="anonymous" alt="TFD" style={{height: 72, width: "auto", objectFit: "contain", background: "#F6F1E8", borderRadius: 12, padding: 6, border: "1px solid #E2D8C2"}} />
                 <div style={{ textAlign: "right" }}>
-                    <div style={{ fontSize: 10, letterSpacing: "0.22em", textTransform: "uppercase", color: "#5C677D" }}>AMFI · ARN-290298</div>
-                    <div style={{ fontSize: 11, color: "#024396", marginTop: 4, fontWeight: 600 }}>Sehore · MP</div>
+                    <div style={{ fontSize: 10, letterSpacing: "0.18em", textTransform: "uppercase", color: "#5C677D", whiteSpace: "nowrap" }}>AMFI · ARN-290298</div>
                 </div>
             </div>
             <div style={{position: "relative", background: "#0E1B2C", color: "#F6F1E8", borderRadius: 18, padding: "16px 20px", display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 18}}>
@@ -1020,7 +1457,7 @@ function SnapshotCard({ tab, result, state }) {
                     <div style={{ fontSize: 11, color: "#F6F1E8", opacity: 0.7, marginTop: 4 }}>{headlineMetric.label}{baseYears ? ` · over ${baseYears} years @ ${rateUsed}% p.a.` : ""}</div>
                     <div style={{ fontSize: 12, color: "#F6F1E8", marginTop: 6, fontWeight: 600 }}>{investedLine}</div>
                 </div>
-                <div style={{background: "#C7102E", color: "#fff", borderRadius: 999, padding: "5px 12px", fontSize: 10, letterSpacing: "0.18em", textTransform: "uppercase", fontWeight: 700}}>Snapshot</div>
+                <div style={{background: "#C7102E", color: "#fff", borderRadius: 999, padding: "5px 12px", fontSize: 10, letterSpacing: "0.1em", textTransform: "uppercase", fontWeight: 700, maxWidth: 170, textAlign: "right", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis"}}>{clientInfo?.name ? clientInfo.name : "Snapshot"}</div>
             </div>
             <div style={{ position: "relative", display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10, marginBottom: 20 }}>
                 {tab === "emi" ? (
@@ -1075,7 +1512,7 @@ function SnapshotCard({ tab, result, state }) {
                             const extraGains = p ? p.fv - result.fv : 0;
                             return (
                                 <div key={y} style={{background: "#FBF7EE", border: "1px solid #E2D8C2", borderRadius: 16, padding: "14px 12px", textAlign: "left"}}>
-                                    <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 6 }}><span style={{ background: "#024396", color: "#F6F1E8", fontSize: 10, fontWeight: 700, padding: "3px 8px", borderRadius: 999 }}>+{y}Y</span><span style={{ fontSize: 10, color: "#5C677D" }}>({baseYears + y} yrs total)</span></div>
+                                    <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 6 }}><span style={{ background: "#024396", color: "#F6F1E8", fontSize: 10, fontWeight: 700, padding: "4px 8px", borderRadius: 999, lineHeight: 1, display: "inline-block" }}>+{y}Y</span><span style={{ fontSize: 10, color: "#5C677D", lineHeight: 1 }}>({baseYears + y} yrs total)</span></div>
                                     <div style={{ fontFamily: "'Fraunces', serif", fontSize: 19, color: "#0E1B2C", lineHeight: 1.1 }}>{p ? fmtINR(p.fv) : "—"}</div>
                                     <div style={{ fontSize: 10, color: "#024396", marginTop: 4, fontBold: 600 }}>+{fmtINR(extraGains)} extra</div>
                                     {p && <div style={{ fontSize: 9, color: "#5C677D", marginTop: 3 }}>Invested {fmtINR(p.invested)}</div>}
@@ -1126,12 +1563,24 @@ function SnapshotCard({ tab, result, state }) {
             </div>
             <div style={{position: "relative", background: "#0E1B2C", color: "#F6F1E8", borderRadius: 18, padding: "16px 18px", display: "grid", gridTemplateColumns: "1fr auto", gap: 16, alignItems: "center", marginBottom: 14}}>
                 <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                    <img src={SAGAR_PHOTO} crossOrigin="anonymous" alt="Sagar" style={{width: 70, height: 88, borderRadius: 12, objectFit: "cover", border: "2px solid #C7102E"}} />
+                    {variant === "employee" ? (
+                        <div style={{width: 56, height: 56, borderRadius: 999, background: "#024396", display: "flex", alignItems: "center", justifyContent: "center", border: "2px solid #C7102E", flexShrink: 0}}>
+                            <span style={{ fontFamily: "'Fraunces', serif", fontSize: 24, color: "#F6F1E8" }}>{(employeeInfo?.name || "T").charAt(0).toUpperCase()}</span>
+                        </div>
+                    ) : (
+                        <img src={SAGAR_PHOTO} crossOrigin="anonymous" alt="Sagar" style={{width: 70, height: 88, borderRadius: 12, objectFit: "cover", border: "2px solid #C7102E"}} />
+                    )}
                     <div>
-                        <div style={{ fontFamily: "'Fraunces', serif", fontSize: 18, lineHeight: 1.1 }}>Sagar Chaturvedi</div>
-                        <div style={{ fontSize: 10, color: "#F6F1E8", opacity: 0.7, marginTop: 3, letterSpacing: "0.12em", textTransform: "uppercase" }}>Founder · MFD (AMFI Certified)</div>
-                        <div style={{ fontSize: 11, marginTop: 6, opacity: 0.9 }}>📱 +91 77738 05794</div>
-                        <div style={{ fontSize: 11, opacity: 0.9 }}>✉ wecare@thefinancialdoctor.in</div>
+                        <div style={{ fontFamily: "'Fraunces', serif", fontSize: 18, lineHeight: 1.1 }}>{variant === "employee" ? (employeeInfo?.name || "TFD Team") : "Sagar Chaturvedi"}</div>
+                        <div style={{ fontSize: 10, color: "#F6F1E8", opacity: 0.7, marginTop: 3, letterSpacing: "0.12em", textTransform: "uppercase" }}>{variant === "employee" ? "Financial Advisor · TFD" : "Founder · MFD (AMFI Certified)"}</div>
+                        {variant === "employee" ? (
+                            employeeInfo?.phone && <div style={{ fontSize: 11, marginTop: 6, opacity: 0.9 }}>📱 {employeeInfo.phone}</div>
+                        ) : (
+                            <>
+                                <div style={{ fontSize: 11, marginTop: 6, opacity: 0.9 }}>📱 +91 77738 05794</div>
+                                <div style={{ fontSize: 11, opacity: 0.9 }}>✉ wecare@thefinancialdoctor.in</div>
+                            </>
+                        )}
                     </div>
                 </div>
                 <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
