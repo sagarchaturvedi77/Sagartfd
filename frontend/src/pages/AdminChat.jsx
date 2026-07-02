@@ -11,9 +11,10 @@ export default function AdminChat() {
   const [text, setText] = useState("");
   const [sending, setSending] = useState(false);
   const bottomRef = useRef(null);
-  const headers = { Authorization: `Bearer ${token}`, "Content-Type": "application/json" };
 
   const load = useCallback(async () => {
+    if (!token) return;
+    const headers = { Authorization: `Bearer ${token}`, "Content-Type": "application/json" };
     const res = await fetch(`${API_BASE}/api/chat/?room=general&limit=80`, { headers });
     if (res.ok) setMsgs(await res.json());
   }, [token]);
@@ -24,8 +25,10 @@ export default function AdminChat() {
 
   const send = async (e) => {
     e.preventDefault();
-    if (!text.trim()) return;
+    if (!text.trim() || !token) return;
+    setSending(false); // safety toggle reset
     setSending(true);
+    const headers = { Authorization: `Bearer ${token}`, "Content-Type": "application/json" };
     await fetch(`${API_BASE}/api/chat/`, { method: "POST", headers, body: JSON.stringify({ text: text.trim(), room: "general" }) });
     setText("");
     await load();
@@ -33,6 +36,8 @@ export default function AdminChat() {
   };
 
   const del = async (id) => {
+    if (!token) return;
+    const headers = { Authorization: `Bearer ${token}`, "Content-Type": "application/json" };
     await fetch(`${API_BASE}/api/chat/${id}`, { method: "DELETE", headers });
     setMsgs((m) => m.filter((x) => x.id !== id));
   };
@@ -53,7 +58,6 @@ export default function AdminChat() {
             const isMe = m.sender_id === user?.id;
             return (
               <div key={m.id} className={`flex flex-col ${isMe ? "items-end" : "items-start"}`}>
-                {/* ── ⚪ SENDER HEADER: NAME | ID | POSITION ── */}
                 <div className="text-[10px] text-[#2A364B]/60 font-semibold mb-1 px-1 flex items-center gap-1.5 tracking-wide">
                   <span className={isMe ? "text-[#024396]" : "text-[#0e1b2c]"}>
                     {isMe ? user?.name : m.sender_name}
