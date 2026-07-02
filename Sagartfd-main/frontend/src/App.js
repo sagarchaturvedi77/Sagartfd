@@ -39,7 +39,11 @@ import EmployeeOnboarding from "./pages/EmployeeOnboarding";
 import EmployeeIDCard from "./pages/EmployeeIDCard";
 import EmployeeProfile from "./pages/EmployeeProfile";
 import AdminWebsiteContent from "./pages/AdminWebsiteContent";
-import AdminPipelines from "./pages/AdminPipelines";
+//import AdminPipelines from "./pages/AdminPipelines";
+// // import AdminPipelines from "./pages/AdminPipelines"; // 👈 Ise comment karein
+
+// 👈 Aur niche jahan baki placeholder hain, wahan ye temporary line jod dein:
+const AdminPipelines = () => <div className="p-20 text-center text-2xl">Pipeline Maintenance...</div>;
 import AdminChat from "./pages/AdminChat";
 import AdminLeaveManagement from "./pages/AdminLeaveManagement";
 import AdminAccessControl from "./pages/AdminAccessControl";

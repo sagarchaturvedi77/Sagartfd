@@ -1,4 +1,4 @@
-import React, { useMemo, useRef, useState } from "react";
+import React, { useMemo, useRef, useState, useEffect } from "react";
 import {
     AreaChart,
     Area,
@@ -279,7 +279,7 @@ const TABS = [
 // Tabs that have a time-series growth chart (SIP/lumpsum style)
 const CHART_TABS = ["sip", "daily", "lumpsum", "swp", "goal", "emi"];
 
-export default function Calculators() {
+export default function Calculators({ variant = "public", employeeInfo = null }) {
     const [tab, setTabRaw] = useState("sip");
     const setTab = (t) => { setTabRaw(t); trackEvent("calculator_use", TABS.find(x => x.id === t)?.label || t); };
 
@@ -328,6 +328,30 @@ export default function Calculators() {
 
     // 🛠️ Step 2: Extract open trigger hook
     const { openGateway } = useModal();
+
+    // 🆕 Employee-mode proposal flow: client details, generated image, share message
+    const [showClientModal, setShowClientModal] = useState(false);
+    const [clientInfo, setClientInfo] = useState({ name: "", phone: "" });
+    const [showSharePopup, setShowSharePopup] = useState(false);
+    const [generatedImage, setGeneratedImage] = useState(null); // { dataUrl, blob }
+    const [msgTemplate, setMsgTemplate] = useState("english"); // "english" | "hinglish"
+    const [shareMessage, setShareMessage] = useState("");
+
+    const buildShareMessage = (template, client, employee) => {
+        const clientName = client?.name?.trim();
+        const empName = employee?.name || "TFD Team";
+        if (template === "hinglish") {
+            return `Namaste${clientName ? " " + clientName : ""} ji,\n\nAapke liye ek personalised financial proposal taiyar kiya hai *The Financial Doctor* ki taraf se 📊\n\nEk baar dekh lijiye — koi bhi sawaal ho to bejhijhak puchiye.\n\nDhanyawad,\n${empName}\nThe Financial Doctor`;
+        }
+        return `Hi${clientName ? " " + clientName : ""},\n\nHere's your personalised financial proposal from *The Financial Doctor* 📊\n\nTake a look, and feel free to reach out if you have any questions.\n\nRegards,\n${empName}\nThe Financial Doctor`;
+    };
+
+    useEffect(() => {
+        if (showSharePopup) {
+            setShareMessage(buildShareMessage(msgTemplate, clientInfo, employeeInfo));
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [showSharePopup, msgTemplate]);
 
     const result = useMemo(() => {
         switch (tab) {
@@ -389,6 +413,76 @@ export default function Calculators() {
         } catch (e) {
             console.error(e);
             toast.error("Could not generate snapshot. Try again.", { id: "snap" });
+        }
+    };
+
+    // 🆕 Employee-mode: generate proposal image, then show a Download/Share popup
+    const generateSnapshot = async () => {
+        if (!snapRef.current) return;
+        try {
+            toast.loading("Generating your proposal…", { id: "snap" });
+            await new Promise((r) => setTimeout(r, 150));
+            const canvas = await html2canvas(snapRef.current, {
+                backgroundColor: "#F6F1E8",
+                scale: 2,
+                useCORS: true,
+                logging: false,
+            });
+            const dataUrl = canvas.toDataURL("image/png");
+            canvas.toBlob((blob) => {
+                setGeneratedImage({ dataUrl, blob });
+                setShowSharePopup(true);
+                toast.success("Proposal ready!", { id: "snap" });
+                trackEvent("proposal_generate", TABS.find(x => x.id === tab)?.label || tab);
+            }, "image/png");
+        } catch (e) {
+            console.error(e);
+            toast.error("Could not generate proposal. Try again.", { id: "snap" });
+        }
+    };
+
+    const handleDownloadClick = () => {
+        if (variant === "employee") {
+            if (!clientInfo.name) {
+                setShowClientModal(true);
+            } else {
+                generateSnapshot();
+            }
+        } else {
+            downloadSnapshot();
+        }
+    };
+
+    const handleDownloadImage = () => {
+        if (!generatedImage) return;
+        const safeName = (clientInfo.name || tab).replace(/[^a-zA-Z0-9]+/g, "-");
+        const link = document.createElement("a");
+        link.download = `TFD-Proposal-${safeName}.png`;
+        link.href = generatedImage.dataUrl;
+        link.click();
+    };
+
+    const handleShareImage = async () => {
+        if (!generatedImage) return;
+        try {
+            if (navigator.share) {
+                const file = new File([generatedImage.blob], "TFD-Proposal.png", { type: "image/png" });
+                const canShareFiles = navigator.canShare && navigator.canShare({ files: [file] });
+                if (canShareFiles) {
+                    await navigator.share({ files: [file], text: shareMessage, title: "Financial Proposal" });
+                    return;
+                }
+                await navigator.share({ text: shareMessage, title: "Financial Proposal" });
+                handleDownloadImage();
+                return;
+            }
+            if (navigator.clipboard) {
+                await navigator.clipboard.writeText(shareMessage);
+                toast.info("Message copied — image downloading, paste the message while sharing.");
+            }
+            handleDownloadImage();
+        } catch (e) {
+            console.warn(e);
         }
     };
 
@@ -664,7 +758,7 @@ export default function Calculators() {
                             data-testid={IDS.calc.result}
                             tab={tab}
                             result={result}
-                            onDownload={downloadSnapshot}
+                            onDownload={handleDownloadClick}
                             onStart={openGateway}
                         />
                     </div>
@@ -676,6 +770,9 @@ export default function Calculators() {
                         <SnapshotCard
                             tab={tab}
                             result={result}
+                            variant={variant}
+                            employeeInfo={employeeInfo}
+                            clientInfo={variant === "employee" ? clientInfo : null}
                             state={{
                                 sipAmount, sipDailyAddon, sipStepUp, sipYears, sipRate,
                                 dailyAmount, dailyYears, dailyRate,
@@ -691,6 +788,94 @@ export default function Calculators() {
                         />
                     </div>
                 </div>
+
+                {/* 🆕 Employee-mode: Client details modal (name optional, shown once per proposal) */}
+                {variant === "employee" && showClientModal && (
+                    <div className="fixed inset-0 z-[100] bg-black/50 flex items-center justify-center p-4" onClick={() => setShowClientModal(false)}>
+                        <div className="bg-white rounded-2xl p-6 max-w-sm w-full space-y-4" onClick={(e) => e.stopPropagation()}>
+                            <h3 className="font-serif text-lg text-[#0E1B2C]">Client Details</h3>
+                            <p className="text-xs text-[#5C677D]">Client ka naam daalein — proposal isi naam se banega. (Optional bhi hai)</p>
+                            <div>
+                                <label className="text-xs text-[#5C677D] block mb-1">Client Name</label>
+                                <input
+                                    autoFocus
+                                    value={clientInfo.name}
+                                    onChange={(e) => setClientInfo({ ...clientInfo, name: e.target.value })}
+                                    placeholder="e.g. Ramesh Kumar"
+                                    className="w-full border border-[#E2D8C2] rounded-xl px-3 py-2 text-sm outline-none focus:border-[#024396]"
+                                />
+                            </div>
+                            <div>
+                                <label className="text-xs text-[#5C677D] block mb-1">Client Phone (optional)</label>
+                                <input
+                                    value={clientInfo.phone}
+                                    onChange={(e) => setClientInfo({ ...clientInfo, phone: e.target.value })}
+                                    placeholder="+91 98765 43210"
+                                    className="w-full border border-[#E2D8C2] rounded-xl px-3 py-2 text-sm outline-none focus:border-[#024396]"
+                                />
+                            </div>
+                            <div className="flex gap-2">
+                                <button
+                                    onClick={() => { setShowClientModal(false); generateSnapshot(); }}
+                                    className="flex-1 py-2.5 rounded-xl bg-[#F6F1E8] text-[#0E1B2C] text-xs font-semibold"
+                                >
+                                    Skip
+                                </button>
+                                <button
+                                    onClick={() => { setShowClientModal(false); generateSnapshot(); }}
+                                    className="flex-1 py-2.5 rounded-xl bg-[#024396] text-white text-sm font-semibold"
+                                >
+                                    Generate Proposal
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+                {/* 🆕 Employee-mode: Download / Share popup with English & Hinglish message templates */}
+                {variant === "employee" && showSharePopup && generatedImage && (
+                    <div className="fixed inset-0 z-[100] bg-black/50 flex items-center justify-center p-4" onClick={() => setShowSharePopup(false)}>
+                        <div className="bg-white rounded-2xl p-5 max-w-sm w-full space-y-3 max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+                            <h3 className="font-serif text-lg text-[#0E1B2C]">Proposal Ready 🎉</h3>
+                            <img src={generatedImage.dataUrl} alt="Proposal preview" className="w-full rounded-xl border border-[#E2D8C2]" />
+
+                            <div>
+                                <label className="text-xs text-[#5C677D] block mb-1">Message Template</label>
+                                <div className="flex gap-2">
+                                    <button
+                                        onClick={() => setMsgTemplate("english")}
+                                        className={`flex-1 text-xs py-2 rounded-lg border ${msgTemplate === "english" ? "bg-[#024396] text-white border-[#024396]" : "bg-white border-[#E2D8C2] text-[#0E1B2C]"}`}
+                                    >
+                                        English
+                                    </button>
+                                    <button
+                                        onClick={() => setMsgTemplate("hinglish")}
+                                        className={`flex-1 text-xs py-2 rounded-lg border ${msgTemplate === "hinglish" ? "bg-[#024396] text-white border-[#024396]" : "bg-white border-[#E2D8C2] text-[#0E1B2C]"}`}
+                                    >
+                                        Hinglish
+                                    </button>
+                                </div>
+                                <p className="text-[10px] text-[#5C677D] mt-1">Apna custom template banane ka option jald aa raha hai</p>
+                            </div>
+
+                            <div>
+                                <label className="text-xs text-[#5C677D] block mb-1">Message (edit karke bhi bhej sakte hain)</label>
+                                <textarea
+                                    value={shareMessage}
+                                    onChange={(e) => setShareMessage(e.target.value)}
+                                    rows={6}
+                                    className="w-full border border-[#E2D8C2] rounded-xl px-3 py-2 text-xs outline-none focus:border-[#024396]"
+                                />
+                            </div>
+
+                            <div className="flex gap-3">
+                                <button onClick={handleDownloadImage} className="flex-1 py-2.5 rounded-xl bg-[#0E1B2C] text-white text-sm font-semibold">⬇️ Download</button>
+                                <button onClick={handleShareImage} className="flex-1 py-2.5 rounded-xl bg-green-600 text-white text-sm font-semibold">📤 Share</button>
+                            </div>
+                            <button onClick={() => setShowSharePopup(false)} className="w-full text-xs text-[#5C677D] text-center pt-1">Close</button>
+                        </div>
+                    </div>
+                )}
             </div>
         </section>
     );
@@ -925,7 +1110,7 @@ function upsellScenarios(tab, state, result) {
     return out.slice(0, 3);
 }
 
-function SnapshotCard({ tab, result, state }) {
+function SnapshotCard({ tab, result, state, variant = "public", employeeInfo = null, clientInfo = null }) {
     if (!result) return null;
     const labels = {
         sip: "SIP Calculator",
@@ -1001,16 +1186,9 @@ function SnapshotCard({ tab, result, state }) {
             <div aria-hidden style={{position: "absolute", top: -120, right: -120, width: 320, height: 320, borderRadius: "50%", background: "radial-gradient(circle, rgba(2, 67, 150,0.18) 0%, transparent 70%)"}} />
             <div aria-hidden style={{position: "absolute", bottom: -140, left: -140, width: 360, height: 360, borderRadius: "50%", background: "radial-gradient(circle, rgba(199, 16, 46,0.15) 0%, transparent 70%)"}} />
             <div style={{ position: "relative", display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 22 }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-                    <img src={TFD_LOGO} crossOrigin="anonymous" alt="TFD" style={{height: 72, width: "auto", objectFit: "contain", background: "#F6F1E8", borderRadius: 12, padding: 6, border: "1px solid #E2D8C2"}} />
-                    <div>
-                        <div style={{ fontFamily: "'Fraunces', serif", fontSize: 22, color: "#0E1B2C", lineHeight: 1 }}>The Financial Doctor</div>
-                        <div style={{ fontSize: 10, letterSpacing: "0.22em", textTransform: "uppercase", color: "#5C677D", marginTop: 6 }}>Treating Your Financial Health</div>
-                    </div>
-                </div>
+                <img src={TFD_LOGO} crossOrigin="anonymous" alt="TFD" style={{height: 72, width: "auto", objectFit: "contain", background: "#F6F1E8", borderRadius: 12, padding: 6, border: "1px solid #E2D8C2"}} />
                 <div style={{ textAlign: "right" }}>
-                    <div style={{ fontSize: 10, letterSpacing: "0.22em", textTransform: "uppercase", color: "#5C677D" }}>AMFI · ARN-290298</div>
-                    <div style={{ fontSize: 11, color: "#024396", marginTop: 4, fontWeight: 600 }}>Sehore · MP</div>
+                    <div style={{ fontSize: 10, letterSpacing: "0.18em", textTransform: "uppercase", color: "#5C677D", whiteSpace: "nowrap" }}>AMFI · ARN-290298</div>
                 </div>
             </div>
             <div style={{position: "relative", background: "#0E1B2C", color: "#F6F1E8", borderRadius: 18, padding: "16px 20px", display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 18}}>
@@ -1020,7 +1198,7 @@ function SnapshotCard({ tab, result, state }) {
                     <div style={{ fontSize: 11, color: "#F6F1E8", opacity: 0.7, marginTop: 4 }}>{headlineMetric.label}{baseYears ? ` · over ${baseYears} years @ ${rateUsed}% p.a.` : ""}</div>
                     <div style={{ fontSize: 12, color: "#F6F1E8", marginTop: 6, fontWeight: 600 }}>{investedLine}</div>
                 </div>
-                <div style={{background: "#C7102E", color: "#fff", borderRadius: 999, padding: "5px 12px", fontSize: 10, letterSpacing: "0.18em", textTransform: "uppercase", fontWeight: 700}}>Snapshot</div>
+                <div style={{background: "#C7102E", color: "#fff", borderRadius: 999, padding: "5px 12px", fontSize: 10, letterSpacing: "0.1em", textTransform: "uppercase", fontWeight: 700, maxWidth: 170, textAlign: "right", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis"}}>{clientInfo?.name ? clientInfo.name : "Snapshot"}</div>
             </div>
             <div style={{ position: "relative", display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10, marginBottom: 20 }}>
                 {tab === "emi" ? (
@@ -1075,7 +1253,7 @@ function SnapshotCard({ tab, result, state }) {
                             const extraGains = p ? p.fv - result.fv : 0;
                             return (
                                 <div key={y} style={{background: "#FBF7EE", border: "1px solid #E2D8C2", borderRadius: 16, padding: "14px 12px", textAlign: "left"}}>
-                                    <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 6 }}><span style={{ background: "#024396", color: "#F6F1E8", fontSize: 10, fontWeight: 700, padding: "3px 8px", borderRadius: 999 }}>+{y}Y</span><span style={{ fontSize: 10, color: "#5C677D" }}>({baseYears + y} yrs total)</span></div>
+                                    <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 6 }}><span style={{ background: "#024396", color: "#F6F1E8", fontSize: 10, fontWeight: 700, padding: "4px 8px", borderRadius: 999, lineHeight: 1, display: "inline-block" }}>+{y}Y</span><span style={{ fontSize: 10, color: "#5C677D", lineHeight: 1 }}>({baseYears + y} yrs total)</span></div>
                                     <div style={{ fontFamily: "'Fraunces', serif", fontSize: 19, color: "#0E1B2C", lineHeight: 1.1 }}>{p ? fmtINR(p.fv) : "—"}</div>
                                     <div style={{ fontSize: 10, color: "#024396", marginTop: 4, fontBold: 600 }}>+{fmtINR(extraGains)} extra</div>
                                     {p && <div style={{ fontSize: 9, color: "#5C677D", marginTop: 3 }}>Invested {fmtINR(p.invested)}</div>}
@@ -1126,12 +1304,24 @@ function SnapshotCard({ tab, result, state }) {
             </div>
             <div style={{position: "relative", background: "#0E1B2C", color: "#F6F1E8", borderRadius: 18, padding: "16px 18px", display: "grid", gridTemplateColumns: "1fr auto", gap: 16, alignItems: "center", marginBottom: 14}}>
                 <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                    <img src={SAGAR_PHOTO} crossOrigin="anonymous" alt="Sagar" style={{width: 70, height: 88, borderRadius: 12, objectFit: "cover", border: "2px solid #C7102E"}} />
+                    {variant === "employee" ? (
+                        <div style={{width: 56, height: 56, borderRadius: 999, background: "#024396", display: "flex", alignItems: "center", justifyContent: "center", border: "2px solid #C7102E", flexShrink: 0}}>
+                            <span style={{ fontFamily: "'Fraunces', serif", fontSize: 24, color: "#F6F1E8" }}>{(employeeInfo?.name || "T").charAt(0).toUpperCase()}</span>
+                        </div>
+                    ) : (
+                        <img src={SAGAR_PHOTO} crossOrigin="anonymous" alt="Sagar" style={{width: 70, height: 88, borderRadius: 12, objectFit: "cover", border: "2px solid #C7102E"}} />
+                    )}
                     <div>
-                        <div style={{ fontFamily: "'Fraunces', serif", fontSize: 18, lineHeight: 1.1 }}>Sagar Chaturvedi</div>
-                        <div style={{ fontSize: 10, color: "#F6F1E8", opacity: 0.7, marginTop: 3, letterSpacing: "0.12em", textTransform: "uppercase" }}>Founder · MFD (AMFI Certified)</div>
-                        <div style={{ fontSize: 11, marginTop: 6, opacity: 0.9 }}>📱 +91 77738 05794</div>
-                        <div style={{ fontSize: 11, opacity: 0.9 }}>✉ wecare@thefinancialdoctor.in</div>
+                        <div style={{ fontFamily: "'Fraunces', serif", fontSize: 18, lineHeight: 1.1 }}>{variant === "employee" ? (employeeInfo?.name || "TFD Team") : "Sagar Chaturvedi"}</div>
+                        <div style={{ fontSize: 10, color: "#F6F1E8", opacity: 0.7, marginTop: 3, letterSpacing: "0.12em", textTransform: "uppercase" }}>{variant === "employee" ? "Financial Advisor · TFD" : "Founder · MFD (AMFI Certified)"}</div>
+                        {variant === "employee" ? (
+                            employeeInfo?.phone && <div style={{ fontSize: 11, marginTop: 6, opacity: 0.9 }}>📱 {employeeInfo.phone}</div>
+                        ) : (
+                            <>
+                                <div style={{ fontSize: 11, marginTop: 6, opacity: 0.9 }}>📱 +91 77738 05794</div>
+                                <div style={{ fontSize: 11, opacity: 0.9 }}>✉ wecare@thefinancialdoctor.in</div>
+                            </>
+                        )}
                     </div>
                 </div>
                 <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>

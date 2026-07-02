@@ -1,104 +1,135 @@
 import React, { useState } from "react";
-import { useAuth } from "../context/AuthContext";
 import PortalLayout from "../components/PortalLayout";
-import { enablePush, pushSupported } from "../portal/push";
+import { useAuth } from "../context/AuthContext";
+import { DashboardCustomizerPanel } from "../components/DashboardCustomizer";
 
 const API_BASE = process.env.REACT_APP_BACKEND_URL || "";
 
 export default function EmployeeSettings() {
-  const { token } = useAuth();
-  const [current, setCurrent] = useState("");
-  const [next, setNext] = useState("");
-  const [confirm, setConfirm] = useState("");
+  const { user, token } = useAuth();
+  const [showCustomizer, setShowCustomizer] = useState(false);
+  const [showPwFields, setShowPwFields] = useState(false); // Controlled View for Password UI
+  const [pwForm, setPwForm] = useState({ current: "", newPw: "", confirm: "" });
+  const [pwMsg, setPwMsg] = useState("");
+  const [pwErr, setPwErr] = useState("");
   const [saving, setSaving] = useState(false);
-  const [msg, setMsg] = useState(null); // {type, text}
-  const [pushMsg, setPushMsg] = useState("");
 
-  const submit = async (e) => {
+  const changePassword = async (e) => {
     e.preventDefault();
-    setMsg(null);
-    if (next.length < 6) return setMsg({ type: "err", text: "New password must be at least 6 characters" });
-    if (next !== confirm) return setMsg({ type: "err", text: "New passwords do not match" });
+    setPwMsg(""); setPwErr("");
+    if (pwForm.newPw !== pwForm.confirm) { setPwErr("New passwords don't match!"); return; }
+    if (pwForm.newPw.length < 6) { setPwErr("Password must be at least 6 characters."); return; }
     setSaving(true);
     try {
       const res = await fetch(`${API_BASE}/api/auth/change-password`, {
         method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ current_password: current, new_password: next }),
+        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ current_password: pwForm.current, new_password: pwForm.newPw }),
       });
-      if (!res.ok) {
+      if (res.ok) {
+        setPwMsg("✅ Password successfully changed!");
+        setPwForm({ current: "", newPw: "", confirm: "" });
+        setTimeout(() => setShowPwFields(false), 2000);
+      } else {
         const err = await res.json().catch(() => ({}));
-        throw new Error(err.detail || "Could not change password");
+        setPwErr(err.detail || "Failed. Check your current password.");
       }
-      setMsg({ type: "ok", text: "Password changed successfully" });
-      setCurrent(""); setNext(""); setConfirm("");
-    } catch (err) {
-      setMsg({ type: "err", text: err.message });
-    } finally {
-      setSaving(false);
-    }
+    } catch { setPwErr("Network error. Try again."); }
+    setSaving(false);
   };
-
-  const turnOnPush = async () => {
-    setPushMsg("");
-    const r = await enablePush();
-    if (r.ok) setPushMsg("Notifications enabled on this device.");
-    else if (r.reason === "denied") setPushMsg("Permission denied. Allow notifications in your browser settings.");
-    else if (r.reason === "no-vapid") setPushMsg("Push not configured on server yet.");
-    else setPushMsg("Could not enable notifications on this device.");
-  };
-
-  const field = "w-full border border-[#E2D8C2] rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#024396]/30";
 
   return (
     <PortalLayout>
-      <div className="max-w-lg mx-auto space-y-6">
-        <div>
-          <h2 className="text-xl font-serif text-[#0E1B2C]">Settings</h2>
-          <p className="text-xs text-[#2A364B]/50">Manage your account & notifications</p>
+      {showCustomizer && (
+        <DashboardCustomizerPanel
+          userId={user?.id}
+          role="employee"
+          onClose={() => setShowCustomizer(false)}
+        />
+      )}
+
+      <div style={{ maxWidth: 520, margin: "0 auto" }}>
+        <h1 style={{ fontSize: 22, fontWeight: 700, color: "#0E1B2C", marginBottom: 20 }}>⚙️ Settings</h1>
+
+        {/* Dashboard Customization */}
+        <div style={{ background: "#fff", borderRadius: 16, border: "1px solid #E2D8C2", padding: 20, marginBottom: 16, boxShadow: "0 1px 4px rgba(0,0,0,0.05)" }}>
+          <h3 style={{ fontSize: 14, fontWeight: 700, color: "#0E1B2C", marginBottom: 6 }}>🛠️ Dashboard Customize Karo</h3>
+          <p style={{ fontSize: 12, color: "#5C677D", marginBottom: 14 }}>Dashboard pe kaunse widgets dikhein, khud decide karo.</p>
+          <button onClick={() => setShowCustomizer(true)} style={{ background: "#024396", color: "#fff", border: "none", borderRadius: 10, padding: "9px 20px", fontSize: 13, fontWeight: 600, cursor: "pointer" }}>
+            Open Dashboard Customizer
+          </button>
         </div>
 
-        {/* Password change */}
-        <div className="bg-white rounded-2xl border border-[#E2D8C2] shadow-sm p-6">
-          <h3 className="text-sm font-semibold text-[#0E1B2C] mb-4">Change Password</h3>
-          <form onSubmit={submit} className="space-y-4">
-            <div>
-              <label className="block text-xs font-medium text-[#2A364B]/70 mb-1">Current password</label>
-              <input type="password" required value={current} onChange={(e) => setCurrent(e.target.value)} className={field} />
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-[#2A364B]/70 mb-1">New password</label>
-              <input type="password" required value={next} onChange={(e) => setNext(e.target.value)} className={field} />
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-[#2A364B]/70 mb-1">Confirm new password</label>
-              <input type="password" required value={confirm} onChange={(e) => setConfirm(e.target.value)} className={field} />
-            </div>
-            {msg && (
-              <p className={`text-sm ${msg.type === "ok" ? "text-emerald-600" : "text-red-600"}`}>{msg.text}</p>
-            )}
-            <button type="submit" disabled={saving}
-              className="w-full py-2.5 rounded-xl text-sm font-semibold text-white bg-gradient-to-r from-[#024396] to-[#0356c4] hover:from-[#023580] transition-all shadow-lg shadow-[#024396]/25 disabled:opacity-60">
-              {saving ? "Saving..." : "Update Password"}
-            </button>
-          </form>
-        </div>
-
-        {/* Notifications */}
-        <div className="bg-white rounded-2xl border border-[#E2D8C2] shadow-sm p-6">
-          <h3 className="text-sm font-semibold text-[#0E1B2C] mb-1">Push Notifications</h3>
-          <p className="text-xs text-[#2A364B]/50 mb-4">
-            Get alerts for tasks, leads, holidays and announcements — even when the app is closed.
-          </p>
-          {pushSupported() ? (
-            <button onClick={turnOnPush}
-              className="w-full py-2.5 rounded-xl text-sm font-semibold text-[#024396] border border-[#024396]/30 hover:bg-[#024396]/5 transition-all">
-              Enable on this device
+        {/* Password Change Redesigned */}
+        <div style={{ background: "#fff", borderRadius: 16, border: "1px solid #E2D8C2", padding: 20, marginBottom: 16, boxShadow: "0 1px 4px rgba(0,0,0,0.05)" }}>
+          <h3 style={{ fontSize: 14, fontWeight: 700, color: "#0E1B2C", marginBottom: 6 }}>🔒 Security Settings</h3>
+          <p style={{ fontSize: 12, color: "#5C677D", marginBottom: 14 }}>Apna portal password update ya change karein.</p>
+          
+          {!showPwFields ? (
+            <button 
+              onClick={() => setShowPwFields(true)} 
+              style={{ background: "#fff", color: "#024396", border: "1px solid #024396", borderRadius: 10, padding: "9px 20px", fontSize: 13, fontWeight: 600, cursor: "pointer" }}
+            >
+              Change Password Option
             </button>
           ) : (
-            <p className="text-xs text-amber-600">This browser does not support push notifications.</p>
+            <form onSubmit={changePassword} style={{ display: "flex", flexDirection: "column", gap: 10, marginTop: 10 }}>
+              {[
+                ["current", "Current Password"],
+                ["newPw", "New Password"],
+                ["confirm", "Confirm New Password"],
+              ].map(([field, label]) => (
+                <div key={field}>
+                  <label style={{ fontSize: 11, color: "#5C677D", display: "block", marginBottom: 4 }}>{label}</label>
+                  <input
+                    type="password"
+                    value={pwForm[field]}
+                    onChange={(e) => setPwForm({ ...pwForm, [field]: e.target.value })}
+                    required
+                    style={{ width: "100%", border: "1px solid #E2D8C2", borderRadius: 10, padding: "8px 12px", fontSize: 13, outline: "none" }}
+                  />
+                </div>
+              ))}
+              {pwErr && <p style={{ fontSize: 12, color: "#dc2626" }}>{pwErr}</p>}
+              {pwMsg && <p style={{ fontSize: 12, color: "#16a34a" }}>{pwMsg}</p>}
+              <div style={{ display: "flex", gap: 10, mt: 4 }}>
+                <button type="submit" disabled={saving} style={{ flex: 1, background: "#024396", color: "#fff", border: "none", borderRadius: 10, padding: "9px", fontSize: 13, fontWeight: 600, cursor: "pointer", opacity: saving ? 0.6 : 1 }}>
+                  {saving ? "Saving..." : "Update Password"}
+                </button>
+                <button type="button" onClick={() => setShowPwFields(false)} style={{ background: "#F5F1EB", color: "#5C677D", border: "1px solid #E2D8C2", borderRadius: 10, padding: "9px 15px", fontSize: 13, cursor: "pointer" }}>
+                  Cancel
+                </button>
+              </div>
+            </form>
           )}
-          {pushMsg && <p className="text-sm text-[#2A364B]/70 mt-3">{pushMsg}</p>}
+        </div>
+
+        {/* Screen Lock Native Info / Toggle Section */}
+        <div style={{ background: "#fff", borderRadius: 16, border: "1px solid #E2D8C2", padding: 20, marginBottom: 16, boxShadow: "0 1px 4px rgba(0,0,0,0.05)" }}>
+          <h3 style={{ fontSize: 14, fontWeight: 700, color: "#0E1B2C", marginBottom: 6 }}>🔐 Screen Lock App Authentication</h3>
+          <p style={{ fontSize: 12, color: "#5C677D", marginBottom: 10 }}>Portal ko secure rakhne ke liye device password ya system lock synchronise karein.</p>
+          <label style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 0", fontSize: 13, color: "#0E1B2C", cursor: "pointer", fontWeight: 500 }}>
+            <input type="checkbox" defaultChecked style={{ width: 16, height: 16 }} />
+            Enable System Passcode / Phone Biometric Lock
+          </label>
+        </div>
+
+        {/* Notification Settings */}
+        <div style={{ background: "#fff", borderRadius: 16, border: "1px solid #E2D8C2", padding: 20, boxShadow: "0 1px 4px rgba(0,0,0,0.05)" }}>
+          <h3 style={{ fontSize: 14, fontWeight: 700, color: "#0E1B2C", marginBottom: 6 }}>🔔 Notifications</h3>
+          <p style={{ fontSize: 12, color: "#5C677D", marginBottom: 12 }}>Browser notifications enable karo important alerts ke liye.</p>
+          <button
+            onClick={() => {
+              if (typeof Notification !== "undefined") {
+                Notification.requestPermission().then(p => {
+                  alert(p === "granted" ? "✅ Notifications enabled!" : "❌ Notifications blocked.");
+                });
+              }
+            }}
+            style={{ background: "#16a34a", color: "#fff", border: "none", borderRadius: 10, padding: "9px 20px", fontSize: 13, fontWeight: 600, cursor: "pointer" }}
+          >
+            Enable Notifications
+          </button>
         </div>
       </div>
     </PortalLayout>

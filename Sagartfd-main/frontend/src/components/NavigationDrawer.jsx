@@ -36,11 +36,14 @@ const employeeItems = [
   { key: 'settings',     label: '⚙️ Settings',         path: '/portal/employee/settings' },
 ];
 
-export default function NavigationDrawer({ role = 'employee', onNavigate, mobile = false, desktop = false, collapsed = false }) {
+export default function NavigationDrawer({ role = 'employee', onNavigate, mobile = false, desktop = false, collapsed = false, className = '' }) {
   const items = role === 'admin' ? adminItems : employeeItems;
 
   return (
-    <nav className={`nav-drawer ${mobile ? 'mobile' : ''} ${desktop ? 'desktop' : ''} ${collapsed ? 'collapsed' : ''}`} aria-label="Portal navigation">
+    <nav
+      className={`nav-drawer ${mobile ? 'mobile' : ''} ${desktop ? 'desktop' : ''} ${collapsed ? 'collapsed' : ''} ${className}`.trim().replace(/\s+/g, ' ')}
+      aria-label="Portal navigation"
+    >
       <div className="nav-header">TFD WorkSpace</div>
       <ul className="nav-list">
         {items.map(item => (
@@ -59,4 +62,5 @@ NavigationDrawer.propTypes = {
   mobile: PropTypes.bool,
   desktop: PropTypes.bool,
   collapsed: PropTypes.bool,
+  className: PropTypes.string,
 };

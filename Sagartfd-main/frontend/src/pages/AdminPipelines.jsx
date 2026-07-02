@@ -1,9 +1,8 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, memo } from "react";
 import { useAuth } from "../context/AuthContext";
 import PortalLayout from "../components/PortalLayout";
 
 const API_BASE = process.env.REACT_APP_BACKEND_URL || "";
-
 const COLORS = ["#024396", "#16a34a", "#dc2626", "#ea580c", "#7c3aed", "#0891b2", "#ca8a04"];
 
 function newStage(name = "New Stage") {
@@ -17,25 +16,62 @@ function newStage(name = "New Stage") {
   };
 }
 
-// Recursively find & update / delete / add inside a stage tree (immutable)
-function mapStages(stages, id, fn) {
-  return stages.map((s) => {
-    if (s.id === id) return fn(s);
-    if (s.children && s.children.length) {
-      return { ...s, children: mapStages(s.children, id, fn) };
+// ── ✅ LOOP SE BACHNE KE LIYE DEEP-CLONE HELPER ──
+function deepClone(obj) {
+  return JSON.parse(JSON.stringify(obj));
+}
+
+// ── ✅ NON-RECURSIVE SAFE UPDATER ──
+function updateStageInTree(stages, id, patch) {
+  const cloned = deepClone(stages);
+  const queue = [...cloned];
+  while (queue.length > 0) {
+    const current = queue.shift();
+    if (current.id === id) {
+      Object.assign(current, patch);
+      break;
     }
-    return s;
-  });
+    if (current.children) {
+      queue.push(...current.children);
+    }
+  }
+  return cloned;
 }
 
-function removeStage(stages, id) {
-  return stages
-    .filter((s) => s.id !== id)
-    .map((s) => ({ ...s, children: removeStage(s.children || [], id) }));
+// ── ✅ NON-RECURSIVE SAFE DELETER ──
+function removeStageFromTree(stages, id) {
+  const cloned = deepClone(stages);
+  const filterAndQueue = (list) => {
+    const filtered = list.filter(item => item.id !== id);
+    filtered.forEach(item => {
+      if (item.children) {
+        item.children = filterAndQueue(item.children);
+      }
+    });
+    return filtered;
+  };
+  return filterAndQueue(cloned);
 }
 
-// ── Recursive stage row ──────────────────────────────────────────
-function StageRow({ stage, depth, onUpdate, onDelete, onAddChild }) {
+// ── ✅ NON-RECURSIVE SAFE CHILD ADDER ──
+function addChildToTree(stages, parentId, childObj) {
+  const cloned = deepClone(stages);
+  const queue = [...cloned];
+  while (queue.length > 0) {
+    const current = queue.shift();
+    if (current.id === parentId) {
+      current.children = [...(current.children || []), childObj];
+      break;
+    }
+    if (current.children) {
+      queue.push(...current.children);
+    }
+  }
+  return cloned;
+}
+
+// ── STAGE ROW COMPONENT ──
+const StageRow = memo(({ stage, depth, onUpdate, onDelete, onAddChild }) => {
   return (
     <div style={{ marginLeft: depth * 22 }} className="mt-2">
       <div className="flex items-center gap-2 bg-white border border-[#E2D8C2] rounded-xl px-3 py-2">
@@ -76,19 +112,13 @@ function StageRow({ stage, depth, onUpdate, onDelete, onAddChild }) {
       ))}
     </div>
   );
-}
+});
 
-// ── Stage tree column (Connected / Not Connected) ────────────────
+// ── STAGE COLUMN COMPONENT ──
 function StageColumn({ title, stages, setStages }) {
-  const onUpdate = (id, patch) => setStages((prev) => mapStages(prev, id, (s) => ({ ...s, ...patch })));
-  const onDelete = (id) => setStages((prev) => removeStage(prev, id));
-  const onAddChild = (parentId) =>
-    setStages((prev) =>
-      mapStages(prev, parentId, (s) => ({
-        ...s,
-        children: [...(s.children || []), { ...newStage(), parent_id: parentId }],
-      }))
-    );
+  const onUpdate = (id, patch) => setStages((prev) => updateStageInTree(prev, id, patch));
+  const onDelete = (id) => setStages((prev) => removeStageFromTree(prev, id));
+  const onAddChild = (parentId) => setStages((prev) => addChildToTree(prev, parentId, { ...newStage(), parent_id: parentId }));
   const addTopLevel = () => setStages((prev) => [...prev, newStage()]);
 
   return (
@@ -107,6 +137,7 @@ function StageColumn({ title, stages, setStages }) {
   );
 }
 
+// ── MAIN ADMIN PIPELINES COMPONENT ──
 export default function AdminPipelines() {
   const { token } = useAuth();
   const headers = { Authorization: `Bearer ${token}`, "Content-Type": "application/json" };
@@ -114,13 +145,13 @@ export default function AdminPipelines() {
   const [pipelines, setPipelines] = useState([]);
   const [employees, setEmployees] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [editingId, setEditingId] = useState(null); // null = not editing, "new" = creating
+  const [editingId, setEditingId] = useState(null); 
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [connectedStages, setConnectedStages] = useState([]);
   const [notConnectedStages, setNotConnectedStages] = useState([]);
   const [saving, setSaving] = useState(false);
-  const [assignFor, setAssignFor] = useState(null); // pipeline id being assigned
+  const [assignFor, setAssignFor] = useState(null); 
   const [assignSelected, setAssignSelected] = useState([]);
 
   const load = useCallback(async () => {
@@ -133,7 +164,7 @@ export default function AdminPipelines() {
       if (eRes.ok) setEmployees(await eRes.json());
     } catch { /* silent */ }
     setLoading(false);
-  }, [token]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [token]); 
 
   useEffect(() => { load(); }, [load]);
 
@@ -223,7 +254,6 @@ export default function AdminPipelines() {
           )}
         </div>
 
-        {/* ── Builder form ───────────────────────────────────────── */}
         {editingId !== null && (
           <div className="bg-white rounded-2xl border border-[#E2D8C2] p-6 space-y-5 shadow-sm">
             <div className="grid sm:grid-cols-2 gap-4">
@@ -261,7 +291,6 @@ export default function AdminPipelines() {
           </div>
         )}
 
-        {/* ── Pipeline list ──────────────────────────────────────── */}
         {editingId === null && (
           <div className="grid gap-4">
             {pipelines.length === 0 && (
@@ -295,7 +324,6 @@ export default function AdminPipelines() {
                   </div>
                 </div>
 
-                {/* Assign modal (inline) */}
                 {assignFor === p.id && (
                   <div className="mt-4 bg-[#FBF7EE] border border-[#E2D8C2] rounded-xl p-4 space-y-3">
                     <p className="text-xs font-medium text-[#0E1B2C]">Assign this pipeline to employees:</p>

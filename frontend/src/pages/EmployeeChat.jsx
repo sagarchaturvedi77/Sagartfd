@@ -5,7 +5,7 @@ import { useAuth } from "../context/AuthContext";
 const API_BASE = process.env.REACT_APP_BACKEND_URL || "";
 const POLL_MS = 4000;
 
-export default function AdminChat() {
+export default function EmployeeChat() {
   const { token, user } = useAuth();
   const [msgs, setMsgs] = useState([]);
   const [text, setText] = useState("");
@@ -16,7 +16,7 @@ export default function AdminChat() {
   const load = useCallback(async () => {
     const res = await fetch(`${API_BASE}/api/chat/?room=general&limit=80`, { headers });
     if (res.ok) setMsgs(await res.json());
-  }, [token]); // eslint-disable-line
+  }, [token]);
 
   useEffect(() => { load(); }, [load]);
   useEffect(() => { const t = setInterval(load, POLL_MS); return () => clearInterval(t); }, [load]);
@@ -32,11 +32,6 @@ export default function AdminChat() {
     setSending(false);
   };
 
-  const del = async (id) => {
-    await fetch(`${API_BASE}/api/chat/${id}`, { method: "DELETE", headers });
-    setMsgs((m) => m.filter((x) => x.id !== id));
-  };
-
   return (
     <PortalLayout>
       <div className="flex flex-col h-[calc(100vh-130px)] bg-white rounded-2xl border border-[#E2D8C2] shadow-sm overflow-hidden">
@@ -48,16 +43,31 @@ export default function AdminChat() {
           </div>
         </div>
 
-        <div className="flex-1 overflow-y-auto px-4 py-3 space-y-2">
+        <div className="flex-1 overflow-y-auto px-4 py-3 space-y-4">
           {msgs.map((m) => {
             const isMe = m.sender_id === user?.id;
             return (
-              <div key={m.id} className={`flex ${isMe ? "justify-end" : "justify-start"}`}>
+              <div key={m.id} className={`flex flex-col ${isMe ? "items-end" : "items-start"}`}>
+                {/* ── ⚪ SENDER HEADER: NAME | ID | POSITION ── */}
+                <div className="text-[10px] text-[#2A364B]/60 font-semibold mb-1 px-1 flex items-center gap-1.5 tracking-wide">
+                  <span className={isMe ? "text-[#024396]" : "text-[#0e1b2c]"}>
+                    {isMe ? user?.name : m.sender_name}
+                  </span>
+                  <span className="text-[#5C677D]/40">|</span>
+                  <span className="text-[#5C677D]">
+                    ID: {isMe ? user?.id : m.sender_id}
+                  </span>
+                  <span className="text-[#5C677D]/40">|</span>
+                  <span className="text-[#0356c4] uppercase text-[9px] bg-blue-50 px-1.5 py-0.5 rounded font-medium">
+                    {isMe ? (user?.designation || user?.role) : (m.sender_designation || m.sender_role || "Employee")}
+                  </span>
+                </div>
+
                 <div className={`group relative max-w-[75%] rounded-2xl px-4 py-2 shadow-sm text-sm ${isMe ? "bg-[#024396] text-white rounded-tr-none" : "bg-[#F5F1EB] text-[#0E1B2C] rounded-tl-none"}`}>
-                  {!isMe && <p className={`text-[10px] font-semibold mb-0.5 ${m.sender_role === "admin" ? "text-[#024396]" : "text-[#2A364B]/60"}`}>{m.sender_name}</p>}
-                  <p className="leading-relaxed">{m.text}</p>
-                  <p className={`text-[10px] mt-0.5 ${isMe ? "text-white/60" : "text-[#2A364B]/40"}`}>{new Date(m.created_at).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })}</p>
-                  <button onClick={() => del(m.id)} className="absolute -top-2 -right-2 w-5 h-5 rounded-full bg-red-100 text-red-400 text-[10px] hidden group-hover:flex items-center justify-center">×</button>
+                  <p className="leading-relaxed whitespace-pre-wrap">{m.text}</p>
+                  <p className={`text-[9px] text-right mt-1 ${isMe ? "text-white/60" : "text-[#2A364B]/40"}`}>
+                    {new Date(m.created_at).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })}
+                  </p>
                 </div>
               </div>
             );
