@@ -1,4 +1,5 @@
-import React from "react";
+import React, { useEffect } from "react";
+import { useParams } from "react-router-dom"; // 👈 useParams ko import kiya
 import Navbar from "@/components/Navbar";
 import Calculators from "@/components/Calculators";
 import Footer from "@/components/Footer";
@@ -37,11 +38,29 @@ const calcFAQ = {
 };
 
 export default function CalculatorsPage() {
+  // 1. URL parameter ko read karega (jaise 'sip', 'gst', 'loan-emi')
+  const { calculatorType } = useParams(); 
+
+  // 2. Dynamic SEO Title Setup: Jaise hi URL badlega, browser ka title badal jayega!
+  useEffect(() => {
+    if (calculatorType) {
+      // Slugs ko clean karke achha dikhane ke liye (e.g. loan-emi -> Loan Emi)
+      const cleanTitle = calculatorType
+        .split("-")
+        .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+        .join(" ");
+      document.title = `${cleanTitle} Calculator - The Financial Doctor`;
+    } else {
+      document.title = "Online Financial Calculators - The Financial Doctor";
+    }
+  }, [calculatorType]);
+
   return (
     <div className="relative" data-testid="calculators-page-root">
       <Navbar />
       <main className="pt-24">
-        <Calculators />
+        {/* 3. Hum activeType prop ke roop me calculatorType bhej rahe hain */}
+        <Calculators activeType={calculatorType} />
 
         <div className="flex justify-center pt-10">
           <LanguageToggle />
