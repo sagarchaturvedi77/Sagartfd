@@ -1,4 +1,5 @@
 import React, { useMemo, useRef, useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import {
     AreaChart,
     Area,
@@ -248,9 +249,22 @@ const TABS = [
 // Tabs that have a time-series growth chart (SIP/lumpsum style)
 const CHART_TABS = ["sip", "daily", "lumpsum", "swp", "goal", "emi"];
 
-export default function Calculators({ variant = "public", employeeInfo = null }) {
+export default function Calculators({ variant = "public", employeeInfo = null, activeType = null }) {
+    const navigate = useNavigate(); //
     const [tab, setTabRaw] = useState("sip");
-    const setTab = (t) => { setTabRaw(t); trackEvent("calculator_use", TABS.find(x => x.id === t)?.label || t); };
+    useEffect(() => {
+        if (activeType) {
+            setTabRaw(activeType);
+        }
+    }, [activeType]);
+
+    const setTab = (t) => {
+        setTabRaw(t);
+        navigate(`/calculators/${t}`);
+        if (typeof trackEvent === "function") {
+            trackEvent("calculator_use", TABS.find(x => x.id === t)?.label || t);
+        }
+    };
 
     const [sipAmount, setSipAmount] = useState(10000);
     const [sipDailyAddon, setSipDailyAddon] = useState(0);
