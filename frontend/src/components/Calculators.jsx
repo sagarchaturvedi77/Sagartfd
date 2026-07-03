@@ -249,9 +249,13 @@ const TABS = [
 // Tabs that have a time-series growth chart (SIP/lumpsum style)
 const CHART_TABS = ["sip", "daily", "lumpsum", "swp", "goal", "emi"];
 
+// 🟢 IS NAYE CODE KO WAHAN PASTE KAR DO
 export default function Calculators({ variant = "public", employeeInfo = null, activeType = null }) {
-    const navigate = useNavigate(); //
-    const [tab, setTabRaw] = useState("sip");
+    const navigate = useNavigate(); 
+    
+    // Yahan humne default state me hi activeType daal diya hai
+    const [tab, setTabRaw] = useState(activeType || "sip");
+
     useEffect(() => {
         if (activeType) {
             setTabRaw(activeType);
