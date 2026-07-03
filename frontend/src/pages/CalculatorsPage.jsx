@@ -60,7 +60,7 @@ export default function CalculatorsPage() {
       <Navbar />
       <main className="pt-24">
         {/* 3. Hum activeType prop ke roop me calculatorType bhej rahe hain */}
-        <Calculators activeType={calculatorType} />
+       <Calculators variant="public" activeType={calculatorType} />
 
         <div className="flex justify-center pt-10">
           <LanguageToggle />
