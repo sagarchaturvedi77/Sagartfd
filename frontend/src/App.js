@@ -76,6 +76,8 @@ function App() {
 
                 {/* 🧮 Calculators */}
                 <Route path="/calculators" element={<CalculatorsPage />} />
+                {/* 👇 Ye nayi line aapko add karni hai */}
+                <Route path="/calculators/:calculatorType" element={<CalculatorsPage />} />
 
                 {/* 📈 Top Funds */}
                 <Route path="/top-funds" element={<TopFundsPage />} />
