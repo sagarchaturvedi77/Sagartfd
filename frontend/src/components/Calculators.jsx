@@ -28,6 +28,11 @@ const fmtINR = (n) => {
     if (n >= 1e5) return `₹${(n / 1e5).toFixed(2)} L`;
     if (n >= 1e3) return `₹${(n / 1e3).toFixed(1)} K`;
     return `₹${Math.round(n).toLocaleString("en-IN")}`;
+    
+};
+const fmtINRFull = (n) => {
+    if (!isFinite(n)) return "₹0";
+    return `₹${Math.round(n).toLocaleString("en-IN")}`;
 };
 
 // ---------- Calculations ----------
@@ -46,7 +51,7 @@ function sipCalc(monthly, years, rateAnnual, stepUpPct = 0) {
         fv = (fv + currentMonthly) * (1 + r);
         if (m % 12 === 0) {
             series.push({
-                label: `Yr ${m / 12}`,
+                label: `Year ${m / 12}`,
                 invested: Math.round(invested),
                 value: Math.round(fv),
             });
@@ -68,7 +73,7 @@ function lumpsumCalc(amount, years, rateAnnual) {
     for (let y = 1; y <= years; y++) {
         fv = amount * Math.pow(1 + r, y);
         series.push({
-            label: `Yr ${y}`,
+            label: `Year ${y}`,
             invested: Math.round(amount),
             value: Math.round(fv),
         });
@@ -87,7 +92,7 @@ function swpCalc(corpus, monthly, years, rateAnnual) {
         totalWithdrawn += monthly;
         if (m % 12 === 0) {
             series.push({
-                label: `Yr ${m / 12}`,
+                label: `Year ${m / 12}`,
                 invested: Math.round(totalWithdrawn),
                 value: Math.max(0, Math.round(balance)),
             });
@@ -134,7 +139,7 @@ function emiCalc(principal, years, rateAnnual, mode = "reducing") {
         paid += emi;
         if (m % 12 === 0) {
             series.push({
-                label: `Yr ${m / 12}`,
+                label: `Year ${m / 12}`,
                 invested: Math.round(paid),
                 value: Math.max(0, Math.round(bal)),
             });
@@ -249,10 +254,9 @@ const TABS = [
 // Tabs that have a time-series growth chart (SIP/lumpsum style)
 const CHART_TABS = ["sip", "daily", "lumpsum", "swp", "goal", "emi"];
 
-// 🟢 IS NAYE CODE KO WAHAN PASTE KAR DO
 export default function Calculators({ variant = "public", employeeInfo = null, activeType = null }) {
-    const navigate = useNavigate(); 
-    
+    const navigate = useNavigate();
+
     // Yahan humne default state me hi activeType daal diya hai
     const [tab, setTabRaw] = useState(activeType || "sip");
 
@@ -264,7 +268,9 @@ export default function Calculators({ variant = "public", employeeInfo = null, a
 
     const setTab = (t) => {
         setTabRaw(t);
-        navigate(`/calculators/${t}`);
+        if (variant !== "employee") {
+            navigate(`/calculators/${t}`);
+        }
         if (typeof trackEvent === "function") {
             trackEvent("calculator_use", TABS.find(x => x.id === t)?.label || t);
         }
@@ -318,13 +324,78 @@ export default function Calculators({ variant = "public", employeeInfo = null, a
 
     // 🆕 Employee-mode proposal flow: client details, generated image, share message
     const [showClientModal, setShowClientModal] = useState(false);
-    const [clientInfo, setClientInfo] = useState({ name: "", phone: "" });
+    const [clientInfo, setClientInfo] = useState(() => {
+    if (typeof window !== "undefined") {
+        try {
+            const saved = JSON.parse(localStorage.getItem("tfd_lead_info") || "null");
+            if (saved && saved.name && saved.phone) return saved;
+        } catch { /* ignore */ }
+    }
+    return { name: "", phone: "" };
+});
+const [lastDownloadDate, setLastDownloadDate] = useState(() => {
+    if (typeof window !== "undefined") {
+        try { return localStorage.getItem("tfd_lead_last_date") || null; } catch { return null; }
+    }
+    return null;
+});
+const [showReturningModal, setShowReturningModal] = useState(false);
+const [proposalCount, setProposalCount] = useState(() => {
+    if (typeof window !== "undefined") {
+        try { return parseInt(localStorage.getItem("tfd_proposal_count") || "0", 10); } catch { return 0; }
+    }
+    return 0;
+});
+const [couponCode, setCouponCode] = useState(() => {
+    if (typeof window !== "undefined") {
+        try { return localStorage.getItem("tfd_coupon_code") || null; } catch { return null; }
+    }
+    return null;
+});
+const [couponUnlockDate, setCouponUnlockDate] = useState(() => {
+    if (typeof window !== "undefined") {
+        try { return localStorage.getItem("tfd_coupon_unlock_date") || null; } catch { return null; }
+    }
+    return null;
+});
+const [insuranceInterest, setInsuranceInterest] = useState(() => {
+    if (typeof window !== "undefined") {
+        try { return localStorage.getItem("tfd_insurance_interest") || null; } catch { return null; }
+    }
+    return null;
+});
+const [showCelebration, setShowCelebration] = useState(false);
+    const [phoneError, setPhoneError] = useState("");
+    const [proposalLang, setProposalLang] = useState("english"); // "english" | "hindi" | "hinglish" — language of the PDF itself
     const [showSharePopup, setShowSharePopup] = useState(false);
     const [generatedImage, setGeneratedImage] = useState(null); // { dataUrl, blob }
     const [msgTemplate, setMsgTemplate] = useState("english"); // "english" | "hinglish"
     const [shareMessage, setShareMessage] = useState("");
+const incrementProposalCount = () => {
+    const today = new Date().toLocaleDateString("en-IN", { day: "numeric", month: "long", year: "numeric" });
+    const newCount = proposalCount + 1;
+    let newCoupon = couponCode;
+    let justUnlocked = false;
+    if (newCount >= 3 && !newCoupon) {
+        newCoupon = generateCouponCode(clientInfo.phone);
+        justUnlocked = true;
+    }
+    const nowISO = new Date().toISOString();
+    try {
+        localStorage.setItem("tfd_lead_last_date", today);
+        localStorage.setItem("tfd_proposal_count", String(newCount));
+        if (newCoupon) localStorage.setItem("tfd_coupon_code", newCoupon);
+        if (justUnlocked) localStorage.setItem("tfd_coupon_unlock_date", nowISO);
+    } catch { /* ignore */ }
+    setLastDownloadDate(today);
+    setProposalCount(newCount);
+    setCouponCode(newCoupon);
+    if (justUnlocked) setCouponUnlockDate(nowISO);
+    trackProposalWithBackend({ name: clientInfo.name, phone: clientInfo.phone, proposalCount: newCount, couponCode: newCoupon });
+    return { newCount, newCoupon, justUnlocked };
+};
 
-    const buildShareMessage = (template, client, employee) => {
+const buildShareMessage = (template, client, employee) => {
         const clientName = client?.name?.trim();
         const empName = employee?.name || "TFD Team";
         if (template === "hinglish") {
@@ -379,6 +450,8 @@ export default function Calculators({ variant = "public", employeeInfo = null, a
     ]);
 
     const snapRef = useRef(null);
+const page1Ref = useRef(null);
+const page2Ref = useRef(null);
 
     const downloadSnapshot = async () => {
         if (!snapRef.current) return;
@@ -405,50 +478,44 @@ export default function Calculators({ variant = "public", employeeInfo = null, a
 
     // 🆕 Employee-mode: generate proposal image, then show a Download/Share popup
     const generateSnapshot = async () => {
-        if (!snapRef.current) return;
-        try {
-            toast.loading("Generating your proposal…", { id: "snap" });
-            await new Promise((r) => setTimeout(r, 150));
-            const canvas = await html2canvas(snapRef.current, {
-                backgroundColor: "#ffffff",
-                scale: 2,
-                useCORS: true,
-                logging: false,
-            });
-            const dataUrl = canvas.toDataURL("image/png"); // used for popup preview thumbnail
+    try {
+        toast.loading("Generating your proposal…", { id: "snap" });
+        await new Promise((r) => setTimeout(r, 200));
 
-            // Build a proper single-page A4 PDF from the captured proposal
-            const pdf = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
-            const pageWidth = pdf.internal.pageSize.getWidth();
-            const pageHeight = pdf.internal.pageSize.getHeight();
-            let imgWidth = pageWidth;
-            let imgHeight = (canvas.height * pageWidth) / canvas.width;
-            if (imgHeight > pageHeight) {
-                imgHeight = pageHeight;
-                imgWidth = (canvas.width * pageHeight) / canvas.height;
-            }
-            const marginX = (pageWidth - imgWidth) / 2;
-            const marginY = (pageHeight - imgHeight) / 2;
-            pdf.addImage(dataUrl, "PNG", marginX, marginY, imgWidth, imgHeight);
-            const pdfBlob = pdf.output("blob");
+        const pdf = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
+        const pageWidth = pdf.internal.pageSize.getWidth();
+        const pageHeight = pdf.internal.pageSize.getHeight();
 
-            setGeneratedImage({ dataUrl, blob: pdfBlob, isPdf: true });
-            setShowSharePopup(true);
-            toast.success("Proposal ready!", { id: "snap" });
-            trackEvent("proposal_generate", TABS.find(x => x.id === tab)?.label || tab);
-        } catch (e) {
-            console.error(e);
-            toast.error("Could not generate proposal. Try again.", { id: "snap" });
+        const refs = [page1Ref, page2Ref].filter((r) => r.current);
+        let firstDataUrl = null;
+
+        for (let i = 0; i < refs.length; i++) {
+            const canvas = await html2canvas(refs[i].current, { backgroundColor: "#ffffff", scale: 1.5, useCORS: true, logging: false });
+            const dataUrl = canvas.toDataURL("image/jpeg", 0.85);
+            if (i === 0) firstDataUrl = dataUrl;
+            if (i > 0) pdf.addPage();
+            pdf.addImage(dataUrl, "JPEG", 0, 0, pageWidth, pageHeight);
         }
-    };
 
+        const pdfBlob = pdf.output("blob");
+        setGeneratedImage({ dataUrl: firstDataUrl, blob: pdfBlob, isPdf: true });
+        setShowSharePopup(true);
+        toast.success("Proposal ready!", { id: "snap" });
+        trackEvent("proposal_generate", TABS.find(x => x.id === tab)?.label || tab);
+    } catch (e) {
+        console.error(e);
+        toast.error("Could not generate proposal. Try again.", { id: "snap" });
+    }
+};
+           
     const handleDownloadClick = () => {
-        if (variant === "employee") {
-            setShowClientModal(true);
-        } else {
-            downloadSnapshot();
-        }
-    };
+    const hasSavedLead = variant !== "employee" && clientInfo.name && clientInfo.phone;
+    if (hasSavedLead) {
+        setShowReturningModal(true);
+    } else {
+        setShowClientModal(true);
+    }
+};
 
     const handleDownloadImage = () => {
         if (!generatedImage) return;
@@ -489,7 +556,7 @@ export default function Calculators({ variant = "public", employeeInfo = null, a
     };
 
     return (
-        <section id="calc" className="py-12 md:py-20 bg-[#F6F1E8]/20">
+        <section id="calc" className={variant === "employee" ? "py-2 md:py-4 bg-[#F6F1E8]/20" : "py-12 md:py-20 bg-[#F6F1E8]/20"}>
             <div className="container-x px-4 md:px-6">
                 {variant !== "employee" && (
                 <div className="flex items-end justify-between flex-wrap gap-4 mb-6 md:mb-8">
@@ -662,7 +729,7 @@ export default function Calculators({ variant = "public", employeeInfo = null, a
                     </div>
 
                     {/* Chart + Result Column */}
-                    <div className={`lg:col-span-8 grid ${variant === "employee" ? "" : "grid-rows-[1fr_auto]"} gap-4 md:gap-6`}>
+                    <div className={`lg:col-span-8 grid self-start content-start ${variant === "employee" ? "" : "grid-rows-[1fr_auto]"} gap-4 md:gap-6`}>
                         {/* 🛠️ GRAPH WRAPPER: only for tabs with a growth series; hidden on mobile too; hidden entirely for employee portal (simple calculator mode) */}
                         {variant !== "employee" && CHART_TABS.includes(tab) && (
                             <div className="hidden md:block card-cream p-4 sm:p-5 md:p-6">
@@ -771,84 +838,116 @@ export default function Calculators({ variant = "public", employeeInfo = null, a
 
                 {/* Hidden snapshot/proposal card for export (PNG for public site, A4 PDF for employee portal) */}
                 <div style={{ position: "fixed", left: -10000, top: 0, zIndex: -1 }} aria-hidden>
-                    <div ref={snapRef} data-testid={IDS.calc.snapshot}>
-                        {variant === "employee" ? (
-                            <ProposalDocument
-                                tab={tab}
-                                result={result}
-                                employeeInfo={employeeInfo}
-                                clientInfo={clientInfo}
-                                state={{
-                                    sipAmount, sipDailyAddon, sipStepUp, sipYears, sipRate,
-                                    dailyAmount, dailyYears, dailyRate,
-                                    lump, lumpYears, lumpRate,
-                                    swpCorpus, swpMonthly, swpYears, swpRate,
-                                    goal, goalYears, goalRate,
-                                    loan, loanYears, loanRate, loanMode,
-                                    taxIncome, taxDeductions,
-                                    gstAmount, gstRate, gstType,
-                                    inflCost, inflYears, inflRate, inflReturn,
-                                    result,
-                                }}
-                            />
-                        ) : (
-                            <SnapshotCard
-                                tab={tab}
-                                result={result}
-                                variant={variant}
-                                employeeInfo={employeeInfo}
-                                clientInfo={null}
-                                state={{
-                                    sipAmount, sipDailyAddon, sipStepUp, sipYears, sipRate,
-                                    dailyAmount, dailyYears, dailyRate,
-                                    lump, lumpYears, lumpRate,
-                                    swpCorpus, swpMonthly, swpYears, swpRate,
-                                    goal, goalYears, goalRate,
-                                    loan, loanYears, loanRate, loanMode,
-                                    taxIncome, taxDeductions,
-                                    gstAmount, gstRate, gstType,
-                                    inflCost, inflYears, inflRate, inflReturn,
-                                    result,
-                                }}
-                            />
-                        )}
-                    </div>
-                </div>
-
+    <div data-testid={IDS.calc.snapshot}>
+        <ProposalDocument
+            page1Ref={page1Ref}
+            page2Ref={page2Ref}
+            tab={tab}
+            result={result}
+            employeeInfo={variant === "employee" ? employeeInfo : TFD_TEAM_INFO}
+            clientInfo={clientInfo}
+            lang={proposalLang}
+            state={{
+                sipAmount, sipDailyAddon, sipStepUp, sipYears, sipRate,
+                dailyAmount, dailyYears, dailyRate,
+                lump, lumpYears, lumpRate,
+                swpCorpus, swpMonthly, swpYears, swpRate,
+                goal, goalYears, goalRate,
+                loan, loanYears, loanRate, loanMode,
+                taxIncome, taxDeductions,
+                gstAmount, gstRate, gstType,
+                inflCost, inflYears, inflRate, inflReturn,
+                result,
+            }}
+        />
+    </div>
+</div>
                 {/* 🆕 Employee-mode: Client details modal (name optional, shown once per proposal) */}
-                {variant === "employee" && showClientModal && (
+                {showClientModal && (
                     <div className="fixed inset-0 z-[100] bg-black/50 flex items-center justify-center p-4" onClick={() => setShowClientModal(false)}>
                         <div className="bg-white rounded-2xl p-6 max-w-sm w-full space-y-4" onClick={(e) => e.stopPropagation()}>
-                            <h3 className="font-serif text-lg text-[#0E1B2C]">Client Details</h3>
-                            <p className="text-xs text-[#5C677D]">Client ka naam daalein — proposal isi naam se banega. (Optional bhi hai)</p>
+                            <h3 className="font-serif text-lg text-[#0E1B2C]">Your Personalised Proposal is Ready 🎯</h3>
+<p className="text-xs text-[#5C677D] leading-relaxed">
+    Get a detailed report with growth projections, smart charts and money-saving tips — made just for you.<br />
+    <span className="italic">Apna naam aur number daalein, taaki proposal khaas aapke liye ban sake.</span>
+</p>
                             <div>
-                                <label className="text-xs text-[#5C677D] block mb-1">Client Name</label>
-                                <input
-                                    autoFocus
-                                    value={clientInfo.name}
-                                    onChange={(e) => setClientInfo({ ...clientInfo, name: e.target.value })}
-                                    placeholder="e.g. Ramesh Kumar"
-                                    className="w-full border border-[#E2D8C2] rounded-xl px-3 py-2 text-sm outline-none focus:border-[#024396]"
-                                />
+                                <label className="text-xs text-[#5C677D] block mb-1">Your Name · Aapka Naam</label>
+<input
+    autoFocus
+    value={clientInfo.name}
+    onChange={(e) => setClientInfo({ ...clientInfo, name: e.target.value })}
+    placeholder="Enter your name"
+    className="w-full border border-[#E2D8C2] rounded-xl px-3 py-2 text-sm outline-none focus:border-[#024396]"
+/>
                             </div>
                             <div>
-                                <label className="text-xs text-[#5C677D] block mb-1">Client Phone (optional)</label>
-                                <input
-                                    value={clientInfo.phone}
-                                    onChange={(e) => setClientInfo({ ...clientInfo, phone: e.target.value })}
-                                    placeholder="+91 98765 43210"
-                                    className="w-full border border-[#E2D8C2] rounded-xl px-3 py-2 text-sm outline-none focus:border-[#024396]"
-                                />
+    <label className="text-xs text-[#5C677D] block mb-1">Contact Number · Contact No.</label>
+    <input
+        value={clientInfo.phone}
+        onChange={(e) => setClientInfo({ ...clientInfo, phone: e.target.value })}
+        placeholder="Enter your mobile number"
+        className="w-full border border-[#E2D8C2] rounded-xl px-3 py-2 text-sm outline-none focus:border-[#024396]"
+    />
+</div>
+                            <div>
+                                <label className="text-xs text-[#5C677D] block mb-1">Proposal Language</label>
+                                <div className="flex gap-2">
+                                    {[["english", "English"], ["hindi", "हिंदी"], ["hinglish", "Hinglish"]].map(([val, lbl]) => (
+                                        <button
+                                            key={val}
+                                            type="button"
+                                            onClick={() => setProposalLang(val)}
+                                            className={`flex-1 text-xs py-2 rounded-lg border ${proposalLang === val ? "bg-[#024396] text-white border-[#024396]" : "bg-white border-[#E2D8C2] text-[#0E1B2C]"}`}
+                                        >
+                                            {lbl}
+                                        </button>
+                                    ))}
+                                </div>
                             </div>
+                            {variant !== "employee" && (
+                                <div className="bg-[#FBF7EE] border border-[#E2D8C2] rounded-xl px-3 py-2.5 text-[11px] text-[#2A364B] leading-relaxed">
+                                    🎁 <strong>Download 3 proposals to unlock a ₹5,000 Amazon Voucher</strong> for Health &amp; Term Insurance!
+                                    <div className="mt-1 text-[#024396] font-semibold">
+                                        {proposalCount >= 3 ? "✅ Reward unlocked — check it after this proposal!" : `${3 - proposalCount} more proposal${3 - proposalCount === 1 ? "" : "s"} to go!`}
+                                    </div>
+                                    <div className="italic mt-1">
+                                        3 proposals download karke ₹5,000 ka Amazon Voucher paayein Health &amp; Term Insurance ke liye!{proposalCount < 3 && ` Bas ${3 - proposalCount} aur baaki hai.`}
+                                    </div>
+                                </div>
+                            )}
+                            {phoneError && <p className="text-[11px] text-[#C7102E]">{phoneError}</p>}
                             <div className="flex gap-2">
+                                {variant === "employee" && (
+                                    <button
+                                        onClick={() => { setShowClientModal(false); setClientInfo({ name: "", phone: "" }); generateSnapshot(); }}
+                                        className="flex-1 py-2.5 rounded-xl bg-[#F6F1E8] text-[#0E1B2C] text-xs font-semibold"
+                                    >
+                                        Skip
+                                    </button>
+                                )}
                                 <button
-                                    onClick={() => { setShowClientModal(false); setClientInfo({ name: "", phone: "" }); generateSnapshot(); }}
-                                    className="flex-1 py-2.5 rounded-xl bg-[#F6F1E8] text-[#0E1B2C] text-xs font-semibold"
-                                >
-                                    Skip
-                                </button>
-                                <button
-                                    onClick={() => { setShowClientModal(false); generateSnapshot(); }}
+                                    onClick={() => {
+                                        const rawPhone = clientInfo.phone.replace(/\D/g, "");
+                                        const isPublic = variant !== "employee";
+                                        if (isPublic) {
+                                            if (!clientInfo.name.trim()) { setPhoneError("Apna naam bata dijiye."); return; }
+                                            if (!/^[6-9]\d{9}$/.test(rawPhone.slice(-10)) || rawPhone.length < 10) {
+                                                setPhoneError("Sahi 10 digit ka mobile number daalein (jaise 9876543210).");
+                                                return;
+                                            }
+                                        } else if (clientInfo.phone.trim() && (!/^[6-9]\d{9}$/.test(rawPhone.slice(-10)) || rawPhone.length < 10)) {
+                                            setPhoneError("Sahi 10 digit ka mobile number daalein (jaise 9876543210).");
+                                            return;
+                                        }
+                                        setPhoneError("");
+                                        if (variant !== "employee") {
+                                            try { localStorage.setItem("tfd_lead_info", JSON.stringify(clientInfo)); } catch { /* ignore */ }
+                                            incrementProposalCount();
+                                        }
+                                        setShowClientModal(false);
+                                        generateSnapshot();
+                                    }}
                                     className="flex-1 py-2.5 rounded-xl bg-[#024396] text-white text-sm font-semibold"
                                 >
                                     Generate Proposal
@@ -858,42 +957,168 @@ export default function Calculators({ variant = "public", employeeInfo = null, a
                     </div>
                 )}
 
+                {showReturningModal && (
+                    <div className="fixed inset-0 z-[100] bg-black/50 flex items-center justify-center p-4" onClick={() => setShowReturningModal(false)}>
+                        <div className="bg-white rounded-2xl p-6 max-w-sm w-full space-y-4" onClick={(e) => e.stopPropagation()}>
+                            <h3 className="font-serif text-lg text-[#0E1B2C]">🎉 Welcome Back, {clientInfo.name}! 👋</h3>
+                            <div className="text-xs text-[#5C677D] leading-relaxed space-y-2">
+                                <p>
+                                    Your details are already saved — no need to fill them again.
+                                    {lastDownloadDate && (
+                                        <> <strong className="text-[#0E1B2C]">Last Proposal:</strong> {lastDownloadDate}</>
+                                    )}
+                                </p>
+                                <p className="italic">
+                                    Aapki details already saved hain — dobara bharne ki zaroorat nahi.
+                                    {lastDownloadDate && <> Pichli baar <strong className="text-[#0E1B2C]">{lastDownloadDate}</strong> ko proposal download hua tha.</>}
+                                </p>
+                                <div className="bg-[#F6F1E8] border border-[#E2D8C2] rounded-lg px-3 py-2 text-[11px] text-[#2A364B]">
+                                    📊 Total Proposals Downloaded: <strong>{proposalCount}</strong>
+                                </div>
+                            </div>
+
+                            {proposalCount >= 3 && couponCode && (
+                                <div className="bg-[#FBE4E4] border border-[#C7102E] rounded-xl px-3 py-3 text-[11px] text-[#7A1420] leading-relaxed space-y-1.5">
+                                    <div>🎁 <strong>Congratulations! You've unlocked an Exclusive Reward.</strong></div>
+                                    <div className="bg-white border border-[#C7102E] rounded-lg px-3 py-1.5 text-center font-mono font-bold text-[#024396] text-sm tracking-wide">
+                                        {couponCode}
+                                    </div>
+                                    <div>Use this code for exclusive benefits on <strong>Health Insurance</strong> &amp; <strong>Term Insurance</strong> — rewards worth up to <strong>₹5,000</strong>.* Our advisor will reach out to help you claim it.</div>
+                                    <div className="italic">Aapne {proposalCount} proposals ban chuke hain — Health &amp; Term Insurance par exclusive benefits paane ke liye ye code use karein, ₹5,000 tak ke rewards ke saath.* Hamara advisor aapse claim karne ke liye contact karega.</div>
+                                    <div className="text-[9px] text-[#5C677D]">*Terms & Conditions apply. Applicable after successful policy issuance.</div>
+                                </div>
+                            )}
+
+                            <div>
+                                <label className="text-xs text-[#5C677D] block mb-1">Proposal Language</label>
+                                <div className="flex gap-2">
+                                    {[["english", "English"], ["hindi", "हिंदी"], ["hinglish", "Hinglish"]].map(([val, lbl]) => (
+                                        <button
+                                            key={val}
+                                            type="button"
+                                            onClick={() => setProposalLang(val)}
+                                            className={`flex-1 text-xs py-2 rounded-lg border ${proposalLang === val ? "bg-[#024396] text-white border-[#024396]" : "bg-white border-[#E2D8C2] text-[#0E1B2C]"}`}
+                                        >
+                                            {lbl}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+
+                            <div className="flex gap-2">
+                                <button
+                                    onClick={() => { setShowReturningModal(false); setShowClientModal(true); }}
+                                    className="flex-1 py-2.5 rounded-xl bg-[#F6F1E8] text-[#0E1B2C] text-xs font-semibold"
+                                >
+                                    Edit Details · Edit Karein
+                                </button>
+                                <button
+                                    onClick={() => {
+    incrementProposalCount();
+    setShowReturningModal(false);
+    generateSnapshot();
+}}
+                                    className="flex-1 py-2.5 rounded-xl bg-[#024396] text-white text-sm font-semibold"
+                                >
+                                    Continue · Aage Badhein
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
                 {/* 🆕 Employee-mode: Download / Share popup with English & Hinglish message templates */}
-                {variant === "employee" && showSharePopup && generatedImage && (
+                {showSharePopup && generatedImage && (
                     <div className="fixed inset-0 z-[100] bg-black/50 flex items-center justify-center p-4" onClick={() => setShowSharePopup(false)}>
                         <div className="bg-white rounded-2xl p-5 max-w-sm w-full space-y-3 max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
                             <h3 className="font-serif text-lg text-[#0E1B2C]">Proposal Ready 🎉</h3>
                             <p className="text-[10px] text-[#5C677D] -mt-2">Preview below — actual file downloads/shares as an A4 PDF.</p>
-                            <img src={generatedImage.dataUrl} alt="Proposal preview" className="w-full rounded-xl border border-[#E2D8C2]" />
-
-                            <div>
-                                <label className="text-xs text-[#5C677D] block mb-1">Message Template</label>
-                                <div className="flex gap-2">
-                                    <button
-                                        onClick={() => setMsgTemplate("english")}
-                                        className={`flex-1 text-xs py-2 rounded-lg border ${msgTemplate === "english" ? "bg-[#024396] text-white border-[#024396]" : "bg-white border-[#E2D8C2] text-[#0E1B2C]"}`}
-                                    >
-                                        English
-                                    </button>
-                                    <button
-                                        onClick={() => setMsgTemplate("hinglish")}
-                                        className={`flex-1 text-xs py-2 rounded-lg border ${msgTemplate === "hinglish" ? "bg-[#024396] text-white border-[#024396]" : "bg-white border-[#E2D8C2] text-[#0E1B2C]"}`}
-                                    >
-                                        Hinglish
-                                    </button>
-                                </div>
-                                <p className="text-[10px] text-[#5C677D] mt-1">Apna custom template banane ka option jald aa raha hai</p>
-                            </div>
-
-                            <div>
-                                <label className="text-xs text-[#5C677D] block mb-1">Message (edit karke bhi bhej sakte hain)</label>
-                                <textarea
-                                    value={shareMessage}
-                                    onChange={(e) => setShareMessage(e.target.value)}
-                                    rows={6}
-                                    className="w-full border border-[#E2D8C2] rounded-xl px-3 py-2 text-xs outline-none focus:border-[#024396]"
+                            <div className="relative">
+                                <img
+                                    src={generatedImage.dataUrl}
+                                    alt="Proposal preview"
+                                    className={`w-full rounded-xl border border-[#E2D8C2] ${variant !== "employee" ? "blur-sm" : ""}`}
                                 />
+                                {variant !== "employee" && (
+                                    <div className="absolute inset-0 flex items-center justify-center p-4">
+                                        <div className="bg-white/95 border border-[#E2D8C2] rounded-xl px-4 py-3 text-center shadow-lg max-w-[90%]">
+                                            {proposalCount >= 3 && couponCode && isCouponValid(couponUnlockDate) ? (
+                                                <>
+                                                    <div className="text-lg mb-1 animate-bounce">🎉</div>
+                                                    <div className="text-xs font-bold text-[#024396]">Reward Unlocked!</div>
+                                                    <div className="font-mono font-bold text-[#0E1B2C] text-sm mt-1">{couponCode}</div>
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <div className="text-lg mb-1">🎁</div>
+                                                    <div className="text-xs font-bold text-[#024396]">{Math.max(0, 3 - proposalCount)} more to unlock ₹5,000 reward!</div>
+                                                    <div className="text-[10px] text-[#5C677D] italic mt-1">{Math.max(0, 3 - proposalCount)} proposals aur download karein</div>
+                                                </>
+                                            )}
+                                        </div>
+                                    </div>
+                                )}
                             </div>
+
+                            {variant !== "employee" && proposalCount >= 3 && couponCode && isCouponValid(couponUnlockDate) && !insuranceInterest && (
+                                <div className="bg-[#FBE4E4] border border-[#C7102E] rounded-xl px-3 py-3 text-[11px] text-[#7A1420] space-y-2">
+                                    <div>Interested in claiming your <strong>Health &amp; Term Insurance</strong> reward today?</div>
+                                    <div className="italic">Kya aap aaj hi apna Health aur Term Insurance reward claim karna chahenge?</div>
+                                    <div className="flex gap-2 pt-1">
+                                        <button
+                                            onClick={() => { setInsuranceInterest("yes"); try { localStorage.setItem("tfd_insurance_interest", "yes"); } catch { /* ignore */ } }}
+                                            className="flex-1 py-2 rounded-lg bg-[#024396] text-white text-xs font-semibold"
+                                        >
+                                            Yes, Interested
+                                        </button>
+                                        <button
+                                            onClick={() => { setInsuranceInterest("no"); try { localStorage.setItem("tfd_insurance_interest", "no"); } catch { /* ignore */ } }}
+                                            className="flex-1 py-2 rounded-lg bg-white border border-[#E2D8C2] text-[#0E1B2C] text-xs font-semibold"
+                                        >
+                                            Not Now
+                                        </button>
+                                    </div>
+                                </div>
+                            )}
+                            {variant !== "employee" && insuranceInterest === "yes" && (
+                                <div className="bg-green-50 border border-green-600 rounded-xl px-3 py-2 text-[11px] text-green-800">
+                                    ✅ Thank you! Our team will contact you today to help you claim your Health &amp; Term Insurance reward.
+                                    <div className="italic mt-1">Dhanyawad! Hamari team aaj hi aapse contact karke reward claim karne mein madad karegi.</div>
+                                </div>
+                            )}
+
+                            {variant === "employee" && (
+                                <>
+                                    <div>
+                                        <label className="text-xs text-[#5C677D] block mb-1">Message Template</label>
+                                        <div className="flex gap-2">
+                                            <button
+                                                onClick={() => setMsgTemplate("english")}
+                                                className={`flex-1 text-xs py-2 rounded-lg border ${msgTemplate === "english" ? "bg-[#024396] text-white border-[#024396]" : "bg-white border-[#E2D8C2] text-[#0E1B2C]"}`}
+                                            >
+                                                English
+                                            </button>
+                                            <button
+                                                onClick={() => setMsgTemplate("hinglish")}
+                                                className={`flex-1 text-xs py-2 rounded-lg border ${msgTemplate === "hinglish" ? "bg-[#024396] text-white border-[#024396]" : "bg-white border-[#E2D8C2] text-[#0E1B2C]"}`}
+                                            >
+                                                Hinglish
+                                            </button>
+                                        </div>
+                                        <p className="text-[10px] text-[#5C677D] mt-1">Apna custom template banane ka option jald aa raha hai</p>
+                                    </div>
+
+                                    <div>
+                                        <label className="text-xs text-[#5C677D] block mb-1">Message (edit karke bhi bhej sakte hain)</label>
+                                        <textarea
+                                            value={shareMessage}
+                                            onChange={(e) => setShareMessage(e.target.value)}
+                                            rows={6}
+                                            className="w-full border border-[#E2D8C2] rounded-xl px-3 py-2 text-xs outline-none focus:border-[#024396]"
+                                        />
+                                    </div>
+                                </>
+                            )}
 
                             <div className="flex gap-3">
                                 <button onClick={handleDownloadImage} className="flex-1 py-2.5 rounded-xl bg-[#0E1B2C] text-white text-sm font-semibold">⬇️ Download</button>
@@ -1013,7 +1238,122 @@ function Metric({ label, value, primary }) {
         </div>
     );
 }
+function InsuranceBanner({ lang }) {
+    const msg = {
+        english: "Before you invest, protect what matters. Term Insurance secures your family's future, and Health Insurance shields your hard-earned savings from medical emergencies. Connect with The Financial Doctor (TFD) Team today to find the right cover for your goals.",
+        hindi: "निवेश शुरू करने से पहले अपनी सुरक्षा पक्की करें। टर्म इंश्योरेंस आपके परिवार के आने वाले कल को सुरक्षित रखता है, और हेल्थ इंश्योरेंस अचानक आई बीमारी के खर्चों से आपकी मेहनत की कमाई को बचाता है। अपने लिए सही इंश्योरेंस प्लान चुनने के लिए आज ही The Financial Doctor (TFD) टीम से बात करें।",
+        hinglish: "Invest karne se pehle protection zaroor lein! Term Insurance aapke parivaar ke future ko secure karta hai, aur Health Insurance kisi bhi medical emergency mein aapki savings ko doobne se bachata hai. Sahi cover aur right planning ke liye aaj hi The Financial Doctor (TFD) Team se consult karein.",
+    };
+    return (
+        <div style={{ background: "#FBE4E4", border: "1px solid #C7102E", borderRadius: 10, padding: "10px 14px", marginBottom: 14, display: "flex", gap: 8, alignItems: "flex-start" }}>
+            <span style={{ fontSize: 15 }}>🛡️</span>
+            <div style={{ fontSize: 10, color: "#7A1420", lineHeight: 1.5 }}>
+                <strong>Health &amp; Term Insurance First · </strong>{msg[lang] || msg.english}
+            </div>
+        </div>
+    );
+}
+const CALC_METHODOLOGY = {
+  sip: {
+    highlights: [
+      "Compounding ka fayda — returns par bhi returns milte hain",
+      "Rupee-cost averaging se market ke ups-downs smooth ho jaate hain",
+      "Chhoti monthly amount lambe samay mein bada corpus bana deti hai",
+    ],
+    how: "Har mahine fixed amount invest hota hai, jo expected annual return par compound hota hai. Formula: FV = P × [(1+r)^n − 1] / r × (1+r). Step-up diya ho to har 12 mahine baad SIP amount us % se badh jaati hai. Daily SIP ka calculation 22 working days/month par based hai — Saturday, Sunday aur market holidays par debit nahi hota, isliye 22 din se multiply kiya jaata hai.",
+  },
+  daily: {
+    highlights: [
+      "Daily habit se investing zindagi ka hissa ban jaata hai",
+      "22 working days/month ka calculation use hota hai",
+      "Chhoti daily amount bhi lambe samay mein badi ban jaati hai",
+    ],
+    how: "Daily amount ko monthly SIP mein convert kiya jaata hai (daily × 22), phir SIP wala hi formula lagta hai.",
+  },
+  lumpsum: {
+    highlights: [
+      "Ek baar ka bada investment compounding ka poora fayda leta hai",
+      "Jitna lamba tenure, utna zyada exponential growth",
+      "Market timing chhodkar time-in-market par focus karein",
+    ],
+    how: "Compound interest formula: FV = P × (1+r)^n, jaha P = invested amount, r = annual return, n = years.",
+  },
+  swp: {
+    highlights: [
+      "Retirement/regular income ke liye corpus se fixed withdrawal",
+      "Balance invested rehta hai, tab tak grow bhi karta hai",
+      "Withdrawal rate corpus ki life decide karta hai",
+    ],
+    how: "Har mahine corpus par return credit hota hai, phir fixed withdrawal minus hota hai — ye process tenure khatam hone tak ya balance zero hone tak chalta hai.",
+  },
+  goal: {
+    highlights: [
+      "Target corpus ke liye exact zaroori monthly SIP jaanein",
+      "Jitna early start, utna kam monthly SIP chahiye",
+      "Goal-based investing se planning clear hoti hai",
+    ],
+    how: "Target corpus ko future value annuity factor se divide karke zaroori monthly SIP nikala jaata hai.",
+  },
+  emi: {
+    highlights: [
+      "Reducing balance mein interest sirf outstanding principal par lagta hai",
+      "Jaldi prepay karne se total interest kaafi kam ho sakta hai",
+      "EMI jitna hi parallel SIP loan ko 'interest-free' bana sakta hai",
+    ],
+    how: "Reducing balance EMI: EMI = P × r × (1+r)^n / [(1+r)^n − 1]. Fixed mode mein interest poore tenure ke original principal par flat lagta hai.",
+    interestFreeExplain: "Aapke loan ka jitna total interest hai (Total Interest), agar aap usi amount ki ek parallel Mutual Fund SIP shuru karein (12% p.a. assumed return), to loan tenure khatam hote-hote wo SIP itni badh chuki hogi ki wo aapke total interest cost ko roughly cover kar de — yaani loan effectively 'interest-free' ban jaata hai. Ye sirf ek estimate hai; actual mutual fund returns guaranteed nahi hote.",
+  },
+  tax: {
+    highlights: [
+      "Old aur New regime dono ka comparison ek saath dekhein",
+      "80C investments sirf Old Regime mein tax benefit dete hain",
+      "Regime choice har saal badal sakte hain",
+    ],
+    how: "Dono regimes ke slabs par income ko tax kiya jaata hai, standard deduction/80C minus karke, phir 4% cess add hota hai.",
+  },
+  gst: {
+    highlights: [
+      "Business billing mein sahi GST breakup zaroori hai",
+      "CGST + SGST milkar total GST banate hain",
+      "Inclusive vs Exclusive samajhna invoicing ke liye zaroori hai",
+    ],
+    how: "Exclusive amount par GST add hota hai. Inclusive amount se GST reverse-calculate hota hai: Base = Total × 100/(100+rate).",
+  },
+  inflation: {
+    highlights: [
+      "Aaj ka goal kal mehenga ho jaata hai — inflation ignore na karein",
+      "Sahi planning se inflation-adjusted target achieve karna aasan hota hai",
+      "Return inflation se zyada ho to hi real wealth banta hai",
+    ],
+    how: "Current cost inflation rate se future value mein convert hota hai: Future Cost = Current Cost × (1+inflation)^years, phir uske liye zaroori SIP nikalta hai.",
+  },
+};
+const MF_EDUCATION = {
+    heading: "Mutual Fund Kaise Kaam Karta Hai?",
+    points: [
+        "Aap jab bhi SIP ya Lumpsum invest karte hain, aapka paisa ek Mutual Fund scheme mein jaata hai — jo AMC (Asset Management Company) manage karti hai, jaise HDFC, SBI, ICICI Prudential, etc.",
+        "AMC ka fund manager aapke aur hazaaro dusre investors ka paisa milakar shares, bonds, ya dono mein invest karta hai — isse aapko diversification aur professional management milta hai.",
+        "Aapka return fund ke underlying investments (shares/bonds) ki performance se aata hai — jab wo assets badhte hain, aapke fund ki NAV (Net Asset Value) badhti hai, aur wahi aapka gain hai.",
+        "Aap directly kisi company ko paisa nahi dete — aap fund ke 'units' kharidte hain, aur AMC us paisa ko professionally invest karti hai on your behalf.",
+        "SEBI (regulator) aur AMFI in sab funds ko regulate karte hain, taaki investor ka paisa surakshit rahe — lekin market risk phir bhi rehta hai, returns guaranteed nahi hote.",
+    ],
+};
+function generateCouponCode(phone) {
+    const digits = (phone || "").replace(/\D/g, "").slice(-4) || "0000";
+    return `TFDHEALTH${digits}`;
+}
+function isCouponValid(unlockDateStr) {
+    if (!unlockDateStr) return false;
+    const diffDays = (new Date() - new Date(unlockDateStr)) / (1000 * 60 * 60 * 24);
+    return diffDays <= 30;
+}
 
+async function trackProposalWithBackend({ name, phone, proposalCount, couponCode }) {
+    // TODO: backend integration — POST /api/leads/public/proposal-track
+    console.log("[proposal-track]", { name, phone, proposalCount, couponCode });
+}
+
+const TFD_TEAM_INFO = { name: "The Financial Doctor", phone: "+91 77738 05794" };
 const SAGAR_PHOTO = "https://customer-assets.emergentagent.com/job_wealth-advisor-111/artifacts/1dwkpp48_D3037D99-4115-4778-83D8-907655A401FD.png";
 const TFD_LOGO = "https://customer-assets.emergentagent.com/job_advisor-phase4-build/artifacts/buhrts3f_IMG_2870.png";
 
@@ -1048,13 +1388,15 @@ function upsellScenarios(tab, state, result) {
         if (tab === "sip") {
             const baseFv = result.fv;
             const baseEffective = state.sipAmount + (state.sipDailyAddon || 0) * 22;
-            const topup = sipCalc(baseEffective * 1.1, state.sipYears, state.sipRate, state.sipStepUp || 0);
-            out.push({
-                title: "10% topup karein",
-                titleHi: "हर साल 10% बढ़ाएँ",
-                extra: topup.fv - baseFv,
-                detail: `Just increase monthly SIP by ${Math.round(baseEffective * 0.1)} = ₹${Math.round(baseEffective * 1.1).toLocaleString("en-IN")}/mo`,
-            });
+            if (!state.sipStepUp || state.sipStepUp === 0) {
+    const topup = sipCalc(baseEffective * 1.1, state.sipYears, state.sipRate, 0);
+    out.push({
+        title: "10% zyada SIP karein",
+        titleHi: "10% ज़्यादा SIP करें",
+        extra: topup.fv - baseFv,
+        detail: `Monthly SIP ko ${Math.round(baseEffective)} se ${Math.round(baseEffective * 1.1)} kar dein`,
+    });
+}
             const daily100 = sipCalc(baseEffective + 100 * 22, state.sipYears, state.sipRate, state.sipStepUp || 0);
             out.push({
                 title: "Add ₹100/day SIP",
@@ -1141,25 +1483,119 @@ function upsellScenarios(tab, state, result) {
 const TD = (children, extra = {}) => {
     const { colSpan, ...styleExtra } = extra;
     return (
-        <td colSpan={colSpan} style={{ padding: "6px 10px", fontSize: 11, color: "#0E1B2C", border: "1px solid #E2D8C2", ...styleExtra }}>{children}</td>
+        <td colSpan={colSpan} style={{ padding: "7px 10px", fontSize: 11.5, color: "#0E1B2C", border: "1px solid #E2D8C2", textAlign: "center", ...styleExtra }}>{children}</td>
     );
 };
 const TH = (children, extra = {}) => (
-    <th style={{ padding: "6px 10px", fontSize: 10, textTransform: "uppercase", letterSpacing: "0.06em", color: "#5C677D", background: "#FBF7EE", border: "1px solid #E2D8C2", textAlign: "left", ...extra }}>{children}</th>
+    <th style={{ padding: "7px 10px", fontSize: 10, textTransform: "uppercase", letterSpacing: "0.06em", color: "#5C677D", background: "#FBF7EE", border: "1px solid #E2D8C2", textAlign: "center", ...extra }}>{children}</th>
 );
 
-function ProposalDocument({ tab, result, state, employeeInfo = null, clientInfo = null }) {
+// 🆕 Proposal document text, in three languages. Structural/UI strings only —
+// figures and the client/employee's own names are inserted as-is.
+const PROPOSAL_UI = {
+    english: {
+        suffix: "— Financial Proposal", subtitle: "Illustrative proposal prepared for review. Figures are projections, not guarantees of future returns.",
+        preparedFor: "Prepared For", preparedBy: "Prepared By", valuedClient: "Valued Client", tfdTeam: "TFD Team",
+        calculatorType: "Calculator", tenure: "Tenure", expectedReturn: "Expected Return (p.a.)",
+        whatIfLonger: "What If You Stay Invested Longer?", extension: "Extension", totalTenure: "Total Tenure",
+        totalInvestedCol: "Total Invested", futureValueCol: "Future Value", extraGain: "Extra Gain",
+        yearOnYear: "Year-on-Year Growth", year: "Year", invested: "Invested", value: "Value", outstanding: "Outstanding",
+        suggestions: "Suggestions to Boost Your Wealth", footerBrand: "The Financial Doctor · thefinancialdoctor.in",
+        amfiLine: "AMFI Registered Mutual Fund Distributor · ARN-290298", dateLabel: "Date", scanToInvest: "Scan to Invest",
+        disclaimer: "This document is an illustrative proposal only and does not constitute investment advice. Mutual fund investments are subject to market risks. Read all scheme-related documents carefully. Future returns are not guaranteed — actual returns may vary. Generated on",
+        years: "Years", yrs: "Yrs", plusYears: "Years",
+    },  withdrawn: "Withdrawn",
+
+    hindi: {
+        suffix: "— वित्तीय प्रस्ताव", subtitle: "समीक्षा हेतु तैयार किया गया अनुमानित प्रस्ताव। आंकड़े अनुमान हैं, भविष्य के रिटर्न की गारंटी नहीं।",
+        preparedFor: "किसके लिए", preparedBy: "किसके द्वारा तैयार", valuedClient: "सम्मानित ग्राहक", tfdTeam: "TFD टीम",
+        calculatorType: "कैलकुलेटर", tenure: "अवधि", expectedReturn: "अपेक्षित रिटर्न (वार्षिक)",
+        whatIfLonger: "अगर और लंबे समय तक निवेश करें तो?", extension: "अतिरिक्त वर्ष", totalTenure: "कुल अवधि",
+        totalInvestedCol: "कुल निवेश", futureValueCol: "भविष्य मूल्य", extraGain: "अतिरिक्त लाभ",
+        yearOnYear: "वर्ष-दर-वर्ष वृद्धि", year: "वर्ष", invested: "निवेश", value: "मूल्य", outstanding: "शेष राशि",
+        suggestions: "अपनी संपत्ति बढ़ाने के सुझाव", footerBrand: "द फाइनेंशियल डॉक्टर · thefinancialdoctor.in",
+        amfiLine: "एएमएफआई पंजीकृत म्यूचुअल फंड वितरक · ARN-290298", dateLabel: "दिनांक", scanToInvest: "निवेश हेतु स्कैन करें",
+        disclaimer: "यह दस्तावेज़ केवल एक उदाहरणात्मक प्रस्ताव है और निवेश सलाह नहीं है। म्यूचुअल फंड निवेश बाज़ार जोखिमों के अधीन हैं। सभी स्कीम संबंधी दस्तावेज़ ध्यान से पढ़ें। भविष्य के रिटर्न की कोई गारंटी नहीं है — वास्तविक रिटर्न भिन्न हो सकते हैं। तैयार करने की तारीख:",
+        years: "वर्ष", yrs: "वर्ष", plusYears: "वर्ष", withdrawn: "निकासी",
+    },
+    hinglish: {
+        suffix: "— Financial Proposal", subtitle: "Review ke liye taiyar kiya gaya illustrative proposal. Figures anumaan hain, future returns ki guarantee nahi hai.",
+        preparedFor: "Kiske Liye", preparedBy: "Kisne Banaya", valuedClient: "Valued Client", tfdTeam: "TFD Team",
+        calculatorType: "Calculator", tenure: "Tenure", expectedReturn: "Expected Return (p.a.)",
+        whatIfLonger: "Agar Aur Lambe Samay Tak Invest Karein Toh?", extension: "Extra Saal", totalTenure: "Total Tenure",
+        totalInvestedCol: "Total Invested", futureValueCol: "Future Value", extraGain: "Extra Gain",
+        yearOnYear: "Year-on-Year Growth", year: "Saal", invested: "Invested", value: "Value", outstanding: "Outstanding",
+        suggestions: "Apni Wealth Badhane Ke Suggestions", footerBrand: "The Financial Doctor · thefinancialdoctor.in",
+        amfiLine: "AMFI Registered Mutual Fund Distributor · ARN-290298", dateLabel: "Date", scanToInvest: "Invest Karne Ke Liye Scan Karein",
+        disclaimer: "Yeh document sirf ek illustrative proposal hai, investment advice nahi. Mutual fund investments market risks ke adhin hain. Sabhi scheme-related documents dhyan se padhein. Future returns ki guarantee nahi hai — actual returns alag ho sakte hain. Generate hone ki date:",
+        years: "Saal", yrs: "Saal", plusYears: "Saal",
+    },  withdrawn: "Withdrawn",
+};
+
+// Common result-label translations (English label -> localized label)
+const LABEL_TR = {
+    hindi: {
+        "Total Invested": "कुल निवेश", "Est. Returns": "अनुमानित रिटर्न", "Future Value": "भविष्य मूल्य",
+        "Monthly EMI": "मासिक ईएमआई", "Total Interest": "कुल ब्याज", "Total Payable": "कुल देय राशि",
+        "Loan Amount": "ऋण राशि", "Initial Corpus": "प्रारंभिक कोष", "Total Withdrawn": "कुल निकासी",
+        "Balance Left": "शेष राशि", "Balance left": "शेष राशि", "Target": "लक्ष्य", "You Invest": "आप निवेश करेंगे",
+        "Required SIP": "आवश्यक एसआईपी", "Old Regime Tax": "पुरानी व्यवस्था कर", "New Regime Tax": "नई व्यवस्था कर",
+        "ELSS Saving": "ईएलएसएस बचत", "Base Amount": "मूल राशि", "GST Amount": "जीएसटी राशि", "Total Amount": "कुल राशि",
+        "Today's Cost": "आज की लागत", "Future Cost": "भविष्य की लागत", "Monthly SIP Needed": "आवश्यक मासिक एसआईपी",
+        "Monthly SIP needed": "आवश्यक मासिक एसआईपी", "Better Regime": "बेहतर व्यवस्था",
+    },
+    hinglish: {
+        "Initial Corpus": "Shuruaati Corpus", "Total Withdrawn": "Total Nikaasi", "Balance Left": "Bacha Balance",
+        "Balance left": "Bacha Balance", "You Invest": "Aap Invest Karenge", "Required SIP": "Zaroori SIP",
+        "ELSS Saving": "ELSS Bachat", "Today's Cost": "Aaj Ki Cost", "Future Cost": "Future Ki Cost",
+        "Monthly SIP Needed": "Zaroori Monthly SIP", "Monthly SIP needed": "Zaroori Monthly SIP", "Better Regime": "Behtar Regime",
+    },
+};
+const trLabel = (lang, s) => (LABEL_TR[lang] && LABEL_TR[lang][s]) || s;
+function ProposalHeader({ T, genDate, lang }) {
+    return (
+        <>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: "2px solid #024396", paddingBottom: 10, marginBottom: 14 }}>
+                <img src={TFD_LOGO} crossOrigin="anonymous" alt="TFD" style={{ height: 46, objectFit: "contain" }} />
+                <div style={{ textAlign: "right" }}>
+                    <div style={{ fontSize: 9.5, color: "#5C677D" }}>{T.amfiLine}</div>
+                    <div style={{ fontSize: 10, color: "#5C677D", marginTop: 2 }}>{T.dateLabel}: {genDate}</div>
+                </div>
+            </div>
+            <InsuranceBanner lang={lang} />
+        </>
+    );
+}
+
+function ProposalFooter({ T, genDate }) {
+    return (
+        <div style={{ borderTop: "1px solid #E2D8C2", paddingTop: 10, marginTop: "auto" }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16, marginBottom: 8 }}>
+                <div style={{ flex: 1 }}>
+                    <div style={{ fontSize: 11, fontWeight: 700, color: "#0E1B2C" }}>{T.footerBrand}</div>
+                    <div style={{ fontSize: 8.5, color: "#5C677D", fontStyle: "italic", marginTop: 4, lineHeight: 1.4 }}>
+                        {T.disclaimer} {genDate}.
+                    </div>
+                </div>
+                <div style={{ textAlign: "center", flexShrink: 0 }}>
+                    <div style={{ background: "#fff", padding: 4, borderRadius: 8, border: "1px solid #E2D8C2" }}>
+                        <QRCodeCanvas value={TFD_BRAND_URL} size={56} bgColor="#FFFFFF" fgColor="#0E1B2C" level="M" includeMargin={false} />
+                    </div>
+                    <div style={{ fontSize: 7.5, marginTop: 3, color: "#C7102E", fontWeight: 700, textTransform: "uppercase" }}>{T.scanToInvest}</div>
+                </div>
+            </div>
+            <div style={{ textAlign: "center", borderTop: "1px solid #F0EAD8", paddingTop: 6 }}>
+                <span style={{ fontSize: 8, color: "#5C677D", letterSpacing: "0.04em", fontWeight: 600 }}>Powered by The Financial Doctor</span>
+            </div>
+        </div>
+    );
+}
+function ProposalDocument({ tab, result, state, employeeInfo = null, clientInfo = null, lang = "english", page1Ref, page2Ref }) {
     if (!result) return null;
+    const T = PROPOSAL_UI[lang] || PROPOSAL_UI.english;
     const labels = {
-        sip: "SIP Calculator",
-        daily: "Daily SIP Calculator",
-        lumpsum: "Lumpsum Calculator",
-        swp: "SWP Calculator",
-        goal: "Goal Planner",
-        emi: "EMI Calculator",
-        tax: "Income Tax Calculator",
-        gst: "GST Calculator",
-        inflation: "Future Goal Calculator",
+        sip: "SIP Calculator", daily: "Daily SIP Calculator", lumpsum: "Lumpsum Calculator", swp: "SWP Calculator",
+        goal: "Goal Planner", emi: "EMI Calculator", tax: "Income Tax Calculator", gst: "GST Calculator", inflation: "Future Goal Calculator",
     };
 
     const extendable = ["sip", "daily", "lumpsum", "goal"].includes(tab);
@@ -1205,7 +1641,7 @@ function ProposalDocument({ tab, result, state, employeeInfo = null, clientInfo 
     const investedLine = (() => {
         if (tab === "sip") {
             let s = `Monthly SIP: ${fmtINR(state.sipAmount)}`;
-            if (state.sipDailyAddon > 0) s += ` + Daily top-up ${fmtINR(state.sipDailyAddon)}/day`;
+            if (state.sipDailyAddon > 0) s += ` + Additional Daily SIP ${fmtINRFull(state.sipDailyAddon)}/day (22 working days/month)`;
             if (state.sipStepUp > 0) s += ` · ${state.sipStepUp}% annual step-up`;
             return s;
         }
@@ -1222,7 +1658,10 @@ function ProposalDocument({ tab, result, state, employeeInfo = null, clientInfo 
 
     const bigStats = (() => {
         if (tab === "emi") return [["Loan Amount", fmtINR(state.loan)], ["Total Interest", fmtINR(result.interest)], ["Total Payable", fmtINR(result.total)]];
-        if (tab === "swp") return [["Initial Corpus", fmtINR(result.invested)], ["Total Withdrawn", fmtINR(result.gains)], ["Balance Left", fmtINR(result.fv)]];
+        if (tab === "swp") {
+    const withdrawalPct = ((state.swpMonthly * 12) / state.swpCorpus * 100).toFixed(1);
+    return [["Initial Corpus", fmtINRFull(result.invested)], ["Annual Withdrawal Rate", `${withdrawalPct}%`], ["Balance Left", fmtINRFull(result.fv)]];
+}
         if (tab === "goal") return [["Target", fmtINR(result.target)], ["You Invest", fmtINR(result.invested)], ["Required SIP", fmtINR(result.requiredSip)]];
         if (tab === "tax") return [["Old Regime Tax", fmtINR(result.oldTax)], ["New Regime Tax", fmtINR(result.newTax)], ["ELSS Saving", fmtINR(result.elssSaving)]];
         if (tab === "gst") return [["Base Amount", fmtINR(result.base)], ["GST Amount", fmtINR(result.gst)], ["Total Amount", fmtINR(result.total)]];
@@ -1230,7 +1669,7 @@ function ProposalDocument({ tab, result, state, employeeInfo = null, clientInfo 
         return [["Total Invested", fmtINR(result.invested)], ["Est. Returns", fmtINR(result.gains)], ["Future Value", fmtINR(result.fv)]];
     })();
 
-    // Cap year-on-year rows so a long tenure still fits comfortably on one A4 page
+    // Cap year-on-year rows so a long tenure still reads cleanly
     const fullSeries = result.series || [];
     let yearRows = fullSeries;
     if (fullSeries.length > 12) {
@@ -1239,156 +1678,208 @@ function ProposalDocument({ tab, result, state, employeeInfo = null, clientInfo 
     }
 
     const suggestions = upsellScenarios(tab, state, result);
+    const suggestionText = (s) => (lang === "hindi" ? s.titleHi : lang === "hinglish" ? s.title : s.detail);
     const tip = (CALC_RECOMMENDATIONS[tab] || [])[0];
+    const tipText = tip ? (lang === "hindi" ? tip.hi : tip.en) : null;
     const genDate = new Date().toLocaleDateString("en-IN", { day: "numeric", month: "long", year: "numeric" });
 
     return (
-        <div style={{
-            width: 794, minHeight: 1123, background: "#fff", position: "relative",
-            fontFamily: "'DM Sans', Arial, sans-serif", color: "#0E1B2C",
-            padding: "36px 44px 30px", boxSizing: "border-box", display: "flex", flexDirection: "column",
-        }}>
-            {/* Watermark */}
-            <div aria-hidden style={{
-                position: "absolute", top: "48%", left: "50%", transform: "translate(-50%,-50%) rotate(-28deg)",
-                fontSize: 64, color: "rgba(2,67,150,0.055)", fontWeight: 800, whiteSpace: "nowrap",
-                letterSpacing: 6, pointerEvents: "none",
-            }}>THE FINANCIAL DOCTOR</div>
+        <>
+            {/* ===== PAGE 1 ===== */}
+            <div ref={page1Ref} style={{
+                width: 794, height: 1123, background: "#fff", position: "relative",
+                fontFamily: "'DM Sans', Arial, sans-serif", color: "#0E1B2C",
+                padding: "30px 40px 24px", boxSizing: "border-box", display: "flex", flexDirection: "column",
+            }}>
+                <div aria-hidden style={{ position: "absolute", top: "48%", left: "50%", transform: "translate(-50%,-50%) rotate(-28deg)", fontSize: 60, color: "rgba(2,67,150,0.05)", fontWeight: 800, whiteSpace: "nowrap", letterSpacing: 6, pointerEvents: "none" }}>THE FINANCIAL DOCTOR</div>
 
-            {/* Header */}
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: "2px solid #024396", paddingBottom: 12, marginBottom: 18 }}>
-                <img src={TFD_LOGO} crossOrigin="anonymous" alt="TFD" style={{ height: 50, objectFit: "contain" }} />
-                <div style={{ textAlign: "right" }}>
-                    <div style={{ fontSize: 10.5, color: "#5C677D", letterSpacing: "0.08em" }}>AMFI · ARN-290298</div>
-                    <div style={{ fontSize: 10.5, color: "#5C677D", marginTop: 2 }}>Date: {genDate}</div>
-                </div>
-            </div>
+                <ProposalHeader T={T} genDate={genDate} lang={lang} />
 
-            <h1 style={{ fontFamily: "'Fraunces', serif", fontSize: 22, margin: "0 0 4px", color: "#0E1B2C" }}>{labels[tab]} — Financial Proposal</h1>
-            <p style={{ fontSize: 10.5, color: "#5C677D", margin: "0 0 16px" }}>Illustrative proposal prepared for review. Figures are projections, not guarantees.</p>
+                <h1 style={{ fontFamily: "'Fraunces', serif", fontSize: 20, margin: "0 0 4px" }}>{labels[tab]} {T.suffix}</h1>
+                <p style={{ fontSize: 10, color: "#5C677D", margin: "0 0 14px" }}>{T.subtitle}</p>
 
-            {/* Client + Advisor info */}
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, marginBottom: 16 }}>
-                <div style={{ border: "1px solid #E2D8C2", borderRadius: 8, padding: 10 }}>
-                    <div style={{ fontSize: 9.5, textTransform: "uppercase", letterSpacing: "0.1em", color: "#024396", fontWeight: 700, marginBottom: 4 }}>Prepared For</div>
-                    <div style={{ fontSize: 13.5, fontWeight: 700 }}>{clientInfo?.name || "Valued Client"}</div>
-                    {clientInfo?.phone && <div style={{ fontSize: 10.5, color: "#5C677D", marginTop: 2 }}>📱 {clientInfo.phone}</div>}
-                </div>
-                <div style={{ border: "1px solid #E2D8C2", borderRadius: 8, padding: 10 }}>
-                    <div style={{ fontSize: 9.5, textTransform: "uppercase", letterSpacing: "0.1em", color: "#024396", fontWeight: 700, marginBottom: 4 }}>Prepared By</div>
-                    <div style={{ fontSize: 13.5, fontWeight: 700 }}>{employeeInfo?.name || "TFD Team"}</div>
-                    {employeeInfo?.phone && <div style={{ fontSize: 10.5, color: "#5C677D", marginTop: 2 }}>📱 {employeeInfo.phone}</div>}
-                </div>
-            </div>
-
-            {/* Headline summary */}
-            <div style={{ background: "#0E1B2C", color: "#F6F1E8", borderRadius: 10, padding: "12px 16px", marginBottom: 16 }}>
-                <div style={{ fontSize: 9.5, color: "#C7102E", textTransform: "uppercase", letterSpacing: "0.1em", fontWeight: 700 }}>{labels[tab]}</div>
-                <div style={{ fontFamily: "'Fraunces', serif", fontSize: 22, marginTop: 4 }}>{headlineMetric.value}</div>
-                <div style={{ fontSize: 10.5, opacity: 0.75, marginTop: 2 }}>{headlineMetric.label}{baseYears ? ` · over ${baseYears} years @ ${rateUsed}% p.a.` : ""}</div>
-                <div style={{ fontSize: 11.5, marginTop: 6, fontWeight: 600 }}>{investedLine}</div>
-            </div>
-
-            {/* Big stats row */}
-            <table style={{ width: "100%", borderCollapse: "collapse", marginBottom: 18 }}>
-                <tbody>
-                    <tr>{bigStats.map(([l]) => TH(l))}</tr>
-                    <tr>{bigStats.map(([, v], i) => TD(<strong style={{ fontSize: 13 }}>{v}</strong>, i === bigStats.length - 1 ? { color: "#024396" } : {}))}</tr>
-                </tbody>
-            </table>
-
-            {/* What if invested longer — table */}
-            {extendable && (
-                <div style={{ marginBottom: 18 }}>
-                    <div style={{ fontSize: 11.5, fontWeight: 700, color: "#024396", marginBottom: 6 }}>What If You Stay Invested Longer?</div>
-                    <table style={{ width: "100%", borderCollapse: "collapse" }}>
-                        <thead>
-                            <tr>{TH("Extension")}{TH("Total Tenure")}{TH("Total Invested")}{TH("Future Value")}{TH("Extra Gain")}</tr>
-                        </thead>
-                        <tbody>
-                            {projections.map(({ y, p }) => (
-                                <tr key={y}>
-                                    {TD(`+${y} Years`)}
-                                    {TD(`${baseYears + y} Yrs`)}
-                                    {TD(p ? fmtINR(p.invested) : "—")}
-                                    {TD(p ? fmtINR(p.fv) : "—", { fontWeight: 700 })}
-                                    {TD(p ? `+${fmtINR(p.fv - result.fv)}` : "—", { color: "#024396", fontWeight: 700 })}
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
-                </div>
-            )}
-
-            {/* Year-on-year growth — table */}
-            {yearRows.length > 0 && (
-                <div style={{ marginBottom: 18 }}>
-                    <div style={{ fontSize: 11.5, fontWeight: 700, color: "#024396", marginBottom: 6 }}>Year-on-Year Growth</div>
-                    <table style={{ width: "100%", borderCollapse: "collapse" }}>
-                        <thead>
-                            <tr>{TH("Year")}{TH("Invested")}{TH(tab === "emi" ? "Outstanding" : "Value")}</tr>
-                        </thead>
-                        <tbody>
-                            {yearRows.map((r) => (
-                                <tr key={r.label}>
-                                    {TD(r.label)}
-                                    {TD(fmtINR(r.invested))}
-                                    {TD(fmtINR(r.value), { fontWeight: 700 })}
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
-                </div>
-            )}
-
-            {/* Suggestions */}
-            {(suggestions.length > 0 || tip) && (
-                <div style={{ marginBottom: 18 }}>
-                    <div style={{ fontSize: 11.5, fontWeight: 700, color: "#C7102E", marginBottom: 6 }}>💡 Suggestions to Boost Your Wealth</div>
-                    <table style={{ width: "100%", borderCollapse: "collapse" }}>
-                        <tbody>
-                            {suggestions.map((s, idx) => (
-                                <tr key={`sg-${idx}`}>
-                                    {TD(<><strong>{s.title}</strong> <span style={{ color: "#5C677D" }}>· {s.titleHi}</span><div style={{ fontSize: 10, color: "#5C677D", marginTop: 2 }}>{s.detail}</div></>)}
-                                    {TD(<strong style={{ color: "#024396" }}>+{fmtINR(s.extra)}</strong>, { textAlign: "right", whiteSpace: "nowrap" })}
-                                </tr>
-                            ))}
-                            {tip && (
-                                <tr>
-                                    {TD(<><strong>EN:</strong> {tip.en}<br /><strong>HI:</strong> {tip.hi}</>, { colSpan: 2 })}
-                                </tr>
-                            )}
-                        </tbody>
-                    </table>
-                </div>
-            )}
-
-            {/* Spacer pushes footer to bottom when content is short */}
-            <div style={{ flex: 1 }} />
-
-            {/* Footer */}
-            <div style={{ borderTop: "1px solid #E2D8C2", paddingTop: 14, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16 }}>
-                <div style={{ flex: 1 }}>
-                    <div style={{ fontSize: 11, fontWeight: 700, color: "#0E1B2C" }}>The Financial Doctor · thefinancialdoctor.in</div>
-                    <div style={{ fontSize: 9, color: "#5C677D", fontStyle: "italic", marginTop: 4, lineHeight: 1.4 }}>
-                        This document is an illustrative proposal only and does not constitute investment advice. Mutual fund
-                        investments are subject to market risks. Read all scheme-related documents carefully. Calculations are
-                        based on assumed rates and actual returns may vary. Generated on {genDate}.
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 14 }}>
+                    <div style={{ border: "1px solid #E2D8C2", borderRadius: 8, padding: 9, textAlign: "center" }}>
+                        <div style={{ fontSize: 9, textTransform: "uppercase", color: "#024396", fontWeight: 700, marginBottom: 3 }}>{T.preparedFor}</div>
+                        <div style={{ fontSize: 13, fontWeight: 700 }}>{clientInfo?.name || T.valuedClient}</div>
+                        {clientInfo?.phone && <div style={{ fontSize: 10, color: "#5C677D", marginTop: 2 }}>📱 {clientInfo.phone}</div>}
+                    </div>
+                    <div style={{ border: "1px solid #E2D8C2", borderRadius: 8, padding: 9, textAlign: "center" }}>
+                        <div style={{ fontSize: 9, textTransform: "uppercase", color: "#024396", fontWeight: 700, marginBottom: 3 }}>{T.preparedBy}</div>
+                        <div style={{ fontSize: 13, fontWeight: 700 }}>{employeeInfo?.name || "The Financial Doctor"}</div>
+                        {employeeInfo?.phone && <div style={{ fontSize: 10, color: "#5C677D", marginTop: 2 }}>📱 {employeeInfo.phone}</div>}
                     </div>
                 </div>
-                <div style={{ textAlign: "center", flexShrink: 0 }}>
-                    <div style={{ background: "#fff", padding: 4, borderRadius: 8, border: "1px solid #E2D8C2" }}>
-                        <QRCodeCanvas value={TFD_BRAND_URL} size={64} bgColor="#FFFFFF" fgColor="#0E1B2C" level="M" includeMargin={false} />
+
+                <table style={{ width: "100%", borderCollapse: "collapse", marginBottom: 6 }}>
+                    <thead><tr>{TH(T.calculatorType)}{baseYears ? TH(T.tenure) : null}{rateUsed ? TH(T.expectedReturn) : null}{TH(trLabel(lang, headlineMetric.label))}</tr></thead>
+                    <tbody><tr>
+                        {TD(labels[tab])}
+                        {baseYears ? TD(`${baseYears} ${T.years}`) : null}
+                        {rateUsed ? TD(`${rateUsed}%`) : null}
+                        {TD(<strong style={{ fontSize: 13, color: "#024396" }}>{headlineMetric.value}</strong>)}
+                    </tr></tbody>
+                </table>
+                <div style={{ fontSize: 10.5, color: "#2A364B", marginBottom: 14, textAlign: "center", fontWeight: 600 }}>{investedLine}</div>
+
+                <table style={{ width: "100%", borderCollapse: "collapse", marginBottom: 14 }}>
+                    <thead><tr>{bigStats.map(([l]) => TH(trLabel(lang, l)))}</tr></thead>
+                    <tbody><tr>{bigStats.map(([, v], i) => TD(<strong style={{ fontSize: 12.5 }}>{v}</strong>, i === bigStats.length - 1 ? { color: "#024396" } : {}))}</tr></tbody>
+                </table>
+
+                {CALC_METHODOLOGY[tab] && (
+                    <div style={{ marginBottom: 14 }}>
+                        <div style={{ fontSize: 11, fontWeight: 700, color: "#024396", marginBottom: 6, textAlign: "center" }}>Kaise Kaam Karta Hai Ye Calculation?</div>
+                        <ul style={{ margin: "0 0 8px", paddingLeft: 18, fontSize: 9.5, color: "#2A364B", lineHeight: 1.55 }}>
+                            {CALC_METHODOLOGY[tab].highlights.map((h, i) => <li key={i}>{h}</li>)}
+                        </ul>
+                        <div style={{ fontSize: 9, color: "#5C677D", background: "#FBF7EE", border: "1px solid #E2D8C2", borderRadius: 8, padding: "7px 10px", lineHeight: 1.5 }}>
+                            {CALC_METHODOLOGY[tab].how}
+                        </div>
                     </div>
-                    <div style={{ fontSize: 8, marginTop: 3, color: "#C7102E", fontWeight: 700, textTransform: "uppercase" }}>Scan to invest</div>
-                </div>
+                )}
+
+        )}
+
+                {tab === "emi" && result.interestFreeSip > 0 && (
+                    <div style={{ marginBottom: 14 }}>
+                        <div style={{ fontSize: 11, fontWeight: 700, color: "#C7102E", marginBottom: 6, textAlign: "center" }}>💡 Ye Loan Interest-Free Kaise Ban Sakta Hai?</div>
+                        <table style={{ width: "100%", borderCollapse: "collapse", marginBottom: 6 }}>
+                            <thead><tr>{TH("Total Interest (Loan)")}{TH("Zaroori Monthly SIP")}{TH("Assumed SIP Return")}{TH("Loan Tenure")}</tr></thead>
+                            <tbody><tr>
+                                {TD(fmtINRFull(result.interest))}
+                                {TD(<strong style={{ color: "#024396" }}>{fmtINRFull(result.interestFreeSip)}/mo</strong>)}
+                                {TD("12% p.a.")}
+                                {TD(`${baseYears} ${T.years}`)}
+                            </tr></tbody>
+                        </table>
+                        <div style={{ fontSize: 9, color: "#5C677D", background: "#FBF7EE", border: "1px solid #E2D8C2", borderRadius: 8, padding: "7px 10px", lineHeight: 1.5 }}>
+                            {CALC_METHODOLOGY.emi.interestFreeExplain}
+                        </div>
+                    </div>
+                )}
+                {extendable && (
+                    <div style={{ marginBottom: 10 }}>
+                        <div style={{ fontSize: 11, fontWeight: 700, color: "#024396", marginBottom: 6, textAlign: "center" }}>{T.whatIfLonger}</div>
+                        <table style={{ width: "100%", borderCollapse: "collapse" }}>
+                            <thead><tr>{TH(T.extension)}{TH(T.totalTenure)}{TH(T.totalInvestedCol)}{TH(T.futureValueCol)}{TH(T.extraGain)}</tr></thead>
+                            <tbody>
+                                {projections.map(({ y, p }) => (
+                                    <tr key={y}>
+                                        {TD(`+${y} ${T.plusYears}`)}
+                                        {TD(`${baseYears + y} ${T.years}`)}
+                                        {TD(p ? fmtINRFull(p.invested) : "—")}
+                                        {TD(p ? fmtINRFull(p.fv) : "—", { fontWeight: 700 })}
+                                        {TD(p ? `+${fmtINRFull(p.fv - result.fv)}` : "—", { color: "#024396", fontWeight: 700 })}
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                )}
+{tab === "swp" && (() => {
+    const annualWithdrawalPct = (state.swpMonthly * 12) / state.swpCorpus * 100;
+    if (annualWithdrawalPct > 7) {
+        return (
+            <div style={{ background: "#FBE4E4", border: "1px solid #C7102E", borderRadius: 8, padding: "9px 12px", marginBottom: 14, fontSize: 9.5, color: "#7A1420", lineHeight: 1.5 }}>
+                ⚠️ Aap abhi apne corpus ka <strong>{annualWithdrawalPct.toFixed(1)}%</strong> saalana withdraw kar rahe hain, jo high hai. Corpus ko lambe samay tak chalane ke liye <strong>6-7% annual withdrawal rate</strong> recommend kiya jaata hai.
             </div>
-        </div>
+        );
+    }
+    return null;
+})()}
+
+        {["sip", "daily", "lumpsum", "swp", "goal"].includes(tab) && (
+    <div style={{ marginBottom: 14 }}>
+        <div style={{ fontSize: 11, fontWeight: 700, color: "#024396", marginBottom: 6, textAlign: "center" }}>{MF_EDUCATION.heading}</div>
+        <ul style={{ margin: 0, paddingLeft: 18, fontSize: 9, color: "#2A364B", lineHeight: 1.55 }}>
+            {MF_EDUCATION.points.map((p, i) => <li key={i} style={{ marginBottom: 3 }}>{p}</li>)}
+        </ul>
+    </div>
+)}
+                <ProposalFooter T={T} genDate={genDate} />
+            </div>
+
+            {/* ===== PAGE 2 ===== */}
+            <div ref={page2Ref} style={{
+                width: 794, height: 1123, background: "#fff", position: "relative",
+                fontFamily: "'DM Sans', Arial, sans-serif", color: "#0E1B2C",
+                padding: "30px 40px 24px", boxSizing: "border-box", display: "flex", flexDirection: "column",
+            }}>
+                <ProposalHeader T={T} genDate={genDate} lang={lang} />
+
+                {yearRows.length > 0 && (
+                    <div style={{ marginBottom: 18 }}>
+                        <div style={{ fontSize: 11.5, fontWeight: 700, color: "#024396", marginBottom: 6, textAlign: "center" }}>{T.yearOnYear}</div>
+                        <p style={{ fontSize: 9.5, color: "#5C677D", textAlign: "center", marginBottom: 8 }}>
+                            Ye table dikhata hai har saal aapka invested amount aur uski growth kaise badhti hai — jitna lamba time, utna badi difference "Invested" aur "{tab === "emi" ? T.outstanding : T.value}" ke beech.
+                        </p>
+                        <table style={{ width: "100%", borderCollapse: "collapse" }}>
+                            <thead><tr>{TH(T.year)}{TH(tab === "swp" ? T.withdrawn : T.invested)}{TH(tab === "emi" ? T.outstanding : T.value)}</tr></thead>
+                            <tbody>
+                                {yearRows.map((r) => (
+                                    <tr key={r.label}>
+                                        {TD(r.label)}
+                                        {TD(fmtINRFull(r.invested))}
+                                        {TD(fmtINRFull(r.value), { fontWeight: 700 })}
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                )}
+
+                {(suggestions.length > 0 || tipText) && (
+                    <div style={{ marginBottom: 18 }}>
+                        <div style={{ fontSize: 11.5, fontWeight: 700, color: "#C7102E", marginBottom: 6, textAlign: "center" }}>💡 {T.suggestions}</div>
+                        <table style={{ width: "100%", borderCollapse: "collapse" }}>
+                            <tbody>
+                                {suggestions.map((s, idx) => (
+                                    <tr key={`sg-${idx}`}>
+                                        {TD(suggestionText(s), { textAlign: "left" })}
+                                        {TD(<strong style={{ color: "#024396" }}>+{fmtINRFull(s.extra)}</strong>, { whiteSpace: "nowrap" })}
+                                    </tr>
+                                ))}
+                                {tipText && <tr>{TD(tipText, { colSpan: 2, textAlign: "left" })}</tr>}
+                            </tbody>
+                        </table>
+                    </div>
+                )}
+                {tab === "emi" && result.interestFreeSip > 0 && (
+                    <div style={{ marginBottom: 14 }}>
+                        <div style={{ fontSize: 10.5, fontWeight: 700, color: "#C7102E", marginBottom: 5, textAlign: "center" }}>💡 Ye Loan Interest-Free Kaise Ban Sakta Hai?</div>
+                        <table style={{ width: "100%", borderCollapse: "collapse", marginBottom: 5 }}>
+                            <thead><tr>{TH("Total Interest")}{TH("Zaroori Monthly SIP")}{TH("Assumed Return")}{TH("Tenure")}</tr></thead>
+                            <tbody><tr>
+                                {TD(fmtINRFull(result.interest))}
+                                {TD(<strong style={{ color: "#024396" }}>{fmtINRFull(result.interestFreeSip)}/mo</strong>)}
+                                {TD("12% p.a.")}
+                                {TD(`${baseYears} ${T.years}`)}
+                            </tr></tbody>
+                        </table>
+                        <div style={{ fontSize: 8.5, color: "#5C677D", background: "#FBF7EE", border: "1px solid #E2D8C2", borderRadius: 6, padding: "6px 9px", lineHeight: 1.45 }}>
+                            {CALC_METHODOLOGY.emi.interestFreeExplain}
+                        </div>
+                    </div>
+                )}
+
+                {["sip", "daily", "lumpsum", "swp", "goal"].includes(tab) && (
+                    <div style={{ marginBottom: 10 }}>
+                        <div style={{ fontSize: 10.5, fontWeight: 700, color: "#024396", marginBottom: 5, textAlign: "center" }}>{MF_EDUCATION.heading}</div>
+                        <ul style={{ margin: 0, paddingLeft: 16, fontSize: 8.5, color: "#2A364B", lineHeight: 1.45 }}>
+                            {MF_EDUCATION.points.map((p, i) => <li key={i} style={{ marginBottom: 2 }}>{p}</li>)}
+                        </ul>
+                    </div>
+                )}
+
+                <div style={{ flex: 1 }} />
+                <ProposalFooter T={T} genDate={genDate} />
+            </div>
+        </>
     );
 }
 
 function SnapshotCard({ tab, result, state, variant = "public", employeeInfo = null, clientInfo = null }) {
-    if (!result) return null;
     const labels = {
         sip: "SIP Calculator",
         daily: "Daily SIP Calculator",
@@ -1443,7 +1934,7 @@ function SnapshotCard({ tab, result, state, variant = "public", employeeInfo = n
     const investedLine = (() => {
         if (tab === "sip") {
             let s = `Monthly SIP: ${fmtINR(state.sipAmount)}`;
-            if (state.sipDailyAddon > 0) s += ` + Daily top-up ${fmtINR(state.sipDailyAddon)}/day`;
+            if (state.sipDailyAddon > 0) s += ` + Additional Daily SIP ${fmtINRFull(state.sipDailyAddon)}/day (22 working days/month)`;
             if (state.sipStepUp > 0) s += ` · ${state.sipStepUp}% annual step-up`;
             return s;
         }

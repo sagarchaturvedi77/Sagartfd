@@ -82,7 +82,11 @@ webpackConfig.devServer = (devServerConfig) => {
 };
 
 // Wrap with visual edits (automatically adds babel plugin, dev server, and overlay in dev mode)
-if (isDevServer) {
+// NOTE: this plugin is only meaningful inside Emergent's own cloud editor
+// (it powers their "click to edit" overlay). On a normal local machine it
+// serves no purpose and can crash webpack on larger files, so it's now
+// opt-in — set EMERGENT_VISUAL_EDITS=true in your .env to re-enable it.
+if (isDevServer && process.env.EMERGENT_VISUAL_EDITS === "true") {
   try {
     const { withVisualEdits } = require("@emergentbase/visual-edits/craco");
     webpackConfig = withVisualEdits(webpackConfig);

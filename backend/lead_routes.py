@@ -17,15 +17,15 @@ Employee:
 import io
 import random
 import uuid
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile, File, Request
 from pydantic import BaseModel, Field
 
-from lead_models import LeadCreate, LeadUpdate, LeadStatusUpdate, LeadInDB, LeadOut
+from lead_models import LeadCreate, LeadUpdate, LeadStatusUpdate, LeadInDB, LeadOut, CallOutcomeIn, TransferIn
 from auth_utils import get_current_user_payload, require_admin
-from database import leads_collection, users_collection, db
+from database import leads_collection, users_collection, db, reminders_collection
 from notification_service import create_notification
 
 router = APIRouter(prefix="/api/leads", tags=["leads"])
@@ -88,8 +88,21 @@ async def lead_stats(admin: dict = Depends(require_admin)):
 
 @router.get("/my", response_model=list[LeadOut])
 async def my_leads(payload: dict = Depends(get_current_user_payload)):
-    cursor = leads_collection.find({"assigned_to": payload["sub"]}).sort("updated_at", -1)
-    return [to_lead_out(doc) async for doc in cursor]
+    """Leads assigned to the current employee. Leads that have already been
+    called at least once (call_touched) always show. Brand-new, never-called
+    leads are capped to 10 at a time — the 11th only appears once one of the
+    current 10 has been called, so no one can see the whole pile up front."""
+    touched_cursor = leads_collection.find(
+        {"assigned_to": payload["sub"], "call_touched": True}
+    ).sort("updated_at", -1)
+    touched = [doc async for doc in touched_cursor]
+
+    fresh_cursor = leads_collection.find(
+        {"assigned_to": payload["sub"], "call_touched": {"$ne": True}}
+    ).sort("created_at", 1).limit(10)
+    fresh = [doc async for doc in fresh_cursor]
+
+    return [to_lead_out(doc) for doc in touched + fresh]
 
 
 @router.get("/", response_model=list[LeadOut])
@@ -97,6 +110,7 @@ async def list_leads(
     status: Optional[str] = None,
     assigned_to: Optional[str] = None,
     search: Optional[str] = None,
+    pipeline_id: Optional[str] = None,
     limit: int = Query(default=200, le=500),
     admin: dict = Depends(require_admin),
 ):
@@ -105,6 +119,8 @@ async def list_leads(
         query["status"] = status
     if assigned_to:
         query["assigned_to"] = assigned_to
+    if pipeline_id:
+        query["pipeline_id"] = pipeline_id
     if search:
         query["$or"] = [
             {"name": {"$regex": search, "$options": "i"}},
@@ -133,6 +149,15 @@ async def get_career_leads(admin: dict = Depends(require_admin)):
         doc.pop("_id", None)
         leads.append(doc)
     return leads
+
+
+@router.get("/search")
+async def search_all_leads(phone: str = Query(..., min_length=3), payload: dict = Depends(get_current_user_payload)):
+    """Global search by (partial) phone number — any employee can check if a
+    number is already a client before calling, so no one duplicates outreach."""
+    cursor = leads_collection.find({"phone": {"$regex": phone, "$options": "i"}}).limit(20)
+    results = [to_lead_out(doc) async for doc in cursor]
+    return results
 
 
 # NOTE: This catch-all MUST stay below /stats, /my, /website, /career —
@@ -267,6 +292,198 @@ async def update_lead_status(
             )
 
     return {"status": "updated", "new_status": data.status}
+
+
+# ── Employee: full call-flow outcome (the popup after every call) ──
+
+CONNECTED_TERMINAL = {"converted", "lost"}
+NOT_CONNECTED_DIRECT_LOST = {"invalid"}  # invalid number -> lost immediately, no retries
+MAX_ATTEMPTS = 3
+
+
+@router.post("/{lead_id}/call-outcome")
+async def submit_call_outcome(
+    lead_id: str, data: CallOutcomeIn, payload: dict = Depends(get_current_user_payload)
+):
+    """Saves the result of the Connected/Not-Connected decision tree shown
+    right after an employee finishes a call, and drives what happens next:
+    reminders, 3-attempt auto-lost, and service-expiry reminders."""
+    doc = await leads_collection.find_one({"id": lead_id})
+    if not doc:
+        raise HTTPException(status_code=404, detail="Lead not found")
+    if payload["role"] != "admin" and doc.get("assigned_to") != payload["sub"]:
+        raise HTTPException(status_code=403, detail="Lead not assigned to you")
+
+    now = datetime.now(timezone.utc)
+    now_iso = now.isoformat()
+    updates = {
+        "connection_status": data.connection_status,
+        "last_call_at": now_iso,
+        "updated_at": now_iso,
+        "call_touched": True,
+    }
+    history_entry = {"connection_status": data.connection_status, "sub_stage": data.sub_stage, "date": now_iso, "by": payload["sub"]}
+    if data.notes:
+        history_entry["note"] = data.notes
+
+    reminder_to_create = None  # (type, due_at, title, body)
+
+    if data.connection_status == "connected":
+        if data.sub_stage == "interested":
+            updates["status"] = "interested"
+            updates["call_attempts"] = 0
+            if data.service_interest:
+                updates["service_interest"] = data.service_interest
+            if data.notes:
+                updates["notes"] = data.notes
+            if data.follow_up_date:
+                updates["follow_up_date"] = data.follow_up_date
+                due_dt = _combine_date_time(data.follow_up_date, data.follow_up_time)
+                reminder_to_create = ("lead_follow_up", due_dt, "Follow-up Due", f"Time to follow up with {doc['name']} ({doc['phone']})")
+
+        elif data.sub_stage == "not_interested":
+            new_attempts = int(doc.get("call_attempts", 0)) + 1
+            updates["call_attempts"] = new_attempts
+            if new_attempts >= MAX_ATTEMPTS:
+                updates["status"] = "lost"
+            else:
+                updates["status"] = "follow_up"
+                due_dt = now + timedelta(days=1)
+                reminder_to_create = ("lead_retry", due_dt, "Retry Call", f"{doc['name']} wasn't interested last time — try again today")
+
+        elif data.sub_stage == "converted":
+            updates["status"] = "converted"
+            updates["call_attempts"] = 0
+            if data.service_interest:
+                updates["service_interest"] = data.service_interest
+            if data.code_name:
+                updates["code_name"] = data.code_name
+            if data.service_duration_months:
+                updates["service_duration_months"] = data.service_duration_months
+                expiry = now + timedelta(days=30 * data.service_duration_months)
+                updates["service_expires_at"] = expiry.date().isoformat()
+                reminder_due = expiry - timedelta(days=3)
+                reminder_to_create = ("service_expiry", reminder_due, "Service Expiring Soon", f"{doc['name']}'s service ends in 3 days — reach out to renew")
+
+        elif data.sub_stage == "lost":
+            updates["status"] = "lost"
+
+    else:  # not_connected
+        new_attempts = int(doc.get("call_attempts", 0)) + 1
+        updates["call_attempts"] = new_attempts
+        if data.sub_stage in NOT_CONNECTED_DIRECT_LOST:
+            updates["status"] = "lost"
+        elif new_attempts >= MAX_ATTEMPTS:
+            updates["status"] = "lost"
+        else:
+            updates["status"] = "follow_up"
+            due_dt = now + timedelta(days=1)
+            reminder_to_create = ("lead_retry", due_dt, "Retry Call", f"Couldn't reach {doc['name']} — try again today")
+
+    await leads_collection.update_one(
+        {"id": lead_id},
+        {"$set": updates, "$push": {"status_history": history_entry}},
+    )
+
+    if reminder_to_create:
+        rtype, due_dt, title, body = reminder_to_create
+        await reminders_collection.insert_one({
+            "id": str(uuid.uuid4()),
+            "user_id": doc.get("assigned_to") or payload["sub"],
+            "lead_id": lead_id,
+            "type": rtype,
+            "title": title,
+            "body": body,
+            "next_send_at": due_dt if isinstance(due_dt, datetime) else due_dt,
+            "active": True,
+            "created_at": now_iso,
+        })
+
+    # If the lead just hit auto-lost after 3 attempts, flag admin so they can reassign
+    if updates.get("status") == "lost" and int(doc.get("call_attempts", 0)) + 1 >= MAX_ATTEMPTS:
+        admins = users_collection.find({"role": "admin"})
+        async for adm in admins:
+            await create_notification(
+                user_id=adm["id"],
+                title=f"Lead needs attention: {doc['name']}",
+                body="3 attempts with no result — consider reassigning this lead.",
+                n_type="lead",
+                link="/portal/admin/leads",
+            )
+
+    return {"status": "saved", "new_status": updates.get("status"), "call_attempts": updates.get("call_attempts", doc.get("call_attempts", 0))}
+
+
+def _combine_date_time(date_str: str, time_str: Optional[str]) -> datetime:
+    t = time_str or "09:00"
+    try:
+        return datetime.fromisoformat(f"{date_str}T{t}:00")
+    except Exception:
+        return datetime.now(timezone.utc) + timedelta(days=1)
+
+
+# ── Transfer a lead to another employee ─────────────────────────
+
+@router.post("/{lead_id}/transfer")
+async def transfer_lead(
+    lead_id: str, data: TransferIn, payload: dict = Depends(get_current_user_payload)
+):
+    doc = await leads_collection.find_one({"id": lead_id})
+    if not doc:
+        raise HTTPException(status_code=404, detail="Lead not found")
+    if payload["role"] != "admin" and doc.get("assigned_to") != payload["sub"]:
+        raise HTTPException(status_code=403, detail="Lead not assigned to you")
+
+    new_emp = await users_collection.find_one({"id": data.to_employee_id})
+    if not new_emp:
+        raise HTTPException(status_code=404, detail="Employee not found")
+
+    now_iso = datetime.now(timezone.utc).isoformat()
+    transfer_entry = {
+        "from": doc.get("assigned_to"),
+        "from_name": doc.get("assigned_to_name"),
+        "to": data.to_employee_id,
+        "to_name": new_emp.get("name"),
+        "note": data.reference_note,
+        "at": now_iso,
+    }
+
+    await leads_collection.update_one(
+        {"id": lead_id},
+        {
+            "$set": {
+                "assigned_to": data.to_employee_id,
+                "assigned_to_name": new_emp.get("name"),
+                "call_attempts": 0,
+                "updated_at": now_iso,
+            },
+            "$push": {"transfer_history": transfer_entry},
+        },
+    )
+
+    await create_notification(
+        user_id=data.to_employee_id,
+        title="Lead Transferred to You",
+        body=f"{doc['name']} ({doc['phone']}) — {data.reference_note or 'no note'}",
+        n_type="lead",
+        link="/portal/employee/leads",
+    )
+    return {"status": "transferred", "to_name": new_emp.get("name")}
+
+
+# ── Employee: add a lead themselves ─────────────────────────────
+
+@router.post("/my", response_model=LeadOut)
+async def create_my_lead(data: LeadCreate, payload: dict = Depends(get_current_user_payload)):
+    """Any employee can add a lead directly (referrals, walk-ins, etc.) — it's
+    auto-assigned to them."""
+    user = await users_collection.find_one({"id": payload["sub"]})
+    lead = LeadInDB(**data.model_dump())
+    lead.assigned_to = payload["sub"]
+    lead.assigned_to_name = user.get("name") if user else None
+    lead.source = data.source or "employee_added"
+    await leads_collection.insert_one(lead.model_dump())
+    return to_lead_out(lead.model_dump())
 
 
 # ── Excel Import ─────────────────────────────────────────────────

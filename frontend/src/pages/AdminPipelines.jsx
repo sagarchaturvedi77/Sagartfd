@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo } from "react";
+import React, { useState, useEffect, useCallback, useMemo, memo } from "react";
 import PortalLayout from "../components/PortalLayout";
 import { useAuth } from "../context/AuthContext";
 import { Plus, X, Trash2, Users, Pencil, PhoneCall, PhoneOff, ChevronRight, GripVertical } from "lucide-react";
@@ -307,81 +307,60 @@ function StageColumn({ title, icon, accent, stages, setStages }) {
 /* ============================================================
    STAGE NODE — recursive: name, color, children, add/remove
    ============================================================ */
-function StageNode({ stage, depth, onChange, onRemove }) {
+const StageNode = memo(function StageNode({ stage, depth, onChange, onRemove }) {
+  console.log("Rendering stage:", stage.id, "at depth:", depth);
   const [showColors, setShowColors] = useState(false);
 
   const addChild = () => {
-    onChange({ ...stage, children: [...(stage.children || []), { ...emptyStage(), parent_id: stage.id }] });
+    onChange({ 
+      ...stage, 
+      children: [...(stage.children || []), { ...emptyStage(), parent_id: stage.id }] 
+    });
   };
+
   const updateChild = (i, updated) => {
     const children = [...(stage.children || [])];
     children[i] = updated;
     onChange({ ...stage, children });
   };
+
   const removeChild = (i) => {
     onChange({ ...stage, children: (stage.children || []).filter((_, idx) => idx !== i) });
   };
 
   return (
     <div style={{ marginLeft: depth ? 16 : 0 }} className={depth ? "border-l-2 border-[#E2D8C2] pl-3" : ""}>
-      <div className="flex items-center gap-1.5 bg-white border border-[#E2D8C2] rounded-lg px-2 py-1.5">
+      <div className="flex items-center gap-1.5 bg-white border border-[#E2D8C2] rounded-lg px-2 py-1.5 mb-2">
         <GripVertical size={13} className="text-[#2A364B]/25 shrink-0" />
-
-        <div className="relative shrink-0">
-          <button
-            type="button"
-            onClick={() => setShowColors((v) => !v)}
-            className="w-4 h-4 rounded-full border border-black/10"
-            style={{ background: stage.color || COLORS[0] }}
-            title="Change colour"
-          />
-          {showColors && (
-            <div className="absolute z-20 top-6 left-0 bg-white border border-[#E2D8C2] rounded-lg shadow-lg p-2 flex gap-1.5">
-              {COLORS.map((c) => (
-                <button
-                  key={c}
-                  type="button"
-                  onClick={() => { onChange({ ...stage, color: c }); setShowColors(false); }}
-                  className="w-5 h-5 rounded-full border border-black/10"
-                  style={{ background: c }}
-                />
-              ))}
-            </div>
-          )}
-        </div>
-
-        <input
-          value={stage.name}
-          onChange={(e) => onChange({ ...stage, name: e.target.value })}
-          placeholder="Stage name"
-          className="flex-1 min-w-0 text-[13px] outline-none bg-transparent text-[#0E1B2C]"
-        />
-
-        <button type="button" onClick={addChild} title="Add sub-stage" className="text-[11px] text-[#2A364B]/50 hover:text-[#024396] px-1.5 py-1 shrink-0 inline-flex items-center gap-0.5">
-          <ChevronRight size={12} /> sub-stage
-        </button>
-        <button type="button" onClick={onRemove} title="Remove stage" className="p-1 text-[#2A364B]/40 hover:text-[#C7102E] shrink-0">
-          <X size={14} />
-        </button>
+        <button type="button" onClick={() => setShowColors(!showColors)} className="w-4 h-4 rounded-full border border-black/10 shrink-0" style={{ background: stage.color || COLORS[0] }} />
+        {showColors && (
+          <div className="absolute z-20 bg-white border border-[#E2D8C2] rounded-lg shadow-lg p-2 flex gap-1.5">
+            {COLORS.map((c) => (
+              <button key={c} type="button" onClick={() => { onChange({ ...stage, color: c }); setShowColors(false); }} className="w-5 h-5 rounded-full" style={{ background: c }} />
+            ))}
+          </div>
+        )}
+        <input value={stage.name} onChange={(e) => onChange({ ...stage, name: e.target.value })} placeholder="Stage name" className="flex-1 min-w-0 text-[13px] outline-none bg-transparent" />
+        <button type="button" onClick={addChild} className="text-[11px] text-[#2A364B]/50 hover:text-[#024396] px-1.5 inline-flex items-center"><ChevronRight size={12} /> sub-stage</button>
+        <button type="button" onClick={onRemove} className="text-[#2A364B]/40 hover:text-[#C7102E]"><X size={14} /></button>
       </div>
-
-      {(stage.children || []).length > 0 && (
+     {/* Recursion ko break karne ke liye niche wala code use karein */}
+      {stage.children && stage.children.length > 0 && depth < 15 && (
         <div className="mt-2 space-y-2">
           {stage.children.map((child, i) => (
-            <StageNode
-              key={child.id}
-              stage={child}
-              depth={depth + 1}
-              onChange={(updated) => updateChild(i, updated)}
-              onRemove={() => removeChild(i)}
-            />
+             <StageNode 
+                key={child.id || i} 
+                stage={child} 
+                depth={depth + 1} 
+                onChange={(upd) => updateChild(i, upd)} 
+                onRemove={() => removeChild(i)} 
+             />
           ))}
         </div>
       )}
     </div>
   );
-}
-
+});
 /* ============================================================
    ASSIGN MODAL
    ============================================================ */

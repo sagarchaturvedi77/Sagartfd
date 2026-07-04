@@ -33,6 +33,7 @@ db = client[DB_NAME]
 attendance = db.get_collection("attendance")
 fcm_tokens = db.get_collection("fcm_tokens")
 reminders = db.get_collection("reminders")
+leads = db.get_collection("leads")
 
 # initialize firebase admin if available
 if init_firebase_from_env:
@@ -96,24 +97,66 @@ def process_due_reminders():
     due = list(reminders.find({"active": True, "next_send_at": {"$lte": now}}))
     LOG.info("Found %s due reminders", len(due))
     for r in due:
+        rtype = r.get("type", "punch_out")
         uid = r.get("user_id")
-        interval = int(r.get("interval_minutes") or 60)
-        sent_any = False
         tokens = list(fcm_tokens.find({"user_id": uid}))
-        for t in tokens:
-            token = t.get("token")
-            if not token:
-                continue
-            ok = send_fcm_token(token, "Punch Out Reminder", "Kripya ab punch out karein — abhi pending hai.", {"screen": "attendance"})
-            sent_any = sent_any or ok
-        # schedule next
-        next_send = datetime.utcnow() + timedelta(minutes=interval)
-        reminders.update_one({"_id": r["_id"]}, {"$set": {"next_send_at": next_send}})
-        # check if user already punched out today, disable if so
-        date_str = datetime.utcnow().astimezone(pytz.timezone(APP_TZ)).strftime("%Y-%m-%d")
-        open_today = attendance.find_one({"employee_id": uid, "date": date_str, "clock_out": None})
-        if not open_today:
+
+        if rtype == "punch_out":
+            interval = int(r.get("interval_minutes") or 60)
+            for t in tokens:
+                token = t.get("token")
+                if token:
+                    send_fcm_token(token, "Punch Out Reminder", "Kripya ab punch out karein — abhi pending hai.", {"screen": "attendance"})
+            next_send = datetime.utcnow() + timedelta(minutes=interval)
+            reminders.update_one({"_id": r["_id"]}, {"$set": {"next_send_at": next_send}})
+            date_str = datetime.utcnow().astimezone(pytz.timezone(APP_TZ)).strftime("%Y-%m-%d")
+            open_today = attendance.find_one({"employee_id": uid, "date": date_str, "clock_out": None})
+            if not open_today:
+                reminders.update_one({"_id": r["_id"]}, {"$set": {"active": False}})
+
+        elif rtype in ("lead_follow_up", "lead_retry", "service_expiry", "lead_inactivity"):
+            # single-shot lead reminders — send once, then deactivate
+            title = r.get("title", "Lead Reminder")
+            body = r.get("body", "You have a pending lead follow-up.")
+            for t in tokens:
+                token = t.get("token")
+                if token:
+                    send_fcm_token(token, title, body, {"screen": "leads", "lead_id": r.get("lead_id", "")})
             reminders.update_one({"_id": r["_id"]}, {"$set": {"active": False}})
+
+        else:
+            # unknown type — deactivate so it doesn't loop forever
+            reminders.update_one({"_id": r["_id"]}, {"$set": {"active": False}})
+
+
+def check_lead_inactivity():
+    """Once a day: any open lead (not converted/lost) whose status hasn't
+    moved in 5+ days gets a nudge reminder to whoever owns it."""
+    cutoff = (datetime.utcnow() - timedelta(days=5)).isoformat()
+    stale = list(leads.find({
+        "status": {"$nin": ["converted", "lost"]},
+        "updated_at": {"$lt": cutoff},
+        "assigned_to": {"$ne": None},
+    }))
+    LOG.info("Found %s inactive leads (5+ days untouched)", len(stale))
+    for lead in stale:
+        uid = lead.get("assigned_to")
+        if not uid:
+            continue
+        reminders.update_one(
+            {"lead_id": lead["id"], "type": "lead_inactivity"},
+            {"$set": {
+                "user_id": uid,
+                "lead_id": lead["id"],
+                "type": "lead_inactivity",
+                "title": "Lead Needs Attention",
+                "body": f"{lead.get('name', 'This lead')} hasn't been updated in 5+ days.",
+                "active": True,
+                "next_send_at": datetime.utcnow(),
+                "created_at": datetime.utcnow(),
+            }},
+            upsert=True,
+        )
 
 
 def run_loop():
@@ -127,6 +170,7 @@ def run_loop():
             if now_local.hour == DAILY_HOUR and (last_daily_date is None or last_daily_date < now_local.date()):
                 LOG.info("Running daily open-shifts check at %s", now_local.isoformat())
                 notify_open_shifts()
+                check_lead_inactivity()
                 last_daily_date = now_local.date()
             # process reminders
             process_due_reminders()
