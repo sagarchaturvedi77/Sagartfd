@@ -45,6 +45,7 @@ class CallOutcomeIn(BaseModel):
     follow_up_date: Optional[str] = None        # "YYYY-MM-DD"
     follow_up_time: Optional[str] = None        # "HH:MM"
     referred_by_lead_id: Optional[str] = None   # if this client was referred by another existing client
+    pipeline_stage_id: Optional[str] = None     # if the employee's pipeline has custom stages, which one they picked
 
 
 class TransferIn(BaseModel):

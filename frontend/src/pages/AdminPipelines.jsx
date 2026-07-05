@@ -1,11 +1,29 @@
 import React, { useState, useEffect, useCallback, useMemo, memo } from "react";
+import { useNavigate } from "react-router-dom";
 import PortalLayout from "../components/PortalLayout";
 import { useAuth } from "../context/AuthContext";
-import { Plus, X, Trash2, Users, Pencil, PhoneCall, PhoneOff, ChevronRight, GripVertical } from "lucide-react";
+import { Plus, X, Trash2, Users, Pencil, PhoneCall, PhoneOff, ChevronRight, GripVertical, LayoutGrid } from "lucide-react";
 
 const API_BASE = process.env.REACT_APP_BACKEND_URL || "";
 
 const COLORS = ["#024396", "#16a34a", "#C7102E", "#B8862B", "#7c3aed", "#0891b2", "#5C677D"];
+
+// What each custom stage means to the call-flow engine (drives reminders,
+// 3-attempt auto-lost, etc). Optional — leave blank for a purely organisational stage.
+const CONNECTED_OUTCOME_TYPES = [
+  { value: "", label: "— none —" },
+  { value: "interested", label: "Interested" },
+  { value: "not_interested", label: "Not Interested" },
+  { value: "converted", label: "Converted" },
+  { value: "lost", label: "Lost" },
+];
+const NOT_CONNECTED_OUTCOME_TYPES = [
+  { value: "", label: "— none —" },
+  { value: "npc", label: "No Response" },
+  { value: "switchoff", label: "Switched Off" },
+  { value: "invalid", label: "Invalid Number" },
+  { value: "network_issue", label: "Network Issue" },
+];
 
 const emptyStage = () => ({
   id: crypto.randomUUID ? crypto.randomUUID() : `s_${Date.now()}_${Math.random().toString(16).slice(2)}`,
@@ -22,6 +40,7 @@ const btnGhost = "text-[#2A364B] text-sm font-medium px-4 py-2.5 rounded-xl hove
 
 export default function AdminPipelines() {
   const { token } = useAuth();
+  const navigate = useNavigate();
   const headers = useMemo(
     () => ({ Authorization: `Bearer ${token}`, "Content-Type": "application/json" }),
     [token]
@@ -71,6 +90,7 @@ export default function AdminPipelines() {
           <h2 className="text-xl font-serif text-[#0E1B2C]">Lead Pipelines</h2>
           <p className="text-xs text-[#2A364B]/50 mt-0.5">
             Build call-flow pipelines for your team — separate paths for calls that connect and calls that don't.
+            Leads are auto-attached to whichever pipeline their employee is assigned.
           </p>
         </div>
         <button className={btnPrimary} onClick={() => setEditingPipeline({})}>
@@ -125,11 +145,14 @@ export default function AdminPipelines() {
               </div>
 
               <div className="mt-auto flex items-center gap-2 pt-3 border-t border-[#E2D8C2]">
-                <button onClick={() => setEditingPipeline(p)} className="flex-1 inline-flex items-center justify-center gap-1.5 text-xs font-medium text-[#024396] bg-[#024396]/5 hover:bg-[#024396]/10 rounded-lg py-2">
-                  <Pencil size={13} /> Manage Stages
+                <button onClick={() => navigate(`/portal/admin/pipelines/${p.id}/board`)} className="flex-1 inline-flex items-center justify-center gap-1.5 text-xs font-medium text-white bg-[#024396] hover:bg-[#023580] rounded-lg py-2">
+                  <LayoutGrid size={13} /> View Board
                 </button>
-                <button onClick={() => setAssigningPipeline(p)} className="flex-1 inline-flex items-center justify-center gap-1.5 text-xs font-medium text-[#2A364B] bg-[#2A364B]/5 hover:bg-[#2A364B]/10 rounded-lg py-2">
-                  <Users size={13} /> Assign
+                <button onClick={() => setEditingPipeline(p)} title="Manage Stages" className="p-2 text-[#024396] bg-[#024396]/5 hover:bg-[#024396]/10 rounded-lg">
+                  <Pencil size={13} />
+                </button>
+                <button onClick={() => setAssigningPipeline(p)} title="Assign" className="p-2 text-[#2A364B] bg-[#2A364B]/5 hover:bg-[#2A364B]/10 rounded-lg">
+                  <Users size={13} />
                 </button>
                 <button onClick={() => handleDelete(p)} title="Delete" className="p-2 text-[#C7102E]/70 hover:text-[#C7102E] hover:bg-[#C7102E]/10 rounded-lg">
                   <Trash2 size={15} />
@@ -219,6 +242,7 @@ function PipelineModal({ pipeline, onClose, onSaved, headers, saving, setSaving 
 
           <p className="text-xs text-[#2A364B]/50 -mt-2">
             Build two call-outcome flows below. Each stage can have sub-stages — click <span className="font-medium">+ sub-stage</span> to nest one.
+            The small dropdown on each stage tells the call popup what it means (Interested, Lost, etc) — leave it blank for a purely organisational stage.
           </p>
 
           <div className="grid md:grid-cols-2 gap-6">
@@ -228,6 +252,7 @@ function PipelineModal({ pipeline, onClose, onSaved, headers, saving, setSaving 
               accent="#16a34a"
               stages={connected}
               setStages={setConnected}
+              outcomeOptions={CONNECTED_OUTCOME_TYPES}
             />
             <StageColumn
               title="Call Not Connected"
@@ -235,6 +260,7 @@ function PipelineModal({ pipeline, onClose, onSaved, headers, saving, setSaving 
               accent="#C7102E"
               stages={notConnected}
               setStages={setNotConnected}
+              outcomeOptions={NOT_CONNECTED_OUTCOME_TYPES}
             />
           </div>
 
@@ -263,7 +289,7 @@ function stripEmpty(stages) {
 /* ============================================================
    STAGE COLUMN — top-level "+ Add Stage" + recursive stage list
    ============================================================ */
-function StageColumn({ title, icon, accent, stages, setStages }) {
+function StageColumn({ title, icon, accent, stages, setStages, outcomeOptions }) {
   const addStage = () => setStages([...stages, emptyStage()]);
 
   return (
@@ -283,6 +309,7 @@ function StageColumn({ title, icon, accent, stages, setStages }) {
             key={stage.id}
             stage={stage}
             depth={0}
+            outcomeOptions={outcomeOptions}
             onChange={(updated) => {
               const next = [...stages];
               next[idx] = updated;
@@ -305,16 +332,15 @@ function StageColumn({ title, icon, accent, stages, setStages }) {
 }
 
 /* ============================================================
-   STAGE NODE — recursive: name, color, children, add/remove
+   STAGE NODE — recursive: name, color, outcome tag, children, add/remove
    ============================================================ */
-const StageNode = memo(function StageNode({ stage, depth, onChange, onRemove }) {
-  console.log("Rendering stage:", stage.id, "at depth:", depth);
+const StageNode = memo(function StageNode({ stage, depth, outcomeOptions, onChange, onRemove }) {
   const [showColors, setShowColors] = useState(false);
 
   const addChild = () => {
-    onChange({ 
-      ...stage, 
-      children: [...(stage.children || []), { ...emptyStage(), parent_id: stage.id }] 
+    onChange({
+      ...stage,
+      children: [...(stage.children || []), { ...emptyStage(), parent_id: stage.id }],
     });
   };
 
@@ -330,37 +356,76 @@ const StageNode = memo(function StageNode({ stage, depth, onChange, onRemove }) 
 
   return (
     <div style={{ marginLeft: depth ? 16 : 0 }} className={depth ? "border-l-2 border-[#E2D8C2] pl-3" : ""}>
-      <div className="flex items-center gap-1.5 bg-white border border-[#E2D8C2] rounded-lg px-2 py-1.5 mb-2">
+      <div className="flex items-center gap-1.5 bg-white border border-[#E2D8C2] rounded-lg px-2 py-1.5 mb-2 flex-wrap">
         <GripVertical size={13} className="text-[#2A364B]/25 shrink-0" />
-        <button type="button" onClick={() => setShowColors(!showColors)} className="w-4 h-4 rounded-full border border-black/10 shrink-0" style={{ background: stage.color || COLORS[0] }} />
-        {showColors && (
-          <div className="absolute z-20 bg-white border border-[#E2D8C2] rounded-lg shadow-lg p-2 flex gap-1.5">
-            {COLORS.map((c) => (
-              <button key={c} type="button" onClick={() => { onChange({ ...stage, color: c }); setShowColors(false); }} className="w-5 h-5 rounded-full" style={{ background: c }} />
-            ))}
-          </div>
-        )}
-        <input value={stage.name} onChange={(e) => onChange({ ...stage, name: e.target.value })} placeholder="Stage name" className="flex-1 min-w-0 text-[13px] outline-none bg-transparent" />
-        <button type="button" onClick={addChild} className="text-[11px] text-[#2A364B]/50 hover:text-[#024396] px-1.5 inline-flex items-center"><ChevronRight size={12} /> sub-stage</button>
-        <button type="button" onClick={onRemove} className="text-[#2A364B]/40 hover:text-[#C7102E]"><X size={14} /></button>
+
+        <div className="relative shrink-0">
+          <button
+            type="button"
+            onClick={() => setShowColors((v) => !v)}
+            className="w-4 h-4 rounded-full border border-black/10"
+            style={{ background: stage.color || COLORS[0] }}
+            title="Change colour"
+          />
+          {showColors && (
+            <div className="absolute z-20 top-6 left-0 bg-white border border-[#E2D8C2] rounded-lg shadow-lg p-2 flex gap-1.5">
+              {COLORS.map((c) => (
+                <button
+                  key={c}
+                  type="button"
+                  onClick={() => { onChange({ ...stage, color: c }); setShowColors(false); }}
+                  className="w-5 h-5 rounded-full border border-black/10"
+                  style={{ background: c }}
+                />
+              ))}
+            </div>
+          )}
+        </div>
+
+        <input
+          value={stage.name}
+          onChange={(e) => onChange({ ...stage, name: e.target.value })}
+          placeholder="Stage name"
+          className="flex-1 min-w-[90px] text-[13px] outline-none bg-transparent text-[#0E1B2C]"
+        />
+
+        <select
+          value={stage.outcome_type || ""}
+          onChange={(e) => onChange({ ...stage, outcome_type: e.target.value || null })}
+          className="text-[11px] border border-[#E2D8C2] rounded-md px-1.5 py-1 bg-white text-[#2A364B] shrink-0"
+          title="What this stage means to the call-flow engine"
+        >
+          {outcomeOptions.map((o) => (
+            <option key={o.value} value={o.value}>{o.label}</option>
+          ))}
+        </select>
+
+        <button type="button" onClick={addChild} title="Add sub-stage" className="text-[11px] text-[#2A364B]/50 hover:text-[#024396] px-1.5 py-1 shrink-0 inline-flex items-center gap-0.5">
+          <ChevronRight size={12} /> sub-stage
+        </button>
+        <button type="button" onClick={onRemove} title="Remove stage" className="p-1 text-[#2A364B]/40 hover:text-[#C7102E] shrink-0">
+          <X size={14} />
+        </button>
       </div>
-     {/* Recursion ko break karne ke liye niche wala code use karein */}
+
       {stage.children && stage.children.length > 0 && depth < 15 && (
         <div className="mt-2 space-y-2">
           {stage.children.map((child, i) => (
-             <StageNode 
-                key={child.id || i} 
-                stage={child} 
-                depth={depth + 1} 
-                onChange={(upd) => updateChild(i, upd)} 
-                onRemove={() => removeChild(i)} 
-             />
+            <StageNode
+              key={child.id || i}
+              stage={child}
+              depth={depth + 1}
+              outcomeOptions={outcomeOptions}
+              onChange={(updated) => updateChild(i, updated)}
+              onRemove={() => removeChild(i)}
+            />
           ))}
         </div>
       )}
     </div>
   );
 });
+
 /* ============================================================
    ASSIGN MODAL
    ============================================================ */
@@ -388,7 +453,7 @@ function AssignModal({ pipeline, employees, onClose, onSaved, headers }) {
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm px-4">
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6 max-h-[90vh] overflow-y-auto">
         <h3 className="font-serif text-lg text-[#0E1B2C] mb-1">Assign — {pipeline.name}</h3>
-        <p className="text-xs text-[#2A364B]/50 mb-4">Select who should follow this pipeline for their leads.</p>
+        <p className="text-xs text-[#2A364B]/50 mb-4">Select who should follow this pipeline for their leads. Their new/reassigned leads will automatically use these stages.</p>
 
         <div className="space-y-1.5 max-h-72 overflow-y-auto mb-5">
           {employees.length === 0 && <p className="text-sm text-[#2A364B]/40">No employees found.</p>}

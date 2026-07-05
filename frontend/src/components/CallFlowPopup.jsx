@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { PhoneCall, PhoneOff, X, CheckCircle2, XCircle, Trophy, Clock, PhoneMissed, PhoneOff as SwitchOffIcon, Ban, WifiOff } from "lucide-react";
 
 const API_BASE = process.env.REACT_APP_BACKEND_URL || "";
@@ -21,9 +21,36 @@ const NOT_CONNECTED_OPTIONS = [
   { key: "network_issue", label: "Network Issue", icon: WifiOff, color: "#0891b2", bg: "#E3F4F7" },
 ];
 
+const ICON_BY_OUTCOME = {
+  interested: CheckCircle2, not_interested: XCircle, converted: Trophy, lost: XCircle,
+  npc: PhoneMissed, switchoff: SwitchOffIcon, invalid: Ban, network_issue: WifiOff,
+};
+
+// Flatten a nested custom-stage tree into a flat list of pickable options,
+// carrying along whatever outcome_type the admin tagged it with (falls back
+// to a sensible default so the reminder/3-attempt engine still works).
+function flattenCustomStages(stages, fallbackOutcome) {
+  let out = [];
+  for (const s of stages || []) {
+    out.push({
+      key: s.outcome_type || fallbackOutcome,
+      label: s.name,
+      icon: ICON_BY_OUTCOME[s.outcome_type] || ICON_BY_OUTCOME[fallbackOutcome],
+      color: s.color || "#024396",
+      bg: "#F6F1E8",
+      stageId: s.id,
+    });
+    if (s.children?.length) out = out.concat(flattenCustomStages(s.children, fallbackOutcome));
+  }
+  return out;
+}
+
 export default function CallFlowPopup({ lead, token, onClose, onSaved }) {
   const [connectionStatus, setConnectionStatus] = useState(null); // "connected" | "not_connected"
   const [subStage, setSubStage] = useState(null);
+  const [pickedStageId, setPickedStageId] = useState(null);
+  const [pipeline, setPipeline] = useState(null);
+  const [pipelineLoading, setPipelineLoading] = useState(!!lead.pipeline_id);
   const [form, setForm] = useState({
     notes: "", service_interest: "", code_name: "", service_duration_months: "",
     follow_up_date: "", follow_up_time: "",
@@ -33,7 +60,22 @@ export default function CallFlowPopup({ lead, token, onClose, onSaved }) {
 
   const headers = { Authorization: `Bearer ${token}`, "Content-Type": "application/json" };
 
-  const reset = () => { setConnectionStatus(null); setSubStage(null); setResult(null); };
+  useEffect(() => {
+    if (!lead.pipeline_id) { setPipelineLoading(false); return; }
+    fetch(`${API_BASE}/api/pipelines/${lead.pipeline_id}`, { headers })
+      .then((r) => (r.ok ? r.json() : null))
+      .then(setPipeline)
+      .catch(() => {})
+      .finally(() => setPipelineLoading(false));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [lead.pipeline_id]);
+
+  const reset = () => { setConnectionStatus(null); setSubStage(null); setPickedStageId(null); setResult(null); };
+
+  const pickOption = (opt) => {
+    setSubStage(opt.key);
+    setPickedStageId(opt.stageId || null);
+  };
 
   const submit = async () => {
     setSaving(true);
@@ -41,6 +83,7 @@ export default function CallFlowPopup({ lead, token, onClose, onSaved }) {
       const payload = {
         connection_status: connectionStatus,
         sub_stage: subStage,
+        pipeline_stage_id: pickedStageId,
         notes: form.notes || null,
         service_interest: form.service_interest || null,
         code_name: form.code_name || null,
@@ -62,6 +105,13 @@ export default function CallFlowPopup({ lead, token, onClose, onSaved }) {
 
   const finish = () => { onSaved?.(); onClose(); };
 
+  // Prefer the lead's own pipeline stages; fall back to the generic flow
+  // when no pipeline is attached or that branch has no stages defined.
+  const customConnected = flattenCustomStages(pipeline?.connected_stages, "interested");
+  const customNotConnected = flattenCustomStages(pipeline?.not_connected_stages, "npc");
+  const connectedOptions = customConnected.length ? customConnected : CONNECTED_OPTIONS;
+  const notConnectedOptions = customNotConnected.length ? customNotConnected : NOT_CONNECTED_OPTIONS;
+
   return (
     <div className="fixed inset-0 z-[110] flex items-center justify-center bg-black/55 backdrop-blur-sm px-4 py-6">
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md max-h-[92vh] overflow-y-auto">
@@ -74,7 +124,9 @@ export default function CallFlowPopup({ lead, token, onClose, onSaved }) {
         </div>
 
         <div className="p-5">
-          {result ? (
+          {pipelineLoading ? (
+            <p className="text-xs text-[#2A364B]/40 text-center py-10">Loading…</p>
+          ) : result ? (
             <ResultScreen result={result} onDone={finish} />
           ) : !connectionStatus ? (
             <>
@@ -102,13 +154,18 @@ export default function CallFlowPopup({ lead, token, onClose, onSaved }) {
               <p className="text-[13px] text-[#2A364B]/60 mb-4">
                 {connectionStatus === "connected" ? "How did it go?" : "What happened?"}
               </p>
+              {pipeline && (
+                <p className="text-[10.5px] text-[#024396] bg-[#024396]/5 rounded-lg px-2.5 py-1.5 mb-3">
+                  Using stages from: {pipeline.name}
+                </p>
+              )}
               <div className="grid grid-cols-2 gap-2.5">
-                {(connectionStatus === "connected" ? CONNECTED_OPTIONS : NOT_CONNECTED_OPTIONS).map((opt) => {
+                {(connectionStatus === "connected" ? connectedOptions : notConnectedOptions).map((opt, i) => {
                   const Icon = opt.icon;
                   return (
                     <button
-                      key={opt.key}
-                      onClick={() => setSubStage(opt.key)}
+                      key={opt.stageId || opt.key || i}
+                      onClick={() => pickOption(opt)}
                       className="flex flex-col items-center gap-1.5 py-4 rounded-xl border text-center"
                       style={{ background: opt.bg, borderColor: `${opt.color}40` }}
                     >
@@ -121,7 +178,7 @@ export default function CallFlowPopup({ lead, token, onClose, onSaved }) {
             </>
           ) : (
             <>
-              <button onClick={() => setSubStage(null)} className="text-[11.5px] text-[#2A364B]/50 hover:text-[#024396] mb-3">← Back</button>
+              <button onClick={() => { setSubStage(null); setPickedStageId(null); }} className="text-[11.5px] text-[#2A364B]/50 hover:text-[#024396] mb-3">← Back</button>
               <SubStageForm
                 subStage={subStage}
                 form={form}

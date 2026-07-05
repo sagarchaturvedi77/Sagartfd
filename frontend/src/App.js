@@ -40,6 +40,7 @@ import EmployeeIDCard from "./pages/EmployeeIDCard";
 import EmployeeProfile from "./pages/EmployeeProfile";
 import AdminWebsiteContent from "./pages/AdminWebsiteContent";
 import AdminPipelines from "./pages/AdminPipelines";
+import AdminEmployeeProfile from "./pages/AdminEmployeeProfile";
 import AdminChat from "./pages/AdminChat";
 import AdminLeaveManagement from "./pages/AdminLeaveManagement";
 import AdminAccessControl from "./pages/AdminAccessControl";
@@ -168,18 +169,18 @@ function App() {
                   }
                 />
                 <Route
-                  path="/portal/admin/announce"
-                  element={
-                    <ProtectedRoute requiredRole="admin">
-                      <AdminAnnounce />
-                    </ProtectedRoute>
-                  }
-                />
-                <Route
                   path="/portal/admin/pipelines"
                   element={
                     <ProtectedRoute requiredRole="admin">
                       <AdminPipelines />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/portal/admin/employees/:employeeId"
+                  element={
+                    <ProtectedRoute requiredRole="admin">
+                      <AdminEmployeeProfile />
                     </ProtectedRoute>
                   }
                 />

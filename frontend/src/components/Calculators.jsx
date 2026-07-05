@@ -12,15 +12,19 @@ import {
 import { Download, ArrowUpRight, Calculator as CalcIcon, Sparkles, Lightbulb } from "lucide-react";
 import html2canvas from "html2canvas";
 import jsPDF from "jspdf";
-import { QRCodeCanvas } from "qrcode.react";
 import { toast } from "sonner";
 import { IDS } from "@/constants/testIds";
 import { CALC_RECOMMENDATIONS } from "@/lib/recommendations";
 // 🛠️ Step 1: Hook Import bina kisi space ke
 import { useModal } from "../context/ModalContext";
 import { trackEvent } from "./AnalyticsTracker";
+import { QRCodeCanvas } from "qrcode.react";
 
 const TFD_BRAND_URL = "https://www.assetplus.in/mfd/ARN-290298";
+const TFD_WEBSITE_URL = "https://thefinancialdoctor.in/";
+
+
+
 
 const fmtINR = (n) => {
     if (!isFinite(n)) return "₹0";
@@ -365,6 +369,19 @@ const [insuranceInterest, setInsuranceInterest] = useState(() => {
     return null;
 });
 const [showCelebration, setShowCelebration] = useState(false);
+useEffect(() => {
+    if (variant !== "employee" && proposalCount >= 3 && !couponCode && clientInfo.phone) {
+        const newCoupon = generateCouponCode(clientInfo.phone);
+        const nowISO = new Date().toISOString();
+        try {
+            localStorage.setItem("tfd_coupon_code", newCoupon);
+            localStorage.setItem("tfd_coupon_unlock_date", nowISO);
+        } catch { /* ignore */ }
+        setCouponCode(newCoupon);
+        setCouponUnlockDate(nowISO);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+}, [proposalCount, couponCode]);
     const [phoneError, setPhoneError] = useState("");
     const [proposalLang, setProposalLang] = useState("english"); // "english" | "hindi" | "hinglish" — language of the PDF itself
     const [showSharePopup, setShowSharePopup] = useState(false);
@@ -395,21 +412,76 @@ const incrementProposalCount = () => {
     return { newCount, newCoupon, justUnlocked };
 };
 
-const buildShareMessage = (template, client, employee) => {
-        const clientName = client?.name?.trim();
-        const empName = employee?.name || "TFD Team";
-        if (template === "hinglish") {
-            return `Namaste${clientName ? " " + clientName : ""} ji,\n\nAapke liye ek personalised financial proposal taiyar kiya hai *The Financial Doctor* ki taraf se 📊\n\nEk baar dekh lijiye — koi bhi sawaal ho to bejhijhak puchiye.\n\nDhanyawad,\n${empName}\nThe Financial Doctor`;
-        }
-        return `Hi${clientName ? " " + clientName : ""},\n\nHere's your personalised financial proposal from *The Financial Doctor* 📊\n\nTake a look, and feel free to reach out if you have any questions.\n\nRegards,\n${empName}\nThe Financial Doctor`;
-    };
+const calcSummaryLine = (t) => {
+    const labels = { sip: "SIP Calculator", daily: "Daily SIP Calculator", lumpsum: "Lumpsum Calculator", swp: "SWP Calculator", goal: "Goal Planner", emi: "EMI Calculator", tax: "Income Tax Calculator", gst: "GST Calculator", inflation: "Future Goal Calculator" };
+    if (t === "sip") return `${labels.sip} — ₹${sipAmount.toLocaleString("en-IN")}/month @ ${sipRate}% p.a.`;
+    if (t === "daily") return `${labels.daily} — ₹${dailyAmount}/day @ ${dailyRate}% p.a.`;
+    if (t === "lumpsum") return `${labels.lumpsum} — ₹${lump.toLocaleString("en-IN")} @ ${lumpRate}% p.a.`;
+    if (t === "swp") return `${labels.swp} — ₹${swpCorpus.toLocaleString("en-IN")} corpus, ₹${swpMonthly.toLocaleString("en-IN")}/month withdrawal`;
+    if (t === "goal") return `${labels.goal} — Target ₹${goal.toLocaleString("en-IN")} in ${goalYears} yrs @ ${goalRate}% p.a.`;
+    if (t === "emi") return `${labels.emi} — Loan ₹${loan.toLocaleString("en-IN")} @ ${loanRate}% p.a.`;
+    if (t === "gst") return `${labels.gst} — @ ${gstRate}% GST`;
+    if (t === "inflation") return `${labels.inflation} — ₹${inflCost.toLocaleString("en-IN")} today @ ${inflRate}% inflation`;
+    return labels[t] || "";
+};
 
-    useEffect(() => {
-        if (showSharePopup) {
-            setShareMessage(buildShareMessage(msgTemplate, clientInfo, employeeInfo));
+const buildShareMessage = (template, client, employee) => {
+    const clientName = client?.name?.trim();
+    const empName = employee?.name || "TFD Team";
+    const calcLine = calcSummaryLine(tab);
+    if (template === "hinglish") {
+        return `Namaste${clientName ? " " + clientName : ""} ji,\n\nAapke liye ek personalised financial proposal taiyar kiya hai *The Financial Doctor* ki taraf se 📊\n\n📌 ${calcLine}\n\nEk baar dekh lijiye — koi bhi sawaal ho to bejhijhak puchiye.\n\nDhanyawad,\n${empName}\nThe Financial Doctor`;
+    }
+    return `Hi${clientName ? " " + clientName : ""},\n\nHere's your personalised financial proposal from *The Financial Doctor* 📊\n\n📌 ${calcLine}\n\nTake a look, and feel free to reach out if you have any questions.\n\nRegards,\n${empName}\nThe Financial Doctor`;
+};
+function isCanvasActuallyDrawn(canvasEl) {
+    try {
+        const ctx = canvasEl.getContext("2d");
+        const { data } = ctx.getImageData(0, 0, canvasEl.width, canvasEl.height);
+        for (let i = 0; i < data.length; i += 4) {
+            if (data[i] < 240 || data[i + 1] < 240 || data[i + 2] < 240) return true;
         }
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [showSharePopup, msgTemplate]);
+        return false;
+    } catch (e) {
+        console.log("[QR-DEBUG] getImageData error:", e);
+        return false;
+    }
+}
+
+useEffect(() => {
+    console.log("[QR-DEBUG] effect started, wrapper ref:", qrCanvasWrapRef.current);
+    let attempts = 0;
+    const interval = setInterval(() => {
+        attempts++;
+        const wrapper = qrCanvasWrapRef.current;
+        const canvasEl = wrapper ? wrapper.querySelector("canvas") : null;
+        console.log("[QR-DEBUG] attempt", attempts, "wrapper:", !!wrapper, "canvas found:", !!canvasEl, canvasEl ? `${canvasEl.width}x${canvasEl.height}` : "");
+        if (canvasEl) {
+            const drawn = isCanvasActuallyDrawn(canvasEl);
+            console.log("[QR-DEBUG] isDrawn:", drawn);
+            if (drawn) {
+                const url = canvasEl.toDataURL("image/png");
+                console.log("[QR-DEBUG] SUCCESS, url length:", url.length);
+                qrDataUrlRef.current = url;
+                setQrDataUrl(url);
+                clearInterval(interval);
+                return;
+            }
+        }
+        if (attempts >= 25) {
+            console.log("[QR-DEBUG] GAVE UP after 25 attempts");
+            clearInterval(interval);
+        }
+    }, 200);
+    return () => clearInterval(interval);
+}, []);
+
+useEffect(() => {
+    if (showSharePopup) {
+        setShareMessage(buildShareMessage(msgTemplate, clientInfo, employeeInfo));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+}, [showSharePopup, msgTemplate]);
 
     const result = useMemo(() => {
         switch (tab) {
@@ -452,6 +524,9 @@ const buildShareMessage = (template, client, employee) => {
     const snapRef = useRef(null);
 const page1Ref = useRef(null);
 const page2Ref = useRef(null);
+const qrCanvasWrapRef = useRef(null);
+const [qrDataUrl, setQrDataUrl] = useState(null);
+const qrDataUrlRef = useRef(null);
 
     const downloadSnapshot = async () => {
         if (!snapRef.current) return;
@@ -480,7 +555,15 @@ const page2Ref = useRef(null);
     const generateSnapshot = async () => {
     try {
         toast.loading("Generating your proposal…", { id: "snap" });
-        await new Promise((r) => setTimeout(r, 200));
+        // Ensure QR data URL is ready before capturing pages
+        let waitAttempts = 0;
+        while (!qrDataUrlRef.current && waitAttempts < 30) {
+            await new Promise((r) => setTimeout(r, 150));
+            waitAttempts++;
+        }
+        // Give React a moment to flush the re-render with the new QR image
+        // into the actual DOM before html2canvas captures the pages.
+        await new Promise((r) => setTimeout(r, 250));
 
         const pdf = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
         const pageWidth = pdf.internal.pageSize.getWidth();
@@ -490,12 +573,43 @@ const page2Ref = useRef(null);
         let firstDataUrl = null;
 
         for (let i = 0; i < refs.length; i++) {
-            const canvas = await html2canvas(refs[i].current, { backgroundColor: "#ffffff", scale: 1.5, useCORS: true, logging: false });
-            const dataUrl = canvas.toDataURL("image/jpeg", 0.85);
-            if (i === 0) firstDataUrl = dataUrl;
-            if (i > 0) pdf.addPage();
-            pdf.addImage(dataUrl, "JPEG", 0, 0, pageWidth, pageHeight);
-        }
+    const pageEl = refs[i].current;
+    await waitForImagesToLoad(pageEl);
+    const canvas = await html2canvas(pageEl, { backgroundColor: "#ffffff", scale: 2, useCORS: true, logging: false });
+    const dataUrl = canvas.toDataURL("image/jpeg", 0.92);
+    if (i === 0) firstDataUrl = dataUrl;
+    if (i > 0) pdf.addPage();
+    pdf.addImage(dataUrl, "JPEG", 0, 0, pageWidth, pageHeight);
+
+    // Pixel-perfect clickable overlays: read actual DOM position of QR + website link,
+    // convert px -> mm using this page's real rendered width, then place jsPDF link there.
+    const pageRect = pageEl.getBoundingClientRect();
+    const mmPerPx = pageWidth / pageRect.width;
+
+    const qrEl = pageEl.querySelector('[data-pdf-link="qr"]');
+    if (qrEl) {
+        const r = qrEl.getBoundingClientRect();
+        pdf.link(
+            (r.left - pageRect.left) * mmPerPx,
+            (r.top - pageRect.top) * mmPerPx,
+            r.width * mmPerPx,
+            r.height * mmPerPx,
+            { url: TFD_BRAND_URL }
+        );
+    }
+
+    const siteEl = pageEl.querySelector('[data-pdf-link="website"]');
+    if (siteEl) {
+        const r = siteEl.getBoundingClientRect();
+        pdf.link(
+            (r.left - pageRect.left) * mmPerPx,
+            (r.top - pageRect.top) * mmPerPx,
+            r.width * mmPerPx,
+            r.height * mmPerPx,
+            { url: TFD_WEBSITE_URL }
+        );
+    }
+}
 
         const pdfBlob = pdf.output("blob");
         setGeneratedImage({ dataUrl: firstDataUrl, blob: pdfBlob, isPdf: true });
@@ -837,12 +951,16 @@ const page2Ref = useRef(null);
                 </div>
 
                 {/* Hidden snapshot/proposal card for export (PNG for public site, A4 PDF for employee portal) */}
+                <div ref={qrCanvasWrapRef} style={{ position: "fixed", left: -10000, top: 0 }} aria-hidden>
+    <QRCodeCanvas value={TFD_BRAND_URL} size={300} bgColor="#FFFFFF" fgColor="#0E1B2C" level="M" includeMargin={false} />
+</div>
                 <div style={{ position: "fixed", left: -10000, top: 0, zIndex: -1 }} aria-hidden>
     <div data-testid={IDS.calc.snapshot}>
         <ProposalDocument
-            page1Ref={page1Ref}
-            page2Ref={page2Ref}
-            tab={tab}
+    page1Ref={page1Ref}
+    page2Ref={page2Ref}
+    qrDataUrl={qrDataUrl}
+    tab={tab}
             result={result}
             employeeInfo={variant === "employee" ? employeeInfo : TFD_TEAM_INFO}
             clientInfo={clientInfo}
@@ -866,13 +984,18 @@ const page2Ref = useRef(null);
                 {showClientModal && (
                     <div className="fixed inset-0 z-[100] bg-black/50 flex items-center justify-center p-4" onClick={() => setShowClientModal(false)}>
                         <div className="bg-white rounded-2xl p-6 max-w-sm w-full space-y-4" onClick={(e) => e.stopPropagation()}>
-                            <h3 className="font-serif text-lg text-[#0E1B2C]">Your Personalised Proposal is Ready 🎯</h3>
-<p className="text-xs text-[#5C677D] leading-relaxed">
-    Get a detailed report with growth projections, smart charts and money-saving tips — made just for you.<br />
-    <span className="italic">Apna naam aur number daalein, taaki proposal khaas aapke liye ban sake.</span>
-</p>
+                            <h3 className="font-serif text-lg text-[#0E1B2C]">
+    {variant === "employee" ? "Client Details" : "Your Personalised Proposal is Ready 🎯"}
+</h3>
+{variant !== "employee" && (
+    <p className="text-xs text-[#5C677D] leading-relaxed">
+        Get a detailed report with growth projections, smart charts and money-saving tips — made just for you. We'll also save your details so future proposals are just one click away.
+        <br />
+        <span className="italic">Apna naam aur number daalein, taaki proposal khaas aapke liye ban sake — aur agli baar bina dobara details bhare, ek click mein proposal ban jaaye.</span>
+    </p>
+)}
                             <div>
-                                <label className="text-xs text-[#5C677D] block mb-1">Your Name · Aapka Naam</label>
+                                <label className="text-xs text-[#5C677D] block mb-1">{variant === "employee" ? "Client Name" : "Your Name · Aapka Naam"}</label>
 <input
     autoFocus
     value={clientInfo.name}
@@ -882,7 +1005,7 @@ const page2Ref = useRef(null);
 />
                             </div>
                             <div>
-    <label className="text-xs text-[#5C677D] block mb-1">Contact Number · Contact No.</label>
+    <label className="text-xs text-[#5C677D] block mb-1">{variant === "employee" ? "Client Phone (optional)" : "Contact Number · Contact No."}</label>
     <input
         value={clientInfo.phone}
         onChange={(e) => setClientInfo({ ...clientInfo, phone: e.target.value })}
@@ -1338,14 +1461,25 @@ const MF_EDUCATION = {
         "SEBI (regulator) aur AMFI in sab funds ko regulate karte hain, taaki investor ka paisa surakshit rahe — lekin market risk phir bhi rehta hai, returns guaranteed nahi hote.",
     ],
 };
+async function waitForImagesToLoad(containerEl, timeoutMs = 3000) {
+    if (!containerEl) return;
+    const imgs = Array.from(containerEl.querySelectorAll("img"));
+    const start = Date.now();
+    while (Date.now() - start < timeoutMs) {
+        const allLoaded = imgs.every((img) => img.complete && img.naturalWidth > 0);
+        if (allLoaded) return;
+        await new Promise((r) => setTimeout(r, 100));
+    }
+}
 function generateCouponCode(phone) {
     const digits = (phone || "").replace(/\D/g, "").slice(-4) || "0000";
     return `TFDHEALTH${digits}`;
 }
-function isCouponValid(unlockDateStr) {
-    if (!unlockDateStr) return false;
-    const diffDays = (new Date() - new Date(unlockDateStr)) / (1000 * 60 * 60 * 24);
-    return diffDays <= 30;
+function couponExpiryDate(unlockDateStr) {
+    if (!unlockDateStr) return null;
+    const d = new Date(unlockDateStr);
+    d.setDate(d.getDate() + 30);
+    return d.toLocaleDateString("en-IN", { day: "numeric", month: "long", year: "numeric" });
 }
 
 async function trackProposalWithBackend({ name, phone, proposalCount, couponCode }) {
@@ -1501,7 +1635,7 @@ const PROPOSAL_UI = {
         totalInvestedCol: "Total Invested", futureValueCol: "Future Value", extraGain: "Extra Gain",
         yearOnYear: "Year-on-Year Growth", year: "Year", invested: "Invested", value: "Value", outstanding: "Outstanding",
         suggestions: "Suggestions to Boost Your Wealth", footerBrand: "The Financial Doctor · thefinancialdoctor.in",
-        amfiLine: "AMFI Registered Mutual Fund Distributor · ARN-290298", dateLabel: "Date", scanToInvest: "Scan to Invest",
+        amfiLine: "AMFI Registered Mutual Fund Distributor · ARN-290298", dateLabel: "Date", scanToInvest: "Scan to Invest", digitalBadge: "Digital Proposal: Click QR to Invest",
         disclaimer: "This document is an illustrative proposal only and does not constitute investment advice. Mutual fund investments are subject to market risks. Read all scheme-related documents carefully. Future returns are not guaranteed — actual returns may vary. Generated on",
         years: "Years", yrs: "Yrs", plusYears: "Years",
     },  withdrawn: "Withdrawn",
@@ -1514,7 +1648,7 @@ const PROPOSAL_UI = {
         totalInvestedCol: "कुल निवेश", futureValueCol: "भविष्य मूल्य", extraGain: "अतिरिक्त लाभ",
         yearOnYear: "वर्ष-दर-वर्ष वृद्धि", year: "वर्ष", invested: "निवेश", value: "मूल्य", outstanding: "शेष राशि",
         suggestions: "अपनी संपत्ति बढ़ाने के सुझाव", footerBrand: "द फाइनेंशियल डॉक्टर · thefinancialdoctor.in",
-        amfiLine: "एएमएफआई पंजीकृत म्यूचुअल फंड वितरक · ARN-290298", dateLabel: "दिनांक", scanToInvest: "निवेश हेतु स्कैन करें",
+        amfiLine: "एएमएफआई पंजीकृत म्यूचुअल फंड वितरक · ARN-290298", dateLabel: "दिनांक", scanToInvest: "निवेश हेतु स्कैन करें", digitalBadge: "डिजिटल प्रपोजल: सीधे निवेश के लिए QR पर क्लिक करें",
         disclaimer: "यह दस्तावेज़ केवल एक उदाहरणात्मक प्रस्ताव है और निवेश सलाह नहीं है। म्यूचुअल फंड निवेश बाज़ार जोखिमों के अधीन हैं। सभी स्कीम संबंधी दस्तावेज़ ध्यान से पढ़ें। भविष्य के रिटर्न की कोई गारंटी नहीं है — वास्तविक रिटर्न भिन्न हो सकते हैं। तैयार करने की तारीख:",
         years: "वर्ष", yrs: "वर्ष", plusYears: "वर्ष", withdrawn: "निकासी",
     },
@@ -1526,7 +1660,7 @@ const PROPOSAL_UI = {
         totalInvestedCol: "Total Invested", futureValueCol: "Future Value", extraGain: "Extra Gain",
         yearOnYear: "Year-on-Year Growth", year: "Saal", invested: "Invested", value: "Value", outstanding: "Outstanding",
         suggestions: "Apni Wealth Badhane Ke Suggestions", footerBrand: "The Financial Doctor · thefinancialdoctor.in",
-        amfiLine: "AMFI Registered Mutual Fund Distributor · ARN-290298", dateLabel: "Date", scanToInvest: "Invest Karne Ke Liye Scan Karein",
+        amfiLine: "AMFI Registered Mutual Fund Distributor · ARN-290298", dateLabel: "Date", scanToInvest: "Invest Karne Ke Liye Scan Karein", digitalBadge: "Digital Proposal: QR par Click karein aur invest karein",
         disclaimer: "Yeh document sirf ek illustrative proposal hai, investment advice nahi. Mutual fund investments market risks ke adhin hain. Sabhi scheme-related documents dhyan se padhein. Future returns ki guarantee nahi hai — actual returns alag ho sakte hain. Generate hone ki date:",
         years: "Saal", yrs: "Saal", plusYears: "Saal",
     },  withdrawn: "Withdrawn",
@@ -1567,21 +1701,31 @@ function ProposalHeader({ T, genDate, lang }) {
     );
 }
 
-function ProposalFooter({ T, genDate }) {
+function ProposalFooter({ T, genDate, qrDataUrl }) {
     return (
         <div style={{ borderTop: "1px solid #E2D8C2", paddingTop: 10, marginTop: "auto" }}>
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16, marginBottom: 8 }}>
                 <div style={{ flex: 1 }}>
-                    <div style={{ fontSize: 11, fontWeight: 700, color: "#0E1B2C" }}>{T.footerBrand}</div>
+                    <div data-pdf-link="website" style={{ fontSize: 11, fontWeight: 700, color: "#024396", textDecoration: "underline", display: "inline-block" }}>{T.footerBrand} <span style={{ fontSize: 8, color: "#C7102E" }}>👉 One-click visit</span></div>
                     <div style={{ fontSize: 8.5, color: "#5C677D", fontStyle: "italic", marginTop: 4, lineHeight: 1.4 }}>
                         {T.disclaimer} {genDate}.
                     </div>
                 </div>
-                <div style={{ textAlign: "center", flexShrink: 0 }}>
-                    <div style={{ background: "#fff", padding: 4, borderRadius: 8, border: "1px solid #E2D8C2" }}>
-                        <QRCodeCanvas value={TFD_BRAND_URL} size={56} bgColor="#FFFFFF" fgColor="#0E1B2C" level="M" includeMargin={false} />
+                <div style={{ textAlign: "center", flexShrink: 0, width: 74 }}>
+                    <div data-pdf-link="qr" style={{
+                        background: "radial-gradient(circle at 30% 30%, #FFE9A8, #FFD700 40%, #C9A227 75%, #8a6d0f 100%)",
+                        padding: 4, borderRadius: "50%", display: "inline-block",
+                        boxShadow: "0 2px 6px rgba(180,140,0,0.4), inset 0 1px 2px rgba(255,255,255,0.6)",
+                    }}>
+                        <div style={{ background: "#fff", width: 68, height: 68, borderRadius: "50%", border: "2px solid #0E1B2C", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                            {qrDataUrl ? (
+                                <img src={qrDataUrl} alt="QR" style={{ width: 58, height: 58, display: "block" }} />
+                            ) : (
+                                <div style={{ width: 58, height: 58 }} />
+                            )}
+                        </div>
                     </div>
-                    <div style={{ fontSize: 7.5, marginTop: 3, color: "#C7102E", fontWeight: 700, textTransform: "uppercase" }}>{T.scanToInvest}</div>
+                    <div style={{ fontSize: 7.5, marginTop: 4, color: "#C9A227", fontWeight: 800, textTransform: "uppercase", letterSpacing: "0.06em" }}>⭐ {T.scanToInvest} ⭐</div>
                 </div>
             </div>
             <div style={{ textAlign: "center", borderTop: "1px solid #F0EAD8", paddingTop: 6 }}>
@@ -1590,7 +1734,7 @@ function ProposalFooter({ T, genDate }) {
         </div>
     );
 }
-function ProposalDocument({ tab, result, state, employeeInfo = null, clientInfo = null, lang = "english", page1Ref, page2Ref }) {
+function ProposalDocument({ tab, result, state, employeeInfo = null, clientInfo = null, lang = "english", page1Ref, page2Ref, qrDataUrl }) {
     if (!result) return null;
     const T = PROPOSAL_UI[lang] || PROPOSAL_UI.english;
     const labels = {
@@ -1695,20 +1839,41 @@ function ProposalDocument({ tab, result, state, employeeInfo = null, clientInfo 
 
                 <ProposalHeader T={T} genDate={genDate} lang={lang} />
 
-                <h1 style={{ fontFamily: "'Fraunces', serif", fontSize: 20, margin: "0 0 4px" }}>{labels[tab]} {T.suffix}</h1>
-                <p style={{ fontSize: 10, color: "#5C677D", margin: "0 0 14px" }}>{T.subtitle}</p>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 12, marginBottom: 12 }}>
+                    <div style={{ flex: 1 }}>
+                        <h1 style={{ fontFamily: "'Fraunces', serif", fontSize: 20, margin: "0 0 4px" }}>{labels[tab]} {T.suffix}</h1>
+                        <p style={{ fontSize: 10, color: "#5C677D", margin: 0 }}>{T.subtitle}</p>
+                    </div>
+                    <div style={{
+                        background: "linear-gradient(155deg, #1a2440 0%, #0E1B2C 55%, #1a1030 100%)",
+                        border: "2px solid transparent",
+                        backgroundImage: "linear-gradient(155deg, #1a2440 0%, #0E1B2C 55%, #1a1030 100%), linear-gradient(150deg, #FFF9E0, #FFD700 30%, #B8860B 60%, #FFD700 85%, #FFF6D5)",
+                        backgroundOrigin: "border-box", backgroundClip: "padding-box, border-box",
+                        borderRadius: 14, padding: "8px 14px", textAlign: "center",
+                        boxShadow: "0 4px 14px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,215,0,0.15)",
+                        width: 145, flexShrink: 0,
+                    }}>
+                        <div style={{ fontSize: 8.5, color: "#FFD700", fontWeight: 900, letterSpacing: "0.12em", marginBottom: 3 }}>⭐ PREMIUM ⭐</div>
+                        <div style={{ fontFamily: "'Fraunces', serif", fontSize: 11.5, color: "#fff", fontWeight: 800, lineHeight: 1.3 }}>
+                            India's Smartest
+                        </div>
+                        <div style={{ fontSize: 8.5, color: "#FFD700", fontWeight: 700, lineHeight: 1.3, marginTop: 2 }}>{T.digitalBadge}</div>
+                    </div>
+                </div>
 
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 14 }}>
-                    <div style={{ border: "1px solid #E2D8C2", borderRadius: 8, padding: 9, textAlign: "center" }}>
-                        <div style={{ fontSize: 9, textTransform: "uppercase", color: "#024396", fontWeight: 700, marginBottom: 3 }}>{T.preparedFor}</div>
-                        <div style={{ fontSize: 13, fontWeight: 700 }}>{clientInfo?.name || T.valuedClient}</div>
-                        {clientInfo?.phone && <div style={{ fontSize: 10, color: "#5C677D", marginTop: 2 }}>📱 {clientInfo.phone}</div>}
+                <div style={{ marginBottom: 14 }}>
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+                        <div style={{ border: "1px solid #E2D8C2", borderRadius: 8, padding: 9, textAlign: "center" }}>
+                            <div style={{ fontSize: 9, textTransform: "uppercase", color: "#024396", fontWeight: 700, marginBottom: 3 }}>{T.preparedFor}</div>
+                            <div style={{ fontSize: 13, fontWeight: 700 }}>{clientInfo?.name || T.valuedClient}</div>
+                            {clientInfo?.phone && <div style={{ fontSize: 10, color: "#5C677D", marginTop: 2 }}>📱 {clientInfo.phone}</div>}
+                        </div>
+                        <div style={{ border: "1px solid #E2D8C2", borderRadius: 8, padding: 9, textAlign: "center" }}>
+                            <div style={{ fontSize: 9, textTransform: "uppercase", color: "#024396", fontWeight: 700, marginBottom: 3 }}>{T.preparedBy}</div>
+                            <div style={{ fontSize: 13, fontWeight: 700 }}>{employeeInfo?.name || "The Financial Doctor"}</div>
+                            {employeeInfo?.phone && <div style={{ fontSize: 10, color: "#5C677D", marginTop: 2 }}>📱 {employeeInfo.phone}</div>}
                     </div>
-                    <div style={{ border: "1px solid #E2D8C2", borderRadius: 8, padding: 9, textAlign: "center" }}>
-                        <div style={{ fontSize: 9, textTransform: "uppercase", color: "#024396", fontWeight: 700, marginBottom: 3 }}>{T.preparedBy}</div>
-                        <div style={{ fontSize: 13, fontWeight: 700 }}>{employeeInfo?.name || "The Financial Doctor"}</div>
-                        {employeeInfo?.phone && <div style={{ fontSize: 10, color: "#5C677D", marginTop: 2 }}>📱 {employeeInfo.phone}</div>}
-                    </div>
+                </div>
                 </div>
 
                 <table style={{ width: "100%", borderCollapse: "collapse", marginBottom: 6 }}>
@@ -1738,8 +1903,6 @@ function ProposalDocument({ tab, result, state, employeeInfo = null, clientInfo 
                         </div>
                     </div>
                 )}
-
-        )}
 
                 {tab === "emi" && result.interestFreeSip > 0 && (
                     <div style={{ marginBottom: 14 }}>
@@ -1797,7 +1960,7 @@ function ProposalDocument({ tab, result, state, employeeInfo = null, clientInfo 
         </ul>
     </div>
 )}
-                <ProposalFooter T={T} genDate={genDate} />
+                <ProposalFooter T={T} genDate={genDate} qrDataUrl={qrDataUrl} />
             </div>
 
             {/* ===== PAGE 2 ===== */}
@@ -1806,6 +1969,7 @@ function ProposalDocument({ tab, result, state, employeeInfo = null, clientInfo 
                 fontFamily: "'DM Sans', Arial, sans-serif", color: "#0E1B2C",
                 padding: "30px 40px 24px", boxSizing: "border-box", display: "flex", flexDirection: "column",
             }}>
+                <div aria-hidden style={{ position: "absolute", top: "48%", left: "50%", transform: "translate(-50%,-50%) rotate(-28deg)", fontSize: 60, color: "rgba(2,67,150,0.05)", fontWeight: 800, whiteSpace: "nowrap", letterSpacing: 6, pointerEvents: "none" }}>THE FINANCIAL DOCTOR</div>
                 <ProposalHeader T={T} genDate={genDate} lang={lang} />
 
                 {yearRows.length > 0 && (
@@ -1873,7 +2037,7 @@ function ProposalDocument({ tab, result, state, employeeInfo = null, clientInfo 
                 )}
 
                 <div style={{ flex: 1 }} />
-                <ProposalFooter T={T} genDate={genDate} />
+                <ProposalFooter T={T} genDate={genDate} qrDataUrl={qrDataUrl} />
             </div>
         </>
     );
@@ -2093,7 +2257,9 @@ function SnapshotCard({ tab, result, state, variant = "public", employeeInfo = n
                     </div>
                 </div>
                 <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
-                    <div style={{ background: "#fff", padding: 5, borderRadius: 10 }}><QRCodeCanvas value={TFD_BRAND_URL} size={88} bgColor="#FFFFFF" fgColor="#0E1B2C" level="M" includeMargin={false} /></div>
+                    <div style={{ background: "#fff", padding: 5, borderRadius: 10 }}>
+                        <img src={qrImageUrl(TFD_BRAND_URL, 220)} crossOrigin="anonymous" alt="QR" style={{ width: 88, height: 88, display: "block" }} />
+                    </div>
                     <div style={{ fontSize: 9, marginTop: 5, color: "#C7102E", fontWeight: 700, letterSpacing: "0.15em", textTransform: "uppercase" }}>Scan to invest</div>
                     <div style={{ fontSize: 9, opacity: 0.6 }}>AssetPlus · ARN-290298</div>
                 </div>

@@ -21,6 +21,9 @@ def to_user_out(doc: dict) -> UserOut:
         base_salary=doc.get("base_salary"),
         profile_completed=doc.get("profile_completed"),
         join_date=doc.get("join_date"),
+        certificate_no=doc.get("certificate_no"),
+        is_active=doc.get("is_active", True),
+        deactivated_at=doc.get("deactivated_at"),
     )
 
 
@@ -62,6 +65,7 @@ async def create_employee(payload: UserCreate, admin=Depends(require_admin)):
         base_salary=payload.base_salary, training_days=payload.training_days,
         training_salary=payload.training_salary, training_start_date=training_start,
         join_date=datetime.utcnow().strftime("%Y-%m-%d"),
+        certificate_no=payload.certificate_no,
     )
     await users_collection.insert_one(new_user.dict())
 
@@ -118,10 +122,29 @@ async def list_employees(admin=Depends(require_admin)):
     return employees
 
 
+@router.get("/employees/{employee_id}/activity")
+async def employee_activity(employee_id: str, admin=Depends(require_admin)):
+    """ADMIN ONLY — everything one employee has done: their profile plus
+    every lead assigned to them with the full update history on each.
+    Powers the clickable employee-name profile view."""
+    from database import leads_collection
+    emp_doc = await users_collection.find_one({"id": employee_id}, {"_id": 0, "password_hash": 0})
+    if not emp_doc:
+        raise HTTPException(status_code=404, detail="Employee not found")
+    leads_cursor = leads_collection.find({"assigned_to": employee_id}, {"_id": 0}).sort("updated_at", -1)
+    leads = [doc async for doc in leads_cursor]
+    return {"employee": emp_doc, "leads": leads}
+
+
 @router.patch("/employees/{employee_id}/deactivate")
 async def deactivate_employee(employee_id: str, admin=Depends(require_admin)):
-    """ADMIN ONLY — disable an employee's login without deleting their data/history."""
-    result = await users_collection.update_one({"id": employee_id}, {"$set": {"is_active": False}})
+    """ADMIN ONLY — disable an employee's login without deleting their data/history.
+    Also stamps deactivated_at so the public Verification page can show the date they left.
+    """
+    result = await users_collection.update_one(
+        {"id": employee_id},
+        {"$set": {"is_active": False, "deactivated_at": datetime.utcnow().strftime("%Y-%m-%d")}},
+    )
     if result.matched_count == 0:
         raise HTTPException(status_code=404, detail="Employee not found")
     return {"status": "deactivated"}

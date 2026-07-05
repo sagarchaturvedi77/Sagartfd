@@ -25,7 +25,7 @@ from pydantic import BaseModel, Field
 
 from lead_models import LeadCreate, LeadUpdate, LeadStatusUpdate, LeadInDB, LeadOut, CallOutcomeIn, TransferIn
 from auth_utils import get_current_user_payload, require_admin
-from database import leads_collection, users_collection, db, reminders_collection
+from database import leads_collection, users_collection, db, reminders_collection, pipelines_collection
 from notification_service import create_notification
 
 router = APIRouter(prefix="/api/leads", tags=["leads"])
@@ -40,6 +40,18 @@ def to_lead_out(doc: dict) -> LeadOut:
     return LeadOut(**{k: doc.get(k) for k in LeadOut.model_fields})
 
 
+async def find_pipeline_for_employee(employee_id: str) -> Optional[str]:
+    """Returns the id of the (first) active pipeline assigned to this
+    employee, or None if they have no pipeline. Used to auto-attach a
+    pipeline to a lead the moment it's assigned to someone."""
+    if not employee_id:
+        return None
+    pipeline = await pipelines_collection.find_one(
+        {"assigned_to": employee_id, "is_active": {"$ne": False}}
+    )
+    return pipeline["id"] if pipeline else None
+
+
 # ── Admin: CRUD ──────────────────────────────────────────────────
 
 @router.post("/", response_model=LeadOut)
@@ -49,6 +61,8 @@ async def create_lead(data: LeadCreate, admin: dict = Depends(require_admin)):
         emp = await users_collection.find_one({"id": data.assigned_to})
         if emp:
             lead.assigned_to_name = emp.get("name")
+            if not lead.pipeline_id:
+                lead.pipeline_id = await find_pipeline_for_employee(data.assigned_to)
             await create_notification(
                 user_id=data.assigned_to,
                 title="New Lead Assigned",
@@ -182,6 +196,8 @@ async def update_lead(lead_id: str, data: LeadUpdate, admin: dict = Depends(requ
     if "assigned_to" in updates:
         emp = await users_collection.find_one({"id": updates["assigned_to"]})
         updates["assigned_to_name"] = emp.get("name") if emp else None
+        if "pipeline_id" not in updates:
+            updates["pipeline_id"] = await find_pipeline_for_employee(updates["assigned_to"])
         if emp:
             lead_doc = await leads_collection.find_one({"id": lead_id})
             lead_name = lead_doc.get("name", "Unknown") if lead_doc else "Unknown"
@@ -217,11 +233,14 @@ async def assign_lead(lead_id: str, assigned_to: str = Query(...), admin: dict =
     if not emp:
         raise HTTPException(status_code=404, detail="Employee not found")
 
+    pipeline_id = await find_pipeline_for_employee(assigned_to)
     result = await leads_collection.find_one_and_update(
         {"id": lead_id},
         {"$set": {
             "assigned_to": assigned_to,
             "assigned_to_name": emp.get("name"),
+            "pipeline_id": pipeline_id,
+            "pipeline_stage_id": None,
             "updated_at": datetime.now(timezone.utc).isoformat(),
         }},
         return_document=True,
@@ -294,6 +313,37 @@ async def update_lead_status(
     return {"status": "updated", "new_status": data.status}
 
 
+class QuickNoteIn(BaseModel):
+    note: str
+
+
+@router.post("/{lead_id}/note")
+async def add_quick_note(
+    lead_id: str, data: QuickNoteIn, payload: dict = Depends(get_current_user_payload)
+):
+    """Add a manual update/note to a lead any time — not tied to a call.
+    Used by the 'Add Update' button on both the employee and admin lead views."""
+    doc = await leads_collection.find_one({"id": lead_id})
+    if not doc:
+        raise HTTPException(status_code=404, detail="Lead not found")
+    if payload["role"] != "admin" and doc.get("assigned_to") != payload["sub"]:
+        raise HTTPException(status_code=403, detail="Lead not assigned to you")
+
+    now = datetime.now(timezone.utc).isoformat()
+    who = await users_collection.find_one({"id": payload["sub"]})
+    history_entry = {
+        "note": data.note,
+        "date": now,
+        "by": payload["sub"],
+        "by_name": who.get("name") if who else "Unknown",
+    }
+    await leads_collection.update_one(
+        {"id": lead_id},
+        {"$set": {"notes": data.note, "updated_at": now}, "$push": {"status_history": history_entry}},
+    )
+    return {"status": "noted"}
+
+
 # ── Employee: full call-flow outcome (the popup after every call) ──
 
 CONNECTED_TERMINAL = {"converted", "lost"}
@@ -322,6 +372,8 @@ async def submit_call_outcome(
         "updated_at": now_iso,
         "call_touched": True,
     }
+    if data.pipeline_stage_id:
+        updates["pipeline_stage_id"] = data.pipeline_stage_id
     history_entry = {"connection_status": data.connection_status, "sub_stage": data.sub_stage, "date": now_iso, "by": payload["sub"]}
     if data.notes:
         history_entry["note"] = data.notes
@@ -482,6 +534,7 @@ async def create_my_lead(data: LeadCreate, payload: dict = Depends(get_current_u
     lead.assigned_to = payload["sub"]
     lead.assigned_to_name = user.get("name") if user else None
     lead.source = data.source or "employee_added"
+    lead.pipeline_id = await find_pipeline_for_employee(payload["sub"])
     await leads_collection.insert_one(lead.model_dump())
     return to_lead_out(lead.model_dump())
 
@@ -514,6 +567,7 @@ async def import_leads_excel(file: UploadFile = File(...), admin: dict = Depends
     if "name" not in col_map or "phone" not in col_map:
         raise HTTPException(status_code=400, detail="Excel must have Name and Phone/Contact columns")
     imported = 0
+    imported_ids = []
     for row in rows:
         name = str(row[col_map["name"]]).strip() if row[col_map["name"]] else ""
         phone = str(row[col_map["phone"]]).strip() if row[col_map["phone"]] else ""
@@ -529,8 +583,9 @@ async def import_leads_excel(file: UploadFile = File(...), admin: dict = Depends
         )
         await leads_collection.insert_one(lead.model_dump())
         imported += 1
+        imported_ids.append(lead.id)
     wb.close()
-    return {"status": "imported", "count": imported}
+    return {"status": "imported", "count": imported, "lead_ids": imported_ids}
 
 
 # ── Shuffle & Assign leads to employees ──────────────────────────
@@ -544,16 +599,24 @@ async def shuffle_assign_leads(request: Request, admin: dict = Depends(require_a
         raise HTTPException(status_code=400, detail="Provide lead_ids and employee_ids")
     random.shuffle(lead_ids)
     emp_names = {}
+    emp_pipelines = {}
     for eid in employee_ids:
         emp = await users_collection.find_one({"id": eid})
         if emp:
             emp_names[eid] = emp.get("name", "")
+        emp_pipelines[eid] = await find_pipeline_for_employee(eid)
     assignments = []
     for i, lid in enumerate(lead_ids):
         eid = employee_ids[i % len(employee_ids)]
         await leads_collection.update_one(
             {"id": lid},
-            {"$set": {"assigned_to": eid, "assigned_to_name": emp_names.get(eid, ""), "updated_at": datetime.now(timezone.utc).isoformat()}},
+            {"$set": {
+                "assigned_to": eid,
+                "assigned_to_name": emp_names.get(eid, ""),
+                "pipeline_id": emp_pipelines.get(eid),
+                "pipeline_stage_id": None,
+                "updated_at": datetime.now(timezone.utc).isoformat(),
+            }},
         )
         assignments.append({"lead_id": lid, "employee_id": eid, "employee_name": emp_names.get(eid, "")})
     for eid in employee_ids:
