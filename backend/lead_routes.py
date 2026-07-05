@@ -174,10 +174,63 @@ async def search_all_leads(phone: str = Query(..., min_length=3), payload: dict 
     return results
 
 
-# NOTE: This catch-all MUST stay below /stats, /my, /website, /career —
+@router.get("/batches")
+async def list_lead_batches(admin: dict = Depends(require_admin)):
+    """Returns list of lead upload batches with stats per batch."""
+    pipeline_agg = [
+        {"$match": {"batch_id": {"$exists": True, "$ne": None}}},
+        {"$group": {
+            "_id": "$batch_id",
+            "date": {"$first": "$batch_date"},
+            "total": {"$sum": 1},
+            "interested": {"$sum": {"$cond": [{"$eq": ["$status", "interested"]}, 1, 0]}},
+            "converted": {"$sum": {"$cond": [{"$eq": ["$status", "converted"]}, 1, 0]}},
+            "follow_up": {"$sum": {"$cond": [{"$eq": ["$status", "follow_up"]}, 1, 0]}},
+            "lost": {"$sum": {"$cond": [{"$eq": ["$status", "lost"]}, 1, 0]}},
+            "called": {"$sum": {"$cond": [{"$eq": ["$call_touched", True]}, 1, 0]}},
+        }},
+        {"$sort": {"date": -1}},
+        {"$limit": 50},
+    ]
+    batches = []
+    async for doc in leads_collection.aggregate(pipeline_agg):
+        batches.append({
+            "batch_id": doc["_id"],
+            "date": doc["date"],
+            "total": doc["total"],
+            "called": doc["called"],
+            "interested": doc["interested"],
+            "converted": doc["converted"],
+            "follow_up": doc["follow_up"],
+            "lost": doc["lost"],
+        })
+    return batches
+
+
+@router.get("/batches/{batch_id}")
+async def get_batch_leads(
+    batch_id: str,
+    employee_filter: Optional[str] = None,
+    admin: dict = Depends(require_admin),
+):
+    """Returns all leads in a batch, optionally filtered by assigned employee."""
+    query = {"batch_id": batch_id}
+    if employee_filter:
+        query["assigned_to"] = employee_filter
+    cursor = leads_collection.find(query).sort("assigned_to_name", 1)
+    return [to_lead_out(doc) async for doc in cursor]
+
+
+@router.get("/admin-my")
+async def admin_my_leads(admin: dict = Depends(require_admin)):
+    """Leads the admin assigned to themselves."""
+    cursor = leads_collection.find({"assigned_to": admin["sub"]}).sort("updated_at", -1)
+    return [to_lead_out(doc) async for doc in cursor]
+
+
+# NOTE: This catch-all MUST stay below /stats, /my, /website, /career, /batches, /admin-my —
 # FastAPI matches routes in registration order, and "/{lead_id}" would
-# otherwise swallow those literal paths (e.g. GET /website would be
-# treated as GET /{lead_id} with lead_id="website").
+# otherwise swallow those literal paths.
 @router.get("/{lead_id}", response_model=LeadOut)
 async def get_lead(lead_id: str, payload: dict = Depends(get_current_user_payload)):
     doc = await leads_collection.find_one({"id": lead_id})
@@ -275,11 +328,14 @@ async def update_lead_status(
         raise HTTPException(status_code=403, detail="Lead not assigned to you")
 
     now = datetime.now(timezone.utc).isoformat()
+    updater = await users_collection.find_one({"id": payload["sub"]})
+    updater_name = updater.get("name", "") if updater else ""
     history_entry = {
         "status": data.status,
         "note": data.follow_up_note,
-        "date": now,
+        "at": now,
         "by": payload["sub"],
+        "by_name": updater_name,
     }
 
     updates = {
@@ -539,10 +595,38 @@ async def create_my_lead(data: LeadCreate, payload: dict = Depends(get_current_u
     return to_lead_out(lead.model_dump())
 
 
+# ── Employee: update service_interest on their own lead ──────────
+
+class ServiceUpdateBody(BaseModel):
+    service_interest: str
+
+
+@router.put("/{lead_id}/service")
+async def update_my_lead_service(lead_id: str, data: ServiceUpdateBody, payload: dict = Depends(get_current_user_payload)):
+    """Employee can add a service to their assigned lead."""
+    doc = await leads_collection.find_one({"id": lead_id})
+    if not doc:
+        raise HTTPException(status_code=404, detail="Lead not found")
+    if payload["role"] != "admin" and doc.get("assigned_to") != payload["sub"]:
+        raise HTTPException(status_code=403, detail="Lead not assigned to you")
+    now = datetime.now(timezone.utc).isoformat()
+    await leads_collection.update_one(
+        {"id": lead_id},
+        {"$set": {"service_interest": data.service_interest, "updated_at": now}},
+    )
+    return {"status": "updated"}
+
+
 # ── Excel Import ─────────────────────────────────────────────────
 
 @router.post("/import-excel")
-async def import_leads_excel(file: UploadFile = File(...), admin: dict = Depends(require_admin)):
+async def import_leads_excel(
+    file: UploadFile = File(...),
+    assign_to: Optional[str] = Query(default=None),
+    assign_mode: Optional[str] = Query(default=None),  # "self", "all", "selected", None
+    employee_ids: Optional[str] = Query(default=None),  # comma-separated
+    admin: dict = Depends(require_admin),
+):
     import openpyxl
     data = await file.read()
     wb = openpyxl.load_workbook(io.BytesIO(data), read_only=True)
@@ -566,6 +650,30 @@ async def import_leads_excel(file: UploadFile = File(...), admin: dict = Depends
             col_map["city"] = i
     if "name" not in col_map or "phone" not in col_map:
         raise HTTPException(status_code=400, detail="Excel must have Name and Phone/Contact columns")
+
+    # Determine assignment targets
+    target_employees = []
+    if assign_mode == "self":
+        target_employees = [admin["sub"]]
+    elif assign_mode == "all":
+        all_emps = users_collection.find({"role": "employee", "is_active": {"$ne": False}})
+        target_employees = [emp["id"] async for emp in all_emps]
+    elif assign_mode == "selected" and employee_ids:
+        target_employees = [eid.strip() for eid in employee_ids.split(",") if eid.strip()]
+    elif assign_to:
+        target_employees = [assign_to]
+
+    # Resolve names and pipelines for targets
+    emp_names = {}
+    emp_pipelines = {}
+    for eid in target_employees:
+        emp = await users_collection.find_one({"id": eid})
+        if emp:
+            emp_names[eid] = emp.get("name", "")
+        emp_pipelines[eid] = await find_pipeline_for_employee(eid)
+
+    batch_id = str(uuid.uuid4())
+    now_iso = datetime.now(timezone.utc).isoformat()
     imported = 0
     imported_ids = []
     for row in rows:
@@ -581,11 +689,38 @@ async def import_leads_excel(file: UploadFile = File(...), admin: dict = Depends
             service_interest=str(row[col_map["service_interest"]]).strip() if "service_interest" in col_map and row[col_map["service_interest"]] else None,
             city=str(row[col_map["city"]]).strip() if "city" in col_map and row[col_map["city"]] else None,
         )
-        await leads_collection.insert_one(lead.model_dump())
+        lead_doc = lead.model_dump()
+        lead_doc["batch_id"] = batch_id
+        lead_doc["batch_date"] = now_iso
+
+        # Auto-assign if targets specified (round-robin)
+        if target_employees:
+            eid = target_employees[imported % len(target_employees)]
+            lead_doc["assigned_to"] = eid
+            lead_doc["assigned_to_name"] = emp_names.get(eid, "")
+            lead_doc["pipeline_id"] = emp_pipelines.get(eid)
+
+        await leads_collection.insert_one(lead_doc)
         imported += 1
         imported_ids.append(lead.id)
     wb.close()
-    return {"status": "imported", "count": imported, "lead_ids": imported_ids}
+
+    # Send notifications to assigned employees
+    if target_employees:
+        assignment_counts = {}
+        for i, lid in enumerate(imported_ids):
+            eid = target_employees[i % len(target_employees)]
+            assignment_counts[eid] = assignment_counts.get(eid, 0) + 1
+        for eid, count in assignment_counts.items():
+            await create_notification(
+                user_id=eid,
+                title=f"{count} New Leads Assigned",
+                body=f"{count} leads from Excel import have been assigned to you",
+                n_type="lead",
+                link="/portal/employee/leads",
+            )
+
+    return {"status": "imported", "count": imported, "lead_ids": imported_ids, "batch_id": batch_id}
 
 
 # ── Shuffle & Assign leads to employees ──────────────────────────

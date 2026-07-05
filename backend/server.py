@@ -467,6 +467,9 @@ app.include_router(access_router)
 from qr_routes import router as qr_router
 app.include_router(qr_router)
 
+from services_routes import router as services_router
+app.include_router(services_router)
+
 app.add_middleware(
     CORSMiddleware,
     allow_credentials=True,

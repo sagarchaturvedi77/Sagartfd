@@ -9,6 +9,7 @@ const adminItems = [
   { key: "dashboard",  label: "📊 Dashboard",         path: "/portal/admin" },
   { key: "attendance", label: "🕐 Attendance",         path: "/portal/admin/attendance" },
   { key: "leads",      label: "📋 Leads",              path: "/portal/admin/leads" },
+  { key: "services",   label: "🛎️ Services",           path: "/portal/admin/services" },
   { key: "pipelines",  label: "🔀 Pipelines",          path: "/portal/admin/pipelines" },
   { key: "salary",     label: "💰 Salary",             path: "/portal/admin/salary" },
   { key: "tasks",      label: "✅ Tasks",              path: "/portal/admin/tasks" },
@@ -356,6 +357,17 @@ export default function PortalLayout({ children }) {
                 );
               })}
             </div>
+            {/* Download App — only in browser, not in PWA/native */}
+            {!window.matchMedia("(display-mode: standalone)").matches && !window.navigator.standalone && (
+              <div style={{ padding: "8px 12px", borderTop: "1px solid #E2D8C2" }}>
+                <a href="/TFD-Workspace.apk" download style={{ display: "block", padding: "8px 12px", borderRadius: 10, fontSize: 11, fontWeight: 600, textAlign: "center", background: "#024396", color: "#fff", textDecoration: "none", marginBottom: 6 }}>
+                  📥 Download APK
+                </a>
+                <button onClick={() => { if (window.deferredPrompt) { window.deferredPrompt.prompt(); } else { alert("Use browser menu > Add to Home Screen"); } }} style={{ display: "block", width: "100%", padding: "8px 12px", borderRadius: 10, fontSize: 11, fontWeight: 600, textAlign: "center", background: "#0E1B2C", color: "#fff", border: "none", cursor: "pointer" }}>
+                  📲 Install Web App
+                </button>
+              </div>
+            )}
             <button className="sb-logout" onClick={() => setShowLogoutConfirm(true)}>🚪 Logout</button>
           </aside>
 
