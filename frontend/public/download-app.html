@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Download TFD Workspace</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'Segoe UI', system-ui, sans-serif; background: linear-gradient(135deg, #0E1B2C, #1a3050); min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 20px; color: #fff; }
+    .card { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 24px; padding: 40px 32px; text-align: center; max-width: 400px; width: 100%; backdrop-filter: blur(10px); }
+    .logo { width: 120px; height: 120px; margin: 0 auto 20px; border-radius: 20px; object-fit: contain; }
+    h1 { font-size: 22px; margin-bottom: 6px; }
+    .subtitle { font-size: 13px; color: rgba(255,255,255,0.6); margin-bottom: 24px; }
+    .btn { display: block; width: 100%; padding: 14px; border-radius: 12px; font-size: 14px; font-weight: 600; text-decoration: none; margin-bottom: 12px; transition: transform 0.2s, box-shadow 0.2s; }
+    .btn:active { transform: scale(0.97); }
+    .btn-apk { background: linear-gradient(135deg, #024396, #0356c4); color: #fff; box-shadow: 0 4px 20px rgba(2,67,150,0.4); }
+    .btn-webapp { background: rgba(255,255,255,0.1); color: #fff; border: 1px solid rgba(255,255,255,0.2); }
+    .btn-webapp:hover { background: rgba(255,255,255,0.15); }
+    .steps { margin-top: 24px; text-align: left; padding: 16px; background: rgba(255,255,255,0.05); border-radius: 12px; }
+    .steps h3 { font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; color: rgba(255,255,255,0.5); margin-bottom: 10px; }
+    .steps ol { padding-left: 20px; font-size: 12px; color: rgba(255,255,255,0.7); line-height: 1.8; }
+    .footer { margin-top: 20px; font-size: 10px; color: rgba(255,255,255,0.3); }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <img src="/tfd-workspace-logo.png" alt="TFD Workspace" class="logo"/>
+    <h1>TFD Workspace</h1>
+    <p class="subtitle">Work Smart. Grow Together.</p>
+
+    <a href="/TFD-Workspace.apk" class="btn btn-apk" download>
+      📥 Download APK (Android)
+    </a>
+    <button class="btn btn-webapp" onclick="installWebApp()">
+      📲 Install Web App
+    </button>
+
+    <div class="steps">
+      <h3>APK Install Steps</h3>
+      <ol>
+        <li>Download the APK file</li>
+        <li>Open Settings → Security → Allow Unknown Sources</li>
+        <li>Open downloaded file & tap Install</li>
+        <li>Login with your credentials</li>
+      </ol>
+    </div>
+
+    <p class="footer">© The Financial Doctor · v2.0</p>
+  </div>
+
+  <script>
+    let deferredPrompt;
+    window.addEventListener('beforeinstallprompt', (e) => { e.preventDefault(); deferredPrompt = e; });
+    function installWebApp() {
+      if (deferredPrompt) { deferredPrompt.prompt(); }
+      else { alert('To install: Open browser menu (⋮) → "Add to Home Screen"'); }
+    }
+    // Hide this page if already in app
+    if (window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone) {
+      document.body.innerHTML = '<div style="text-align:center;padding:60px 20px;"><h2>You are already using TFD Workspace App!</h2></div>';
+    }
+  </script>
+</body>
+</html>

@@ -112,8 +112,11 @@ class LeadOut(BaseModel):
     call_attempts: int = 0
     last_call_at: Optional[str] = None
     transfer_history: list = Field(default_factory=list)
+    status_history: list = Field(default_factory=list)
     reference_note: Optional[str] = None
     code_name: Optional[str] = None
     service_duration_months: Optional[int] = None
     service_expires_at: Optional[str] = None
     call_touched: bool = False
+    batch_id: Optional[str] = None
+    batch_date: Optional[str] = None

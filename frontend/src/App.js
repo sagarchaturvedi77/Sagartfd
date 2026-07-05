@@ -30,6 +30,7 @@ import EmployeeSalary from "./pages/EmployeeSalary";
 import AdminAnnounce from "./pages/AdminAnnounce";
 import AdminWebsite from "./pages/AdminWebsite";
 import AdminLeads from "./pages/AdminLeads";
+import AdminServices from "./pages/AdminServices";
 import AdminSalary from "./pages/AdminSalary";
 import AdminTasks from "./pages/AdminTasks";
 import AdminReports from "./pages/AdminReports";
@@ -133,6 +134,14 @@ function App() {
                   element={
                     <ProtectedRoute requiredRole="admin">
                       <AdminLeads />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/portal/admin/services"
+                  element={
+                    <ProtectedRoute requiredRole="admin">
+                      <AdminServices />
                     </ProtectedRoute>
                   }
                 />
