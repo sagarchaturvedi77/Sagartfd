@@ -49,6 +49,7 @@ import EmployeeCalculators from "./pages/EmployeeCalculators";
 import EmployeeChat from "./pages/EmployeeChat";
 import EmployeeLeaveRequest from "./pages/EmployeeLeaveRequest";
 import EmployeeIDCardPage from "./pages/EmployeeIDCardPage";
+import EmployeeAgreement from "./pages/EmployeeAgreement";
 import PublicVerifyEmployee from "./pages/PublicVerifyEmployee";
 
 // 🩺 TEMPORARY PLACEHOLDERS (Design ready hone par inhe alag files me daal denge)
@@ -336,6 +337,14 @@ element={
                   element={
                     <ProtectedRoute requiredRole="admin">
                       <AdminWebsiteContent />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/portal/employee/agreement"
+                  element={
+                    <ProtectedRoute requiredRole="employee">
+                      <EmployeeAgreement />
                     </ProtectedRoute>
                   }
                 />

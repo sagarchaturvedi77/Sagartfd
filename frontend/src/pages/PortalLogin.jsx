@@ -5,7 +5,7 @@ import BrandLogo from "../components/BrandLogo";
 import WelcomeAnimation from "../components/WelcomeAnimation";
 
 export default function PortalLogin() {
-  const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -20,7 +20,7 @@ export default function PortalLogin() {
     setError("");
     setSubmitting(true);
     try {
-      const user = await login(email, password);
+      const user = await login(phone, password);
       setLoggedInUser(user);
       setShowWelcome(true);
     } catch (err) {
@@ -65,16 +65,16 @@ export default function PortalLogin() {
           <form onSubmit={handleSubmit} className="space-y-5">
             <div>
               <label className="text-xs font-medium text-[#2A364B]/80 uppercase tracking-wider block mb-2">
-                Email Address
+                User ID (Mobile Number)
               </label>
               <div className="relative">
                 <span className="absolute left-4 top-1/2 -translate-y-1/2 text-[#2A364B]/40">
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg>
                 </span>
                 <input
-                  type="email" required value={email} onChange={(e) => setEmail(e.target.value)}
+                  type="tel" required value={phone} onChange={(e) => setPhone(e.target.value)}
                   className="w-full border border-[#E2D8C2] rounded-xl pl-12 pr-4 py-3 bg-[#FBF7EE]/50 focus:bg-white focus:border-[#024396] focus:ring-2 focus:ring-[#024396]/20 outline-none transition-all text-[#0E1B2C]"
-                  placeholder="you@thefinancialdoctor.in"
+                  placeholder="Enter your mobile number"
                 />
               </div>
             </div>
