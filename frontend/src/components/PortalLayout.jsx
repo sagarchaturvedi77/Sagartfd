@@ -4,6 +4,7 @@ import { useAuth } from "../context/AuthContext";
 import NotificationBell from "./NotificationBell";
 import InstallPrompt from "./InstallPrompt";
 import { registerServiceWorker, enablePush } from "../portal/push";
+import useFirebaseMessaging from "../hooks/useFirebaseMessaging";
 
 const adminItems = [
   { key: "dashboard",  label: "📊 Dashboard",         path: "/portal/admin" },
@@ -47,6 +48,9 @@ export default function PortalLayout({ children }) {
   const location = useLocation();
   const isAdmin = user?.role === "admin";
   const items = isAdmin ? adminItems : employeeItems;
+
+  // Register FCM token for push notifications
+  useFirebaseMessaging();
 
   const [sidebarOpen, setSidebarOpen] = useState(window.innerWidth > 768);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);

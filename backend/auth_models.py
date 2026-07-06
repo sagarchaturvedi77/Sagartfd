@@ -8,17 +8,17 @@ Role = Literal["admin", "employee"]
 class UserCreate(BaseModel):
     """Used by ADMIN to create a new employee account."""
     name: str
-    email: EmailStr
-    password: str            # plain text in request, hashed before storing
+    phone: str               # mobile number (primary login ID)
+    email: Optional[str] = None
+    password: Optional[str] = None  # if not provided, auto-generated
     role: Role = "employee"
-    phone: Optional[str] = None
     designation: Optional[str] = None   # e.g. "Relationship Manager"
     base_salary: Optional[float] = None
     training_days: Optional[int] = None
     training_salary: Optional[bool] = False
 
 class UserLogin(BaseModel):
-    email: EmailStr
+    phone: str       # mobile number as user ID
     password: str
 
 class PasswordChange(BaseModel):
@@ -30,7 +30,7 @@ class UserOut(BaseModel):
     """Safe user object returned to frontend (no password)."""
     id: str
     name: str
-    email: EmailStr
+    email: Optional[str] = None
     role: Role
     phone: Optional[str] = None
     designation: Optional[str] = None
@@ -41,14 +41,16 @@ class UserOut(BaseModel):
     base_salary: Optional[float] = None
     profile_completed: Optional[bool] = None
     join_date: Optional[str] = None
+    is_active: Optional[bool] = True
+    deactivated_at: Optional[str] = None
 
 class UserInDB(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     name: str
-    email: EmailStr
+    phone: str
+    email: Optional[str] = None
     password_hash: str
     role: Role
-    phone: Optional[str] = None
     designation: Optional[str] = None
     created_at: datetime = Field(default_factory=datetime.utcnow)
     is_active: bool = True
@@ -58,6 +60,7 @@ class UserInDB(BaseModel):
     training_start_date: Optional[str] = None
     profile_completed: Optional[bool] = False
     join_date: Optional[str] = None
+    certificate_no: Optional[str] = None
 
 class TokenResponse(BaseModel):
     access_token: str

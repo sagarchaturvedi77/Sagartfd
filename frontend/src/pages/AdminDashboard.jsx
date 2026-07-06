@@ -8,11 +8,12 @@ export default function AdminDashboard() {
   const { token } = useAuth();
   const [employees, setEmployees] = useState([]);
   const [showAddForm, setShowAddForm] = useState(false);
-  const [form, setForm] = useState({ name: "", email: "", password: "", phone: "", designation: "", base_salary: "", training_days: "", training_salary: false });
+  const [form, setForm] = useState({ name: "", phone: "", designation: "", base_salary: "", training_days: "", training_salary: false });
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
   const [viewEmp, setViewEmp] = useState(null); // employee detail modal
   const [empDetail, setEmpDetail] = useState(null);
+  const [createdCreds, setCreatedCreds] = useState(null); // show credentials after creation
 
   const fetchEmployees = useCallback(async () => {
     setLoading(true);
@@ -46,9 +47,23 @@ export default function AdminDashboard() {
       setError(err.detail || "Could not create employee");
       return;
     }
-    setForm({ name: "", email: "", password: "", phone: "", designation: "", base_salary: "", training_days: "", training_salary: false });
+    const data = await res.json();
+    setCreatedCreds({ phone: form.phone, password: data.generated_password, name: form.name });
+    setForm({ name: "", phone: "", designation: "", base_salary: "", training_days: "", training_salary: false });
     setShowAddForm(false);
     fetchEmployees();
+  };
+
+  const resetPassword = async (emp) => {
+    if (!window.confirm(`Reset password for ${emp.name}?`)) return;
+    const res = await fetch(`${API_BASE}/api/auth/employees/${emp.id}/reset-password`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (res.ok) {
+      const data = await res.json();
+      setCreatedCreds({ phone: data.phone, password: data.new_password, name: data.name });
+    }
   };
 
   const viewEmployee = async (emp) => {
@@ -101,9 +116,7 @@ export default function AdminDashboard() {
           <form onSubmit={handleAddEmployee} className="p-6 bg-[#FBF7EE]/50 border-b border-[#E2D8C2]">
             <div className="grid sm:grid-cols-2 gap-4">
               <FormInput required placeholder="Full Name" value={form.name} onChange={v => setForm({...form, name: v})} />
-              <FormInput required type="email" placeholder="Email (login ID)" value={form.email} onChange={v => setForm({...form, email: v})} />
-              <FormInput required type="password" placeholder="Temporary Password" value={form.password} onChange={v => setForm({...form, password: v})} />
-              <FormInput placeholder="Phone Number" value={form.phone} onChange={v => setForm({...form, phone: v})} />
+              <FormInput required type="tel" placeholder="Mobile Number (Login ID)" value={form.phone} onChange={v => setForm({...form, phone: v})} />
               <FormInput placeholder="Designation (e.g. Relationship Manager)" value={form.designation} onChange={v => setForm({...form, designation: v})} />
               <FormInput type="number" placeholder="Base Salary (monthly)" value={form.base_salary} onChange={v => setForm({...form, base_salary: v})} />
               <FormInput type="number" placeholder="Training Period (days)" value={form.training_days} onChange={v => setForm({...form, training_days: v})} />
@@ -113,6 +126,7 @@ export default function AdminDashboard() {
                 <label htmlFor="training_salary" className="text-sm text-[#2A364B]/70">Salary during training?</label>
               </div>
             </div>
+            <p className="text-xs text-[#2A364B]/50 mt-2">Password will be auto-generated and shown after creation.</p>
             {error && (
               <p className="text-sm text-red-600 mt-3 flex items-center gap-1">
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
@@ -123,6 +137,34 @@ export default function AdminDashboard() {
               Create Employee Account
             </button>
           </form>
+        )}
+
+        {/* Credentials popup */}
+        {createdCreds && (
+          <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/50 backdrop-blur-sm px-4">
+            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6 text-center">
+              <div className="w-12 h-12 rounded-full bg-emerald-100 flex items-center justify-center mx-auto mb-3">
+                <svg className="w-6 h-6 text-emerald-600" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M5 13l4 4L19 7"/></svg>
+              </div>
+              <h3 className="text-lg font-semibold text-[#0E1B2C] mb-1">Account Created!</h3>
+              <p className="text-sm text-[#2A364B]/60 mb-4">{createdCreds.name}</p>
+              <div className="bg-[#FBF7EE] rounded-xl p-4 text-left space-y-2 border border-[#E2D8C2]">
+                <div className="flex justify-between items-center">
+                  <span className="text-xs text-[#2A364B]/50">User ID:</span>
+                  <span className="font-mono font-bold text-[#0E1B2C]">{createdCreds.phone}</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-xs text-[#2A364B]/50">Password:</span>
+                  <span className="font-mono font-bold text-[#024396]">{createdCreds.password}</span>
+                </div>
+              </div>
+              <p className="text-[10px] text-[#2A364B]/40 mt-3">Share these credentials with the employee for login.</p>
+              <button onClick={() => setCreatedCreds(null)}
+                className="mt-4 bg-[#024396] text-white py-2.5 px-8 rounded-xl font-medium text-sm hover:bg-[#023580] transition-all w-full">
+                Done
+              </button>
+            </div>
+          </div>
         )}
 
         {/* Employee table */}
@@ -141,7 +183,7 @@ export default function AdminDashboard() {
               <thead>
                 <tr className="bg-[#FBF7EE]/80">
                   <th className="text-left p-4 text-xs font-semibold text-[#2A364B]/60 uppercase tracking-wider">Name</th>
-                  <th className="text-left p-4 text-xs font-semibold text-[#2A364B]/60 uppercase tracking-wider">Email</th>
+                  <th className="text-left p-4 text-xs font-semibold text-[#2A364B]/60 uppercase tracking-wider">Phone (User ID)</th>
                   <th className="text-left p-4 text-xs font-semibold text-[#2A364B]/60 uppercase tracking-wider">Designation</th>
                   <th className="text-left p-4 text-xs font-semibold text-[#2A364B]/60 uppercase tracking-wider hidden md:table-cell">Salary</th>
                   <th className="text-left p-4 text-xs font-semibold text-[#2A364B]/60 uppercase tracking-wider hidden lg:table-cell">Training</th>
@@ -164,7 +206,7 @@ export default function AdminDashboard() {
                         </div>
                       </div>
                     </td>
-                    <td className="p-4 text-[#2A364B]/70">{emp.email}</td>
+                    <td className="p-4 text-[#2A364B]/70 font-mono">{emp.phone || emp.email}</td>
                     <td className="p-4">
                       {emp.designation ? (
                         <span className="bg-[#024396]/10 text-[#024396] text-xs px-2.5 py-1 rounded-full">{emp.designation}</span>
@@ -180,10 +222,14 @@ export default function AdminDashboard() {
                         <span className="text-[#2A364B]/30 text-xs">No training</span>
                       )}
                     </td>
-                    <td className="p-4">
+                    <td className="p-4 space-x-2">
                       <button onClick={() => viewEmployee(emp)}
                         className="text-xs text-[#024396] hover:underline font-medium">
-                        View Details
+                        View
+                      </button>
+                      <button onClick={() => resetPassword(emp)}
+                        className="text-xs text-orange-600 hover:underline font-medium">
+                        Reset PW
                       </button>
                     </td>
                   </tr>

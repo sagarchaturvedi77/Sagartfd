@@ -25,11 +25,11 @@ export function AuthProvider({ children }) {
       .finally(() => setLoading(false));
   }, [token]);
 
-  const login = async (email, password) => {
+  const login = async (phone, password) => {
     const res = await fetch(`${API_BASE}/api/auth/login`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email, password }),
+      body: JSON.stringify({ phone, password }),
     });
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));

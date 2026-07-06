@@ -1,5 +1,7 @@
 from fastapi import APIRouter, HTTPException, Depends, status
 from datetime import datetime
+import random
+import string
 
 from auth_models import UserCreate, UserLogin, UserOut, UserInDB, TokenResponse, PasswordChange
 from auth_utils import hash_password, verify_password, create_access_token, require_admin, get_current_user_payload
@@ -10,9 +12,16 @@ from utils.audit import write_audit
 router = APIRouter(prefix="/api/auth", tags=["auth"])
 
 
+def generate_password(length=8):
+    """Generate a random password like TFD@xxxx (4 random alphanumeric)."""
+    chars = string.ascii_letters + string.digits
+    suffix = ''.join(random.choices(chars, k=length))
+    return f"TFD@{suffix}"
+
+
 def to_user_out(doc: dict) -> UserOut:
     return UserOut(
-        id=doc["id"], name=doc["name"], email=doc["email"], role=doc["role"],
+        id=doc["id"], name=doc["name"], email=doc.get("email", ""), role=doc["role"],
         phone=doc.get("phone"), designation=doc.get("designation"),
         created_at=doc["created_at"],
         training_days=doc.get("training_days"),
@@ -21,7 +30,6 @@ def to_user_out(doc: dict) -> UserOut:
         base_salary=doc.get("base_salary"),
         profile_completed=doc.get("profile_completed"),
         join_date=doc.get("join_date"),
-        certificate_no=doc.get("certificate_no"),
         is_active=doc.get("is_active", True),
         deactivated_at=doc.get("deactivated_at"),
     )
@@ -29,9 +37,13 @@ def to_user_out(doc: dict) -> UserOut:
 
 @router.post("/login", response_model=TokenResponse)
 async def login(payload: UserLogin):
-    user = await users_collection.find_one({"email": payload.email})
+    # Support login via phone number (primary) or email (legacy/admin)
+    user = await users_collection.find_one({"phone": payload.phone})
+    if not user:
+        # Fallback: try email for admin accounts
+        user = await users_collection.find_one({"email": payload.phone})
     if not user or not verify_password(payload.password, user["password_hash"]):
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid email or password")
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid User ID or password")
     if not user.get("is_active", True):
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="This account has been deactivated")
 
@@ -39,12 +51,16 @@ async def login(payload: UserLogin):
     return TokenResponse(access_token=token, user=to_user_out(user))
 
 
-@router.post("/create-employee", response_model=UserOut)
+@router.post("/create-employee")
 async def create_employee(payload: UserCreate, admin=Depends(require_admin)):
-    """ADMIN ONLY — creates a new employee login. Each employee gets a unique email/password."""
-    existing = await users_collection.find_one({"email": payload.email})
+    """ADMIN ONLY — creates a new employee login. Phone is the login ID."""
+    # Check duplicate phone
+    existing = await users_collection.find_one({"phone": payload.phone})
     if existing:
-        raise HTTPException(status_code=400, detail="An account with this email already exists")
+        raise HTTPException(status_code=400, detail="An account with this phone number already exists")
+
+    # Auto-generate password if not provided
+    plain_password = payload.password if payload.password else generate_password()
 
     training_start = datetime.utcnow().strftime("%Y-%m-%d") if payload.training_days else None
 
@@ -59,13 +75,13 @@ async def create_employee(payload: UserCreate, admin=Depends(require_admin)):
 
     new_user = UserInDB(
         id=emp_id,
-        name=payload.name, email=payload.email,
-        password_hash=hash_password(payload.password),
-        role=payload.role, phone=payload.phone, designation=payload.designation,
+        name=payload.name, phone=payload.phone,
+        email=payload.email or "",
+        password_hash=hash_password(plain_password),
+        role=payload.role, designation=payload.designation,
         base_salary=payload.base_salary, training_days=payload.training_days,
         training_salary=payload.training_salary, training_start_date=training_start,
         join_date=datetime.utcnow().strftime("%Y-%m-%d"),
-        certificate_no=payload.certificate_no,
     )
     await users_collection.insert_one(new_user.dict())
 
@@ -83,10 +99,11 @@ async def create_employee(payload: UserCreate, admin=Depends(require_admin)):
             result="success",
         )
     except Exception:
-        # audit errors should not block the main flow
         pass
 
-    return to_user_out(new_user.dict())
+    # Return user + generated password (only on creation)
+    user_out = to_user_out(new_user.dict())
+    return {"user": user_out.dict(), "generated_password": plain_password}
 
 
 @router.get("/me", response_model=UserOut)
@@ -138,9 +155,7 @@ async def employee_activity(employee_id: str, admin=Depends(require_admin)):
 
 @router.patch("/employees/{employee_id}/deactivate")
 async def deactivate_employee(employee_id: str, admin=Depends(require_admin)):
-    """ADMIN ONLY — disable an employee's login without deleting their data/history.
-    Also stamps deactivated_at so the public Verification page can show the date they left.
-    """
+    """ADMIN ONLY — disable an employee's login without deleting their data/history."""
     result = await users_collection.update_one(
         {"id": employee_id},
         {"$set": {"is_active": False, "deactivated_at": datetime.utcnow().strftime("%Y-%m-%d")}},
@@ -148,3 +163,29 @@ async def deactivate_employee(employee_id: str, admin=Depends(require_admin)):
     if result.matched_count == 0:
         raise HTTPException(status_code=404, detail="Employee not found")
     return {"status": "deactivated"}
+
+
+@router.patch("/employees/{employee_id}/activate")
+async def activate_employee(employee_id: str, admin=Depends(require_admin)):
+    """ADMIN ONLY — re-enable a disabled employee."""
+    result = await users_collection.update_one(
+        {"id": employee_id},
+        {"$set": {"is_active": True}, "$unset": {"deactivated_at": ""}},
+    )
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Employee not found")
+    return {"status": "activated"}
+
+
+@router.post("/employees/{employee_id}/reset-password")
+async def reset_employee_password(employee_id: str, admin=Depends(require_admin)):
+    """ADMIN ONLY — regenerate a new random password for an employee."""
+    emp = await users_collection.find_one({"id": employee_id})
+    if not emp:
+        raise HTTPException(status_code=404, detail="Employee not found")
+    new_password = generate_password()
+    await users_collection.update_one(
+        {"id": employee_id},
+        {"$set": {"password_hash": hash_password(new_password)}},
+    )
+    return {"new_password": new_password, "phone": emp.get("phone", ""), "name": emp.get("name", "")}

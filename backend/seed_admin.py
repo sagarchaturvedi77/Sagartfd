@@ -11,6 +11,7 @@ from database import users_collection
 
 ADMIN_NAME = "Sagar Chaturvedi"
 ADMIN_EMAIL = "ceo@thefinancialdoctor.in"
+ADMIN_PHONE = "9876543210"
 ADMIN_PASSWORD = "Sagar@123"
 
 
@@ -22,11 +23,13 @@ async def seed():
 
     admin = UserInDB(
         name=ADMIN_NAME, email=ADMIN_EMAIL,
+        phone=ADMIN_PHONE,
         password_hash=hash_password(ADMIN_PASSWORD),
         role="admin",
     )
     await users_collection.insert_one(admin.dict())
     print(f"✅ Admin created: {ADMIN_EMAIL} / {ADMIN_PASSWORD}")
+    print("   (Also login with phone: {ADMIN_PHONE})")
     print("⚠️  Log in once, then change this password immediately.")
 
 

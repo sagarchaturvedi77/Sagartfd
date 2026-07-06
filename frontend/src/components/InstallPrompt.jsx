@@ -1,14 +1,14 @@
 import React from "react";
 import BrandLogo from "./BrandLogo";
 
-// "Add to Home Screen" popup. Shown once after login.
-// - Android/Chrome: uses the captured `beforeinstallprompt` event for a native install.
-// - iOS Safari: shows manual "Share -> Add to Home Screen" instructions (iOS has no prompt API).
+// Capture the beforeinstallprompt event as early as possible
 let deferredPrompt = null;
+const promptListeners = [];
 if (typeof window !== "undefined") {
   window.addEventListener("beforeinstallprompt", (e) => {
     e.preventDefault();
     deferredPrompt = e;
+    promptListeners.forEach((fn) => fn(e));
   });
 }
 
@@ -23,19 +23,43 @@ function isIOS() {
   return /iphone|ipad|ipod/i.test(window.navigator.userAgent);
 }
 
+function isInApp() {
+  // Detect if already running as installed PWA or in WebView/APK
+  return isStandalone();
+}
+
 export default function InstallPrompt() {
   const [open, setOpen] = React.useState(false);
   const [ios, setIos] = React.useState(false);
 
   React.useEffect(() => {
-    if (isStandalone()) return;
+    // Don't show install prompt if already installed or running in app
+    if (isInApp()) return;
     if (localStorage.getItem("tfd_install_dismissed") === "1") return;
-    const timer = setTimeout(() => {
+
+    const showPrompt = () => {
       setIos(isIOS());
-      // Show if we have a native prompt OR it's iOS (manual flow)
-      if (deferredPrompt || isIOS()) setOpen(true);
-    }, 1200);
-    return () => clearTimeout(timer);
+      setOpen(true);
+    };
+
+    // If deferred prompt already captured, show immediately
+    if (deferredPrompt || isIOS()) {
+      const timer = setTimeout(showPrompt, 800);
+      return () => clearTimeout(timer);
+    }
+
+    // Wait for the event to fire (up to 3s)
+    const handler = () => showPrompt();
+    promptListeners.push(handler);
+    const timeout = setTimeout(() => {
+      if (deferredPrompt) showPrompt();
+    }, 3000);
+
+    return () => {
+      clearTimeout(timeout);
+      const idx = promptListeners.indexOf(handler);
+      if (idx >= 0) promptListeners.splice(idx, 1);
+    };
   }, []);
 
   const dismiss = () => {
@@ -46,8 +70,12 @@ export default function InstallPrompt() {
   const install = async () => {
     if (deferredPrompt) {
       deferredPrompt.prompt();
-      await deferredPrompt.userChoice;
+      const result = await deferredPrompt.userChoice;
       deferredPrompt = null;
+      if (result.outcome === "accepted") {
+        dismiss();
+        return;
+      }
     }
     dismiss();
   };
