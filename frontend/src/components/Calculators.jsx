@@ -23,7 +23,8 @@ import { QRCodeCanvas } from "qrcode.react";
 const TFD_BRAND_URL = "https://www.assetplus.in/mfd/ARN-290298";
 const TFD_WEBSITE_URL = "https://thefinancialdoctor.in/";
 
-
+const qrImageUrl = (url, size = 200) =>
+  `https://api.qrserver.com/v1/create-qr-code/?size=${size}x${size}&data=${encodeURIComponent(url)}`;
 
 
 const fmtINR = (n) => {
@@ -337,80 +338,14 @@ export default function Calculators({ variant = "public", employeeInfo = null, a
     }
     return { name: "", phone: "" };
 });
-const [lastDownloadDate, setLastDownloadDate] = useState(() => {
-    if (typeof window !== "undefined") {
-        try { return localStorage.getItem("tfd_lead_last_date") || null; } catch { return null; }
-    }
-    return null;
-});
 const [showReturningModal, setShowReturningModal] = useState(false);
-const [proposalCount, setProposalCount] = useState(() => {
-    if (typeof window !== "undefined") {
-        try { return parseInt(localStorage.getItem("tfd_proposal_count") || "0", 10); } catch { return 0; }
-    }
-    return 0;
-});
-const [couponCode, setCouponCode] = useState(() => {
-    if (typeof window !== "undefined") {
-        try { return localStorage.getItem("tfd_coupon_code") || null; } catch { return null; }
-    }
-    return null;
-});
-const [couponUnlockDate, setCouponUnlockDate] = useState(() => {
-    if (typeof window !== "undefined") {
-        try { return localStorage.getItem("tfd_coupon_unlock_date") || null; } catch { return null; }
-    }
-    return null;
-});
-const [insuranceInterest, setInsuranceInterest] = useState(() => {
-    if (typeof window !== "undefined") {
-        try { return localStorage.getItem("tfd_insurance_interest") || null; } catch { return null; }
-    }
-    return null;
-});
-const [showCelebration, setShowCelebration] = useState(false);
-useEffect(() => {
-    if (variant !== "employee" && proposalCount >= 3 && !couponCode && clientInfo.phone) {
-        const newCoupon = generateCouponCode(clientInfo.phone);
-        const nowISO = new Date().toISOString();
-        try {
-            localStorage.setItem("tfd_coupon_code", newCoupon);
-            localStorage.setItem("tfd_coupon_unlock_date", nowISO);
-        } catch { /* ignore */ }
-        setCouponCode(newCoupon);
-        setCouponUnlockDate(nowISO);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-}, [proposalCount, couponCode]);
     const [phoneError, setPhoneError] = useState("");
     const [proposalLang, setProposalLang] = useState("english"); // "english" | "hindi" | "hinglish" — language of the PDF itself
     const [showSharePopup, setShowSharePopup] = useState(false);
     const [generatedImage, setGeneratedImage] = useState(null); // { dataUrl, blob }
     const [msgTemplate, setMsgTemplate] = useState("english"); // "english" | "hinglish"
     const [shareMessage, setShareMessage] = useState("");
-const incrementProposalCount = () => {
-    const today = new Date().toLocaleDateString("en-IN", { day: "numeric", month: "long", year: "numeric" });
-    const newCount = proposalCount + 1;
-    let newCoupon = couponCode;
-    let justUnlocked = false;
-    if (newCount >= 3 && !newCoupon) {
-        newCoupon = generateCouponCode(clientInfo.phone);
-        justUnlocked = true;
-    }
-    const nowISO = new Date().toISOString();
-    try {
-        localStorage.setItem("tfd_lead_last_date", today);
-        localStorage.setItem("tfd_proposal_count", String(newCount));
-        if (newCoupon) localStorage.setItem("tfd_coupon_code", newCoupon);
-        if (justUnlocked) localStorage.setItem("tfd_coupon_unlock_date", nowISO);
-    } catch { /* ignore */ }
-    setLastDownloadDate(today);
-    setProposalCount(newCount);
-    setCouponCode(newCoupon);
-    if (justUnlocked) setCouponUnlockDate(nowISO);
-    trackProposalWithBackend({ name: clientInfo.name, phone: clientInfo.phone, proposalCount: newCount, couponCode: newCoupon });
-    return { newCount, newCoupon, justUnlocked };
-};
+
 
 const calcSummaryLine = (t) => {
     const labels = { sip: "SIP Calculator", daily: "Daily SIP Calculator", lumpsum: "Lumpsum Calculator", swp: "SWP Calculator", goal: "Goal Planner", emi: "EMI Calculator", tax: "Income Tax Calculator", gst: "GST Calculator", inflation: "Future Goal Calculator" };
@@ -980,7 +915,7 @@ const qrDataUrlRef = useRef(null);
         />
     </div>
 </div>
-                {/* 🆕 Employee-mode: Client details modal (name optional, shown once per proposal) */}
+                {/* Client details modal (name + phone only, no coupon) */}
                 {showClientModal && (
                     <div className="fixed inset-0 z-[100] bg-black/50 flex items-center justify-center p-4" onClick={() => setShowClientModal(false)}>
                         <div className="bg-white rounded-2xl p-6 max-w-sm w-full space-y-4" onClick={(e) => e.stopPropagation()}>
@@ -989,9 +924,9 @@ const qrDataUrlRef = useRef(null);
 </h3>
 {variant !== "employee" && (
     <p className="text-xs text-[#5C677D] leading-relaxed">
-        Get a detailed report with growth projections, smart charts and money-saving tips — made just for you. We'll also save your details so future proposals are just one click away.
+        Get a detailed report with growth projections, smart charts and money-saving tips — made just for you.
         <br />
-        <span className="italic">Apna naam aur number daalein, taaki proposal khaas aapke liye ban sake — aur agli baar bina dobara details bhare, ek click mein proposal ban jaaye.</span>
+        <span className="italic">Apna naam aur number daalein, taaki proposal khaas aapke liye ban sake.</span>
     </p>
 )}
                             <div>
@@ -1028,17 +963,6 @@ const qrDataUrlRef = useRef(null);
                                     ))}
                                 </div>
                             </div>
-                            {variant !== "employee" && (
-                                <div className="bg-[#FBF7EE] border border-[#E2D8C2] rounded-xl px-3 py-2.5 text-[11px] text-[#2A364B] leading-relaxed">
-                                    🎁 <strong>Download 3 proposals to unlock a ₹5,000 Amazon Voucher</strong> for Health &amp; Term Insurance!
-                                    <div className="mt-1 text-[#024396] font-semibold">
-                                        {proposalCount >= 3 ? "✅ Reward unlocked — check it after this proposal!" : `${3 - proposalCount} more proposal${3 - proposalCount === 1 ? "" : "s"} to go!`}
-                                    </div>
-                                    <div className="italic mt-1">
-                                        3 proposals download karke ₹5,000 ka Amazon Voucher paayein Health &amp; Term Insurance ke liye!{proposalCount < 3 && ` Bas ${3 - proposalCount} aur baaki hai.`}
-                                    </div>
-                                </div>
-                            )}
                             {phoneError && <p className="text-[11px] text-[#C7102E]">{phoneError}</p>}
                             <div className="flex gap-2">
                                 {variant === "employee" && (
@@ -1066,7 +990,7 @@ const qrDataUrlRef = useRef(null);
                                         setPhoneError("");
                                         if (variant !== "employee") {
                                             try { localStorage.setItem("tfd_lead_info", JSON.stringify(clientInfo)); } catch { /* ignore */ }
-                                            incrementProposalCount();
+                                            trackProposalWithBackend({ name: clientInfo.name, phone: clientInfo.phone });
                                         }
                                         setShowClientModal(false);
                                         generateSnapshot();
@@ -1083,34 +1007,15 @@ const qrDataUrlRef = useRef(null);
                 {showReturningModal && (
                     <div className="fixed inset-0 z-[100] bg-black/50 flex items-center justify-center p-4" onClick={() => setShowReturningModal(false)}>
                         <div className="bg-white rounded-2xl p-6 max-w-sm w-full space-y-4" onClick={(e) => e.stopPropagation()}>
-                            <h3 className="font-serif text-lg text-[#0E1B2C]">🎉 Welcome Back, {clientInfo.name}! 👋</h3>
+                            <h3 className="font-serif text-lg text-[#0E1B2C]">Welcome Back, {clientInfo.name}!</h3>
                             <div className="text-xs text-[#5C677D] leading-relaxed space-y-2">
                                 <p>
                                     Your details are already saved — no need to fill them again.
-                                    {lastDownloadDate && (
-                                        <> <strong className="text-[#0E1B2C]">Last Proposal:</strong> {lastDownloadDate}</>
-                                    )}
                                 </p>
                                 <p className="italic">
                                     Aapki details already saved hain — dobara bharne ki zaroorat nahi.
-                                    {lastDownloadDate && <> Pichli baar <strong className="text-[#0E1B2C]">{lastDownloadDate}</strong> ko proposal download hua tha.</>}
                                 </p>
-                                <div className="bg-[#F6F1E8] border border-[#E2D8C2] rounded-lg px-3 py-2 text-[11px] text-[#2A364B]">
-                                    📊 Total Proposals Downloaded: <strong>{proposalCount}</strong>
-                                </div>
                             </div>
-
-                            {proposalCount >= 3 && couponCode && (
-                                <div className="bg-[#FBE4E4] border border-[#C7102E] rounded-xl px-3 py-3 text-[11px] text-[#7A1420] leading-relaxed space-y-1.5">
-                                    <div>🎁 <strong>Congratulations! You've unlocked an Exclusive Reward.</strong></div>
-                                    <div className="bg-white border border-[#C7102E] rounded-lg px-3 py-1.5 text-center font-mono font-bold text-[#024396] text-sm tracking-wide">
-                                        {couponCode}
-                                    </div>
-                                    <div>Use this code for exclusive benefits on <strong>Health Insurance</strong> &amp; <strong>Term Insurance</strong> — rewards worth up to <strong>₹5,000</strong>.* Our advisor will reach out to help you claim it.</div>
-                                    <div className="italic">Aapne {proposalCount} proposals ban chuke hain — Health &amp; Term Insurance par exclusive benefits paane ke liye ye code use karein, ₹5,000 tak ke rewards ke saath.* Hamara advisor aapse claim karne ke liye contact karega.</div>
-                                    <div className="text-[9px] text-[#5C677D]">*Terms & Conditions apply. Applicable after successful policy issuance.</div>
-                                </div>
-                            )}
 
                             <div>
                                 <label className="text-xs text-[#5C677D] block mb-1">Proposal Language</label>
@@ -1133,17 +1038,17 @@ const qrDataUrlRef = useRef(null);
                                     onClick={() => { setShowReturningModal(false); setShowClientModal(true); }}
                                     className="flex-1 py-2.5 rounded-xl bg-[#F6F1E8] text-[#0E1B2C] text-xs font-semibold"
                                 >
-                                    Edit Details · Edit Karein
+                                    Edit Details
                                 </button>
                                 <button
                                     onClick={() => {
-    incrementProposalCount();
+    trackProposalWithBackend({ name: clientInfo.name, phone: clientInfo.phone });
     setShowReturningModal(false);
     generateSnapshot();
 }}
                                     className="flex-1 py-2.5 rounded-xl bg-[#024396] text-white text-sm font-semibold"
                                 >
-                                    Continue · Aage Badhein
+                                    Generate Proposal
                                 </button>
                             </div>
                         </div>
@@ -1154,61 +1059,15 @@ const qrDataUrlRef = useRef(null);
                 {showSharePopup && generatedImage && (
                     <div className="fixed inset-0 z-[100] bg-black/50 flex items-center justify-center p-4" onClick={() => setShowSharePopup(false)}>
                         <div className="bg-white rounded-2xl p-5 max-w-sm w-full space-y-3 max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
-                            <h3 className="font-serif text-lg text-[#0E1B2C]">Proposal Ready 🎉</h3>
+                            <h3 className="font-serif text-lg text-[#0E1B2C]">Proposal Ready!</h3>
                             <p className="text-[10px] text-[#5C677D] -mt-2">Preview below — actual file downloads/shares as an A4 PDF.</p>
                             <div className="relative">
                                 <img
                                     src={generatedImage.dataUrl}
                                     alt="Proposal preview"
-                                    className={`w-full rounded-xl border border-[#E2D8C2] ${variant !== "employee" ? "blur-sm" : ""}`}
+                                    className="w-full rounded-xl border border-[#E2D8C2]"
                                 />
-                                {variant !== "employee" && (
-                                    <div className="absolute inset-0 flex items-center justify-center p-4">
-                                        <div className="bg-white/95 border border-[#E2D8C2] rounded-xl px-4 py-3 text-center shadow-lg max-w-[90%]">
-                                            {proposalCount >= 3 && couponCode && isCouponValid(couponUnlockDate) ? (
-                                                <>
-                                                    <div className="text-lg mb-1 animate-bounce">🎉</div>
-                                                    <div className="text-xs font-bold text-[#024396]">Reward Unlocked!</div>
-                                                    <div className="font-mono font-bold text-[#0E1B2C] text-sm mt-1">{couponCode}</div>
-                                                </>
-                                            ) : (
-                                                <>
-                                                    <div className="text-lg mb-1">🎁</div>
-                                                    <div className="text-xs font-bold text-[#024396]">{Math.max(0, 3 - proposalCount)} more to unlock ₹5,000 reward!</div>
-                                                    <div className="text-[10px] text-[#5C677D] italic mt-1">{Math.max(0, 3 - proposalCount)} proposals aur download karein</div>
-                                                </>
-                                            )}
-                                        </div>
-                                    </div>
-                                )}
                             </div>
-
-                            {variant !== "employee" && proposalCount >= 3 && couponCode && isCouponValid(couponUnlockDate) && !insuranceInterest && (
-                                <div className="bg-[#FBE4E4] border border-[#C7102E] rounded-xl px-3 py-3 text-[11px] text-[#7A1420] space-y-2">
-                                    <div>Interested in claiming your <strong>Health &amp; Term Insurance</strong> reward today?</div>
-                                    <div className="italic">Kya aap aaj hi apna Health aur Term Insurance reward claim karna chahenge?</div>
-                                    <div className="flex gap-2 pt-1">
-                                        <button
-                                            onClick={() => { setInsuranceInterest("yes"); try { localStorage.setItem("tfd_insurance_interest", "yes"); } catch { /* ignore */ } }}
-                                            className="flex-1 py-2 rounded-lg bg-[#024396] text-white text-xs font-semibold"
-                                        >
-                                            Yes, Interested
-                                        </button>
-                                        <button
-                                            onClick={() => { setInsuranceInterest("no"); try { localStorage.setItem("tfd_insurance_interest", "no"); } catch { /* ignore */ } }}
-                                            className="flex-1 py-2 rounded-lg bg-white border border-[#E2D8C2] text-[#0E1B2C] text-xs font-semibold"
-                                        >
-                                            Not Now
-                                        </button>
-                                    </div>
-                                </div>
-                            )}
-                            {variant !== "employee" && insuranceInterest === "yes" && (
-                                <div className="bg-green-50 border border-green-600 rounded-xl px-3 py-2 text-[11px] text-green-800">
-                                    ✅ Thank you! Our team will contact you today to help you claim your Health &amp; Term Insurance reward.
-                                    <div className="italic mt-1">Dhanyawad! Hamari team aaj hi aapse contact karke reward claim karne mein madad karegi.</div>
-                                </div>
-                            )}
 
                             {variant === "employee" && (
                                 <>
@@ -1471,20 +1330,17 @@ async function waitForImagesToLoad(containerEl, timeoutMs = 3000) {
         await new Promise((r) => setTimeout(r, 100));
     }
 }
-function generateCouponCode(phone) {
-    const digits = (phone || "").replace(/\D/g, "").slice(-4) || "0000";
-    return `TFDHEALTH${digits}`;
-}
-function couponExpiryDate(unlockDateStr) {
-    if (!unlockDateStr) return null;
-    const d = new Date(unlockDateStr);
-    d.setDate(d.getDate() + 30);
-    return d.toLocaleDateString("en-IN", { day: "numeric", month: "long", year: "numeric" });
-}
-
-async function trackProposalWithBackend({ name, phone, proposalCount, couponCode }) {
-    // TODO: backend integration — POST /api/leads/public/proposal-track
-    console.log("[proposal-track]", { name, phone, proposalCount, couponCode });
+async function trackProposalWithBackend({ name, phone }) {
+    try {
+        const API = process.env.REACT_APP_BACKEND_URL || "";
+        await fetch(`${API}/api/leads/public/proposal-track`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ name, phone, source: "website_proposal", created_at: new Date().toISOString() }),
+        });
+    } catch (e) {
+        console.log("[proposal-track] error:", e);
+    }
 }
 
 const TFD_TEAM_INFO = { name: "The Financial Doctor", phone: "+91 77738 05794" };

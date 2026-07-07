@@ -470,6 +470,12 @@ app.include_router(qr_router)
 from services_routes import router as services_router
 app.include_router(services_router)
 
+from documents_routes import router as documents_router
+app.include_router(documents_router)
+
+from accounts_routes import router as accounts_router
+app.include_router(accounts_router)
+
 app.add_middleware(
     CORSMiddleware,
     allow_credentials=True,

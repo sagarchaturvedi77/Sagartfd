@@ -903,3 +903,41 @@ async def delete_career_lead(career_lead_id: str, admin: dict = Depends(require_
     if result.deleted_count == 0:
         raise HTTPException(status_code=404, detail="Not found")
     return {"status": "deleted"}
+
+
+# ── Proposal download tracking (public, no auth) ──
+
+class ProposalTrackData(BaseModel):
+    name: str = ""
+    phone: str = ""
+    source: str = "website_proposal"
+    created_at: Optional[str] = None
+
+
+@router.post("/public/proposal-track")
+async def track_proposal_download(data: ProposalTrackData):
+    """Track when someone downloads a proposal from the website calculator.
+    Saves to web_leads so admin can see in Website Leads section."""
+    doc = {
+        "id": str(uuid.uuid4()),
+        "name": data.name,
+        "phone": data.phone,
+        "source": data.source,
+        "type": "proposal_download",
+        "status": "new",
+        "created_at": data.created_at or datetime.now(timezone.utc).isoformat(),
+    }
+    await web_leads_collection.insert_one(doc)
+    doc.pop("_id", None)
+
+    # Notify admin
+    admins = users_collection.find({"role": "admin"})
+    async for adm in admins:
+        await create_notification(
+            user_id=adm["id"],
+            title="New Proposal Download",
+            body=f"{data.name or 'Visitor'} ({data.phone}) downloaded a proposal",
+            n_type="lead",
+            link="/portal/admin/leads",
+        )
+    return {"status": "tracked", "id": doc["id"]}

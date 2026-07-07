@@ -3,6 +3,7 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import NotificationBell from "./NotificationBell";
 import InstallPrompt from "./InstallPrompt";
+import NotificationGate from "./NotificationGate";
 import { registerServiceWorker, enablePush } from "../portal/push";
 import useFirebaseMessaging from "../hooks/useFirebaseMessaging";
 
@@ -13,9 +14,11 @@ const adminItems = [
   { key: "services",   label: "🛎️ Services",           path: "/portal/admin/services" },
   { key: "pipelines",  label: "🔀 Pipelines",          path: "/portal/admin/pipelines" },
   { key: "salary",     label: "💰 Salary",             path: "/portal/admin/salary" },
+  { key: "accounts",   label: "🏦 Accounts",           path: "/portal/admin/accounts" },
   { key: "tasks",      label: "✅ Tasks",              path: "/portal/admin/tasks" },
   { key: "targets",    label: "🎯 Targets",            path: "/portal/admin/targets" },
   { key: "reports",    label: "📈 Reports",            path: "/portal/admin/reports" },
+  { key: "documents",  label: "📁 Documents",          path: "/portal/admin/documents" },
   { key: "leaves",     label: "🌴 Leave Requests",     path: "/portal/admin/leaves" },
   { key: "chat",       label: "💬 Team Chat",          path: "/portal/admin/chat" },
   { key: "access",     label: "🔑 Access Control",     path: "/portal/admin/access" },
@@ -434,6 +437,7 @@ export default function PortalLayout({ children }) {
 
       </div>
       <InstallPrompt />
+      <NotificationGate />
     </>
   );
 }
