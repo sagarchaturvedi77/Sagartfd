@@ -34,6 +34,8 @@ import AdminServices from "./pages/AdminServices";
 import AdminSalary from "./pages/AdminSalary";
 import AdminTasks from "./pages/AdminTasks";
 import AdminReports from "./pages/AdminReports";
+import AdminDocuments from "./pages/AdminDocuments";
+import AdminAccounts from "./pages/AdminAccounts";
 import AnalyticsTracker from "./components/AnalyticsTracker";
 import WebsiteNotificationPrompt from "./components/WebsiteNotificationPrompt";
 import EmployeeOnboarding from "./pages/EmployeeOnboarding";
@@ -175,6 +177,22 @@ function App() {
                   element={
                     <ProtectedRoute requiredRole="admin">
                       <AdminReports />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/portal/admin/documents"
+                  element={
+                    <ProtectedRoute requiredRole="admin">
+                      <AdminDocuments />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/portal/admin/accounts"
+                  element={
+                    <ProtectedRoute requiredRole="admin">
+                      <AdminAccounts />
                     </ProtectedRoute>
                   }
                 />

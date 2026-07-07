@@ -48,6 +48,21 @@ async def login(payload: UserLogin):
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="This account has been deactivated")
 
     token = create_access_token(user["id"], user["role"])
+
+    # Welcome notification on login
+    try:
+        from notification_service import create_notification
+        name = user.get("name", user.get("profile_name", ""))
+        await create_notification(
+            user_id=user["id"],
+            title=f"Welcome, {name}!" if name else "Welcome to TFD Workspace!",
+            body="TFD Workspace mein aapka swagat hai. Aaj ka din productive banayein!",
+            n_type="welcome",
+            link="/portal/employee" if user.get("role") == "employee" else "/portal/admin",
+        )
+    except Exception:
+        pass
+
     return TokenResponse(access_token=token, user=to_user_out(user))
 
 
@@ -98,6 +113,21 @@ async def create_employee(payload: UserCreate, admin=Depends(require_admin)):
             meta={"phone": payload.phone, "role": payload.role},
             result="success",
         )
+    except Exception:
+        pass
+
+    # Send welcome notification to admin about new employee
+    try:
+        from notification_service import create_notification
+        admin_id = admin.get("sub") if isinstance(admin, dict) else None
+        if admin_id:
+            await create_notification(
+                user_id=admin_id,
+                title="New Employee Created",
+                body=f"{payload.name} ({payload.phone}) has joined TFD Workspace!",
+                n_type="employee",
+                link="/portal/admin",
+            )
     except Exception:
         pass
 

@@ -10,12 +10,17 @@ if (typeof window !== "undefined") {
     deferredPrompt = e;
     promptListeners.forEach((fn) => fn(e));
   });
+  window.addEventListener("appinstalled", () => {
+    deferredPrompt = null;
+    localStorage.setItem("tfd_install_dismissed", "1");
+  });
 }
 
 function isStandalone() {
   return (
     window.matchMedia("(display-mode: standalone)").matches ||
-    window.navigator.standalone === true
+    window.navigator.standalone === true ||
+    document.referrer.includes("android-app://")
   );
 }
 
@@ -23,18 +28,13 @@ function isIOS() {
   return /iphone|ipad|ipod/i.test(window.navigator.userAgent);
 }
 
-function isInApp() {
-  // Detect if already running as installed PWA or in WebView/APK
-  return isStandalone();
-}
-
 export default function InstallPrompt() {
   const [open, setOpen] = React.useState(false);
   const [ios, setIos] = React.useState(false);
 
   React.useEffect(() => {
-    // Don't show install prompt if already installed or running in app
-    if (isInApp()) return;
+    // Don't show install prompt if already installed or running in app/webview
+    if (isStandalone()) return;
     if (localStorage.getItem("tfd_install_dismissed") === "1") return;
 
     const showPrompt = () => {
@@ -42,25 +42,59 @@ export default function InstallPrompt() {
       setOpen(true);
     };
 
-    // If deferred prompt already captured, show immediately
-    if (deferredPrompt || isIOS()) {
+    // If deferred prompt already captured, auto-trigger install immediately
+    if (deferredPrompt) {
+      // Auto trigger install prompt after short delay
+      const timer = setTimeout(() => {
+        triggerInstall();
+      }, 500);
+      return () => clearTimeout(timer);
+    }
+
+    if (isIOS()) {
       const timer = setTimeout(showPrompt, 800);
       return () => clearTimeout(timer);
     }
 
-    // Wait for the event to fire (up to 3s)
-    const handler = () => showPrompt();
+    // Wait for the event to fire (up to 4s)
+    const handler = () => {
+      // Auto trigger install as soon as event is captured
+      setTimeout(() => triggerInstall(), 300);
+    };
     promptListeners.push(handler);
     const timeout = setTimeout(() => {
-      if (deferredPrompt) showPrompt();
-    }, 3000);
+      if (deferredPrompt) triggerInstall();
+      else if (isIOS()) showPrompt();
+    }, 4000);
 
     return () => {
       clearTimeout(timeout);
       const idx = promptListeners.indexOf(handler);
       if (idx >= 0) promptListeners.splice(idx, 1);
     };
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const triggerInstall = async () => {
+    if (!deferredPrompt) {
+      setIos(isIOS());
+      setOpen(true);
+      return;
+    }
+    try {
+      deferredPrompt.prompt();
+      const result = await deferredPrompt.userChoice;
+      deferredPrompt = null;
+      if (result.outcome === "accepted") {
+        localStorage.setItem("tfd_install_dismissed", "1");
+        setOpen(false);
+        return;
+      }
+      // User dismissed - show banner
+      setOpen(true);
+    } catch {
+      setOpen(true);
+    }
+  };
 
   const dismiss = () => {
     localStorage.setItem("tfd_install_dismissed", "1");
@@ -90,8 +124,8 @@ export default function InstallPrompt() {
             <BrandLogo className="h-9" />
           </div>
           <div>
-            <h3 className="font-semibold text-[#0E1B2C] leading-tight">Install TFD Workspace</h3>
-            <p className="text-xs text-[#2A364B]/60">Add to your home screen</p>
+            <h3 className="font-semibold text-[#0E1B2C] leading-tight">Install TFD WorkSpace</h3>
+            <p className="text-xs text-[#2A364B]/60">Get the app on your device</p>
           </div>
         </div>
 
@@ -99,12 +133,11 @@ export default function InstallPrompt() {
           <p className="text-sm text-[#2A364B]/80 mb-5">
             Tap the <span className="font-semibold">Share</span> icon{" "}
             <span aria-hidden>⎙</span> in Safari, then choose{" "}
-            <span className="font-semibold">"Add to Home Screen"</span> to install the app
-            with the TFD logo.
+            <span className="font-semibold">"Add to Home Screen"</span> to install the app.
           </p>
         ) : (
           <p className="text-sm text-[#2A364B]/80 mb-5">
-            Install the app on your phone for one-tap access, faster loading and push
+            Install TFD WorkSpace for one-tap access, faster loading and push
             notifications — just like a native app.
           </p>
         )}
@@ -121,7 +154,7 @@ export default function InstallPrompt() {
               onClick={install}
               className="flex-1 py-2.5 rounded-xl text-sm font-semibold text-white bg-gradient-to-r from-[#024396] to-[#0356c4] hover:from-[#023580] transition-all shadow-lg shadow-[#024396]/25"
             >
-              Install
+              Install App
             </button>
           )}
           {ios && (

@@ -159,20 +159,113 @@ def check_lead_inactivity():
         )
 
 
+users = db.get_collection("users")
+MORNING_HOUR = int(os.environ.get("SCHEDULER_MORNING_HOUR", "9"))
+MORNING_MESSAGES = [
+    "Good Morning! Aaj ka din productive banayein. Targets achieve karein!",
+    "Good Morning! Naye din ki nayi shuruat — har call se ek kadam aage.",
+    "Good Morning! Focus aur dedication se koi bhi target possible hai.",
+    "Good Morning! Aaj bhi best performance dein — TFD pe bharosa rakhein!",
+    "Good Morning! Har follow-up ek opportunity hai — aaj miss mat karein.",
+    "Good Morning! Champions never give up — aaj ka din aapka hai!",
+    "Good Morning! Client ka trust hi sabse bada asset hai — build karein!",
+]
+SUNDAY_MESSAGES = [
+    "Happy Sunday! Aaj apna time enjoy karein. Kal phir se josh ke saath!",
+    "Itwar hai — relax karein, family ke saath time spend karein. See you Monday!",
+    "Sunday Funday! Achhe se rest karein, Monday ko full energy ke saath aayein!",
+]
+
+
+def send_daily_morning_notifications():
+    """9 AM: Send motivation to all active employees on working days, enjoy msg on Sunday."""
+    tz = pytz.timezone(APP_TZ)
+    now_local = datetime.now(tz)
+    is_sunday = now_local.weekday() == 6
+
+    active_employees = list(users.find({"role": "employee", "is_active": {"$ne": False}}))
+    LOG.info("Sending morning notifications to %s employees (sunday=%s)", len(active_employees), is_sunday)
+
+    import random
+    for emp in active_employees:
+        uid = emp.get("id")
+        name = emp.get("name", emp.get("profile_name", ""))
+        tokens = list(fcm_tokens.find({"user_id": uid}))
+        if not tokens:
+            continue
+
+        if is_sunday:
+            msg = random.choice(SUNDAY_MESSAGES)
+            title = "Happy Sunday!"
+        else:
+            msg = random.choice(MORNING_MESSAGES)
+            title = f"Good Morning, {name}!" if name else "Good Morning!"
+
+        for t in tokens:
+            tok = t.get("token")
+            if tok:
+                send_fcm_token(tok, title, msg, {"screen": "dashboard"})
+
+
+def send_followup_reminders():
+    """9 AM on working days: tell each employee how many follow-ups they have today."""
+    tz = pytz.timezone(APP_TZ)
+    now_local = datetime.now(tz)
+    if now_local.weekday() == 6:
+        return
+
+    today_str = now_local.strftime("%Y-%m-%d")
+    active_employees = list(users.find({"role": "employee", "is_active": {"$ne": False}}))
+
+    for emp in active_employees:
+        uid = emp.get("id")
+        name = emp.get("name", emp.get("profile_name", ""))
+        tokens_list = list(fcm_tokens.find({"user_id": uid}))
+        if not tokens_list:
+            continue
+
+        followup_count = leads.count_documents({
+            "assigned_to": uid,
+            "status": "follow_up",
+            "$or": [
+                {"follow_up_date": today_str},
+                {"follow_up_date": {"$lte": today_str}, "status": "follow_up"},
+            ]
+        })
+
+        if followup_count > 0:
+            title = f"Aaj ke Follow-ups: {followup_count}"
+            body = f"{name}, aapke paas aaj {followup_count} follow-up hain. Bhool mat jaana — har call important hai!"
+            for t in tokens_list:
+                tok = t.get("token")
+                if tok:
+                    send_fcm_token(tok, title, body, {"screen": "leads"})
+
+
 def run_loop():
     tz = pytz.timezone(APP_TZ)
     LOG.info("Scheduler started, timezone=%s", APP_TZ)
     last_daily_date = None
+    last_morning_date = None
     try:
         while True:
             now_local = datetime.now(tz)
-            # daily 18:00 local
+
+            # Morning 9 AM: motivation + follow-up reminders
+            if now_local.hour == MORNING_HOUR and (last_morning_date is None or last_morning_date < now_local.date()):
+                LOG.info("Running morning notifications at %s", now_local.isoformat())
+                send_daily_morning_notifications()
+                send_followup_reminders()
+                last_morning_date = now_local.date()
+
+            # Evening 6 PM: punch-out reminders + lead inactivity
             if now_local.hour == DAILY_HOUR and (last_daily_date is None or last_daily_date < now_local.date()):
                 LOG.info("Running daily open-shifts check at %s", now_local.isoformat())
                 notify_open_shifts()
                 check_lead_inactivity()
                 last_daily_date = now_local.date()
-            # process reminders
+
+            # process reminders (every CHECK_INTERVAL seconds)
             process_due_reminders()
             time.sleep(CHECK_INTERVAL)
     except KeyboardInterrupt:

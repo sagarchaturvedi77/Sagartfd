@@ -100,30 +100,29 @@ export default function EmployeeDashboard() {
         </div>
       )}
 
-      {/* Punch Section */}
-      <div className="bg-gradient-to-r from-[#0E1B2C] to-[#162d4a] rounded-2xl p-6 text-white shadow-lg mb-6">
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+      {/* Punch Section - Compact */}
+      <div className="bg-gradient-to-r from-[#0E1B2C] to-[#162d4a] rounded-xl p-3.5 text-white shadow-md mb-4">
+        <div className="flex items-center justify-between">
           <div>
-            <p className="text-white/50 text-xs uppercase tracking-wider mb-1">Today's Shift</p>
-            <p className="text-xl font-serif">{now.toLocaleDateString("en-IN", { weekday: "long", day: "numeric", month: "long" })}</p>
+            <p className="text-white/50 text-[10px] uppercase tracking-wider">{now.toLocaleDateString("en-IN", { weekday: "short", day: "numeric", month: "short" })}</p>
             {hasClockedIn && (
-              <p className="text-sm text-white/60 mt-1">
-                Punched in at {new Date(today.clock_in).toLocaleTimeString()}
-                {hasClockedOut && ` — Out at ${new Date(today.clock_out).toLocaleTimeString()}`}
+              <p className="text-[11px] text-white/60 mt-0.5">
+                In: {new Date(today.clock_in).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                {hasClockedOut && ` · Out: ${new Date(today.clock_out).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}`}
               </p>
             )}
           </div>
           <div>
             {!hasClockedIn ? (
-              <button onClick={() => punch("clock-in")} disabled={actionLoading} className="bg-emerald-500 hover:bg-emerald-400 text-white px-6 py-3 rounded-xl font-semibold shadow-lg">
-                {actionLoading ? "Locating..." : "Punch In"}
+              <button onClick={() => punch("clock-in")} disabled={actionLoading} className="bg-emerald-500 hover:bg-emerald-400 text-white px-4 py-2 rounded-lg text-xs font-semibold shadow">
+                {actionLoading ? "..." : "Punch In"}
               </button>
             ) : !hasClockedOut ? (
-              <button onClick={() => punch("clock-out")} disabled={actionLoading} className="bg-red-500 hover:bg-red-400 text-white px-6 py-3 rounded-xl font-semibold shadow-lg">
-                {actionLoading ? "Locating..." : "Punch Out"}
+              <button onClick={() => punch("clock-out")} disabled={actionLoading} className="bg-red-500 hover:bg-red-400 text-white px-4 py-2 rounded-lg text-xs font-semibold shadow">
+                {actionLoading ? "..." : "Punch Out"}
               </button>
             ) : (
-              <span className="bg-white/10 px-6 py-3 rounded-xl text-sm font-medium">Day Complete — {today.total_hours}h</span>
+              <span className="bg-white/10 px-3 py-1.5 rounded-lg text-xs font-medium">{today.total_hours}h Done</span>
             )}
           </div>
         </div>
