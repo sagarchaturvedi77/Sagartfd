@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { getVisitorId } from "./AnalyticsTracker";
 
 const API_BASE = process.env.REACT_APP_BACKEND_URL || "";
 
@@ -37,7 +38,7 @@ async function subscribeWebPush() {
     await fetch(`${API_BASE}/api/analytics/web-push/subscribe`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ endpoint: json.endpoint, keys: json.keys }),
+      body: JSON.stringify({ endpoint: json.endpoint, keys: json.keys, visitor_id: getVisitorId() }),
     });
     return true;
   } catch (e) {

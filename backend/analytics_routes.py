@@ -76,7 +76,12 @@ async def vapid_key():
 async def web_push_subscribe(sub: WebPushSubscriptionIn):
     await web_push_collection.update_one(
         {"endpoint": sub.endpoint},
-        {"$set": {"endpoint": sub.endpoint, "keys": sub.keys, "subscribed_at": datetime.now(timezone.utc).isoformat()}},
+        {"$set": {
+            "endpoint": sub.endpoint,
+            "keys": sub.keys,
+            "visitor_id": sub.visitor_id,
+            "subscribed_at": datetime.now(timezone.utc).isoformat(),
+        }},
         upsert=True,
     )
     return {"status": "subscribed"}

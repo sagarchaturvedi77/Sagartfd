@@ -1,5 +1,5 @@
 from fastapi import APIRouter, HTTPException, Depends, status
-from datetime import datetime
+from datetime import datetime, timezone
 import random
 import string
 
@@ -52,19 +52,24 @@ async def login(payload: UserLogin):
 
     token = create_access_token(user["id"], user["role"])
 
-    # Welcome notification on login
-    try:
-        from notification_service import create_notification
-        name = user.get("name", user.get("profile_name", ""))
-        await create_notification(
-            user_id=user["id"],
-            title=f"Welcome, {name}!" if name else "Welcome to TFD Workspace!",
-            body="TFD Workspace mein aapka swagat hai. Aaj ka din productive banayein!",
-            n_type="welcome",
-            link="/portal/employee" if user.get("role") == "employee" else "/portal/admin",
-        )
-    except Exception:
-        pass
+    # Welcome notification — only once per day, on the first login of the day
+    # (previously fired on every single login, which spammed users who log
+    # in/out multiple times a day).
+    today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    if user.get("last_welcome_notif_date") != today:
+        try:
+            from notification_service import create_notification
+            name = user.get("name", user.get("profile_name", ""))
+            await create_notification(
+                user_id=user["id"],
+                title=f"Welcome, {name}!" if name else "Welcome to TFD Workspace!",
+                body="TFD Workspace mein aapka swagat hai. Aaj ka din productive banayein!",
+                n_type="welcome",
+                link="/portal/employee" if user.get("role") == "employee" else "/portal/admin",
+            )
+            await users_collection.update_one({"id": user["id"]}, {"$set": {"last_welcome_notif_date": today}})
+        except Exception:
+            pass
 
     return TokenResponse(access_token=token, user=to_user_out(user))
 

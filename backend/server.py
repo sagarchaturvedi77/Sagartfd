@@ -492,6 +492,9 @@ app.include_router(documents_router)
 from accounts_routes import router as accounts_router
 app.include_router(accounts_router)
 
+from internal_routes import router as internal_router
+app.include_router(internal_router)
+
 app.add_middleware(
     CORSMiddleware,
     allow_credentials=True,

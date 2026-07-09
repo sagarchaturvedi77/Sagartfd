@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Bell, AlertTriangle } from "lucide-react";
+import { registerServiceWorker, enablePush } from "../portal/push";
 
 /**
  * NotificationGate — shows full-screen overlay blocking portal until notifications are enabled.
@@ -24,6 +25,13 @@ export default function NotificationGate() {
     try {
       const result = await Notification.requestPermission();
       if (result === "granted") {
+        // Permission alone doesn't create a push subscription — without this,
+        // the gate would clear but push_subscriptions would stay empty until
+        // the next full page load (when PortalLayout's mount-time check
+        // re-runs), so this device would silently miss every notification
+        // until then.
+        await registerServiceWorker();
+        await enablePush();
         setBlocked(false);
       }
     } catch {

@@ -10,6 +10,7 @@ class PageView(BaseModel):
     region: Optional[str] = None
     country: Optional[str] = None
     user_agent: Optional[str] = None
+    visitor_id: Optional[str] = None  # anonymous localStorage UUID — correlates with push subscriptions
     ts: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
 
 
@@ -20,12 +21,14 @@ class EventTrack(BaseModel):
     city: Optional[str] = None
     region: Optional[str] = None
     country: Optional[str] = None
+    visitor_id: Optional[str] = None  # anonymous localStorage UUID — correlates with push subscriptions
     ts: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
 
 
 class WebPushSubscriptionIn(BaseModel):
     endpoint: str
     keys: dict  # {"p256dh": "...", "auth": "..."}
+    visitor_id: Optional[str] = None  # joins this subscription back to calculator_use/proposal_generate events
 
 
 class WebsiteBroadcastIn(BaseModel):

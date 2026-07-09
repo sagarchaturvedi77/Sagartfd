@@ -8,11 +8,10 @@ export function pushSupported() {
 export async function registerServiceWorker() {
   if (!("serviceWorker" in navigator)) return null;
   try {
-    // "/service-worker.js" doesn't exist in this app (no CRA PWA service
-    // worker is generated) — that registration always failed silently and
-    // enablePush() short-circuited with reason "no-sw". Reuse the real,
-    // already-shipped firebase-messaging-sw.js instead.
-    return await navigator.serviceWorker.register("/firebase-messaging-sw.js");
+    // Same service worker the public website's visitor push uses
+    // (components/WebsiteNotificationPrompt.jsx) — one generic handler
+    // (title/body/url payload) covers both audiences, no Firebase involved.
+    return await navigator.serviceWorker.register("/web-push-sw.js");
   } catch (e) {
     return null;
   }

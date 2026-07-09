@@ -8,18 +8,6 @@ from datetime import datetime, timedelta
 import pytz
 from pymongo import MongoClient
 
-# Firebase Admin will be initialized via backend/init_firebase.py helper.
-# This module is run directly (`python scheduler_worker.py` from inside
-# backend/), not as `backend.scheduler_worker` — a `backend.` prefixed
-# import here always raised ModuleNotFoundError, silently caught below,
-# which meant FCM sending from this worker never actually worked.
-try:
-    from firebase_admin import messaging
-    from init_firebase import init_firebase_from_env
-except Exception:
-    messaging = None
-    init_firebase_from_env = None
-
 try:
     from pywebpush import webpush, WebPushException
     _PYWEBPUSH_OK = True
@@ -38,8 +26,8 @@ MONGO = os.environ.get("MONGO_URL") or os.environ.get("MONGO_URI")
 DB_NAME = os.environ.get("DB_NAME") or os.environ.get("MONGO_DB") or "tfd"
 APP_TZ = os.environ.get("APP_TIMEZONE", "Asia/Kolkata")
 CHECK_INTERVAL = int(os.environ.get("SCHEDULER_POLL_SECONDS", "30"))
-DAILY_HOUR = int(os.environ.get("SCHEDULER_DAILY_HOUR", "18"))  # 18:00 local
-MAX_RETRIES = int(os.environ.get("FCM_MAX_RETRIES", "3"))
+DAILY_HOUR = int(os.environ.get("SCHEDULER_DAILY_HOUR", "17"))  # 17:00 local — punch-out reminder start
+MAX_RETRIES = int(os.environ.get("PUSH_MAX_RETRIES", "3"))
 
 if not MONGO:
     raise RuntimeError("MONGO_URL (or MONGO_URI) must be set for scheduler")
@@ -47,7 +35,7 @@ if not MONGO:
 client = MongoClient(MONGO)
 db = client[DB_NAME]
 attendance = db.get_collection("attendance")
-fcm_tokens = db.get_collection("fcm_tokens")
+push_subscriptions = db.get_collection("push_subscriptions")  # portal (admin/employee) — same collection notification_service.py uses
 reminders = db.get_collection("reminders")
 leads = db.get_collection("leads")
 web_push_subs = db.get_collection("web_push_subs")
@@ -59,35 +47,43 @@ VAPID_PRIVATE_KEY = os.environ.get("VAPID_PRIVATE_KEY", "")
 VAPID_CLAIM_EMAIL = os.environ.get("VAPID_CLAIM_EMAIL", "mailto:admin@thefinancialdoctor.in")
 WEBSITE_NOTIF_INTERVAL_DAYS = float(os.environ.get("WEBSITE_NOTIF_INTERVAL_DAYS", "2"))
 
-# initialize firebase admin if available
-if init_firebase_from_env:
-    init_firebase_from_env()
 
-
-def send_fcm_token(token: str, title: str, body: str, data: dict | None = None) -> bool:
-    if messaging is None:
-        LOG.warning("firebase_admin.messaging not available — skipping send")
-        return False
-    # Data-only (no `notification` block): a `notification` payload gets
-    # auto-displayed by the browser itself, bypassing our service worker's
-    # onBackgroundMessage handler — which is what applies the TFD logo icon
-    # and click-through link. See backend/notification_service.py for the
-    # same fix on the main app's send path.
-    message = messaging.Message(
-        data={"title": title, "body": body, **{k: str(v) for k, v in (data or {}).items()}},
-        token=token,
-    )
-    attempt = 0
-    while attempt < MAX_RETRIES:
-        try:
-            resp = messaging.send(message)
-            LOG.info("FCM send success: %s", resp)
-            return True
-        except Exception as e:
-            attempt += 1
-            LOG.exception("FCM send failed (attempt %s): %s", attempt, e)
-            time.sleep(0.5 * (2 ** attempt))
-    return False
+def send_push_to_user(uid: str, title: str, body: str, url: str | None = None) -> int:
+    """Send a VAPID web push to every device the portal user (admin/employee)
+    has subscribed from — same push_subscriptions collection and delivery
+    mechanism notification_service.py uses for the main app's send path, so
+    this worker and the FastAPI app never diverge in behavior. Returns how
+    many devices were successfully sent to."""
+    if not (_PYWEBPUSH_OK and VAPID_PRIVATE_KEY):
+        LOG.warning("Web push not configured (pywebpush/VAPID_PRIVATE_KEY) — skipping send to %s", uid)
+        return 0
+    payload = json.dumps({"title": title, "body": body, "url": url or "/portal/employee"})
+    sent = 0
+    for sub in list(push_subscriptions.find({"user_id": uid})):
+        attempt = 0
+        while attempt < MAX_RETRIES:
+            try:
+                webpush(
+                    subscription_info={"endpoint": sub["endpoint"], "keys": sub["keys"]},
+                    data=payload,
+                    vapid_private_key=VAPID_PRIVATE_KEY,
+                    vapid_claims={"sub": VAPID_CLAIM_EMAIL},
+                )
+                sent += 1
+                break
+            except WebPushException as e:
+                resp = getattr(e, "response", None)
+                if resp is not None and resp.status_code in (404, 410):
+                    push_subscriptions.delete_one({"_id": sub["_id"]})
+                    break
+                attempt += 1
+                LOG.warning("Web push failed for %s (attempt %s): %s", uid, attempt, e)
+                time.sleep(0.5 * (2 ** attempt))
+            except Exception as e:
+                attempt += 1
+                LOG.exception("Web push error for %s (attempt %s): %s", uid, attempt, e)
+                time.sleep(0.5 * (2 ** attempt))
+    return sent
 
 
 def find_open_shifts_local_date(local_date: datetime):
@@ -106,12 +102,7 @@ def notify_open_shifts():
         uid = a.get("employee_id") or a.get("employee") or a.get("user_id")
         if not uid:
             continue
-        tokens = list(fcm_tokens.find({"user_id": uid}))
-        for t in tokens:
-            token = t.get("token")
-            if not token:
-                continue
-            send_fcm_token(token, "Punch Out Reminder", "Aapne aaj punch out nahi kiya. Kripya punch out karein.", {"screen": "attendance"})
+        send_push_to_user(uid, "Punch Out Reminder", "Aapne aaj punch out nahi kiya. Kripya punch out karein.", "/portal/employee/attendance")
         # create a reminder entry to send hourly follow-ups until punch_out
         reminders.update_one(
             {"user_id": uid, "type": "punch_out"},
@@ -127,14 +118,10 @@ def process_due_reminders():
     for r in due:
         rtype = r.get("type", "punch_out")
         uid = r.get("user_id")
-        tokens = list(fcm_tokens.find({"user_id": uid}))
 
         if rtype == "punch_out":
             interval = int(r.get("interval_minutes") or 60)
-            for t in tokens:
-                token = t.get("token")
-                if token:
-                    send_fcm_token(token, "Punch Out Reminder", "Kripya ab punch out karein — abhi pending hai.", {"screen": "attendance"})
+            send_push_to_user(uid, "Punch Out Reminder", "Kripya ab punch out karein — abhi pending hai.", "/portal/employee/attendance")
             next_send = datetime.utcnow() + timedelta(minutes=interval)
             reminders.update_one({"_id": r["_id"]}, {"$set": {"next_send_at": next_send}})
             date_str = datetime.utcnow().astimezone(pytz.timezone(APP_TZ)).strftime("%Y-%m-%d")
@@ -146,10 +133,7 @@ def process_due_reminders():
             # single-shot lead reminders — send once, then deactivate
             title = r.get("title", "Lead Reminder")
             body = r.get("body", "You have a pending lead follow-up.")
-            for t in tokens:
-                token = t.get("token")
-                if token:
-                    send_fcm_token(token, title, body, {"screen": "leads", "lead_id": r.get("lead_id", "")})
+            send_push_to_user(uid, title, body, "/portal/employee/leads")
             reminders.update_one({"_id": r["_id"]}, {"$set": {"active": False}})
 
         else:
@@ -218,9 +202,6 @@ def send_daily_morning_notifications():
     for emp in active_employees:
         uid = emp.get("id")
         name = emp.get("name", emp.get("profile_name", ""))
-        tokens = list(fcm_tokens.find({"user_id": uid}))
-        if not tokens:
-            continue
 
         if is_sunday:
             msg = random.choice(SUNDAY_MESSAGES)
@@ -229,10 +210,7 @@ def send_daily_morning_notifications():
             msg = random.choice(MORNING_MESSAGES)
             title = f"Good Morning, {name}!" if name else "Good Morning!"
 
-        for t in tokens:
-            tok = t.get("token")
-            if tok:
-                send_fcm_token(tok, title, msg, {"screen": "dashboard"})
+        send_push_to_user(uid, title, msg, "/portal/employee")
 
 
 def send_followup_reminders():
@@ -248,9 +226,6 @@ def send_followup_reminders():
     for emp in active_employees:
         uid = emp.get("id")
         name = emp.get("name", emp.get("profile_name", ""))
-        tokens_list = list(fcm_tokens.find({"user_id": uid}))
-        if not tokens_list:
-            continue
 
         followup_count = leads.count_documents({
             "assigned_to": uid,
@@ -264,10 +239,7 @@ def send_followup_reminders():
         if followup_count > 0:
             title = f"Aaj ke Follow-ups: {followup_count}"
             body = f"{name}, aapke paas aaj {followup_count} follow-up hain. Bhool mat jaana — har call important hai!"
-            for t in tokens_list:
-                tok = t.get("token")
-                if tok:
-                    send_fcm_token(tok, title, body, {"screen": "leads"})
+            send_push_to_user(uid, title, body, "/portal/employee/leads")
 
 
 # ── Automated website visitor notifications (Gemini-generated, Hinglish) ──
@@ -389,35 +361,68 @@ def maybe_send_website_broadcast():
         scheduler_state.update_one({"_id": "website_broadcast"}, {"$set": {"last_sent_at": now}}, upsert=True)
 
 
-def run_loop():
+def _job_due_today(job_name: str, now_local: datetime) -> bool:
+    """DB-backed once-per-day gate (scheduler_state collection) — deliberately
+    not in-memory state, because this worker no longer runs as a persistent
+    process. Render's free plan has no standalone Background Worker, so this
+    logic is invoked per-request from an HTTP endpoint (see
+    backend/internal_routes.py) triggered every 15-30 min by an external free
+    cron (e.g. cron-job.org). In-memory "last run" variables would reset on
+    every cold start / redeploy and could double-send; a Mongo-persisted date
+    string survives restarts and makes each check idempotent."""
+    today_str = now_local.strftime("%Y-%m-%d")
+    state = scheduler_state.find_one({"_id": job_name}) or {}
+    if state.get("last_run_date") == today_str:
+        return False
+    scheduler_state.update_one({"_id": job_name}, {"$set": {"last_run_date": today_str}}, upsert=True)
+    return True
+
+
+def run_due_checks() -> dict:
+    """One pass over every scheduled job — safe to call as often as the
+    external cron likes (every 15-30 min recommended). Each job internally
+    decides whether it's actually due, so extra calls are harmless no-ops."""
     tz = pytz.timezone(APP_TZ)
-    LOG.info("Scheduler started, timezone=%s", APP_TZ)
-    last_daily_date = None
-    last_morning_date = None
+    now_local = datetime.now(tz)
+    ran = []
+
+    # Morning: motivation + "today's follow-ups" digest — any cron tick at or
+    # after MORNING_HOUR, once per day (>= not ==, since we can't rely on the
+    # cron landing exactly on the hour).
+    if now_local.hour >= MORNING_HOUR and _job_due_today("morning_notifications", now_local):
+        LOG.info("Running morning notifications at %s", now_local.isoformat())
+        send_daily_morning_notifications()
+        send_followup_reminders()
+        ran.append("morning_notifications")
+
+    # Evening: punch-out reminders start + lead inactivity sweep.
+    if now_local.hour >= DAILY_HOUR and _job_due_today("evening_checks", now_local):
+        LOG.info("Running evening checks at %s", now_local.isoformat())
+        notify_open_shifts()
+        check_lead_inactivity()
+        ran.append("evening_checks")
+
+    # Hourly-interval reminders (punch-out repeats, single-shot lead nudges) —
+    # naturally idempotent via each reminder's own next_send_at field.
+    process_due_reminders()
+    ran.append("process_due_reminders")
+
+    # Website visitor broadcast — internally throttled to once every
+    # WEBSITE_NOTIF_INTERVAL_DAYS via its own scheduler_state doc.
+    maybe_send_website_broadcast()
+    ran.append("maybe_send_website_broadcast")
+
+    return {"ran": ran, "checked_at": now_local.isoformat()}
+
+
+def run_loop():
+    """Optional local-dev convenience only — production runs via the
+    /api/internal/run-scheduled-tasks endpoint on an external cron instead
+    (see run_due_checks() above and backend/internal_routes.py)."""
+    LOG.info("Scheduler loop started (local dev), timezone=%s", APP_TZ)
     try:
         while True:
-            now_local = datetime.now(tz)
-
-            # Morning 9 AM: motivation + follow-up reminders
-            if now_local.hour == MORNING_HOUR and (last_morning_date is None or last_morning_date < now_local.date()):
-                LOG.info("Running morning notifications at %s", now_local.isoformat())
-                send_daily_morning_notifications()
-                send_followup_reminders()
-                last_morning_date = now_local.date()
-
-            # Evening 6 PM: punch-out reminders + lead inactivity
-            if now_local.hour == DAILY_HOUR and (last_daily_date is None or last_daily_date < now_local.date()):
-                LOG.info("Running daily open-shifts check at %s", now_local.isoformat())
-                notify_open_shifts()
-                check_lead_inactivity()
-                last_daily_date = now_local.date()
-
-            # process reminders (every CHECK_INTERVAL seconds)
-            process_due_reminders()
-
-            # Website visitor broadcast — internally throttled to once every
-            # WEBSITE_NOTIF_INTERVAL_DAYS, safe to check every loop tick.
-            maybe_send_website_broadcast()
+            run_due_checks()
 
             time.sleep(CHECK_INTERVAL)
     except KeyboardInterrupt:

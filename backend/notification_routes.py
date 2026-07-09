@@ -10,7 +10,6 @@ from auth_utils import get_current_user_payload, require_admin
 from database import (
     notifications_collection,
     push_subscriptions_collection,
-    fcm_tokens_collection,
     users_collection,
 )
 
@@ -100,17 +99,3 @@ async def unsubscribe(sub: PushSubscriptionIn, payload: dict = Depends(get_curre
         {"endpoint": sub.endpoint, "user_id": payload["sub"]}
     )
     return {"status": "unsubscribed"}
-
-
-@router.post("/register-fcm-token")
-async def register_fcm_token(data: dict, payload: dict = Depends(get_current_user_payload)):
-    """Register/update FCM token for the current user's device."""
-    token = data.get("token")
-    if not token:
-        return {"status": "no_token"}
-    await fcm_tokens_collection.update_one(
-        {"token": token},
-        {"$set": {"user_id": payload["sub"], "token": token}},
-        upsert=True,
-    )
-    return {"status": "registered"}

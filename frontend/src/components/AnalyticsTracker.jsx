@@ -2,6 +2,24 @@ import { useEffect } from "react";
 import { useLocation } from "react-router-dom";
 
 const API_BASE = process.env.REACT_APP_BACKEND_URL || "";
+const VISITOR_ID_KEY = "tfd_visitor_id";
+
+// Anonymous, persistent per-browser ID — lets the backend correlate "this
+// visitor used the SIP calculator" with "this visitor's push subscription"
+// so behavioral follow-up notifications (calculator-use nudge, proposal
+// download follow-up) can target the right person. Not tied to any account.
+export function getVisitorId() {
+  try {
+    let id = localStorage.getItem(VISITOR_ID_KEY);
+    if (!id) {
+      id = (crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random().toString(36).slice(2)}`);
+      localStorage.setItem(VISITOR_ID_KEY, id);
+    }
+    return id;
+  } catch {
+    return null; // localStorage unavailable (private mode etc.) — degrade gracefully
+  }
+}
 
 async function getCityInfo() {
   try {
@@ -25,6 +43,7 @@ async function trackPageView(page) {
       body: JSON.stringify({
         page,
         referrer: document.referrer || null,
+        visitor_id: getVisitorId(),
         ..._geoCache,
       }),
     });
@@ -41,6 +60,7 @@ export async function trackEvent(event, label, page) {
         event,
         label: label || null,
         page: page || window.location.pathname,
+        visitor_id: getVisitorId(),
         ..._geoCache,
       }),
     });

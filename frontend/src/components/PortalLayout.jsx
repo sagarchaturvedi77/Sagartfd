@@ -7,7 +7,6 @@ import NotificationBell from "./NotificationBell";
 import InstallPrompt from "./InstallPrompt";
 import NotificationGate from "./NotificationGate";
 import { registerServiceWorker, enablePush } from "../portal/push";
-import useFirebaseMessaging from "../hooks/useFirebaseMessaging";
 import useIsMobile from "../hooks/useIsMobile";
 import { Sheet, SheetContent, SheetTitle } from "./ui/sheet";
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator } from "./ui/dropdown-menu";
@@ -72,9 +71,6 @@ export default function PortalLayout({ children }) {
   const isAdmin = user?.role === "admin";
   const items = isAdmin ? adminItems : employeeItems;
   const isMobile = useIsMobile();
-
-  // Register FCM token for push notifications
-  useFirebaseMessaging();
 
   const [sidebarOpen, setSidebarOpen] = useState(!isMobile);
   const [moreOpen, setMoreOpen] = useState(false);
