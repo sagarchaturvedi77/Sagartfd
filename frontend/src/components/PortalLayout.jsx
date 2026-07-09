@@ -90,7 +90,9 @@ export default function PortalLayout({ children }) {
 
   useEffect(() => {
     registerServiceWorker();
-    if (typeof Notification !== "undefined" && Notification.permission === "granted") enablePush();
+    if (typeof Notification !== "undefined" && Notification.permission === "granted") {
+      enablePush().then((r) => console.log("[push] enablePush result:", r));
+    }
   }, []);
 
   // Close sidebar on mobile route change

@@ -44,20 +44,40 @@ export async function enablePush() {
   const reg = (await navigator.serviceWorker.getRegistration()) || (await registerServiceWorker());
   if (!reg) return { ok: false, reason: "no-sw" };
 
-  await navigator.serviceWorker.ready;
-  let sub = await reg.pushManager.getSubscription();
-  if (!sub) {
-    sub = await reg.pushManager.subscribe({
-      userVisibleOnly: true,
-      applicationServerKey: urlBase64ToUint8Array(vapid.key),
+  try {
+    await navigator.serviceWorker.ready;
+    let sub = await reg.pushManager.getSubscription();
+    if (sub) {
+      // A subscription can be left over from before a VAPID key rotation —
+      // its applicationServerKey no longer matches ours, and re-POSTing it
+      // as-is would just create a subscription the server can never
+      // actually push to. Compare against the current key and force a
+      // fresh subscribe if it doesn't match, instead of silently reusing
+      // a dead one forever.
+      const currentKey = sub.options?.applicationServerKey
+        ? btoa(String.fromCharCode(...new Uint8Array(sub.options.applicationServerKey)))
+        : null;
+      const expectedKey = btoa(String.fromCharCode(...urlBase64ToUint8Array(vapid.key)));
+      if (currentKey && currentKey !== expectedKey) {
+        await sub.unsubscribe();
+        sub = null;
+      }
+    }
+    if (!sub) {
+      sub = await reg.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: urlBase64ToUint8Array(vapid.key),
+      });
+    }
+    const json = sub.toJSON();
+    await apiSend("/api/notifications/subscribe", "POST", {
+      endpoint: json.endpoint,
+      keys: json.keys,
     });
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, reason: "subscribe-failed", error: e?.message || String(e) };
   }
-  const json = sub.toJSON();
-  await apiSend("/api/notifications/subscribe", "POST", {
-    endpoint: json.endpoint,
-    keys: json.keys,
-  });
-  return { ok: true };
 }
 
 export { API_BASE };

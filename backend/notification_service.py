@@ -45,7 +45,12 @@ async def _send_web_push(user_id: str, payload: dict) -> None:
             )
         except WebPushException as exc:
             logger.warning("Web push failed for %s: %s", user_id, exc)
-            if getattr(exc, "response", None) is not None and exc.response.status_code in (404, 410):
+            # 404/410 = subscription gone; 401/403 = VAPID key mismatch (the
+            # subscription was created against a different server key, e.g.
+            # before a key rotation) — both cases mean this subscription can
+            # never succeed again and must be re-created client-side, so prune
+            # it rather than retrying it forever.
+            if getattr(exc, "response", None) is not None and exc.response.status_code in (401, 403, 404, 410):
                 await push_subscriptions_collection.delete_one({"_id": sub["_id"]})
         except Exception as exc:
             logger.warning("Web push error for %s: %s", user_id, exc)

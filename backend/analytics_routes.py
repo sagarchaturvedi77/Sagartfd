@@ -114,7 +114,10 @@ async def web_push_broadcast(data: WebsiteBroadcastIn, _admin: dict = Depends(re
             sent += 1
         except Exception as exc:
             resp = getattr(exc, "response", None)
-            if resp is not None and resp.status_code in (404, 410):
+            # 404/410 = subscription gone; 401/403 = VAPID key mismatch (e.g.
+            # subscribed before a server key rotation) — both are permanently
+            # unrecoverable for this subscription, so prune either way.
+            if resp is not None and resp.status_code in (401, 403, 404, 410):
                 stale.append(sub["_id"])
             else:
                 logger.warning("Website push error: %s", exc)

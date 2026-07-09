@@ -73,7 +73,11 @@ def send_push_to_user(uid: str, title: str, body: str, url: str | None = None) -
                 break
             except WebPushException as e:
                 resp = getattr(e, "response", None)
-                if resp is not None and resp.status_code in (404, 410):
+                # 404/410 = subscription gone; 401/403 = VAPID key mismatch
+                # (subscribed against a different server key) — neither is
+                # worth retrying, so prune and stop instead of burning
+                # MAX_RETRIES on a request that can never succeed.
+                if resp is not None and resp.status_code in (401, 403, 404, 410):
                     push_subscriptions.delete_one({"_id": sub["_id"]})
                     break
                 attempt += 1
@@ -333,7 +337,8 @@ def send_website_broadcast() -> bool:
             sent += 1
         except WebPushException as e:
             resp = getattr(e, "response", None)
-            if resp is not None and resp.status_code in (404, 410):
+            # 404/410 = subscription gone; 401/403 = VAPID key mismatch.
+            if resp is not None and resp.status_code in (401, 403, 404, 410):
                 stale.append(sub["_id"])
             else:
                 LOG.warning("Website push error: %s", e)

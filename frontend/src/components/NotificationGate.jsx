@@ -31,7 +31,8 @@ export default function NotificationGate() {
         // re-runs), so this device would silently miss every notification
         // until then.
         await registerServiceWorker();
-        await enablePush();
+        const r = await enablePush();
+        console.log("[push] enablePush result:", r);
         setBlocked(false);
       }
     } catch {
