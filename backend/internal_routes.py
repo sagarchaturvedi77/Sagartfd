@@ -47,6 +47,17 @@ async def run_scheduled_tasks(
     # from the app's async Motor client in database.py) — run it off the
     # event loop so a slow pass (many reminders/subscribers) can't stall
     # other requests.
+    #
+    # Deliberately a bare summary either way (job names + counts, never raw
+    # reminder/lead/event documents) and any failure is caught and reported
+    # as a short, truncated message rather than letting an exception's
+    # traceback/repr — which could easily include a full Mongo document —
+    # reach the response body. Free-tier cron services (e.g. cron-job.org)
+    # cap response size, so this endpoint must never be able to return
+    # anything but a small, fixed-shape JSON object.
     import scheduler_worker
-    result = await run_in_threadpool(scheduler_worker.run_due_checks)
-    return {"status": "ok", **result}
+    try:
+        result = await run_in_threadpool(scheduler_worker.run_due_checks)
+        return {"status": "ok", "ran": result.get("ran", []), "checked_at": result.get("checked_at")}
+    except Exception as e:
+        return {"status": "error", "error": str(e)[:200]}
