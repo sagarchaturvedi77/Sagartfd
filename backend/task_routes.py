@@ -1,4 +1,5 @@
-"""Admin self-task / reminder routes. Admin's personal task & follow-up manager."""
+"""Admin self-task / reminder routes. Admin's personal task & follow-up manager
+— also supports admin-assigning a task to an employee (assigned_to on create)."""
 
 from datetime import datetime, timezone
 
@@ -6,7 +7,8 @@ from fastapi import APIRouter, Depends, HTTPException
 
 from task_models import TaskCreate, TaskUpdate, TaskInDB, TaskOut
 from auth_utils import get_current_user_payload
-from database import db
+from database import db, users_collection
+from notification_service import create_notification
 
 router = APIRouter(prefix="/api/tasks", tags=["tasks"])
 
@@ -19,14 +21,43 @@ def to_task_out(doc: dict) -> TaskOut:
 
 @router.post("/", response_model=TaskOut)
 async def create_task(data: TaskCreate, payload: dict = Depends(get_current_user_payload)):
-    task = TaskInDB(user_id=payload["sub"], **data.model_dump())
+    fields = data.model_dump()
+    assigned_to = fields.pop("assigned_to", None)
+
+    # Only admins can assign to someone else — an employee-supplied
+    # assigned_to is ignored so a task always lands on its creator otherwise,
+    # preserving today's self-task behavior.
+    owner_id = payload["sub"]
+    assigned_by = assigned_by_name = None
+    if assigned_to and payload.get("role") == "admin" and assigned_to != payload["sub"]:
+        owner_id = assigned_to
+        assigned_by = payload["sub"]
+        admin_doc = await users_collection.find_one({"id": payload["sub"]})
+        assigned_by_name = admin_doc.get("name", "Admin") if admin_doc else "Admin"
+
+    task = TaskInDB(user_id=owner_id, assigned_by=assigned_by, assigned_by_name=assigned_by_name, **fields)
     await tasks_collection.insert_one(task.model_dump())
+
+    if assigned_by:
+        await create_notification(
+            user_id=owner_id,
+            title="New Task Assigned",
+            body=f"{assigned_by_name} assigned you: {task.title}" + (f" (due {task.due_date})" if task.due_date else ""),
+            n_type="task_assigned",
+            link="/portal/employee/tasks",
+        )
+
     return to_task_out(task.model_dump())
 
 
 @router.get("/", response_model=list[TaskOut])
 async def list_tasks(payload: dict = Depends(get_current_user_payload)):
-    cursor = tasks_collection.find({"user_id": payload["sub"]}).sort("created_at", -1).limit(200)
+    # An assigned task's user_id is the assignee's id, not the assigner's —
+    # without the assigned_by clause an admin would never see tasks they
+    # handed out to employees in their own list, only the employee would.
+    cursor = tasks_collection.find({
+        "$or": [{"user_id": payload["sub"]}, {"assigned_by": payload["sub"]}],
+    }).sort("created_at", -1).limit(200)
     return [to_task_out(doc) async for doc in cursor]
 
 

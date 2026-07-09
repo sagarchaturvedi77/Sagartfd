@@ -8,7 +8,10 @@ from fastapi.security import OAuth2PasswordBearer
 # 🔐 Set a strong random value for JWT_SECRET in your .env — never hardcode in production.
 JWT_SECRET = os.environ.get("JWT_SECRET", "CHANGE_THIS_SECRET_KEY")
 JWT_ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_HOURS = 12
+# Staff expect to stay logged in on their own device indefinitely, the same
+# way the native app-switcher behaves for any other app — sessions should
+# only end when the user explicitly logs out, not after a few hours idle.
+ACCESS_TOKEN_EXPIRE_HOURS = 24 * 90  # 90 days
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/auth/login")

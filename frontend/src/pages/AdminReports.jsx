@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from "react";
+import { useSearchParams } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import PortalLayout from "../components/PortalLayout";
 import PageHeader from "../components/portal/PageHeader";
@@ -15,10 +16,13 @@ const fmtINR = (n) => {
 
 export default function AdminReports() {
   const { token } = useAuth();
+  const [searchParams] = useSearchParams();
+  const isWeekView = searchParams.get("range") === "week";
   const now = new Date();
   const [month, setMonth] = useState(now.getMonth() + 1);
   const [year, setYear] = useState(now.getFullYear());
   const [report, setReport] = useState(null);
+  const [weeklySnapshot, setWeeklySnapshot] = useState([]);
   const [loading, setLoading] = useState(true);
 
   const headers = { Authorization: `Bearer ${token}`, "Content-Type": "application/json" };
@@ -64,6 +68,20 @@ export default function AdminReports() {
       const leadSources = {};
       leads.forEach(l => { leadSources[l.source || "unknown"] = (leadSources[l.source || "unknown"] || 0) + 1; });
 
+      // Weekly snapshot — only computed for the "This Week" view opened from
+      // the weekly digest notification (backend/scheduler_worker.py's
+      // send_weekly_admin_report), so it doesn't run on every normal visit.
+      const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+      const byEmployee = {};
+      for (const l of leads) {
+        if (!l.assigned_to || !l.updated_at || l.updated_at < weekAgo) continue;
+        const key = l.assigned_to_name || l.assigned_to;
+        byEmployee[key] = byEmployee[key] || { name: key, touched: 0, converted: 0 };
+        byEmployee[key].touched += 1;
+        if (l.status === "converted") byEmployee[key].converted += 1;
+      }
+      setWeeklySnapshot(Object.values(byEmployee).sort((a, b) => b.touched - a.touched));
+
       setReport({
         totalEmployees: employees.length,
         totalLeads,
@@ -108,6 +126,25 @@ export default function AdminReports() {
           <p className="text-center text-[#2A364B]/50 dark:text-[#8E99AC] py-10">Could not load report data.</p>
         ) : (
           <>
+            {isWeekView && (
+              <div className="bg-white dark:bg-[#101D2E] rounded-2xl border border-[#024396]/30 dark:border-[#4C8DFF]/30 shadow-sm p-5">
+                <h3 className="text-sm font-semibold text-[#0E1B2C] dark:text-[#F1EDE3] mb-1">This Week's Snapshot</h3>
+                <p className="text-xs text-[#2A364B]/50 dark:text-[#8E99AC] mb-3">Leads touched & converted in the last 7 days, per employee</p>
+                {weeklySnapshot.length > 0 ? (
+                  <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                    {weeklySnapshot.map((emp) => (
+                      <div key={emp.name} className="bg-[#F5F1EB] dark:bg-white/5 rounded-xl p-3">
+                        <p className="text-sm font-medium text-[#0E1B2C] dark:text-[#F1EDE3]">{emp.name}</p>
+                        <p className="text-xs text-[#2A364B]/60 dark:text-[#8E99AC] mt-0.5">{emp.touched} touched · {emp.converted} converted</p>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-xs text-[#2A364B]/40 dark:text-[#8E99AC]/70">No lead activity in the last 7 days</p>
+                )}
+              </div>
+            )}
+
             {/* Top stats */}
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
               <StatCard icon="💵" label="Monthly Revenue" value={fmtINR(report.totalRevenue)} color="green" trend="From target achievements" />

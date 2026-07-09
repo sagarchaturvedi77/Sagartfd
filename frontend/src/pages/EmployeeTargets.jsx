@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import PortalLayout from "../components/PortalLayout";
 import EmployeeTasks from "./EmployeeTasks";
@@ -21,18 +22,28 @@ function formatAchievedValue(t) {
 
 export default function EmployeeTargets() {
   const { token } = useAuth();
+  const [searchParams, setSearchParams] = useSearchParams();
   const now = new Date();
   const [tab, setTab] = useState("targets"); // targets | tasks
   const [month, setMonth] = useState(now.getMonth() + 1);
   const [year, setYear] = useState(now.getFullYear());
   const [targets, setTargets] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [showReport, setShowReport] = useState(searchParams.get("report") === "1");
 
   const [updateTarget, setUpdateTarget] = useState(null);
   const [achieved, setAchieved] = useState("");
   const [note, setNote] = useState("");
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState("");
+
+  // Re-check on every searchParams change, not just on mount — a
+  // notification click can navigate an already-open portal tab to this
+  // same route client-side (see clients.openWindow in web-push-sw.js),
+  // which wouldn't re-run the useState initializer above.
+  useEffect(() => {
+    if (searchParams.get("report") === "1") setShowReport(true);
+  }, [searchParams]);
 
   const fetchTargets = useCallback(async () => {
     setLoading(true);
@@ -102,6 +113,39 @@ export default function EmployeeTargets() {
           </button>
         ))}
       </div>
+
+      {/* My Progress Report — opened from the weekly/monthly digest notification's link (?report=1) */}
+      <PortalModal
+        open={showReport}
+        onOpenChange={(v) => { setShowReport(v); if (!v) { searchParams.delete("report"); setSearchParams(searchParams, { replace: true }); } }}
+        title="My Progress Report"
+        description={`${monthNames[month - 1]} ${year}`}
+        maxWidth="max-w-md"
+      >
+        {targets.length === 0 ? (
+          <p className="text-sm text-[#2A364B]/60 dark:text-[#8E99AC] text-center py-4">No targets set for this month yet.</p>
+        ) : (
+          <div className="space-y-3">
+            <div className="bg-[#F5F1EB] dark:bg-white/5 rounded-xl p-4 text-center">
+              <p className="text-[10px] uppercase tracking-wide text-[#2A364B]/50 dark:text-[#8E99AC]">Overall Average</p>
+              <p className="text-3xl font-bold text-[#024396] dark:text-[#7CB0FF] mt-1">
+                {Math.round(targets.reduce((s, t) => s + t.progress_pct, 0) / targets.length)}%
+              </p>
+            </div>
+            {targets.map((t) => (
+              <div key={t.id} className="flex items-center justify-between text-sm border-b border-[#E2D8C2] dark:border-white/10 pb-2">
+                <span className="text-[#0E1B2C] dark:text-[#F1EDE3]">{t.target_type}</span>
+                <span className={`font-semibold ${t.progress_pct >= 100 ? "text-emerald-600 dark:text-emerald-400" : t.progress_pct >= 50 ? "text-[#024396] dark:text-[#7CB0FF]" : "text-amber-600 dark:text-amber-400"}`}>
+                  {formatAchievedValue(t)} / {formatTargetValue(t)} ({t.progress_pct}%)
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
+        <Button className="w-full mt-4 bg-gradient-to-r from-[#024396] to-[#0356c4]" onClick={() => { setShowReport(false); searchParams.delete("report"); setSearchParams(searchParams, { replace: true }); }}>
+          Close
+        </Button>
+      </PortalModal>
 
       {/* Self-update modal */}
       <PortalModal

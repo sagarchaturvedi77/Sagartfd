@@ -7,11 +7,16 @@ from pydantic import BaseModel
 
 from auth_utils import get_current_user_payload, require_admin
 from database import leaves_collection, users_collection
+from notification_service import create_notification
 
 router = APIRouter(prefix="/api/leaves", tags=["leaves"])
 
 LEAVE_TYPES = {"casual", "sick", "earned", "half_day", "wfh", "other"}
 STATUS_OPTS = {"pending", "approved", "rejected"}
+LEAVE_TYPE_LABELS = {
+    "casual": "Casual Leave", "sick": "Sick Leave", "earned": "Earned Leave",
+    "half_day": "Half Day", "wfh": "Work From Home", "other": "Other",
+}
 
 
 class LeaveCreate(BaseModel):
@@ -50,6 +55,16 @@ async def apply_leave(data: LeaveCreate, user=Depends(get_current_user_payload))
     }
     await leaves_collection.insert_one(leave)
     leave.pop("_id", None)
+
+    async for admin in users_collection.find({"role": "admin"}):
+        await create_notification(
+            user_id=admin["id"],
+            title=f"Leave Request: {leave['employee_name']}",
+            body=f"{leave['employee_name']} applied for {LEAVE_TYPE_LABELS.get(data.leave_type, data.leave_type)} ({data.from_date} to {data.to_date}).",
+            n_type="leave_request",
+            link="/portal/admin/leaves",
+        )
+
     return leave
 
 
@@ -90,6 +105,15 @@ async def update_leave_status(leave_id: str, data: LeaveStatusUpdate, admin=Depe
     if not result:
         raise HTTPException(status_code=404, detail="Leave not found")
     result.pop("_id", None)
+
+    await create_notification(
+        user_id=result["employee_id"],
+        title=f"Leave {data.status.capitalize()}",
+        body=f"Your {LEAVE_TYPE_LABELS.get(result['leave_type'], result['leave_type'])} request ({result['from_date']} to {result['to_date']}) was {data.status}"
+             + (f" — {data.admin_note}" if data.admin_note else "."),
+        n_type="leave_status",
+        link="/portal/employee/leaves",
+    )
     return result
 
 

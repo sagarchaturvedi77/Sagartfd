@@ -6,6 +6,7 @@ import usePortalTheme from "../hooks/usePortalTheme";
 import NotificationBell from "./NotificationBell";
 import InstallPrompt from "./InstallPrompt";
 import NotificationGate from "./NotificationGate";
+import BirthdayBanner from "./portal/BirthdayBanner";
 import { registerServiceWorker, enablePush } from "../portal/push";
 import useIsMobile from "../hooks/useIsMobile";
 import { Sheet, SheetContent, SheetTitle } from "./ui/sheet";
@@ -275,8 +276,8 @@ export default function PortalLayout({ children }) {
           </SheetContent>
         </Sheet>
 
-        {/* Header */}
-        <header className="fixed top-0 inset-x-0 h-[52px] bg-[#0E1B2C] flex items-center px-3.5 gap-2.5 z-[100] shadow-[0_2px_8px_rgba(0,0,0,0.25)]">
+        {/* Header — birthday gradient replaces the flat navy on the user's birthday, no extra vertical space needed */}
+        <header className={`fixed top-0 inset-x-0 h-[52px] flex items-center px-3.5 gap-2.5 z-[100] shadow-[0_2px_8px_rgba(0,0,0,0.25)] ${user?.is_birthday_today ? "bg-gradient-to-r from-[#C7102E] via-[#024396] to-[#C7102E]" : "bg-[#0E1B2C]"}`}>
           {!isMobile && (
             <button className="text-white p-1 -ml-1" onClick={() => setSidebarOpen(v => !v)} aria-label="Toggle menu">
               <Menu size={20} />
@@ -485,6 +486,7 @@ export default function PortalLayout({ children }) {
       </div>
       <InstallPrompt />
       <NotificationGate />
+      <BirthdayBanner />
     </>
   );
 }

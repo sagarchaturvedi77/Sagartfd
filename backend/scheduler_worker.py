@@ -2,8 +2,9 @@ import os
 import time
 import json
 import random
+import uuid
 import logging
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 import pytz
 from pymongo import MongoClient
@@ -40,6 +41,10 @@ reminders = db.get_collection("reminders")
 leads = db.get_collection("leads")
 web_push_subs = db.get_collection("web_push_subs")
 scheduler_state = db.get_collection("scheduler_state")
+events = db.get_collection("events")  # backend/analytics_routes.py's EventTrack docs (calculator_use, proposal_generate)
+targets = db.get_collection("targets")
+employee_profiles = db.get_collection("employee_profiles")
+notifications = db.get_collection("notifications")  # in-app bell/list — see backend/notification_service.py's NotificationInDB shape
 
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "")
 GEMINI_MODEL = os.environ.get("GEMINI_MODEL", "gemini-3.5-flash")
@@ -48,12 +53,28 @@ VAPID_CLAIM_EMAIL = os.environ.get("VAPID_CLAIM_EMAIL", "mailto:admin@thefinanci
 WEBSITE_NOTIF_INTERVAL_DAYS = float(os.environ.get("WEBSITE_NOTIF_INTERVAL_DAYS", "2"))
 
 
-def send_push_to_user(uid: str, title: str, body: str, url: str | None = None) -> int:
+def send_push_to_user(uid: str, title: str, body: str, url: str | None = None, n_type: str = "scheduled") -> int:
     """Send a VAPID web push to every device the portal user (admin/employee)
     has subscribed from — same push_subscriptions collection and delivery
     mechanism notification_service.py uses for the main app's send path, so
-    this worker and the FastAPI app never diverge in behavior. Returns how
-    many devices were successfully sent to."""
+    this worker and the FastAPI app never diverge in behavior. Also writes
+    the in-app bell/list record unconditionally (same as
+    notification_service.create_notification does) — without this, a
+    scheduler-originated notification only ever existed as a push attempt:
+    if delivery failed or the device was offline, the user had no way to
+    ever see it, since nothing was ever persisted. Returns how many devices
+    were successfully sent to."""
+    notifications.insert_one({
+        "id": str(uuid.uuid4()),
+        "user_id": uid,
+        "title": title,
+        "body": body,
+        "type": n_type,
+        "link": url or "/portal/employee",
+        "read": False,
+        "created_at": datetime.utcnow(),
+    })
+
     if not (_PYWEBPUSH_OK and VAPID_PRIVATE_KEY):
         LOG.warning("Web push not configured (pywebpush/VAPID_PRIVATE_KEY) — skipping send to %s", uid)
         return 0
@@ -106,7 +127,7 @@ def notify_open_shifts():
         uid = a.get("employee_id") or a.get("employee") or a.get("user_id")
         if not uid:
             continue
-        send_push_to_user(uid, "Punch Out Reminder", "Aapne aaj punch out nahi kiya. Kripya punch out karein.", "/portal/employee/attendance")
+        send_push_to_user(uid, "Punch Out Reminder", "Aapne aaj punch out nahi kiya. Kripya punch out karein.", "/portal/employee/attendance", n_type="punch_out")
         # create a reminder entry to send hourly follow-ups until punch_out
         reminders.update_one(
             {"user_id": uid, "type": "punch_out"},
@@ -125,7 +146,7 @@ def process_due_reminders():
 
         if rtype == "punch_out":
             interval = int(r.get("interval_minutes") or 60)
-            send_push_to_user(uid, "Punch Out Reminder", "Kripya ab punch out karein — abhi pending hai.", "/portal/employee/attendance")
+            send_push_to_user(uid, "Punch Out Reminder", "Kripya ab punch out karein — abhi pending hai.", "/portal/employee/attendance", n_type="punch_out")
             next_send = datetime.utcnow() + timedelta(minutes=interval)
             reminders.update_one({"_id": r["_id"]}, {"$set": {"next_send_at": next_send}})
             date_str = datetime.utcnow().astimezone(pytz.timezone(APP_TZ)).strftime("%Y-%m-%d")
@@ -137,7 +158,7 @@ def process_due_reminders():
             # single-shot lead reminders — send once, then deactivate
             title = r.get("title", "Lead Reminder")
             body = r.get("body", "You have a pending lead follow-up.")
-            send_push_to_user(uid, title, body, "/portal/employee/leads")
+            send_push_to_user(uid, title, body, "/portal/employee/leads", n_type=rtype)
             reminders.update_one({"_id": r["_id"]}, {"$set": {"active": False}})
 
         else:
@@ -175,17 +196,48 @@ def check_lead_inactivity():
         )
 
 
+def send_weekly_admin_report():
+    """Monday morning: one digest per admin summarizing each active
+    employee's leads touched/converted this week, attendance, and this
+    month's target completion so far."""
+    now = datetime.utcnow()
+    week_ago = (now - timedelta(days=7)).isoformat()
+    week_ago_date = (now - timedelta(days=7)).strftime("%Y-%m-%d")
+
+    active_employees = list(users.find({"role": "employee", "is_active": {"$ne": False}}))
+    lines = []
+    for emp in active_employees:
+        uid = emp.get("id")
+        name = emp.get("name", emp.get("profile_name", "Employee"))
+
+        touched = leads.count_documents({"assigned_to": uid, "updated_at": {"$gte": week_ago}})
+        converted = leads.count_documents({"assigned_to": uid, "status": "converted", "updated_at": {"$gte": week_ago}})
+        present_days = attendance.count_documents({"employee_id": uid, "date": {"$gte": week_ago_date}, "clock_in": {"$ne": None}})
+
+        month_targets = list(targets.find({"employee_id": uid, "month": now.month, "year": now.year}))
+        avg_pct = round(sum(t.get("progress_pct", 0) for t in month_targets) / len(month_targets)) if month_targets else None
+
+        summary = f"{name}: {touched} leads touched, {converted} converted, {present_days}d present"
+        if avg_pct is not None:
+            summary += f", {avg_pct}% target"
+        lines.append(summary)
+
+    if not lines:
+        return
+
+    body = " | ".join(lines[:8]) + (f" +{len(lines) - 8} more" if len(lines) > 8 else "")
+    for admin in users.find({"role": "admin"}):
+        send_push_to_user(
+            admin["id"],
+            "Weekly Team Report",
+            body,
+            "/portal/admin/reports?range=week",
+            n_type="weekly_report",
+        )
+
+
 users = db.get_collection("users")
 MORNING_HOUR = int(os.environ.get("SCHEDULER_MORNING_HOUR", "9"))
-MORNING_MESSAGES = [
-    "Good Morning! Aaj ka din productive banayein. Targets achieve karein!",
-    "Good Morning! Naye din ki nayi shuruat — har call se ek kadam aage.",
-    "Good Morning! Focus aur dedication se koi bhi target possible hai.",
-    "Good Morning! Aaj bhi best performance dein — TFD pe bharosa rakhein!",
-    "Good Morning! Har follow-up ek opportunity hai — aaj miss mat karein.",
-    "Good Morning! Champions never give up — aaj ka din aapka hai!",
-    "Good Morning! Client ka trust hi sabse bada asset hai — build karein!",
-]
 SUNDAY_MESSAGES = [
     "Happy Sunday! Aaj apna time enjoy karein. Kal phir se josh ke saath!",
     "Itwar hai — relax karein, family ke saath time spend karein. See you Monday!",
@@ -211,10 +263,11 @@ def send_daily_morning_notifications():
             msg = random.choice(SUNDAY_MESSAGES)
             title = "Happy Sunday!"
         else:
-            msg = random.choice(MORNING_MESSAGES)
-            title = f"Good Morning, {name}!" if name else "Good Morning!"
+            title, msg = generate_employee_motivation_content(name)
+            if name and "Good Morning" in title and name not in title:
+                title = f"Good Morning, {name}!"
 
-        send_push_to_user(uid, title, msg, "/portal/employee")
+        send_push_to_user(uid, title, msg, "/portal/employee", n_type="motivation")
 
 
 def send_followup_reminders():
@@ -243,7 +296,85 @@ def send_followup_reminders():
         if followup_count > 0:
             title = f"Aaj ke Follow-ups: {followup_count}"
             body = f"{name}, aapke paas aaj {followup_count} follow-up hain. Bhool mat jaana — har call important hai!"
-            send_push_to_user(uid, title, body, "/portal/employee/leads")
+            send_push_to_user(uid, title, body, "/portal/employee/leads", n_type="followup_digest")
+
+
+def send_followup_miss_check():
+    """Evening (DAILY_HOUR, same slot as punch-out reminders): any lead that
+    was due for follow-up today and is still sitting in "follow_up" status
+    hasn't been actioned — nudge whoever owns it."""
+    tz = pytz.timezone(APP_TZ)
+    now_local = datetime.now(tz)
+    today_str = now_local.strftime("%Y-%m-%d")
+    active_employees = list(users.find({"role": "employee", "is_active": {"$ne": False}}))
+
+    for emp in active_employees:
+        uid = emp.get("id")
+        missed_count = leads.count_documents({
+            "assigned_to": uid,
+            "status": "follow_up",
+            "follow_up_date": {"$lte": today_str},
+        })
+        if missed_count > 0:
+            send_push_to_user(
+                uid,
+                "Follow-ups Pending",
+                f"Aapne aaj {missed_count} follow-up ka status update nahi kiya. Din khatam hone se pehle update kar lijiye!",
+                "/portal/employee/leads",
+                n_type="followup_missed",
+            )
+
+
+def send_employee_progress_report(period: str):
+    """period: 'weekly' or 'monthly' — digest of target completion % and
+    leads converted, sent to every active employee, linking to a personal
+    progress view (EmployeeTargets.jsx opens a summary modal on ?report=1)."""
+    now = datetime.utcnow()
+    if period == "weekly":
+        since = (now - timedelta(days=7)).isoformat()
+        title = "Your Weekly Progress"
+    else:
+        since = now.replace(day=1).isoformat()
+        title = "Your Monthly Progress"
+
+    active_employees = list(users.find({"role": "employee", "is_active": {"$ne": False}}))
+    for emp in active_employees:
+        uid = emp.get("id")
+        converted = leads.count_documents({"assigned_to": uid, "status": "converted", "updated_at": {"$gte": since}})
+        month_targets = list(targets.find({"employee_id": uid, "month": now.month, "year": now.year}))
+        avg_pct = round(sum(t.get("progress_pct", 0) for t in month_targets) / len(month_targets)) if month_targets else None
+
+        body = f"{converted} leads converted"
+        if avg_pct is not None:
+            body += f", {avg_pct}% of this month's target achieved"
+        body += ". Tap to see your full report."
+        send_push_to_user(uid, title, body, "/portal/employee/targets?report=1", n_type="progress_report")
+
+
+def send_employee_birthday_wishes():
+    """Once daily, early morning: match each active employee's dob
+    (month+day, year ignored) against today and send a personal wish. dob
+    lives in the employee_profiles collection (set during onboarding — see
+    onboarding_routes.py), not on the users document itself."""
+    tz = pytz.timezone(APP_TZ)
+    today_local = datetime.now(tz)
+    today_md = today_local.strftime("%m-%d")
+
+    active_employees = list(users.find({"role": "employee", "is_active": {"$ne": False}}))
+    for emp in active_employees:
+        uid = emp.get("id")
+        profile = employee_profiles.find_one({"user_id": uid})
+        dob = profile.get("dob") if profile else None
+        if not dob or len(dob) < 10 or dob[5:10] != today_md:
+            continue
+        name = emp.get("name", "there")
+        send_push_to_user(
+            uid,
+            f"Happy Birthday, {name}! 🎉",
+            "TFD Workspace ki puri team ki taraf se aapko dher saari shubhkamnayein! Aapka din shandaar ho.",
+            "/portal/employee?birthday=1",
+            n_type="birthday",
+        )
 
 
 # ── Automated website visitor notifications (Gemini-generated, Hinglish) ──
@@ -272,22 +403,20 @@ def _extract_gemini_text(data: dict) -> str:
     return ""
 
 
-def generate_website_notification_content() -> tuple[str, str]:
-    """Returns (title, body) in Hinglish via Gemini — a different topic each
-    time so it never feels like the same repeated notification. Falls back
-    to a canned message if Gemini isn't configured or the call fails, so a
-    broadcast cycle is never silently skipped just because of that."""
-    topic = random.choice(WEBSITE_NOTIF_TOPICS)
-    fallback = ("The Financial Doctor", "Apne financial goals ke liye sahi planning zaroori hai — TFD se free consultation lein!")
+def _generate_hinglish_notification(topics: list[str], persona: str, fallback: tuple[str, str]) -> tuple[str, str]:
+    """Shared Gemini content-generation core — returns (title, body) in
+    Hinglish, a different topic picked each call so rotating notifications
+    never feel repeated. Falls back to a canned message if Gemini isn't
+    configured or the call fails, so a send is never silently skipped just
+    because of that. `persona` frames who the message is from/about."""
+    topic = random.choice(topics)
     if not (GEMINI_API_KEY and httpx):
         return fallback
     try:
         prompt = (
             f"Ek chhota mobile push notification likho, Hinglish (Roman script Hindi + English mix) mein, "
             f"is topic par: \"{topic}\". Title max 40 characters, body max 110 characters. "
-            f"Ye The Financial Doctor (TFD) ki taraf se ja raha hai — ek AMFI-registered mutual fund distributor "
-            f"(Sagar Chaturvedi, Sehore MP). Guaranteed returns ka wada mat karo, koi specific fund/scheme "
-            f"recommend mat karo, sirf general awareness/motivation do. "
+            f"{persona} "
             f"Sirf is exact JSON format mein jawab do, kuch aur text nahi: {{\"title\": \"...\", \"body\": \"...\"}}"
         )
         resp = httpx.post(
@@ -297,7 +426,7 @@ def generate_website_notification_content() -> tuple[str, str]:
             timeout=20.0,
         )
         if resp.status_code != 200:
-            LOG.warning("Gemini website-notification call failed: %s", resp.text)
+            LOG.warning("Gemini notification call failed: %s", resp.text)
             return fallback
         text = _extract_gemini_text(resp.json())
         parsed = json.loads(text[text.find("{"): text.rfind("}") + 1])
@@ -305,8 +434,127 @@ def generate_website_notification_content() -> tuple[str, str]:
         body = (parsed.get("body") or fallback[1]).strip()[:150] or fallback[1]
         return title, body
     except Exception as e:
-        LOG.exception("Gemini website-notification generation failed: %s", e)
+        LOG.exception("Gemini notification generation failed: %s", e)
         return fallback
+
+
+def generate_website_notification_content() -> tuple[str, str]:
+    """Returns (title, body) in Hinglish via Gemini for website visitors."""
+    return _generate_hinglish_notification(
+        WEBSITE_NOTIF_TOPICS,
+        persona=(
+            "Ye The Financial Doctor (TFD) ki taraf se ja raha hai — ek AMFI-registered mutual fund distributor "
+            "(Sagar Chaturvedi, Sehore MP). Guaranteed returns ka wada mat karo, koi specific fund/scheme "
+            "recommend mat karo, sirf general awareness/motivation do."
+        ),
+        fallback=("The Financial Doctor", "Apne financial goals ke liye sahi planning zaroori hai — TFD se free consultation lein!"),
+    )
+
+
+EMPLOYEE_MOTIVATION_TOPICS = [
+    "Sales calls mein confidence kaise banayein",
+    "Monthly target achieve karne ki strategy",
+    "Promotion aur growth ke liye kya karna chahiye",
+    "Incentive aur commission maximize karne ke tips",
+    "Client ke saath trust building",
+    "Follow-up disciplined tarike se karne ki ahmiyat",
+    "Har din thoda better banne ki soch",
+]
+
+
+def generate_employee_motivation_content(name: str) -> tuple[str, str]:
+    """Returns (title, body) in Hinglish via Gemini for the daily employee
+    motivation push — rotates topic each day so it's never the same message
+    twice in a row, unlike the previous static MORNING_MESSAGES list."""
+    return _generate_hinglish_notification(
+        EMPLOYEE_MOTIVATION_TOPICS,
+        persona=(
+            f"Ye The Financial Doctor (TFD) ki taraf se apne employee '{name}' ko roz subah bheja jaane wala "
+            f"motivational message hai — sales, targets, promotion ya incentive se related. Josh badhane wala, "
+            f"positive tone rakho, employee ka naam body mein use mat karo (title mein already hai)."
+        ),
+        fallback=("Good Morning!", "Aaj ka din productive banayein. Targets achieve karein!"),
+    )
+
+
+def _send_visitor_push(sub: dict, title: str, body: str, url: str) -> bool:
+    """Send one VAPID push to a single website-visitor subscription (web_push_subs
+    collection, keyed by visitor_id — not a portal user). Returns True if the
+    push service accepted it. Prunes the subscription on 401/403/404/410."""
+    if not (_PYWEBPUSH_OK and VAPID_PRIVATE_KEY):
+        return False
+    payload = json.dumps({"title": title, "body": body, "url": url})
+    try:
+        webpush(
+            subscription_info={"endpoint": sub["endpoint"], "keys": sub["keys"]},
+            data=payload,
+            vapid_private_key=VAPID_PRIVATE_KEY,
+            vapid_claims={"sub": VAPID_CLAIM_EMAIL},
+        )
+        return True
+    except WebPushException as e:
+        resp = getattr(e, "response", None)
+        if resp is not None and resp.status_code in (401, 403, 404, 410):
+            web_push_subs.delete_one({"_id": sub["_id"]})
+        else:
+            LOG.warning("Visitor push error: %s", e)
+    except Exception as e:
+        LOG.warning("Visitor push error: %s", e)
+    return False
+
+
+def send_calculator_followups():
+    """Any calculator_use event (with a visitor_id, from the Phase 0
+    correlation plumbing) that's 2 hours to 3 days old and hasn't been
+    followed up yet gets a one-shot nudge, if that visitor is still
+    subscribed to website push. Marks followed_up on the event either way,
+    so a visitor with no active subscription doesn't get re-checked forever."""
+    now = datetime.now(timezone.utc)
+    recent_enough = (now - timedelta(hours=2)).isoformat()
+    not_too_old = (now - timedelta(days=3)).isoformat()
+    candidates = list(events.find({
+        "event": "calculator_use",
+        "visitor_id": {"$ne": None},
+        "followed_up": {"$ne": True},
+        "ts": {"$lte": recent_enough, "$gte": not_too_old},
+    }))
+    LOG.info("Found %s calculator_use events due for follow-up", len(candidates))
+    for ev in candidates:
+        sub = web_push_subs.find_one({"visitor_id": ev["visitor_id"]})
+        if sub:
+            label = ev.get("label") or "calculator"
+            _send_visitor_push(
+                sub,
+                "Investment start karne ka time!",
+                f"Aapne {label} use kiya tha — ab investment start karne mein der kis baat ki?",
+                "https://thefinancialdoctor.in/#calculators",
+            )
+        events.update_one({"_id": ev["_id"]}, {"$set": {"followed_up": True}})
+
+
+def send_proposal_followups():
+    """Same shape as send_calculator_followups but for proposal_generate
+    events, delayed ~24h per the user's spec ('1 din baad follow-up')."""
+    now = datetime.now(timezone.utc)
+    recent_enough = (now - timedelta(hours=24)).isoformat()
+    not_too_old = (now - timedelta(days=4)).isoformat()
+    candidates = list(events.find({
+        "event": "proposal_generate",
+        "visitor_id": {"$ne": None},
+        "followed_up": {"$ne": True},
+        "ts": {"$lte": recent_enough, "$gte": not_too_old},
+    }))
+    LOG.info("Found %s proposal_generate events due for follow-up", len(candidates))
+    for ev in candidates:
+        sub = web_push_subs.find_one({"visitor_id": ev["visitor_id"]})
+        if sub:
+            _send_visitor_push(
+                sub,
+                "Proposal kaisa laga?",
+                "Kal aapne apna financial proposal banaya tha — ab SIP start karne ka sahi waqt hai!",
+                "https://thefinancialdoctor.in/",
+            )
+        events.update_one({"_id": ev["_id"]}, {"$set": {"followed_up": True}})
 
 
 def send_website_broadcast() -> bool:
@@ -383,6 +631,28 @@ def _job_due_today(job_name: str, now_local: datetime) -> bool:
     return True
 
 
+def _job_due_this_week(job_name: str, now_local: datetime) -> bool:
+    """Same idempotency approach as _job_due_today but keyed by ISO week
+    (year + week number) instead of date, for jobs that run once a week."""
+    week_key = now_local.strftime("%G-W%V")
+    state = scheduler_state.find_one({"_id": job_name}) or {}
+    if state.get("last_run_week") == week_key:
+        return False
+    scheduler_state.update_one({"_id": job_name}, {"$set": {"last_run_week": week_key}}, upsert=True)
+    return True
+
+
+def _job_due_this_month(job_name: str, now_local: datetime) -> bool:
+    """Same idempotency approach as _job_due_today but keyed by year-month,
+    for jobs that run once a month (e.g. on the 1st)."""
+    month_key = now_local.strftime("%Y-%m")
+    state = scheduler_state.find_one({"_id": job_name}) or {}
+    if state.get("last_run_month") == month_key:
+        return False
+    scheduler_state.update_one({"_id": job_name}, {"$set": {"last_run_month": month_key}}, upsert=True)
+    return True
+
+
 def run_due_checks() -> dict:
     """One pass over every scheduled job — safe to call as often as the
     external cron likes (every 15-30 min recommended). Each job internally
@@ -398,13 +668,33 @@ def run_due_checks() -> dict:
         LOG.info("Running morning notifications at %s", now_local.isoformat())
         send_daily_morning_notifications()
         send_followup_reminders()
+        send_employee_birthday_wishes()
         ran.append("morning_notifications")
 
-    # Evening: punch-out reminders start + lead inactivity sweep.
+    # Monday morning: weekly team + per-employee progress reports.
+    if now_local.weekday() == 0 and now_local.hour >= MORNING_HOUR and _job_due_this_week("weekly_admin_report", now_local):
+        LOG.info("Running weekly admin report at %s", now_local.isoformat())
+        send_weekly_admin_report()
+        ran.append("weekly_admin_report")
+
+    if now_local.weekday() == 0 and now_local.hour >= MORNING_HOUR and _job_due_this_week("weekly_employee_progress", now_local):
+        LOG.info("Running weekly employee progress report at %s", now_local.isoformat())
+        send_employee_progress_report("weekly")
+        ran.append("weekly_employee_progress")
+
+    # 1st of the month: monthly per-employee progress report.
+    if now_local.day == 1 and now_local.hour >= MORNING_HOUR and _job_due_this_month("monthly_employee_progress", now_local):
+        LOG.info("Running monthly employee progress report at %s", now_local.isoformat())
+        send_employee_progress_report("monthly")
+        ran.append("monthly_employee_progress")
+
+    # Evening: punch-out reminders start + lead inactivity sweep + missed
+    # follow-up nudge.
     if now_local.hour >= DAILY_HOUR and _job_due_today("evening_checks", now_local):
         LOG.info("Running evening checks at %s", now_local.isoformat())
         notify_open_shifts()
         check_lead_inactivity()
+        send_followup_miss_check()
         ran.append("evening_checks")
 
     # Hourly-interval reminders (punch-out repeats, single-shot lead nudges) —
@@ -416,6 +706,13 @@ def run_due_checks() -> dict:
     # WEBSITE_NOTIF_INTERVAL_DAYS via its own scheduler_state doc.
     maybe_send_website_broadcast()
     ran.append("maybe_send_website_broadcast")
+
+    # Behavioral website follow-ups — each event marks itself followed_up so
+    # these are naturally idempotent, safe to check on every pass.
+    send_calculator_followups()
+    ran.append("calculator_followups")
+    send_proposal_followups()
+    ran.append("proposal_followups")
 
     return {"ran": ran, "checked_at": now_local.isoformat()}
 

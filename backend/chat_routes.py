@@ -10,6 +10,7 @@ from pydantic import BaseModel
 
 from auth_utils import get_current_user_payload
 from database import chat_collection, users_collection
+from notification_service import create_notification
 
 router = APIRouter(prefix="/api/chat", tags=["chat"])
 
@@ -35,6 +36,22 @@ async def send_message(data: MessageCreate, user=Depends(get_current_user_payloa
     }
     await chat_collection.insert_one(msg)
     msg.pop("_id", None)
+
+    if data.room == "general":
+        preview = msg["text"] if len(msg["text"]) <= 80 else msg["text"][:77] + "..."
+        # Team Chat is one shared room, not 1:1 DMs — fan out to "the other
+        # side" (employee sends -> notify admins, admin sends -> notify
+        # employees) rather than every other participant regardless of role.
+        other_role = "admin" if msg["sender_role"] == "employee" else "employee"
+        async for recipient in users_collection.find({"role": other_role, "is_active": {"$ne": False}}):
+            await create_notification(
+                user_id=recipient["id"],
+                title=f"{msg['sender_name']} (Team Chat)",
+                body=preview,
+                n_type="chat_message",
+                link="/portal/admin/chat" if other_role == "admin" else "/portal/employee/chat",
+            )
+
     return msg
 
 

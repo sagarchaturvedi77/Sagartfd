@@ -11,6 +11,7 @@ class TaskCreate(BaseModel):
     due_date: Optional[str] = None  # ISO date
     reminder_time: Optional[str] = None  # ISO datetime for reminder
     category: str = "general"  # general, client_meeting, follow_up, documentation, other
+    assigned_to: Optional[str] = None  # admin-only: employee user id to assign this task to (else self-task)
 
 
 class TaskUpdate(BaseModel):
@@ -33,6 +34,8 @@ class TaskInDB(BaseModel):
     reminder_time: Optional[str] = None
     category: str = "general"
     status: str = "pending"
+    assigned_by: Optional[str] = None       # admin user id, set only when this was assigned rather than self-created
+    assigned_by_name: Optional[str] = None
     created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
     updated_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
 
@@ -47,5 +50,7 @@ class TaskOut(BaseModel):
     reminder_time: Optional[str] = None
     category: str = "general"
     status: str = "pending"
+    assigned_by: Optional[str] = None
+    assigned_by_name: Optional[str] = None
     created_at: str = ""
     updated_at: str = ""

@@ -15,25 +15,28 @@ const STATUS_COLORS = {
 const CATEGORIES = ["general", "client_meeting", "follow_up", "documentation", "other"];
 
 export default function AdminTasks({ wrapInLayout = true }) {
-  const { token } = useAuth();
+  const { token, user } = useAuth();
   const [tasks, setTasks] = useState([]);
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
   const [showAdd, setShowAdd] = useState(false);
   const [filter, setFilter] = useState("active"); // active, completed, all
-  const [form, setForm] = useState({ title: "", description: "", priority: "medium", due_date: "", category: "general" });
+  const [employees, setEmployees] = useState([]);
+  const [form, setForm] = useState({ title: "", description: "", priority: "medium", due_date: "", category: "general", assigned_to: "" });
   const [saving, setSaving] = useState(false);
 
   const headers = { Authorization: `Bearer ${token}`, "Content-Type": "application/json" };
 
   const load = useCallback(async () => {
     try {
-      const [taskRes, statsRes] = await Promise.all([
+      const [taskRes, statsRes, empRes] = await Promise.all([
         fetch(`${API_BASE}/api/tasks/`, { headers }),
         fetch(`${API_BASE}/api/tasks/stats`, { headers }),
+        fetch(`${API_BASE}/api/auth/employees`, { headers }),
       ]);
       if (taskRes.ok) setTasks(await taskRes.json());
       if (statsRes.ok) setStats(await statsRes.json());
+      if (empRes.ok) setEmployees(await empRes.json());
     } catch { /* silent */ }
     setLoading(false);
   }, [token]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -45,11 +48,11 @@ export default function AdminTasks({ wrapInLayout = true }) {
     setSaving(true);
     const res = await fetch(`${API_BASE}/api/tasks/`, {
       method: "POST", headers,
-      body: JSON.stringify({ ...form, due_date: form.due_date || null }),
+      body: JSON.stringify({ ...form, due_date: form.due_date || null, assigned_to: form.assigned_to || null }),
     });
     if (res.ok) {
       setShowAdd(false);
-      setForm({ title: "", description: "", priority: "medium", due_date: "", category: "general" });
+      setForm({ title: "", description: "", priority: "medium", due_date: "", category: "general", assigned_to: "" });
       load();
     }
     setSaving(false);
@@ -130,6 +133,13 @@ export default function AdminTasks({ wrapInLayout = true }) {
               <form onSubmit={addTask} className="space-y-3">
                 <input required placeholder="Task title *" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} className={field} />
                 <textarea placeholder="Description (optional)" rows={3} value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} className={`${field} resize-none`} />
+                <div>
+                  <label className="text-xs text-[#2A364B]/60 dark:text-[#8E99AC]/60 block mb-1">Assign to (optional)</label>
+                  <select value={form.assigned_to} onChange={(e) => setForm({ ...form, assigned_to: e.target.value })} className={field}>
+                    <option value="">Myself (personal task)</option>
+                    {employees.map((emp) => <option key={emp.id} value={emp.id}>{emp.name}</option>)}
+                  </select>
+                </div>
                 <div className="grid grid-cols-2 gap-3">
                   <select value={form.priority} onChange={(e) => setForm({ ...form, priority: e.target.value })} className={field}>
                     <option value="low">Low</option>
@@ -168,11 +178,18 @@ export default function AdminTasks({ wrapInLayout = true }) {
           <div className="space-y-3">
             {filtered.map((task) => {
               const isOverdue = task.due_date && task.due_date < today && !["completed", "cancelled"].includes(task.status);
+              // Assigned-out tasks belong to the employee (user_id = their
+              // id) — the backend only lets the actual owner update/delete,
+              // so surfacing interactive controls for someone else's task
+              // here would just silently no-op on click.
+              const readOnly = task.assigned_by_name && task.user_id !== user?.id;
               return (
                 <div key={task.id} className={`bg-white dark:bg-[#101D2E] rounded-2xl border shadow-sm p-4 flex items-start gap-4 ${isOverdue ? "border-red-300" : "border-[#E2D8C2] dark:border-white/10"}`}>
                   {/* Checkbox */}
-                  <button onClick={() => updateStatus(task.id, task.status === "completed" ? "pending" : "completed")}
-                    className={`w-6 h-6 shrink-0 rounded-lg border-2 flex items-center justify-center mt-0.5 transition-all ${task.status === "completed" ? "bg-emerald-500 border-emerald-500 text-white" : "border-[#E2D8C2] dark:border-white/10 hover:border-[#024396] dark:border-[#4C8DFF]"}`}>
+                  <button onClick={() => !readOnly && updateStatus(task.id, task.status === "completed" ? "pending" : "completed")}
+                    disabled={readOnly}
+                    title={readOnly ? "Only the assigned employee can update this" : undefined}
+                    className={`w-6 h-6 shrink-0 rounded-lg border-2 flex items-center justify-center mt-0.5 transition-all ${task.status === "completed" ? "bg-emerald-500 border-emerald-500 text-white" : "border-[#E2D8C2] dark:border-white/10 hover:border-[#024396] dark:border-[#4C8DFF]"} ${readOnly ? "opacity-40 cursor-not-allowed" : ""}`}>
                     {task.status === "completed" && (
                       <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="3" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
@@ -192,20 +209,27 @@ export default function AdminTasks({ wrapInLayout = true }) {
                         </span>
                       )}
                       <span className="text-[10px] px-2 py-0.5 rounded-full bg-[#F5F1EB] dark:bg-white/5 text-[#2A364B]/50 dark:text-[#8E99AC]/50">{task.category.replace(/_/g, " ")}</span>
+                      {task.assigned_by_name && (
+                        <span className="text-[10px] px-2 py-0.5 rounded-full bg-violet-50 text-violet-700">
+                          Assigned to {employees.find((e) => e.id === task.user_id)?.name || "employee"}
+                        </span>
+                      )}
                     </div>
                   </div>
 
                   <div className="flex items-center gap-1 shrink-0">
-                    {task.status === "pending" && (
+                    {task.status === "pending" && !readOnly && (
                       <button onClick={() => updateStatus(task.id, "in_progress")}
                         className="text-[10px] text-blue-600 hover:underline px-2 py-1">Start</button>
                     )}
-                    <button onClick={() => deleteTask(task.id)}
-                      className="w-7 h-7 rounded-lg bg-red-50 flex items-center justify-center text-red-400 hover:bg-red-100 transition-colors">
-                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                      </svg>
-                    </button>
+                    {!readOnly && (
+                      <button onClick={() => deleteTask(task.id)}
+                        className="w-7 h-7 rounded-lg bg-red-50 flex items-center justify-center text-red-400 hover:bg-red-100 transition-colors">
+                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                      </button>
+                    )}
                   </div>
                 </div>
               );

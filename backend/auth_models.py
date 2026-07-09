@@ -43,6 +43,7 @@ class UserOut(BaseModel):
     join_date: Optional[str] = None
     is_active: Optional[bool] = True
     deactivated_at: Optional[str] = None
+    is_birthday_today: bool = False
 
 class UserInDB(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))

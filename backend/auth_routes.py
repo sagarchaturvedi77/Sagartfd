@@ -7,12 +7,16 @@ from pydantic import BaseModel
 
 from auth_models import UserCreate, UserLogin, UserOut, UserInDB, TokenResponse, PasswordChange
 from auth_utils import hash_password, verify_password, create_access_token, require_admin, get_current_user_payload
-from database import users_collection
+from database import users_collection, db
 from utils.employee import gen_employee_id_from_phone
 from utils.audit import write_audit
 from email_service import send_welcome_email, email_configured
 
 router = APIRouter(prefix="/api/auth", tags=["auth"])
+
+# dob lives in the employee_profiles collection (set during onboarding — see
+# onboarding_routes.py), not on the users document itself.
+_profiles_collection = db["employee_profiles"]
 
 
 def generate_password(length=8):
@@ -22,7 +26,15 @@ def generate_password(length=8):
     return f"TFD@{suffix}"
 
 
-def to_user_out(doc: dict) -> UserOut:
+async def to_user_out(doc: dict) -> UserOut:
+    is_birthday = False
+    if doc.get("role") == "employee":
+        profile = await _profiles_collection.find_one({"user_id": doc["id"]})
+        dob = profile.get("dob") if profile else None
+        if dob and len(dob) >= 10:
+            today_md = datetime.now(timezone.utc).strftime("%m-%d")
+            is_birthday = dob[5:10] == today_md
+
     return UserOut(
         id=doc["id"], name=doc["name"], email=doc.get("email", ""), role=doc["role"],
         phone=doc.get("phone"), designation=doc.get("designation"),
@@ -35,6 +47,7 @@ def to_user_out(doc: dict) -> UserOut:
         join_date=doc.get("join_date"),
         is_active=doc.get("is_active", True),
         deactivated_at=doc.get("deactivated_at"),
+        is_birthday_today=is_birthday,
     )
 
 
@@ -71,7 +84,7 @@ async def login(payload: UserLogin):
         except Exception:
             pass
 
-    return TokenResponse(access_token=token, user=to_user_out(user))
+    return TokenResponse(access_token=token, user=await to_user_out(user))
 
 
 @router.post("/create-employee")
@@ -140,7 +153,7 @@ async def create_employee(payload: UserCreate, admin=Depends(require_admin)):
         pass
 
     # Return user + generated password (only on creation)
-    user_out = to_user_out(new_user.dict())
+    user_out = await to_user_out(new_user.dict())
     return {"user": user_out.dict(), "generated_password": plain_password}
 
 
@@ -149,7 +162,7 @@ async def get_me(payload: dict = Depends(get_current_user_payload)):
     user = await users_collection.find_one({"id": payload["sub"]})
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
-    return to_user_out(user)
+    return await to_user_out(user)
 
 
 @router.post("/change-password")
@@ -175,7 +188,7 @@ async def list_employees(_payload: dict = Depends(get_current_user_payload)):
     Used by the admin dashboard, and by employee-facing lead transfer/reassign
     pickers (TransferLeadModal, CallFlowPopup) which need to pick a colleague."""
     cursor = users_collection.find({"role": "employee"})
-    employees = [to_user_out(doc) async for doc in cursor]
+    employees = [await to_user_out(doc) async for doc in cursor]
     return employees
 
 
