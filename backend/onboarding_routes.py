@@ -94,10 +94,10 @@ async def update_profile(
         {"$set": safe, "$setOnInsert": {"created_at": datetime.now(timezone.utc).isoformat()}},
         upsert=True,
     )
-    await users_collection.update_one(
-        {"id": user_id},
-        {"$set": {"profile_completed": True, "profile_name": safe.get("full_name", "")}},
-    )
+    user_updates = {"profile_completed": True}
+    if "full_name" in safe:
+        user_updates["profile_name"] = safe["full_name"]
+    await users_collection.update_one({"id": user_id}, {"$set": user_updates})
     return {"status": "saved"}
 
 

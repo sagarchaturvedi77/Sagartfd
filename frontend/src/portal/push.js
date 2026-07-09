@@ -8,7 +8,11 @@ export function pushSupported() {
 export async function registerServiceWorker() {
   if (!("serviceWorker" in navigator)) return null;
   try {
-    return await navigator.serviceWorker.register("/service-worker.js");
+    // "/service-worker.js" doesn't exist in this app (no CRA PWA service
+    // worker is generated) — that registration always failed silently and
+    // enablePush() short-circuited with reason "no-sw". Reuse the real,
+    // already-shipped firebase-messaging-sw.js instead.
+    return await navigator.serviceWorker.register("/firebase-messaging-sw.js");
   } catch (e) {
     return null;
   }

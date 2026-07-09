@@ -3,36 +3,83 @@ import html2canvas from "html2canvas";
 import jsPDF from "jspdf";
 import PortalLayout from "../components/PortalLayout";
 import { useAuth } from "../context/AuthContext";
+import PageHeader from "../components/portal/PageHeader";
+import { Button } from "../components/ui/button";
 
 const API_BASE = process.env.REACT_APP_BACKEND_URL || "";
-const LOGO_URL = "https://customer-assets.emergentagent.com/job_advisor-phase4-build/artifacts/buhrts3f_IMG_2870.png";
+// Same-origin asset — the external CDN URL previously here sends no CORS
+// headers, so the crossOrigin="anonymous" the <img> tags need for
+// html2canvas PDF capture caused the browser to silently refuse to load it.
+const LOGO_URL = "/tfd-workspace-logo.png";
 const QR_BASE = "https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=";
 
 export default function EmployeeIDCardPage() {
   const { token, user } = useAuth();
   const [profile, setProfile] = useState(null);
+  const [uploads, setUploads] = useState({});
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState("id");
+  const [editingPhone, setEditingPhone] = useState(false);
+  const [phoneInput, setPhoneInput] = useState("");
+  const [savingPhone, setSavingPhone] = useState(false);
   const cardRef = useRef(null);
 
-  useEffect(() => {
-    (async () => {
-      try {
-        const res = await fetch(`${API_BASE}/api/auth/me`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        if (res.ok) setProfile(await res.json());
-      } catch (e) {}
-      setLoading(false);
-    })();
-  }, [token]);
+  const loadAll = async () => {
+    try {
+      const [meRes, uploadsRes] = await Promise.all([
+        fetch(`${API_BASE}/api/auth/me`, { headers: { Authorization: `Bearer ${token}` } }),
+        user?.id ? fetch(`${API_BASE}/api/uploads/${user.id}`, { headers: { Authorization: `Bearer ${token}` } }) : Promise.resolve(null),
+      ]);
+      let me = null;
+      if (meRes.ok) me = await meRes.json();
+      if (me?.id) {
+        const profRes = await fetch(`${API_BASE}/api/profile/${me.id}`, { headers: { Authorization: `Bearer ${token}` } });
+        if (profRes.ok) setProfile({ ...me, ...(await profRes.json()) });
+        else setProfile(me);
+      }
+      if (uploadsRes?.ok) setUploads(await uploadsRes.json());
+    } catch (e) {}
+    setLoading(false);
+  };
 
-  if (loading) return <PortalLayout><div className="py-20 text-center text-[#2A364B]/50">Loading...</div></PortalLayout>;
+  useEffect(() => { loadAll(); }, [token]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  if (loading) return <PortalLayout><div className="py-20 text-center text-[#2A364B]/50 dark:text-[#8E99AC]">Loading...</div></PortalLayout>;
 
   const emp = profile || user || {};
+  // The employee's own login number (emp.phone) is the fallback; contact_no is
+  // the number they've chosen to display on the ID/visiting card, editable below.
+  const displayPhone = emp.contact_no || emp.phone || "—";
   const verifyUrl = `${window.location.origin}/verify/${emp.id || ""}`;
   const qrUrl = `${QR_BASE}${encodeURIComponent(verifyUrl)}`;
   const empId = emp.employee_id || (emp.id || "").slice(0, 8).toUpperCase();
+  const photoUrl = uploads.photo?.data || null;
+
+  const startEditPhone = () => {
+    setPhoneInput(displayPhone === "—" ? "" : displayPhone);
+    setEditingPhone(true);
+  };
+
+  const savePhone = async () => {
+    if (!phoneInput.trim()) return;
+    setSavingPhone(true);
+    try {
+      const res = await fetch(`${API_BASE}/api/profile`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ contact_no: phoneInput.trim() }),
+      });
+      if (res.ok) {
+        setProfile((p) => ({ ...p, contact_no: phoneInput.trim() }));
+        setEditingPhone(false);
+      } else {
+        alert("Could not update phone number. Try again.");
+      }
+    } catch {
+      alert("Network error — could not update phone number.");
+    }
+    setSavingPhone(false);
+  };
 
   const handleDownload = async () => {
     const element = cardRef.current;
@@ -85,17 +132,44 @@ export default function EmployeeIDCardPage() {
   return (
     <PortalLayout>
       <div className="max-w-4xl mx-auto space-y-5 pb-10">
-        <h1 className="text-2xl font-serif text-[#0E1B2C] text-center">🪪 My ID & Visiting Card</h1>
+        <PageHeader icon="🪪" title="My ID & Visiting Card" subtitle="Download or share your official TFD card" className="justify-center text-center" />
 
         <div className="flex gap-2 justify-center">
           <button onClick={() => setTab("id")}
-            className={`px-4 py-1.5 rounded-lg text-sm font-medium ${tab === "id" ? "bg-[#024396] text-white" : "border border-[#E2D8C2] text-[#2A364B]/60"}`}>
+            className={`px-4 py-1.5 rounded-lg text-sm font-medium ${tab === "id" ? "bg-[#024396] dark:bg-[#4C8DFF] text-white" : "border border-[#E2D8C2] dark:border-white/15 text-[#2A364B]/60 dark:text-[#8E99AC]"}`}>
             ID Card
           </button>
           <button onClick={() => setTab("visiting")}
-            className={`px-4 py-1.5 rounded-lg text-sm font-medium ${tab === "visiting" ? "bg-[#024396] text-white" : "border border-[#E2D8C2] text-[#2A364B]/60"}`}>
+            className={`px-4 py-1.5 rounded-lg text-sm font-medium ${tab === "visiting" ? "bg-[#024396] dark:bg-[#4C8DFF] text-white" : "border border-[#E2D8C2] dark:border-white/15 text-[#2A364B]/60 dark:text-[#8E99AC]"}`}>
             Visiting Card
           </button>
+        </div>
+
+        {/* Contact number shown on both cards — editable here, applies to both */}
+        <div className="max-w-sm mx-auto bg-white dark:bg-[#101D2E] border border-[#E2D8C2] dark:border-white/10 rounded-xl p-3">
+          {!editingPhone ? (
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <p className="text-[10px] text-[#2A364B]/50 dark:text-[#8E99AC] uppercase tracking-wider">Phone shown on cards</p>
+                <p className="text-sm font-medium text-[#0E1B2C] dark:text-[#F1EDE3]">{displayPhone}</p>
+              </div>
+              <button onClick={startEditPhone} className="text-xs font-medium text-[#024396] dark:text-[#7CB0FF] hover:underline shrink-0">Change</button>
+            </div>
+          ) : (
+            <div className="flex items-center gap-2">
+              <input
+                value={phoneInput}
+                onChange={(e) => setPhoneInput(e.target.value)}
+                placeholder="10-digit mobile number"
+                className="flex-1 border border-[#E2D8C2] dark:border-white/15 dark:bg-white/5 dark:text-[#F1EDE3] rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#024396]/30"
+              />
+              <button onClick={savePhone} disabled={savingPhone || !phoneInput.trim()}
+                className="text-xs font-semibold text-white bg-[#024396] dark:bg-[#4C8DFF] rounded-lg px-3 py-1.5 disabled:opacity-50">
+                {savingPhone ? "Saving..." : "Save"}
+              </button>
+              <button onClick={() => setEditingPhone(false)} className="text-xs text-[#2A364B]/60 dark:text-[#8E99AC] px-2">Cancel</button>
+            </div>
+          )}
         </div>
 
         <div style={{ display: "flex", justifyContent: "center", padding: "10px", width: "100%", overflowX: "auto" }}>
@@ -121,8 +195,8 @@ export default function EmployeeIDCardPage() {
                 <div style={{ background: "linear-gradient(135deg, #ddeeff 0%, #f5f1eb 100%)", padding: "16px 24px", flex: 1, display: "flex", flexDirection: "column", alignItems: "center", boxSizing: "border-box" }}>
                   
                   <div style={{ marginBottom: 14 }}>
-                    {emp.photo_url ? (
-                      <img src={emp.photo_url} alt={emp.name} crossOrigin="anonymous"
+                    {photoUrl ? (
+                      <img src={photoUrl} alt={emp.name} crossOrigin="anonymous"
                         style={{ width: 110, height: 110, borderRadius: 12, objectFit: "cover", border: "3px solid #fff", boxShadow: "0 2px 8px rgba(0,0,0,0.15)", display: "block" }} />
                     ) : (
                       <div style={{
@@ -152,7 +226,7 @@ export default function EmployeeIDCardPage() {
                     {[
                       ["Employee Id", empId],
                       ["Blood Group", emp.blood_group || "—"],
-                      ["Phone", emp.phone || "—"],
+                      ["Phone", displayPhone],
                       ["Email", "wecare@thefinancialdoctor.in"],
                     ].map(([label, val]) => (
                       <div key={label} style={{ fontSize: 13, color: "#0E1B2C", display: "flex" }}>
@@ -215,7 +289,7 @@ export default function EmployeeIDCardPage() {
                       {[
                         ["Employee Id", empId],
                         ["Blood Group", emp.blood_group || "—"],
-                        ["Phone", emp.phone || "—"],
+                        ["Phone", displayPhone],
                         ["Email", "wecare@thefinancialdoctor.in"],
                       ].map(([label, val]) => (
                         <div key={label} style={{ fontSize: 13, color: "#0E1B2C", display: "flex" }}>
@@ -259,20 +333,18 @@ export default function EmployeeIDCardPage() {
 
         {/* Actions */}
         <div className="flex gap-3 justify-center flex-wrap pt-4">
-          <button onClick={handleDownload}
-            className="px-6 py-2.5 rounded-xl text-sm font-semibold text-white bg-[#9B2335] hover:bg-[#7a1b29] w-full sm:w-auto flex items-center justify-center gap-2">
+          <Button onClick={handleDownload} className="w-full sm:w-auto bg-[#9B2335] hover:bg-[#7a1b29]">
             ⬇️ Download PDF Card
-          </button>
-          <button onClick={handleShare}
-            className="px-6 py-2.5 rounded-xl text-sm font-semibold text-white bg-green-600 hover:bg-green-700 w-full sm:w-auto flex items-center justify-center gap-2">
+          </Button>
+          <Button onClick={handleShare} className="w-full sm:w-auto bg-green-600 hover:bg-green-700">
             📤 Share Verify Link
-          </button>
+          </Button>
         </div>
 
-        <div className="bg-[#FBF7EE] border border-[#E2D8C2] rounded-xl p-3 text-center mt-2 max-w-sm mx-auto">
-          <p className="text-xs text-[#2A364B]/60">QR code scan karne se tumhara verification page khulega.</p>
+        <div className="bg-[#FBF7EE] dark:bg-white/5 border border-[#E2D8C2] dark:border-white/10 rounded-xl p-3 text-center mt-2 max-w-sm mx-auto">
+          <p className="text-xs text-[#2A364B]/60 dark:text-[#8E99AC]">QR code scan karne se tumhara verification page khulega.</p>
           <a href={verifyUrl} target="_blank" rel="noreferrer"
-            className="text-xs text-[#024396] underline mt-1 block">
+            className="text-xs text-[#024396] dark:text-[#7CB0FF] underline mt-1 block">
             Preview verify page →
           </a>
         </div>

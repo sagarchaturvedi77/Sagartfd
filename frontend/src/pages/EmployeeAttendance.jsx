@@ -2,6 +2,13 @@ import React, { useCallback, useEffect, useState } from "react";
 import { useAuth } from "../context/AuthContext";
 import PortalLayout from "../components/PortalLayout";
 import { getCurrentLocation } from "../portal/api";
+import PageHeader from "../components/portal/PageHeader";
+import StatCard from "../components/portal/StatCard";
+import DataTable from "../components/portal/DataTable";
+import StatusBadge from "../components/portal/StatusBadge";
+import PortalModal from "../components/portal/PortalModal";
+import { Button } from "../components/ui/button";
+import { MapPin } from "lucide-react";
 
 const API_BASE = process.env.REACT_APP_BACKEND_URL || "";
 
@@ -25,7 +32,6 @@ export default function EmployeeAttendance() {
   const [month, setMonth] = useState(now.getMonth() + 1);
   const [year, setYear] = useState(now.getFullYear());
   const [actionLoading, setActionLoading] = useState(false);
-  // ── Confirmation popup ─────────────────────────────────────────
   const [showConfirm, setShowConfirm] = useState(false);
   const [locStatus, setLocStatus] = useState("checking"); // checking | ok | wrong | denied
   const [locMsg, setLocMsg] = useState("");
@@ -48,7 +54,6 @@ export default function EmployeeAttendance() {
   useEffect(() => { fetchToday(); }, [fetchToday]);
   useEffect(() => { fetchHistory(); }, [fetchHistory]);
 
-  // ── Punch In: open popup + check location ─────────────────────
   const handleClockIn = async () => {
     setShowConfirm(true);
     setLocStatus("checking");
@@ -62,7 +67,7 @@ export default function EmployeeAttendance() {
       ]);
       const office = settRes.ok ? await settRes.json() : { enforce: false };
 
-      if (office.enforce && office.lat && office.lng) {
+      if (office.enforce && office.lat != null && office.lng != null) {
         if (!loc) {
           setLocStatus("denied");
           setLocMsg("Location access denied. Please allow location in your browser settings and try again.");
@@ -107,7 +112,6 @@ export default function EmployeeAttendance() {
     setActionLoading(false);
   };
 
-  // ── Punch Out: no confirmation popup needed ───────────────────
   const handleClockOut = async () => {
     setActionLoading(true);
     const loc = await getCurrentLocation();
@@ -123,92 +127,81 @@ export default function EmployeeAttendance() {
   const hasClockedIn = today && today.clock_in;
   const hasClockedOut = today && today.clock_out;
   const monthNames = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
-  const presentDays = history.filter(h => h.status === "present").length;
-  const halfDays = history.filter(h => h.status === "half-day").length;
+  const presentDays = history.filter((h) => h.status === "present").length;
+  const halfDays = history.filter((h) => h.status === "half-day").length;
   const totalHours = history.reduce((sum, h) => sum + (h.total_hours || 0), 0).toFixed(1);
+
+  const historyColumns = [
+    { key: "date", label: "Date", render: (r) => <span className="font-medium text-[#0E1B2C] dark:text-[#F1EDE3]">{r.date}</span> },
+    { key: "clock_in", label: "Punch In", render: (r) => r.clock_in ? new Date(r.clock_in).toLocaleTimeString() : "-" },
+    { key: "clock_out", label: "Punch Out", render: (r) => r.clock_out ? new Date(r.clock_out).toLocaleTimeString() : "-" },
+    { key: "total_hours", label: "Hours", render: (r) => r.total_hours ? `${r.total_hours}h` : "-" },
+    { key: "clock_in_location", label: "Location", hideBelow: "lg", render: (r) => <span className="truncate block max-w-[160px]">{r.clock_in_location || "-"}</span> },
+    { key: "status", label: "Status", render: (r) => <StatusBadge status={r.status} /> },
+  ];
 
   return (
     <PortalLayout>
-      {/* ── Punch-In Confirmation Popup ─────────────────────── */}
-      {showConfirm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4">
-          <div className="bg-white rounded-2xl shadow-xl p-6 max-w-sm w-full space-y-4">
-            <h3 className="text-lg font-semibold text-[#0E1B2C]">Confirm Punch In</h3>
+      <PageHeader icon="🕐" title="Attendance" subtitle="Punch in/out and track your monthly log" />
 
-            {locStatus === "checking" && (
-              <div className="flex items-center gap-3 py-4">
-                <div className="w-5 h-5 rounded-full border-2 border-[#024396] border-t-transparent animate-spin" />
-                <p className="text-sm text-[#2A364B]/70">Checking your location…</p>
-              </div>
-            )}
-
-            {locStatus === "ok" && (
-              <div className="bg-green-50 border border-green-200 rounded-xl p-3 text-sm text-green-800">
-                {locMsg}
-              </div>
-            )}
-
-            {locStatus === "wrong" && (
-              <div className="bg-red-50 border border-red-200 rounded-xl p-3 text-sm text-red-700">
-                ❌ {locMsg}
-              </div>
-            )}
-
-            {locStatus === "denied" && (
-              <div className="bg-orange-50 border border-orange-200 rounded-xl p-3 text-sm text-orange-700">
-                📍 {locMsg}
-              </div>
-            )}
-
-            <div className="flex gap-3 pt-1">
-              <button onClick={() => setShowConfirm(false)}
-                className="flex-1 py-2 rounded-xl text-sm border border-[#E2D8C2] text-[#2A364B]/60 hover:bg-[#F5F1EB]">
-                Cancel
-              </button>
-              {locStatus === "ok" && (
-                <button onClick={confirmPunchIn}
-                  className="flex-1 py-2 rounded-xl text-sm font-semibold text-white bg-[#024396] hover:bg-[#023580]">
-                  Yes, Punch In
-                </button>
-              )}
-              {(locStatus === "wrong" || locStatus === "denied") && (
-                <button onClick={() => setShowConfirm(false)}
-                  className="flex-1 py-2 rounded-xl text-sm font-semibold text-white bg-red-500 hover:bg-red-600">
-                  OK, Got it
-                </button>
-              )}
-            </div>
+      {/* Punch-In Confirmation */}
+      <PortalModal open={showConfirm} onOpenChange={setShowConfirm} title="Confirm Punch In" maxWidth="max-w-sm">
+        {locStatus === "checking" && (
+          <div className="flex items-center gap-3 py-4">
+            <div className="w-5 h-5 rounded-full border-2 border-[#024396] border-t-transparent animate-spin" />
+            <p className="text-sm text-[#2A364B]/70 dark:text-[#C7CEDA]">Checking your location…</p>
           </div>
+        )}
+        {locStatus === "ok" && (
+          <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-xl p-3 text-sm text-green-800 dark:text-green-400">
+            {locMsg}
+          </div>
+        )}
+        {locStatus === "wrong" && (
+          <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl p-3 text-sm text-red-700 dark:text-red-400">
+            ❌ {locMsg}
+          </div>
+        )}
+        {locStatus === "denied" && (
+          <div className="bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800 rounded-xl p-3 text-sm text-orange-700 dark:text-orange-400">
+            📍 {locMsg}
+          </div>
+        )}
+        <div className="flex gap-3 pt-1">
+          <Button variant="outline" className="flex-1" onClick={() => setShowConfirm(false)}>Cancel</Button>
+          {locStatus === "ok" && (
+            <Button className="flex-1 bg-[#024396] hover:bg-[#023580]" onClick={confirmPunchIn}>Yes, Punch In</Button>
+          )}
+          {(locStatus === "wrong" || locStatus === "denied") && (
+            <Button variant="destructive" className="flex-1" onClick={() => setShowConfirm(false)}>OK, Got it</Button>
+          )}
         </div>
-      )}
+      </PortalModal>
 
       {/* Clock In/Out Card */}
-      <div className="bg-white rounded-2xl border border-[#E2D8C2] shadow-sm p-6 sm:p-8 mb-6">
+      <div className="bg-white dark:bg-[#101D2E] rounded-2xl border border-[#E2D8C2] dark:border-white/10 shadow-sm p-6 sm:p-8 mb-6">
         <div className="flex flex-col sm:flex-row items-center gap-6">
-          {/* Clock display */}
           <div className="text-center sm:text-left flex-1">
-            <p className="text-xs text-[#2A364B]/50 uppercase tracking-wider mb-1">Today's Status</p>
-            <p className="text-3xl font-serif text-[#0E1B2C] mb-1">
+            <p className="text-xs text-[#2A364B]/50 dark:text-[#8E99AC] uppercase tracking-wider mb-1">Today's Status</p>
+            <p className="text-3xl font-serif text-[#0E1B2C] dark:text-[#F1EDE3] mb-1">
               {now.toLocaleDateString("en-IN", { weekday: "long", day: "numeric", month: "long", year: "numeric" })}
             </p>
             {hasClockedIn && (
-              <div className="flex items-center gap-4 mt-2 text-sm text-[#2A364B]/70">
-                <span>Punch In: <b className="text-emerald-600">{new Date(today.clock_in).toLocaleTimeString()}</b></span>
+              <div className="flex items-center gap-4 mt-2 text-sm text-[#2A364B]/70 dark:text-[#C7CEDA] flex-wrap">
+                <span>Punch In: <b className="text-emerald-600 dark:text-emerald-400">{new Date(today.clock_in).toLocaleTimeString()}</b></span>
                 {hasClockedOut && (
-                  <span>Punch Out: <b className="text-red-500">{new Date(today.clock_out).toLocaleTimeString()}</b></span>
+                  <span>Punch Out: <b className="text-red-500 dark:text-red-400">{new Date(today.clock_out).toLocaleTimeString()}</b></span>
                 )}
-                {today.total_hours && <span>Hours: <b className="text-[#024396]">{today.total_hours}h</b></span>}
+                {today.total_hours && <span>Hours: <b className="text-[#024396] dark:text-[#7CB0FF]">{today.total_hours}h</b></span>}
               </div>
             )}
             {today?.clock_in_location && (
-              <p className="text-xs text-[#2A364B]/50 mt-1 flex items-center gap-1">
-                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
-                {today.clock_in_location}
+              <p className="text-xs text-[#2A364B]/50 dark:text-[#8E99AC] mt-1 flex items-center gap-1 justify-center sm:justify-start">
+                <MapPin size={13} /> {today.clock_in_location}
               </p>
             )}
           </div>
 
-          {/* Action button */}
           <div className="flex-shrink-0">
             {!hasClockedIn ? (
               <button
@@ -247,9 +240,9 @@ export default function EmployeeAttendance() {
                 )}
               </button>
             ) : (
-              <div className="bg-[#FBF7EE] rounded-2xl px-8 py-4 text-center">
-                <p className="text-sm font-semibold text-emerald-600">Day Complete</p>
-                <p className="text-xs text-[#2A364B]/50">{today.total_hours}h logged</p>
+              <div className="bg-[#FBF7EE] dark:bg-white/5 rounded-2xl px-8 py-4 text-center">
+                <p className="text-sm font-semibold text-emerald-600 dark:text-emerald-400">Day Complete</p>
+                <p className="text-xs text-[#2A364B]/50 dark:text-[#8E99AC]">{today.total_hours}h logged</p>
               </div>
             )}
           </div>
@@ -258,68 +251,25 @@ export default function EmployeeAttendance() {
 
       {/* Monthly stats */}
       <div className="grid grid-cols-3 gap-4 mb-6">
-        <div className="bg-white rounded-xl border border-[#E2D8C2] p-4 shadow-sm text-center">
-          <p className="text-[10px] text-[#2A364B]/50 uppercase tracking-wider mb-1">Present Days</p>
-          <p className="text-2xl font-bold text-emerald-600">{presentDays}</p>
-        </div>
-        <div className="bg-white rounded-xl border border-[#E2D8C2] p-4 shadow-sm text-center">
-          <p className="text-[10px] text-[#2A364B]/50 uppercase tracking-wider mb-1">Half Days</p>
-          <p className="text-2xl font-bold text-amber-600">{halfDays}</p>
-        </div>
-        <div className="bg-white rounded-xl border border-[#E2D8C2] p-4 shadow-sm text-center">
-          <p className="text-[10px] text-[#2A364B]/50 uppercase tracking-wider mb-1">Total Hours</p>
-          <p className="text-2xl font-bold text-[#024396]">{totalHours}h</p>
-        </div>
+        <StatCard label="Present Days" value={presentDays} color="green" />
+        <StatCard label="Half Days" value={halfDays} color="amber" />
+        <StatCard label="Total Hours" value={`${totalHours}h`} color="navy" />
       </div>
 
       {/* History */}
-      <div className="bg-white rounded-2xl border border-[#E2D8C2] shadow-sm overflow-hidden">
-        <div className="p-4 border-b border-[#E2D8C2] flex items-center justify-between bg-[#FBF7EE]/50">
-          <h3 className="text-sm font-semibold text-[#0E1B2C]">Attendance History</h3>
+      <div className="bg-white dark:bg-[#101D2E] rounded-2xl border border-[#E2D8C2] dark:border-white/10 shadow-sm overflow-hidden">
+        <div className="p-4 border-b border-[#E2D8C2] dark:border-white/10 flex items-center justify-between bg-[#FBF7EE]/50 dark:bg-white/5">
+          <h3 className="text-sm font-semibold text-[#0E1B2C] dark:text-[#F1EDE3]">Attendance History</h3>
           <div className="flex items-center gap-2">
-            <select value={month} onChange={e => setMonth(Number(e.target.value))} className="border border-[#E2D8C2] rounded-lg px-2 py-1.5 text-xs bg-white">
+            <select value={month} onChange={(e) => setMonth(Number(e.target.value))} className="border border-[#E2D8C2] dark:border-white/15 dark:bg-white/5 dark:text-[#F1EDE3] rounded-lg px-2 py-1.5 text-xs bg-white">
               {monthNames.map((m, i) => <option key={i} value={i + 1}>{m}</option>)}
             </select>
-            <select value={year} onChange={e => setYear(Number(e.target.value))} className="border border-[#E2D8C2] rounded-lg px-2 py-1.5 text-xs bg-white">
-              {[2025, 2026, 2027].map(y => <option key={y} value={y}>{y}</option>)}
+            <select value={year} onChange={(e) => setYear(Number(e.target.value))} className="border border-[#E2D8C2] dark:border-white/15 dark:bg-white/5 dark:text-[#F1EDE3] rounded-lg px-2 py-1.5 text-xs bg-white">
+              {[2025, 2026, 2027].map((y) => <option key={y} value={y}>{y}</option>)}
             </select>
           </div>
         </div>
-        {history.length === 0 ? (
-          <div className="p-12 text-center text-[#2A364B]/40 text-sm">No attendance records for this month.</div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="bg-[#FBF7EE]/30">
-                  <th className="text-left p-3 text-xs font-semibold text-[#2A364B]/60 uppercase tracking-wider">Date</th>
-                  <th className="text-center p-3 text-xs font-semibold text-[#2A364B]/60 uppercase tracking-wider">Punch In</th>
-                  <th className="text-center p-3 text-xs font-semibold text-[#2A364B]/60 uppercase tracking-wider">Punch Out</th>
-                  <th className="text-center p-3 text-xs font-semibold text-[#2A364B]/60 uppercase tracking-wider">Hours</th>
-                  <th className="text-left p-3 text-xs font-semibold text-[#2A364B]/60 uppercase tracking-wider">Location</th>
-                  <th className="text-center p-3 text-xs font-semibold text-[#2A364B]/60 uppercase tracking-wider">Status</th>
-                </tr>
-              </thead>
-              <tbody>
-                {history.map((r) => (
-                  <tr key={r.id} className="border-t border-[#E2D8C2]/50">
-                    <td className="p-3 font-medium text-[#0E1B2C]">{r.date}</td>
-                    <td className="p-3 text-center text-[#2A364B]/70">{r.clock_in ? new Date(r.clock_in).toLocaleTimeString() : "-"}</td>
-                    <td className="p-3 text-center text-[#2A364B]/70">{r.clock_out ? new Date(r.clock_out).toLocaleTimeString() : "-"}</td>
-                    <td className="p-3 text-center font-medium">{r.total_hours ? `${r.total_hours}h` : "-"}</td>
-                    <td className="p-3 text-left text-xs text-[#2A364B]/60 max-w-[160px] truncate">{r.clock_in_location || "-"}</td>
-                    <td className="p-3 text-center">
-                      <span className={`px-2.5 py-1 rounded-full text-xs font-medium ${
-                        r.status === "present" ? "bg-emerald-50 text-emerald-700" :
-                        r.status === "half-day" ? "bg-amber-50 text-amber-700" : "bg-red-50 text-red-700"
-                      }`}>{r.status}</span>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
+        <DataTable columns={historyColumns} rows={history} emptyTitle="No attendance records for this month" />
       </div>
     </PortalLayout>
   );

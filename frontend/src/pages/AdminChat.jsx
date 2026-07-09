@@ -11,10 +11,8 @@ const TRANSLATE_LANGS = [
   { code: "hinglish", label: "Hinglish" },
 ];
 
-// Simple client-side translator using LibreTranslate or fallback hint
 async function translateText(text, toLang) {
   try {
-    // Use MyMemory free API
     const langCode = toLang === "hinglish" ? "hi" : toLang;
     const res = await fetch(`https://api.mymemory.translated.net/get?q=${encodeURIComponent(text)}&langpair=en|${langCode}`);
     const data = await res.json();
@@ -27,7 +25,7 @@ async function translateText(text, toLang) {
   }
 }
 
-function MessageBubble({ m, isMe, onTranslate }) {
+function MessageBubble({ m, isMe }) {
   const [translated, setTranslated] = useState(null);
   const [translating, setTranslating] = useState(false);
   const [showTranslate, setShowTranslate] = useState(false);
@@ -47,54 +45,50 @@ function MessageBubble({ m, isMe, onTranslate }) {
   };
 
   return (
-    <div style={{ display: "flex", justifyContent: isMe ? "flex-end" : "flex-start", marginBottom: 8 }}>
-      <div style={{
-        maxWidth: "72%", borderRadius: 16, padding: "8px 12px",
-        background: isMe ? "#024396" : "#fff",
-        color: isMe ? "#fff" : "#0E1B2C",
-        borderTopRightRadius: isMe ? 4 : 16,
-        borderTopLeftRadius: isMe ? 16 : 4,
-        boxShadow: "0 1px 4px rgba(0,0,0,0.08)",
-        position: "relative",
-      }}>
+    <div className={`flex mb-2 ${isMe ? "justify-end" : "justify-start"}`}>
+      <div className={`max-w-[75%] rounded-2xl px-3 py-2 shadow-sm relative ${
+        isMe
+          ? "bg-[#024396] dark:bg-[#4C8DFF] text-white rounded-tr-md"
+          : "bg-white dark:bg-[#182739] text-[#0E1B2C] dark:text-[#F1EDE3] rounded-tl-md border border-[#E2D8C2] dark:border-white/10"
+      }`}>
         {!isMe && (
-          <p style={{ fontSize: 10, fontWeight: 700, color: m.sender_role === "admin" ? "#024396" : "#5C677D", marginBottom: 2 }}>
+          <p className={`text-[10px] font-bold mb-0.5 ${m.sender_role === "admin" ? "text-[#024396] dark:text-[#7CB0FF]" : "text-[#5C677D] dark:text-[#8E99AC]"}`}>
             {m.sender_name}
           </p>
         )}
-        <p style={{ fontSize: 13, lineHeight: 1.4, margin: 0 }}>{m.text}</p>
+        <p className="text-sm leading-snug">{m.text}</p>
 
-        {/* Translated text */}
         {translated && (
-          <div style={{ marginTop: 6, padding: "6px 8px", background: isMe ? "rgba(255,255,255,0.15)" : "#F5F1EB", borderRadius: 8 }}>
-            <p style={{ fontSize: 12, color: isMe ? "rgba(255,255,255,0.9)" : "#5C677D", margin: 0 }}>{translated}</p>
-            <button onClick={copyTranslated} style={{ background: "none", border: "none", fontSize: 10, color: isMe ? "rgba(255,255,255,0.7)" : "#024396", cursor: "pointer", padding: 0, marginTop: 3 }}>
+          <div className={`mt-1.5 px-2 py-1.5 rounded-lg ${isMe ? "bg-white/15" : "bg-[#F5F1EB] dark:bg-white/5"}`}>
+            <p className={`text-xs ${isMe ? "text-white/90" : "text-[#5C677D] dark:text-[#8E99AC]"}`}>{translated}</p>
+            <button onClick={copyTranslated} className={`text-[10px] mt-0.5 ${isMe ? "text-white/70" : "text-[#024396] dark:text-[#7CB0FF]"}`}>
               📋 Copy translation
             </button>
           </div>
         )}
 
-        <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 4 }}>
-          <span style={{ fontSize: 10, color: isMe ? "rgba(255,255,255,0.6)" : "#9AA5B4" }}>
+        <div className="flex items-center gap-1.5 mt-1">
+          <span className={`text-[10px] ${isMe ? "text-white/60" : "text-[#9AA5B4]"}`}>
             {new Date(m.created_at).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })}
           </span>
-          {/* Translate button */}
-          <button onClick={() => setShowTranslate(v => !v)} style={{ background: "none", border: "none", fontSize: 10, color: isMe ? "rgba(255,255,255,0.6)" : "#9AA5B4", cursor: "pointer", padding: 0 }}>
+          <button onClick={() => setShowTranslate((v) => !v)} className={`text-[10px] ${isMe ? "text-white/60" : "text-[#9AA5B4]"}`}>
             🌐
           </button>
         </div>
 
-        {/* Translate panel */}
         {showTranslate && (
-          <div style={{ marginTop: 6, display: "flex", gap: 4, flexWrap: "wrap", alignItems: "center" }}>
-            <select value={toLang} onChange={(e) => setToLang(e.target.value)} style={{ fontSize: 11, border: "1px solid #E2D8C2", borderRadius: 6, padding: "2px 6px", background: "#fff", color: "#0E1B2C" }}>
-              {TRANSLATE_LANGS.map(l => <option key={l.code} value={l.code}>{l.label}</option>)}
+          <div className="mt-1.5 flex gap-1 flex-wrap items-center">
+            <select value={toLang} onChange={(e) => setToLang(e.target.value)}
+              className="text-[11px] border border-[#E2D8C2] dark:border-white/15 rounded-md px-1.5 py-0.5 bg-white dark:bg-[#101D2E] text-[#0E1B2C] dark:text-[#F1EDE3]">
+              {TRANSLATE_LANGS.map((l) => <option key={l.code} value={l.code}>{l.label}</option>)}
             </select>
-            <button onClick={doTranslate} disabled={translating} style={{ fontSize: 11, background: "#024396", color: "#fff", border: "none", borderRadius: 6, padding: "3px 8px", cursor: "pointer" }}>
+            <button onClick={doTranslate} disabled={translating}
+              className="text-[11px] bg-[#024396] dark:bg-[#4C8DFF] text-white rounded-md px-2 py-0.5">
               {translating ? "..." : "Translate"}
             </button>
             {translated && (
-              <button onClick={() => { setTranslated(null); setShowTranslate(false); }} style={{ fontSize: 11, background: "#F5F1EB", color: "#5C677D", border: "none", borderRadius: 6, padding: "3px 8px", cursor: "pointer" }}>
+              <button onClick={() => { setTranslated(null); setShowTranslate(false); }}
+                className="text-[11px] bg-[#F5F1EB] dark:bg-white/10 text-[#5C677D] dark:text-[#8E99AC] rounded-md px-2 py-0.5">
                 Clear
               </button>
             )}
@@ -105,7 +99,7 @@ function MessageBubble({ m, isMe, onTranslate }) {
   );
 }
 
-export default function EmployeeChat() {
+export default function AdminChat() {
   const { token, user } = useAuth();
   const [msgs, setMsgs] = useState([]);
   const [text, setText] = useState("");
@@ -133,57 +127,49 @@ export default function EmployeeChat() {
   };
 
   const del = async (id) => {
+    if (!window.confirm("Delete this message?")) return;
     await fetch(`${API_BASE}/api/chat/${id}`, { method: "DELETE", headers });
-    setMsgs(m => m.filter(x => x.id !== id));
+    setMsgs((m) => m.filter((x) => x.id !== id));
   };
 
   return (
     <PortalLayout>
-      <div style={{ display: "flex", flexDirection: "column", height: "calc(100vh - 120px)", background: "#fff", borderRadius: 16, border: "1px solid #E2D8C2", overflow: "hidden", boxShadow: "0 2px 8px rgba(0,0,0,0.06)" }}>
-
-        {/* Header */}
-        <div style={{ padding: "12px 16px", borderBottom: "1px solid #E2D8C2", display: "flex", alignItems: "center", gap: 10, background: "#0E1B2C" }}>
-          <span style={{ fontSize: 18 }}>💬</span>
-          <div style={{ flex: 1 }}>
-            <p style={{ color: "#fff", fontWeight: 700, fontSize: 14, margin: 0 }}>Team Chat — General</p>
-            <p style={{ color: "rgba(255,255,255,0.5)", fontSize: 11, margin: 0 }}>All team members can see this</p>
+      <div className="flex flex-col rounded-2xl border border-[#E2D8C2] dark:border-white/10 overflow-hidden shadow-sm bg-white dark:bg-[#101D2E]" style={{ height: "calc(100vh - 120px)" }}>
+        <div className="flex items-center gap-2.5 px-4 py-3 border-b border-[#E2D8C2] dark:border-white/10 bg-[#0E1B2C] dark:bg-[#0B1420]">
+          <span className="text-lg">💬</span>
+          <div className="flex-1">
+            <p className="text-white font-bold text-sm">Team Chat — General</p>
+            <p className="text-white/50 text-[11px]">All team members can see this · You can moderate any message</p>
           </div>
-          <div style={{ fontSize: 11, color: "rgba(255,255,255,0.4)" }}>🌐 Tap any message to translate</div>
+          <div className="text-[11px] text-white/40 hidden sm:block">🌐 Tap any message to translate</div>
         </div>
 
-        {/* Messages */}
-        <div style={{ flex: 1, overflowY: "auto", padding: "12px 14px" }}>
-          {msgs.length === 0 && <p style={{ textAlign: "center", color: "#9AA5B4", fontSize: 13, paddingTop: 40 }}>No messages yet. Say hello 👋</p>}
-          {msgs.map(m => (
-            <div key={m.id} style={{ position: "relative" }}>
+        <div className="flex-1 overflow-y-auto px-3.5 py-3">
+          {msgs.length === 0 && <p className="text-center text-[#9AA5B4] text-sm pt-10">No messages yet. Say hello 👋</p>}
+          {msgs.map((m) => (
+            <div key={m.id} className="relative">
               <MessageBubble m={m} isMe={m.sender_id === user?.id} />
-              {(m.sender_id === user?.id) && (
-                <button onClick={() => del(m.id)} style={{
-                  position: "absolute", top: 0, right: 0,
-                  background: "#fee2e2", border: "none", borderRadius: "50%",
-                  width: 18, height: 18, fontSize: 10, color: "#dc2626",
-                  cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center",
-                  opacity: 0.7,
-                }}>×</button>
+              {(m.sender_id === user?.id || user?.role === "admin") && (
+                <button onClick={() => del(m.id)} title="Delete message"
+                  className="absolute top-0 right-0 bg-red-100 dark:bg-red-900/40 border-none rounded-full w-[18px] h-[18px] text-[10px] text-red-600 dark:text-red-400 flex items-center justify-center opacity-70 hover:opacity-100">
+                  ×
+                </button>
               )}
             </div>
           ))}
           <div ref={bottomRef} />
         </div>
 
-        {/* Input */}
-        <form onSubmit={send} style={{ borderTop: "1px solid #E2D8C2", padding: "10px 12px", display: "flex", gap: 8, background: "#FAFAF9" }}>
+        <form onSubmit={send} className="border-t border-[#E2D8C2] dark:border-white/10 p-2.5 flex gap-2 bg-[#FAFAF9] dark:bg-white/5">
           <input
             value={text}
             onChange={(e) => setText(e.target.value)}
             placeholder="Type a message..."
-            style={{ flex: 1, background: "#F5F1EB", borderRadius: 12, padding: "9px 14px", fontSize: 13, border: "none", outline: "none", color: "#0E1B2C" }}
+            className="flex-1 bg-[#F5F1EB] dark:bg-white/10 rounded-xl px-3.5 py-2 text-sm outline-none text-[#0E1B2C] dark:text-[#F1EDE3] placeholder:text-[#9AA5B4]"
             disabled={sending}
           />
-          <button type="submit" disabled={sending || !text.trim()} style={{
-            background: "#024396", color: "#fff", border: "none", borderRadius: 12,
-            padding: "9px 18px", fontSize: 13, fontWeight: 700, cursor: "pointer", opacity: (sending || !text.trim()) ? 0.5 : 1,
-          }}>
+          <button type="submit" disabled={sending || !text.trim()}
+            className="bg-[#024396] dark:bg-[#4C8DFF] text-white rounded-xl px-4 py-2 text-sm font-bold disabled:opacity-50">
             Send
           </button>
         </form>

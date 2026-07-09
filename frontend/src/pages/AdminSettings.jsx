@@ -1,7 +1,9 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import PortalLayout from "../components/PortalLayout";
 import { useAuth } from "../context/AuthContext";
 import { DashboardCustomizerPanel } from "../components/DashboardCustomizer";
+import PageHeader from "../components/portal/PageHeader";
+import { Button } from "../components/ui/button";
 
 const API_BASE = process.env.REACT_APP_BACKEND_URL || "";
 
@@ -14,6 +16,29 @@ export default function AdminSettings() {
   const [saving, setSaving] = useState(false);
   const [officeForm, setOfficeForm] = useState({ lat: "", lng: "", radius_m: 200, enforce: false });
   const [officeMsg, setOfficeMsg] = useState("");
+  const [officeLoaded, setOfficeLoaded] = useState(false);
+
+  // Load the currently saved geofence so the form doesn't render blank and
+  // silently wipe out an already-configured office location on save.
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await fetch(`${API_BASE}/api/attendance/office-settings`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (res.ok) {
+          const data = await res.json();
+          setOfficeForm({
+            lat: data.lat ?? "",
+            lng: data.lng ?? "",
+            radius_m: data.radius_m ?? 200,
+            enforce: !!data.enforce,
+          });
+        }
+      } catch { /* silent */ }
+      setOfficeLoaded(true);
+    })();
+  }, [token]);
 
   const changePassword = async (e) => {
     e.preventDefault();
@@ -36,16 +61,29 @@ export default function AdminSettings() {
   const saveOffice = async (e) => {
     e.preventDefault();
     setOfficeMsg("");
+    const lat = parseFloat(officeForm.lat);
+    const lng = parseFloat(officeForm.lng);
+    if (officeForm.enforce && (Number.isNaN(lat) || Number.isNaN(lng))) {
+      setOfficeMsg("❌ Enter both latitude and longitude before enabling enforcement.");
+      return;
+    }
     try {
       const res = await fetch(`${API_BASE}/api/attendance/office-settings`, {
         method: "PUT",
         headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
-        body: JSON.stringify({ lat: parseFloat(officeForm.lat), lng: parseFloat(officeForm.lng), radius_m: parseInt(officeForm.radius_m), enforce: officeForm.enforce }),
+        body: JSON.stringify({
+          lat: Number.isNaN(lat) ? null : lat,
+          lng: Number.isNaN(lng) ? null : lng,
+          radius_m: parseInt(officeForm.radius_m) || 200,
+          enforce: officeForm.enforce,
+        }),
       });
       if (res.ok) setOfficeMsg("✅ Office location saved!");
       else setOfficeMsg("❌ Failed to save.");
     } catch { setOfficeMsg("❌ Network error."); }
   };
+
+  const field = "w-full border border-[#E2D8C2] dark:border-white/15 dark:bg-white/5 dark:text-[#F1EDE3] rounded-xl px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-[#024396]/30";
 
   return (
     <PortalLayout>
@@ -53,69 +91,65 @@ export default function AdminSettings() {
         <DashboardCustomizerPanel userId={user?.id} role="admin" onClose={() => setShowCustomizer(false)} />
       )}
 
-      <div style={{ maxWidth: 560, margin: "0 auto" }}>
-        <h1 style={{ fontSize: 22, fontWeight: 700, color: "#0E1B2C", marginBottom: 20 }}>⚙️ Admin Settings</h1>
+      <div className="max-w-xl mx-auto">
+        <PageHeader icon="⚙️" title="Admin Settings" subtitle="Dashboard widgets, password, and office geofence" />
 
         {/* Dashboard Customizer */}
-        <div style={{ background: "#fff", borderRadius: 16, border: "1px solid #E2D8C2", padding: 20, marginBottom: 16, boxShadow: "0 1px 4px rgba(0,0,0,0.05)" }}>
-          <h3 style={{ fontSize: 14, fontWeight: 700, color: "#0E1B2C", marginBottom: 6 }}>🛠️ Dashboard Customize Karo</h3>
-          <p style={{ fontSize: 12, color: "#5C677D", marginBottom: 14 }}>Admin dashboard pe kaunse widgets dikhein, choose karo.</p>
-          <button onClick={() => setShowCustomizer(true)} style={{ background: "#024396", color: "#fff", border: "none", borderRadius: 10, padding: "9px 20px", fontSize: 13, fontWeight: 600, cursor: "pointer" }}>
+        <div className="bg-white dark:bg-[#101D2E] rounded-2xl border border-[#E2D8C2] dark:border-white/10 p-5 mb-4 shadow-sm">
+          <h3 className="text-sm font-bold text-[#0E1B2C] dark:text-[#F1EDE3] mb-1.5">🛠️ Dashboard Customize Karo</h3>
+          <p className="text-xs text-[#5C677D] dark:text-[#8E99AC] mb-3.5">Admin dashboard pe kaunse widgets dikhein, choose karo.</p>
+          <Button onClick={() => setShowCustomizer(true)} className="bg-gradient-to-r from-[#024396] to-[#0356c4]">
             Open Dashboard Customizer
-          </button>
+          </Button>
         </div>
 
         {/* Password Change */}
-        <div style={{ background: "#fff", borderRadius: 16, border: "1px solid #E2D8C2", padding: 20, marginBottom: 16, boxShadow: "0 1px 4px rgba(0,0,0,0.05)" }}>
-          <h3 style={{ fontSize: 14, fontWeight: 700, color: "#0E1B2C", marginBottom: 6 }}>🔒 Password Change Karo</h3>
-          <form onSubmit={changePassword} style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-            {[["current","Current Password"],["newPw","New Password"],["confirm","Confirm New Password"]].map(([f, l]) => (
+        <div className="bg-white dark:bg-[#101D2E] rounded-2xl border border-[#E2D8C2] dark:border-white/10 p-5 mb-4 shadow-sm">
+          <h3 className="text-sm font-bold text-[#0E1B2C] dark:text-[#F1EDE3] mb-1.5">🔒 Password Change Karo</h3>
+          <form onSubmit={changePassword} className="flex flex-col gap-2.5">
+            {[["current", "Current Password"], ["newPw", "New Password"], ["confirm", "Confirm New Password"]].map(([f, l]) => (
               <div key={f}>
-                <label style={{ fontSize: 11, color: "#5C677D", display: "block", marginBottom: 4 }}>{l}</label>
-                <input type="password" value={pwForm[f]} onChange={(e) => setPwForm({ ...pwForm, [f]: e.target.value })} required
-                  style={{ width: "100%", border: "1px solid #E2D8C2", borderRadius: 10, padding: "8px 12px", fontSize: 13, outline: "none" }} />
+                <label className="text-[11px] text-[#5C677D] dark:text-[#8E99AC] block mb-1">{l}</label>
+                <input type="password" value={pwForm[f]} onChange={(e) => setPwForm({ ...pwForm, [f]: e.target.value })} required className={field} />
               </div>
             ))}
-            {pwErr && <p style={{ fontSize: 12, color: "#dc2626" }}>{pwErr}</p>}
-            {pwMsg && <p style={{ fontSize: 12, color: "#16a34a" }}>{pwMsg}</p>}
-            <button type="submit" disabled={saving} style={{ background: "#024396", color: "#fff", border: "none", borderRadius: 10, padding: "9px", fontSize: 13, fontWeight: 600, cursor: "pointer" }}>
+            {pwErr && <p className="text-xs text-red-600 dark:text-red-400">{pwErr}</p>}
+            {pwMsg && <p className="text-xs text-green-600 dark:text-green-400">{pwMsg}</p>}
+            <Button type="submit" disabled={saving} className="bg-gradient-to-r from-[#024396] to-[#0356c4]">
               {saving ? "Saving..." : "Change Password"}
-            </button>
+            </Button>
           </form>
         </div>
 
         {/* Office Location Settings */}
-        <div style={{ background: "#fff", borderRadius: 16, border: "1px solid #E2D8C2", padding: 20, marginBottom: 16, boxShadow: "0 1px 4px rgba(0,0,0,0.05)" }}>
-          <h3 style={{ fontSize: 14, fontWeight: 700, color: "#0E1B2C", marginBottom: 6 }}>📍 Office Location (Punch-In Geofence)</h3>
-          <p style={{ fontSize: 12, color: "#5C677D", marginBottom: 14 }}>Office ka latitude, longitude aur allowed radius set karo. Enforce ON karne se sirf office ke andar hi punch-in hogi.</p>
-          <form onSubmit={saveOffice} style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+        <div className="bg-white dark:bg-[#101D2E] rounded-2xl border border-[#E2D8C2] dark:border-white/10 p-5 mb-4 shadow-sm">
+          <h3 className="text-sm font-bold text-[#0E1B2C] dark:text-[#F1EDE3] mb-1.5">📍 Office Location (Punch-In Geofence)</h3>
+          <p className="text-xs text-[#5C677D] dark:text-[#8E99AC] mb-3.5">Office ka latitude, longitude aur allowed radius set karo. Enforce ON karne se sirf office ke andar hi punch-in hogi.</p>
+          <form onSubmit={saveOffice} className="flex flex-col gap-2.5">
+            <div className="grid grid-cols-2 gap-2.5">
               <div>
-                <label style={{ fontSize: 11, color: "#5C677D", display: "block", marginBottom: 4 }}>Latitude</label>
+                <label className="text-[11px] text-[#5C677D] dark:text-[#8E99AC] block mb-1">Latitude</label>
                 <input type="number" step="any" placeholder="e.g. 23.2599" value={officeForm.lat}
-                  onChange={(e) => setOfficeForm({ ...officeForm, lat: e.target.value })}
-                  style={{ width: "100%", border: "1px solid #E2D8C2", borderRadius: 10, padding: "8px 12px", fontSize: 13, outline: "none" }} />
+                  onChange={(e) => setOfficeForm({ ...officeForm, lat: e.target.value })} className={field} />
               </div>
               <div>
-                <label style={{ fontSize: 11, color: "#5C677D", display: "block", marginBottom: 4 }}>Longitude</label>
+                <label className="text-[11px] text-[#5C677D] dark:text-[#8E99AC] block mb-1">Longitude</label>
                 <input type="number" step="any" placeholder="e.g. 77.4126" value={officeForm.lng}
-                  onChange={(e) => setOfficeForm({ ...officeForm, lng: e.target.value })}
-                  style={{ width: "100%", border: "1px solid #E2D8C2", borderRadius: 10, padding: "8px 12px", fontSize: 13, outline: "none" }} />
+                  onChange={(e) => setOfficeForm({ ...officeForm, lng: e.target.value })} className={field} />
               </div>
             </div>
             <div>
-              <label style={{ fontSize: 11, color: "#5C677D", display: "block", marginBottom: 4 }}>Allowed Radius (meters)</label>
-              <input type="number" value={officeForm.radius_m} onChange={(e) => setOfficeForm({ ...officeForm, radius_m: e.target.value })}
-                style={{ width: "100%", border: "1px solid #E2D8C2", borderRadius: 10, padding: "8px 12px", fontSize: 13, outline: "none" }} />
+              <label className="text-[11px] text-[#5C677D] dark:text-[#8E99AC] block mb-1">Allowed Radius (meters)</label>
+              <input type="number" value={officeForm.radius_m} onChange={(e) => setOfficeForm({ ...officeForm, radius_m: e.target.value })} className={field} />
             </div>
-            <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, color: "#0E1B2C", cursor: "pointer" }}>
+            <label className="flex items-center gap-2 text-sm text-[#0E1B2C] dark:text-[#F1EDE3] cursor-pointer">
               <input type="checkbox" checked={officeForm.enforce} onChange={(e) => setOfficeForm({ ...officeForm, enforce: e.target.checked })} />
               Geofence Enforce Karo (OFF karne se sab jagah se punch-in hogi)
             </label>
-            {officeMsg && <p style={{ fontSize: 12, color: officeMsg.includes("✅") ? "#16a34a" : "#dc2626" }}>{officeMsg}</p>}
-            <button type="submit" style={{ background: "#024396", color: "#fff", border: "none", borderRadius: 10, padding: "9px", fontSize: 13, fontWeight: 600, cursor: "pointer" }}>
-              Save Office Location
-            </button>
+            {officeMsg && <p className={`text-xs ${officeMsg.includes("✅") ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"}`}>{officeMsg}</p>}
+            <Button type="submit" disabled={!officeLoaded} className="bg-gradient-to-r from-[#024396] to-[#0356c4]">
+              {officeLoaded ? "Save Office Location" : "Loading current settings…"}
+            </Button>
           </form>
         </div>
       </div>

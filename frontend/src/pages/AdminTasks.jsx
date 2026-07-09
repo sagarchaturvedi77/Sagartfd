@@ -14,7 +14,7 @@ const STATUS_COLORS = {
 };
 const CATEGORIES = ["general", "client_meeting", "follow_up", "documentation", "other"];
 
-export default function AdminTasks() {
+export default function AdminTasks({ wrapInLayout = true }) {
   const { token } = useAuth();
   const [tasks, setTasks] = useState([]);
   const [stats, setStats] = useState(null);
@@ -75,15 +75,14 @@ export default function AdminTasks() {
   });
 
   const today = new Date().toISOString().slice(0, 10);
-  const field = "w-full border border-[#E2D8C2] rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#024396]/30";
+  const field = "w-full border border-[#E2D8C2] dark:border-white/10 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#024396]/30";
 
-  return (
-    <PortalLayout>
+  const content = (
       <div className="space-y-6">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div>
-            <h2 className="text-xl font-serif text-[#0E1B2C]">My Tasks & Reminders</h2>
-            <p className="text-xs text-[#2A364B]/50">Personal task manager — meetings, follow-ups, deadlines</p>
+            <h2 className="text-xl font-serif text-[#0E1B2C] dark:text-[#F1EDE3]">My Tasks & Reminders</h2>
+            <p className="text-xs text-[#2A364B]/50 dark:text-[#8E99AC]/50">Personal task manager — meetings, follow-ups, deadlines</p>
           </div>
           <button onClick={() => setShowAdd(true)}
             className="px-5 py-2.5 rounded-xl text-sm font-semibold text-white bg-gradient-to-r from-[#024396] to-[#0356c4] hover:from-[#023580] transition-all shadow-lg shadow-[#024396]/25">
@@ -94,21 +93,21 @@ export default function AdminTasks() {
         {/* Stats */}
         {stats && (
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-            <div className="bg-white rounded-xl border border-[#E2D8C2] p-4 text-center">
-              <p className="text-2xl font-bold text-[#0E1B2C]">{stats.by_status?.pending || 0}</p>
-              <p className="text-[10px] text-[#2A364B]/50 uppercase">Pending</p>
+            <div className="bg-white dark:bg-[#101D2E] rounded-xl border border-[#E2D8C2] dark:border-white/10 p-4 text-center">
+              <p className="text-2xl font-bold text-[#0E1B2C] dark:text-[#F1EDE3]">{stats.by_status?.pending || 0}</p>
+              <p className="text-[10px] text-[#2A364B]/50 dark:text-[#8E99AC]/50 uppercase">Pending</p>
             </div>
-            <div className="bg-white rounded-xl border border-[#E2D8C2] p-4 text-center">
+            <div className="bg-white dark:bg-[#101D2E] rounded-xl border border-[#E2D8C2] dark:border-white/10 p-4 text-center">
               <p className="text-2xl font-bold text-blue-600">{stats.by_status?.in_progress || 0}</p>
-              <p className="text-[10px] text-[#2A364B]/50 uppercase">In Progress</p>
+              <p className="text-[10px] text-[#2A364B]/50 dark:text-[#8E99AC]/50 uppercase">In Progress</p>
             </div>
-            <div className="bg-white rounded-xl border border-[#E2D8C2] p-4 text-center">
+            <div className="bg-white dark:bg-[#101D2E] rounded-xl border border-[#E2D8C2] dark:border-white/10 p-4 text-center">
               <p className="text-2xl font-bold text-emerald-600">{stats.by_status?.completed || 0}</p>
-              <p className="text-[10px] text-[#2A364B]/50 uppercase">Done</p>
+              <p className="text-[10px] text-[#2A364B]/50 dark:text-[#8E99AC]/50 uppercase">Done</p>
             </div>
-            <div className="bg-white rounded-xl border border-[#E2D8C2] p-4 text-center">
+            <div className="bg-white dark:bg-[#101D2E] rounded-xl border border-[#E2D8C2] dark:border-white/10 p-4 text-center">
               <p className="text-2xl font-bold text-red-600">{stats.overdue || 0}</p>
-              <p className="text-[10px] text-[#2A364B]/50 uppercase">Overdue</p>
+              <p className="text-[10px] text-[#2A364B]/50 dark:text-[#8E99AC]/50 uppercase">Overdue</p>
             </div>
           </div>
         )}
@@ -117,7 +116,7 @@ export default function AdminTasks() {
         <div className="flex gap-2">
           {["active", "completed", "all"].map(f => (
             <button key={f} onClick={() => setFilter(f)}
-              className={`px-4 py-1.5 rounded-full text-xs font-medium transition-all ${filter === f ? "bg-[#024396] text-white" : "bg-white border border-[#E2D8C2] text-[#2A364B]/60"}`}>
+              className={`px-4 py-1.5 rounded-full text-xs font-medium transition-all ${filter === f ? "bg-[#024396] text-white" : "bg-white dark:bg-[#101D2E] border border-[#E2D8C2] dark:border-white/10 text-[#2A364B]/60 dark:text-[#8E99AC]/60"}`}>
               {f.charAt(0).toUpperCase() + f.slice(1)}
             </button>
           ))}
@@ -126,8 +125,8 @@ export default function AdminTasks() {
         {/* Add modal */}
         {showAdd && (
           <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm px-4">
-            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6">
-              <h3 className="font-semibold text-[#0E1B2C] mb-4">New Task</h3>
+            <div className="bg-white dark:bg-[#101D2E] rounded-2xl shadow-2xl w-full max-w-md p-6">
+              <h3 className="font-semibold text-[#0E1B2C] dark:text-[#F1EDE3] mb-4">New Task</h3>
               <form onSubmit={addTask} className="space-y-3">
                 <input required placeholder="Task title *" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} className={field} />
                 <textarea placeholder="Description (optional)" rows={3} value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} className={`${field} resize-none`} />
@@ -145,7 +144,7 @@ export default function AdminTasks() {
                 <input type="date" value={form.due_date} onChange={(e) => setForm({ ...form, due_date: e.target.value })} className={field} placeholder="Due date" />
                 <div className="flex gap-3 pt-2">
                   <button type="button" onClick={() => setShowAdd(false)}
-                    className="flex-1 py-2.5 rounded-xl text-sm font-medium text-[#2A364B]/70 border border-[#E2D8C2]">Cancel</button>
+                    className="flex-1 py-2.5 rounded-xl text-sm font-medium text-[#2A364B]/70 dark:text-[#8E99AC]/70 border border-[#E2D8C2] dark:border-white/10">Cancel</button>
                   <button type="submit" disabled={saving}
                     className="flex-1 py-2.5 rounded-xl text-sm font-semibold text-white bg-gradient-to-r from-[#024396] to-[#0356c4] disabled:opacity-60">
                     {saving ? "Saving..." : "Add Task"}
@@ -159,21 +158,21 @@ export default function AdminTasks() {
         {/* Task cards */}
         {loading ? (
           <div className="flex justify-center py-20">
-            <div className="w-8 h-8 border-2 border-[#024396] border-t-transparent rounded-full animate-spin" />
+            <div className="w-8 h-8 border-2 border-[#024396] dark:border-[#4C8DFF] border-t-transparent rounded-full animate-spin" />
           </div>
         ) : filtered.length === 0 ? (
-          <div className="bg-white rounded-2xl border border-[#E2D8C2] p-10 text-center">
-            <p className="text-[#2A364B]/50 text-sm">{filter === "active" ? "No active tasks. Add one!" : "No tasks found."}</p>
+          <div className="bg-white dark:bg-[#101D2E] rounded-2xl border border-[#E2D8C2] dark:border-white/10 p-10 text-center">
+            <p className="text-[#2A364B]/50 dark:text-[#8E99AC]/50 text-sm">{filter === "active" ? "No active tasks. Add one!" : "No tasks found."}</p>
           </div>
         ) : (
           <div className="space-y-3">
             {filtered.map((task) => {
               const isOverdue = task.due_date && task.due_date < today && !["completed", "cancelled"].includes(task.status);
               return (
-                <div key={task.id} className={`bg-white rounded-2xl border shadow-sm p-4 flex items-start gap-4 ${isOverdue ? "border-red-300" : "border-[#E2D8C2]"}`}>
+                <div key={task.id} className={`bg-white dark:bg-[#101D2E] rounded-2xl border shadow-sm p-4 flex items-start gap-4 ${isOverdue ? "border-red-300" : "border-[#E2D8C2] dark:border-white/10"}`}>
                   {/* Checkbox */}
                   <button onClick={() => updateStatus(task.id, task.status === "completed" ? "pending" : "completed")}
-                    className={`w-6 h-6 shrink-0 rounded-lg border-2 flex items-center justify-center mt-0.5 transition-all ${task.status === "completed" ? "bg-emerald-500 border-emerald-500 text-white" : "border-[#E2D8C2] hover:border-[#024396]"}`}>
+                    className={`w-6 h-6 shrink-0 rounded-lg border-2 flex items-center justify-center mt-0.5 transition-all ${task.status === "completed" ? "bg-emerald-500 border-emerald-500 text-white" : "border-[#E2D8C2] dark:border-white/10 hover:border-[#024396] dark:border-[#4C8DFF]"}`}>
                     {task.status === "completed" && (
                       <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="3" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
@@ -182,8 +181,8 @@ export default function AdminTasks() {
                   </button>
 
                   <div className="flex-1 min-w-0">
-                    <p className={`font-medium text-[#0E1B2C] ${task.status === "completed" ? "line-through opacity-50" : ""}`}>{task.title}</p>
-                    {task.description && <p className="text-xs text-[#2A364B]/50 mt-0.5 line-clamp-2">{task.description}</p>}
+                    <p className={`font-medium text-[#0E1B2C] dark:text-[#F1EDE3] ${task.status === "completed" ? "line-through opacity-50" : ""}`}>{task.title}</p>
+                    {task.description && <p className="text-xs text-[#2A364B]/50 dark:text-[#8E99AC]/50 mt-0.5 line-clamp-2">{task.description}</p>}
                     <div className="flex flex-wrap gap-1.5 mt-2">
                       <span className={`text-[10px] font-semibold uppercase px-2 py-0.5 rounded-full ${PRIORITY_COLORS[task.priority]}`}>{task.priority}</span>
                       <span className={`text-[10px] font-semibold uppercase px-2 py-0.5 rounded-full ${STATUS_COLORS[task.status]}`}>{task.status.replace("_", " ")}</span>
@@ -192,7 +191,7 @@ export default function AdminTasks() {
                           {isOverdue ? "OVERDUE: " : ""}{task.due_date}
                         </span>
                       )}
-                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-[#F5F1EB] text-[#2A364B]/50">{task.category.replace(/_/g, " ")}</span>
+                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-[#F5F1EB] dark:bg-white/5 text-[#2A364B]/50 dark:text-[#8E99AC]/50">{task.category.replace(/_/g, " ")}</span>
                     </div>
                   </div>
 
@@ -214,6 +213,7 @@ export default function AdminTasks() {
           </div>
         )}
       </div>
-    </PortalLayout>
   );
+
+  return wrapInLayout ? <PortalLayout>{content}</PortalLayout> : content;
 }

@@ -18,8 +18,12 @@ async function subscribeWebPush() {
     const data = await res.json();
     if (!data.enabled || !data.key) return false;
 
+    // "/service-worker.js" doesn't exist in this project — that registration
+    // always failed silently, so Notification.permission showed "granted" in
+    // the visitor's browser but no subscription was ever actually created,
+    // and the admin's Push Subscribers count never moved.
     let reg = await navigator.serviceWorker.getRegistration("/");
-    if (!reg) reg = await navigator.serviceWorker.register("/service-worker.js");
+    if (!reg) reg = await navigator.serviceWorker.register("/web-push-sw.js");
     await navigator.serviceWorker.ready;
 
     let sub = await reg.pushManager.getSubscription();

@@ -1,4 +1,4 @@
-import React, { useMemo, useRef, useState, useEffect } from "react";
+import React, { useMemo, useRef, useState, useEffect, useContext, createContext } from "react";
 import { useNavigate } from "react-router-dom";
 import {
     AreaChart,
@@ -212,31 +212,58 @@ function inflationGoalCalc(currentCost, years, inflationRate, returnRate) {
 }
 
 // ---------- Slider ----------
+// Lets <Slider> know which variant it's rendering inside without having to
+// thread a `variant` prop through every one of its ~30 call sites across
+// all 9 calculator tabs.
+const CalcVariantContext = createContext("public");
+
 function Slider({ value, onChange, min, max, label, format, testid }) {
+    const variant = useContext(CalcVariantContext);
+    const numberInput = (
+        <input
+            type="number"
+            value={value}
+            onChange={(e) => {
+                const raw = e.target.value;
+                if (raw === "") { onChange(0); return; }
+                const v = Number(raw);
+                if (!isNaN(v)) onChange(v);
+            }}
+            onBlur={(e) => {
+                let v = Number(e.target.value);
+                if (isNaN(v)) v = min ?? 0;
+                if (min !== undefined && v < min) v = min;
+                if (max !== undefined && v > max) v = max;
+                onChange(v);
+            }}
+            data-testid={testid}
+        />
+    );
+
+    // Compact label-left / input-right row for the employee portal — the
+    // public site keeps the original stacked layout untouched.
+    if (variant === "employee") {
+        return (
+            <div className="flex items-start justify-between gap-3">
+                <label className="text-xs text-[#5C677D] pt-2 flex-1 min-w-0">{label}</label>
+                <div className="shrink-0 flex flex-col items-end">
+                    {React.cloneElement(numberInput, {
+                        className: "w-28 border border-[#E2D8C2] rounded-lg px-2.5 py-1.5 text-sm font-semibold text-right text-[#0E1B2C] outline-none focus:border-[#024396] bg-white",
+                    })}
+                    {format && <div className="text-[10px] text-[#5C677D] mt-1">{format(value)}</div>}
+                </div>
+            </div>
+        );
+    }
+
     return (
         <div>
             <label className="text-[12px] md:text-[13px] uppercase tracking-[0.15em] text-[#5C677D] block mb-2">
                 {label}
             </label>
-            <input
-                type="number"
-                value={value}
-                onChange={(e) => {
-                    const raw = e.target.value;
-                    if (raw === "") { onChange(0); return; }
-                    const v = Number(raw);
-                    if (!isNaN(v)) onChange(v);
-                }}
-                onBlur={(e) => {
-                    let v = Number(e.target.value);
-                    if (isNaN(v)) v = min ?? 0;
-                    if (min !== undefined && v < min) v = min;
-                    if (max !== undefined && v > max) v = max;
-                    onChange(v);
-                }}
-                className="w-full border border-[#E2D8C2] rounded-xl px-3 py-2.5 text-base font-semibold text-[#0E1B2C] outline-none focus:border-[#024396] bg-white"
-                data-testid={testid}
-            />
+            {React.cloneElement(numberInput, {
+                className: "w-full border border-[#E2D8C2] rounded-xl px-3 py-2.5 text-base font-semibold text-[#0E1B2C] outline-none focus:border-[#024396] bg-white",
+            })}
             {format && (
                 <div className="text-xs text-[#5C677D] mt-1">{format(value)}</div>
             )}
@@ -369,6 +396,58 @@ const buildShareMessage = (template, client, employee) => {
     }
     return `Hi${clientName ? " " + clientName : ""},\n\nHere's your personalised financial proposal from *The Financial Doctor* 📊\n\n📌 ${calcLine}\n\nTake a look, and feel free to reach out if you have any questions.\n\nRegards,\n${empName}\nThe Financial Doctor`;
 };
+function roundRectPath(ctx, x, y, w, h, r) {
+    ctx.beginPath();
+    ctx.moveTo(x + r, y);
+    ctx.arcTo(x + w, y, x + w, y + h, r);
+    ctx.arcTo(x + w, y + h, x, y + h, r);
+    ctx.arcTo(x, y + h, x, y, r);
+    ctx.arcTo(x, y, x + w, y, r);
+    ctx.closePath();
+}
+
+// Bakes the QR + gold-frame badge into ONE flat PNG instead of nesting
+// border-radius/overflow:hidden divs around a live <img>. html2canvas
+// reliably rasterizes a single flat image; it was silently painting the
+// frame over the QR whenever it was built from nested clipped divs
+// (confirmed: the live DOM always had a valid, loaded QR image — only the
+// html2canvas-captured output lost it). The frame is a SQUARE, not a
+// circle — a circular crop cuts off the QR's corner finder patterns,
+// which makes it unscannable even though it displays fine. The QR itself
+// is drawn at its full square size with a clean quiet-zone margin, never
+// clipped; only the decorative outer frame gets a small corner radius.
+function buildQrBadgeDataUrl(qrCanvasEl) {
+    const SCALE = 4; // exported at 4x, displayed at 76px — stays crisp
+    const OUTER = 76 * SCALE;
+    const INNER = 68 * SCALE;
+    const QR = 56 * SCALE;
+    const BORDER = 2 * SCALE;
+    const RADIUS = 8 * SCALE;
+
+    const canvas = document.createElement("canvas");
+    canvas.width = OUTER;
+    canvas.height = OUTER;
+    const ctx = canvas.getContext("2d");
+
+    roundRectPath(ctx, 0, 0, OUTER, OUTER, RADIUS);
+    ctx.fillStyle = "#D9A928";
+    ctx.fill();
+
+    const innerOffset = (OUTER - INNER) / 2;
+    roundRectPath(ctx, innerOffset, innerOffset, INNER, INNER, RADIUS * 0.6);
+    ctx.fillStyle = "#ffffff";
+    ctx.fill();
+    ctx.lineWidth = BORDER;
+    ctx.strokeStyle = "#0E1B2C";
+    ctx.stroke();
+
+    // Full, uncropped, square QR — this is what actually needs to scan.
+    const qrOffset = (OUTER - QR) / 2;
+    ctx.drawImage(qrCanvasEl, qrOffset, qrOffset, QR, QR);
+
+    return canvas.toDataURL("image/png");
+}
+
 function isCanvasActuallyDrawn(canvasEl) {
     try {
         const ctx = canvasEl.getContext("2d");
@@ -395,7 +474,7 @@ useEffect(() => {
             const drawn = isCanvasActuallyDrawn(canvasEl);
             console.log("[QR-DEBUG] isDrawn:", drawn);
             if (drawn) {
-                const url = canvasEl.toDataURL("image/png");
+                const url = buildQrBadgeDataUrl(canvasEl);
                 console.log("[QR-DEBUG] SUCCESS, url length:", url.length);
                 qrDataUrlRef.current = url;
                 setQrDataUrl(url);
@@ -409,6 +488,7 @@ useEffect(() => {
         }
     }, 200);
     return () => clearInterval(interval);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
 }, []);
 
 useEffect(() => {
@@ -544,6 +624,44 @@ const qrDataUrlRef = useRef(null);
             { url: TFD_WEBSITE_URL }
         );
     }
+
+    // Click-to-call / click-to-WhatsApp — dials/messages whichever employee
+    // ("Prepared By") actually generated this proposal, not a generic
+    // company number, so the client reaches the right person in one tap.
+    const preparedByPhone = normalizePhoneForLink(employeeInfo?.phone);
+    if (preparedByPhone) {
+        const callEl = pageEl.querySelector('[data-pdf-link="call"]');
+        if (callEl) {
+            const r = callEl.getBoundingClientRect();
+            pdf.link(
+                (r.left - pageRect.left) * mmPerPx,
+                (r.top - pageRect.top) * mmPerPx,
+                r.width * mmPerPx,
+                r.height * mmPerPx,
+                { url: `tel:+${preparedByPhone}` }
+            );
+        }
+        const waEl = pageEl.querySelector('[data-pdf-link="whatsapp"]');
+        if (waEl) {
+            const r = waEl.getBoundingClientRect();
+            // Names the specific proposal (calculator + figures) so whoever
+            // gets this WhatsApp immediately knows what the client means —
+            // not just a generic "I have a question" with no context.
+            const calcLine = calcSummaryLine(tab);
+            const waText = encodeURIComponent(
+                proposalLang === "hindi" ? `नमस्ते! मैंने "${calcLine}" प्रपोजल बनाया था The Financial Doctor से — इसके बारे में मुझे थोड़ी और जानकारी चाहिए।`
+                : proposalLang === "hinglish" ? `Namaste! Maine "${calcLine}" proposal banaya tha The Financial Doctor se — iske baare mein mujhe thodi aur jaankari chahiye.`
+                : `Hi! I made a "${calcLine}" proposal with The Financial Doctor — I'd like to know more about it.`
+            );
+            pdf.link(
+                (r.left - pageRect.left) * mmPerPx,
+                (r.top - pageRect.top) * mmPerPx,
+                r.width * mmPerPx,
+                r.height * mmPerPx,
+                { url: `https://wa.me/${preparedByPhone}?text=${waText}` }
+            );
+        }
+    }
 }
 
         const pdfBlob = pdf.output("blob");
@@ -605,6 +723,7 @@ const qrDataUrlRef = useRef(null);
     };
 
     return (
+        <CalcVariantContext.Provider value={variant}>
         <section id="calc" className={variant === "employee" ? "py-2 md:py-4 bg-[#F6F1E8]/20" : "py-12 md:py-20 bg-[#F6F1E8]/20"}>
             <div className="container-x px-4 md:px-6">
                 {variant !== "employee" && (
@@ -627,20 +746,37 @@ const qrDataUrlRef = useRef(null);
                 </div>
                 )}
 
-                {/* Tabs Grid */}
+                {/* Tabs — a clean single-row scroll for the employee portal (avoids
+                    the 9-tab grid awkwardly wrapping a label onto two lines);
+                    the public site keeps its original responsive grid. */}
                 <div className="mb-6">
-                    <div className="grid grid-cols-3 sm:grid-cols-5 lg:grid-cols-9 gap-2">
-                        {TABS.map((t) => (
-                            <button
-                                key={t.id}
-                                data-testid={t.testid}
-                                onClick={() => setTab(t.id)}
-                                className={`tab-pill text-center justify-center text-xs py-2 ${tab === t.id ? "active" : ""}`}
-                            >
-                                {t.label}
-                            </button>
-                        ))}
-                    </div>
+                    {variant === "employee" ? (
+                        <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1">
+                            {TABS.map((t) => (
+                                <button
+                                    key={t.id}
+                                    data-testid={t.testid}
+                                    onClick={() => setTab(t.id)}
+                                    className={`tab-pill shrink-0 whitespace-nowrap text-center justify-center text-xs py-2 ${tab === t.id ? "active" : ""}`}
+                                >
+                                    {t.label}
+                                </button>
+                            ))}
+                        </div>
+                    ) : (
+                        <div className="grid grid-cols-3 sm:grid-cols-5 lg:grid-cols-9 gap-2">
+                            {TABS.map((t) => (
+                                <button
+                                    key={t.id}
+                                    data-testid={t.testid}
+                                    onClick={() => setTab(t.id)}
+                                    className={`tab-pill text-center justify-center text-xs py-2 ${tab === t.id ? "active" : ""}`}
+                                >
+                                    {t.label}
+                                </button>
+                            ))}
+                        </div>
+                    )}
                 </div>
 
                 <div className="grid lg:grid-cols-12 gap-4 md:gap-6">
@@ -1112,6 +1248,7 @@ const qrDataUrlRef = useRef(null);
                 )}
             </div>
         </section>
+        </CalcVariantContext.Provider>
     );
 }
 
@@ -1169,9 +1306,13 @@ function ResultCard({ tab, result, onDownload, onStart, variant }) {
                     <button onClick={onDownload} className="btn-pill flex-1 md:flex-none justify-center py-2.5 text-xs font-bold bg-[#C7102E] text-white shadow-sm" data-testid={IDS.calc.download}>
                         <Download size={15} /> {variant === "employee" ? "Generate Proposal" : (<><span className="hidden sm:inline">Download</span> Proposal</>)}
                     </button>
-                    <button onClick={onStart} className="btn-pill flex-1 md:flex-none justify-center py-2.5 text-xs font-bold bg-[#F6F1E8] text-[#0E1B2C] shadow-sm cursor-pointer" data-testid={IDS.calc.startPlan}>
-                        Start <ArrowUpRight size={14} />
-                    </button>
+                    {/* "Start Investing" gateway CTA is for public visitors only — an
+                        employee building a client proposal isn't the one investing. */}
+                    {variant !== "employee" && (
+                        <button onClick={onStart} className="btn-pill flex-1 md:flex-none justify-center py-2.5 text-xs font-bold bg-[#F6F1E8] text-[#0E1B2C] shadow-sm cursor-pointer" data-testid={IDS.calc.startPlan}>
+                            Start <ArrowUpRight size={14} />
+                        </button>
+                    )}
                 </div>
             </div>
 
@@ -1235,90 +1376,277 @@ function InsuranceBanner({ lang }) {
         </div>
     );
 }
+// Per-tab methodology explainer, in all three proposal languages.
 const CALC_METHODOLOGY = {
   sip: {
-    highlights: [
-      "Compounding ka fayda — returns par bhi returns milte hain",
-      "Rupee-cost averaging se market ke ups-downs smooth ho jaate hain",
-      "Chhoti monthly amount lambe samay mein bada corpus bana deti hai",
-    ],
-    how: "Har mahine fixed amount invest hota hai, jo expected annual return par compound hota hai. Formula: FV = P × [(1+r)^n − 1] / r × (1+r). Step-up diya ho to har 12 mahine baad SIP amount us % se badh jaati hai. Daily SIP ka calculation 22 working days/month par based hai — Saturday, Sunday aur market holidays par debit nahi hota, isliye 22 din se multiply kiya jaata hai.",
+    hinglish: {
+      highlights: [
+        "Compounding ka fayda — returns par bhi returns milte hain",
+        "Rupee-cost averaging se market ke ups-downs smooth ho jaate hain",
+        "Chhoti monthly amount lambe samay mein bada corpus bana deti hai",
+      ],
+      how: "Har mahine fixed amount invest hota hai, jo expected annual return par compound hota hai. Formula: FV = P × [(1+r)^n − 1] / r × (1+r). Step-up diya ho to har 12 mahine baad SIP amount us % se badh jaati hai. Daily SIP ka calculation 22 working days/month par based hai — Saturday, Sunday aur market holidays par debit nahi hota, isliye 22 din se multiply kiya jaata hai.",
+    },
+    english: {
+      highlights: [
+        "The power of compounding — you earn returns on your returns",
+        "Rupee-cost averaging smooths out market ups and downs",
+        "A small monthly amount builds a large corpus over time",
+      ],
+      how: "A fixed amount is invested every month, which compounds at the expected annual return. Formula: FV = P × [(1+r)^n − 1] / r × (1+r). If a step-up is set, the SIP amount increases by that % every 12 months. Daily SIP is calculated on 22 working days/month — no debit happens on Saturdays, Sundays and market holidays, so the daily amount is multiplied by 22.",
+    },
+    hindi: {
+      highlights: [
+        "चक्रवृद्धि (कंपाउंडिंग) का फायदा — रिटर्न पर भी रिटर्न मिलता है",
+        "रुपी-कॉस्ट एवरेजिंग से मार्केट के उतार-चढ़ाव संतुलित हो जाते हैं",
+        "छोटी मासिक राशि लंबे समय में बड़ा कोष बना देती है",
+      ],
+      how: "हर महीने एक निश्चित राशि निवेश होती है, जो अपेक्षित वार्षिक रिटर्न पर चक्रवृद्धि होती है। फॉर्मूला: FV = P × [(1+r)^n − 1] / r × (1+r)। स्टेप-अप सेट होने पर हर 12 महीने बाद SIP राशि उस % से बढ़ जाती है। डेली SIP की गणना 22 कार्य दिवस/माह पर आधारित है — शनिवार, रविवार और बाजार अवकाश पर डेबिट नहीं होता, इसलिए 22 दिनों से गुणा किया जाता है।",
+    },
   },
   daily: {
-    highlights: [
-      "Daily habit se investing zindagi ka hissa ban jaata hai",
-      "22 working days/month ka calculation use hota hai",
-      "Chhoti daily amount bhi lambe samay mein badi ban jaati hai",
-    ],
-    how: "Daily amount ko monthly SIP mein convert kiya jaata hai (daily × 22), phir SIP wala hi formula lagta hai.",
+    hinglish: {
+      highlights: [
+        "Daily habit se investing zindagi ka hissa ban jaata hai",
+        "22 working days/month ka calculation use hota hai",
+        "Chhoti daily amount bhi lambe samay mein badi ban jaati hai",
+      ],
+      how: "Daily amount ko monthly SIP mein convert kiya jaata hai (daily × 22), phir SIP wala hi formula lagta hai.",
+    },
+    english: {
+      highlights: [
+        "A daily habit makes investing part of everyday life",
+        "Calculated on 22 working days per month",
+        "Even a small daily amount grows large over time",
+      ],
+      how: "The daily amount is converted into a monthly SIP (daily × 22), then the same SIP formula is applied.",
+    },
+    hindi: {
+      highlights: [
+        "रोज़ की आदत से निवेश करना जीवन का हिस्सा बन जाता है",
+        "गणना 22 कार्य दिवस प्रति माह पर आधारित है",
+        "छोटी दैनिक राशि भी लंबे समय में बड़ी बन जाती है",
+      ],
+      how: "दैनिक राशि को मासिक SIP में बदला जाता है (दैनिक × 22), फिर वही SIP फॉर्मूला लागू होता है।",
+    },
   },
   lumpsum: {
-    highlights: [
-      "Ek baar ka bada investment compounding ka poora fayda leta hai",
-      "Jitna lamba tenure, utna zyada exponential growth",
-      "Market timing chhodkar time-in-market par focus karein",
-    ],
-    how: "Compound interest formula: FV = P × (1+r)^n, jaha P = invested amount, r = annual return, n = years.",
+    hinglish: {
+      highlights: [
+        "Ek baar ka bada investment compounding ka poora fayda leta hai",
+        "Jitna lamba tenure, utna zyada exponential growth",
+        "Market timing chhodkar time-in-market par focus karein",
+      ],
+      how: "Compound interest formula: FV = P × (1+r)^n, jaha P = invested amount, r = annual return, n = years.",
+    },
+    english: {
+      highlights: [
+        "A one-time large investment gets the full benefit of compounding",
+        "The longer the tenure, the greater the exponential growth",
+        "Focus on time-in-market rather than market timing",
+      ],
+      how: "Compound interest formula: FV = P × (1+r)^n, where P = invested amount, r = annual return, n = years.",
+    },
+    hindi: {
+      highlights: [
+        "एक बार का बड़ा निवेश चक्रवृद्धि का पूरा फायदा लेता है",
+        "जितनी लंबी अवधि, उतनी अधिक तीव्र वृद्धि",
+        "मार्केट टाइमिंग छोड़कर टाइम-इन-मार्केट पर ध्यान दें",
+      ],
+      how: "चक्रवृद्धि ब्याज फॉर्मूला: FV = P × (1+r)^n, जहाँ P = निवेशित राशि, r = वार्षिक रिटर्न, n = वर्ष।",
+    },
   },
   swp: {
-    highlights: [
-      "Retirement/regular income ke liye corpus se fixed withdrawal",
-      "Balance invested rehta hai, tab tak grow bhi karta hai",
-      "Withdrawal rate corpus ki life decide karta hai",
-    ],
-    how: "Har mahine corpus par return credit hota hai, phir fixed withdrawal minus hota hai — ye process tenure khatam hone tak ya balance zero hone tak chalta hai.",
+    hinglish: {
+      highlights: [
+        "Retirement/regular income ke liye corpus se fixed withdrawal",
+        "Balance invested rehta hai, tab tak grow bhi karta hai",
+        "Withdrawal rate corpus ki life decide karta hai",
+      ],
+      how: "Har mahine corpus par return credit hota hai, phir fixed withdrawal minus hota hai — ye process tenure khatam hone tak ya balance zero hone tak chalta hai.",
+    },
+    english: {
+      highlights: [
+        "Fixed withdrawal from your corpus for retirement/regular income",
+        "The remaining balance stays invested and keeps growing",
+        "The withdrawal rate decides how long the corpus lasts",
+      ],
+      how: "Every month, return is credited on the corpus, then the fixed withdrawal is deducted — this continues until the tenure ends or the balance reaches zero.",
+    },
+    hindi: {
+      highlights: [
+        "रिटायरमेंट/नियमित आय के लिए कोष से निश्चित निकासी",
+        "शेष राशि निवेशित रहती है और तब तक बढ़ती भी है",
+        "निकासी दर तय करती है कि कोष कितने समय तक चलेगा",
+      ],
+      how: "हर महीने कोष पर रिटर्न जमा होता है, फिर निश्चित निकासी घटाई जाती है — यह प्रक्रिया अवधि समाप्त होने तक या शेष राशि शून्य होने तक चलती है।",
+    },
   },
   goal: {
-    highlights: [
-      "Target corpus ke liye exact zaroori monthly SIP jaanein",
-      "Jitna early start, utna kam monthly SIP chahiye",
-      "Goal-based investing se planning clear hoti hai",
-    ],
-    how: "Target corpus ko future value annuity factor se divide karke zaroori monthly SIP nikala jaata hai.",
+    hinglish: {
+      highlights: [
+        "Target corpus ke liye exact zaroori monthly SIP jaanein",
+        "Jitna early start, utna kam monthly SIP chahiye",
+        "Goal-based investing se planning clear hoti hai",
+      ],
+      how: "Target corpus ko future value annuity factor se divide karke zaroori monthly SIP nikala jaata hai.",
+    },
+    english: {
+      highlights: [
+        "Know the exact monthly SIP required for your target corpus",
+        "The earlier you start, the smaller the monthly SIP required",
+        "Goal-based investing makes your planning clear",
+      ],
+      how: "The target corpus is divided by the future-value annuity factor to arrive at the required monthly SIP.",
+    },
+    hindi: {
+      highlights: [
+        "लक्ष्य कोष के लिए आवश्यक सटीक मासिक SIP जानें",
+        "जितनी जल्दी शुरुआत, उतनी कम मासिक SIP चाहिए",
+        "लक्ष्य-आधारित निवेश से योजना स्पष्ट होती है",
+      ],
+      how: "लक्ष्य कोष को फ्यूचर वैल्यू एन्युटी फैक्टर से विभाजित करके आवश्यक मासिक SIP निकाली जाती है।",
+    },
   },
   emi: {
-    highlights: [
-      "Reducing balance mein interest sirf outstanding principal par lagta hai",
-      "Jaldi prepay karne se total interest kaafi kam ho sakta hai",
-      "EMI jitna hi parallel SIP loan ko 'interest-free' bana sakta hai",
-    ],
-    how: "Reducing balance EMI: EMI = P × r × (1+r)^n / [(1+r)^n − 1]. Fixed mode mein interest poore tenure ke original principal par flat lagta hai.",
-    interestFreeExplain: "Aapke loan ka jitna total interest hai (Total Interest), agar aap usi amount ki ek parallel Mutual Fund SIP shuru karein (12% p.a. assumed return), to loan tenure khatam hote-hote wo SIP itni badh chuki hogi ki wo aapke total interest cost ko roughly cover kar de — yaani loan effectively 'interest-free' ban jaata hai. Ye sirf ek estimate hai; actual mutual fund returns guaranteed nahi hote.",
+    hinglish: {
+      highlights: [
+        "Reducing balance mein interest sirf outstanding principal par lagta hai",
+        "Jaldi prepay karne se total interest kaafi kam ho sakta hai",
+        "EMI jitna hi parallel SIP loan ko 'interest-free' bana sakta hai",
+      ],
+      how: "Reducing balance EMI: EMI = P × r × (1+r)^n / [(1+r)^n − 1]. Fixed mode mein interest poore tenure ke original principal par flat lagta hai.",
+      interestFreeExplain: "Aapke loan ka jitna total interest hai (Total Interest), agar aap usi amount ki ek parallel Mutual Fund SIP shuru karein (12% p.a. assumed return), to loan tenure khatam hote-hote wo SIP itni badh chuki hogi ki wo aapke total interest cost ko roughly cover kar de — yaani loan effectively 'interest-free' ban jaata hai. Ye sirf ek estimate hai; actual mutual fund returns guaranteed nahi hote.",
+    },
+    english: {
+      highlights: [
+        "In reducing balance, interest is charged only on the outstanding principal",
+        "Prepaying early can significantly cut your total interest",
+        "A parallel SIP equal to your EMI can effectively make the loan 'interest-free'",
+      ],
+      how: "Reducing balance EMI: EMI = P × r × (1+r)^n / [(1+r)^n − 1]. In fixed mode, interest is charged flat on the original principal for the full tenure.",
+      interestFreeExplain: "If you start a parallel Mutual Fund SIP of the same amount as your loan's Total Interest (assuming a 12% p.a. return), by the time the loan tenure ends that SIP will likely have grown enough to roughly cover your total interest cost — effectively making the loan 'interest-free'. This is only an estimate; actual mutual fund returns are not guaranteed.",
+    },
+    hindi: {
+      highlights: [
+        "रिड्यूसिंग बैलेंस में ब्याज केवल बकाया मूलधन पर लगता है",
+        "जल्दी प्रीपे करने से कुल ब्याज काफी कम हो सकता है",
+        "EMI जितनी ही समानांतर SIP लोन को 'ब्याज-मुक्त' बना सकती है",
+      ],
+      how: "रिड्यूसिंग बैलेंस EMI: EMI = P × r × (1+r)^n / [(1+r)^n − 1]। फिक्स्ड मोड में पूरी अवधि के मूल मूलधन पर फ्लैट ब्याज लगता है।",
+      interestFreeExplain: "अगर आप अपने लोन के कुल ब्याज (Total Interest) जितनी ही एक समानांतर म्यूचुअल फंड SIP शुरू करें (12% वार्षिक अनुमानित रिटर्न), तो लोन अवधि समाप्त होने तक वह SIP इतनी बढ़ चुकी होगी कि वह आपकी कुल ब्याज लागत को लगभग कवर कर दे — यानी लोन प्रभावी रूप से 'ब्याज-मुक्त' बन जाता है। यह केवल एक अनुमान है; वास्तविक म्यूचुअल फंड रिटर्न की गारंटी नहीं होती।",
+    },
   },
   tax: {
-    highlights: [
-      "Old aur New regime dono ka comparison ek saath dekhein",
-      "80C investments sirf Old Regime mein tax benefit dete hain",
-      "Regime choice har saal badal sakte hain",
-    ],
-    how: "Dono regimes ke slabs par income ko tax kiya jaata hai, standard deduction/80C minus karke, phir 4% cess add hota hai.",
+    hinglish: {
+      highlights: [
+        "Old aur New regime dono ka comparison ek saath dekhein",
+        "80C investments sirf Old Regime mein tax benefit dete hain",
+        "Regime choice har saal badal sakte hain",
+      ],
+      how: "Dono regimes ke slabs par income ko tax kiya jaata hai, standard deduction/80C minus karke, phir 4% cess add hota hai.",
+    },
+    english: {
+      highlights: [
+        "See a side-by-side comparison of the Old and New tax regimes",
+        "80C investments only give a tax benefit under the Old Regime",
+        "You can switch your regime choice every year",
+      ],
+      how: "Income is taxed as per both regimes' slabs after deducting standard deduction/80C, then 4% cess is added.",
+    },
+    hindi: {
+      highlights: [
+        "पुरानी और नई व्यवस्था दोनों की तुलना एक साथ देखें",
+        "80C निवेश केवल पुरानी व्यवस्था में टैक्स लाभ देते हैं",
+        "व्यवस्था का चुनाव हर साल बदला जा सकता है",
+      ],
+      how: "दोनों व्यवस्थाओं के स्लैब पर आय पर टैक्स लगाया जाता है, स्टैंडर्ड डिडक्शन/80C घटाकर, फिर 4% सेस जोड़ा जाता है।",
+    },
   },
   gst: {
-    highlights: [
-      "Business billing mein sahi GST breakup zaroori hai",
-      "CGST + SGST milkar total GST banate hain",
-      "Inclusive vs Exclusive samajhna invoicing ke liye zaroori hai",
-    ],
-    how: "Exclusive amount par GST add hota hai. Inclusive amount se GST reverse-calculate hota hai: Base = Total × 100/(100+rate).",
+    hinglish: {
+      highlights: [
+        "Business billing mein sahi GST breakup zaroori hai",
+        "CGST + SGST milkar total GST banate hain",
+        "Inclusive vs Exclusive samajhna invoicing ke liye zaroori hai",
+      ],
+      how: "Exclusive amount par GST add hota hai. Inclusive amount se GST reverse-calculate hota hai: Base = Total × 100/(100+rate).",
+    },
+    english: {
+      highlights: [
+        "An accurate GST breakup is essential for business billing",
+        "CGST + SGST together make up the total GST",
+        "Understanding Inclusive vs Exclusive is essential for invoicing",
+      ],
+      how: "GST is added on top of the exclusive amount. For an inclusive amount, GST is reverse-calculated: Base = Total × 100/(100+rate).",
+    },
+    hindi: {
+      highlights: [
+        "बिजनेस बिलिंग में सही GST ब्रेकअप जरूरी है",
+        "CGST + SGST मिलकर कुल GST बनाते हैं",
+        "इनवॉइसिंग के लिए इनक्लूसिव बनाम एक्सक्लूसिव समझना जरूरी है",
+      ],
+      how: "एक्सक्लूसिव राशि पर GST जोड़ा जाता है। इनक्लूसिव राशि से GST रिवर्स-कैलकुलेट होता है: Base = Total × 100/(100+rate)।",
+    },
   },
   inflation: {
-    highlights: [
-      "Aaj ka goal kal mehenga ho jaata hai — inflation ignore na karein",
-      "Sahi planning se inflation-adjusted target achieve karna aasan hota hai",
-      "Return inflation se zyada ho to hi real wealth banta hai",
-    ],
-    how: "Current cost inflation rate se future value mein convert hota hai: Future Cost = Current Cost × (1+inflation)^years, phir uske liye zaroori SIP nikalta hai.",
+    hinglish: {
+      highlights: [
+        "Aaj ka goal kal mehenga ho jaata hai — inflation ignore na karein",
+        "Sahi planning se inflation-adjusted target achieve karna aasan hota hai",
+        "Return inflation se zyada ho to hi real wealth banta hai",
+      ],
+      how: "Current cost inflation rate se future value mein convert hota hai: Future Cost = Current Cost × (1+inflation)^years, phir uske liye zaroori SIP nikalta hai.",
+    },
+    english: {
+      highlights: [
+        "Today's goal gets costlier tomorrow — don't ignore inflation",
+        "The right planning makes an inflation-adjusted target achievable",
+        "Real wealth is created only when returns beat inflation",
+      ],
+      how: "The current cost is converted to a future value using the inflation rate: Future Cost = Current Cost × (1+inflation)^years, and the required SIP is then calculated for that.",
+    },
+    hindi: {
+      highlights: [
+        "आज का लक्ष्य कल महंगा हो जाता है — महंगाई को नज़रअंदाज़ न करें",
+        "सही योजना से महंगाई-समायोजित लक्ष्य हासिल करना आसान होता है",
+        "असली संपत्ति तभी बनती है जब रिटर्न महंगाई से ज्यादा हो",
+      ],
+      how: "वर्तमान लागत को महंगाई दर से भविष्य मूल्य में बदला जाता है: Future Cost = Current Cost × (1+inflation)^years, फिर उसके लिए आवश्यक SIP निकाली जाती है।",
+    },
   },
 };
 const MF_EDUCATION = {
-    heading: "Mutual Fund Kaise Kaam Karta Hai?",
-    points: [
-        "Aap jab bhi SIP ya Lumpsum invest karte hain, aapka paisa ek Mutual Fund scheme mein jaata hai — jo AMC (Asset Management Company) manage karti hai, jaise HDFC, SBI, ICICI Prudential, etc.",
-        "AMC ka fund manager aapke aur hazaaro dusre investors ka paisa milakar shares, bonds, ya dono mein invest karta hai — isse aapko diversification aur professional management milta hai.",
-        "Aapka return fund ke underlying investments (shares/bonds) ki performance se aata hai — jab wo assets badhte hain, aapke fund ki NAV (Net Asset Value) badhti hai, aur wahi aapka gain hai.",
-        "Aap directly kisi company ko paisa nahi dete — aap fund ke 'units' kharidte hain, aur AMC us paisa ko professionally invest karti hai on your behalf.",
-        "SEBI (regulator) aur AMFI in sab funds ko regulate karte hain, taaki investor ka paisa surakshit rahe — lekin market risk phir bhi rehta hai, returns guaranteed nahi hote.",
-    ],
+    hinglish: {
+        heading: "Mutual Fund Kaise Kaam Karta Hai?",
+        points: [
+            "Aap jab bhi SIP ya Lumpsum invest karte hain, aapka paisa ek Mutual Fund scheme mein jaata hai — jo AMC (Asset Management Company) manage karti hai, jaise HDFC, SBI, ICICI Prudential, etc.",
+            "AMC ka fund manager aapke aur hazaaro dusre investors ka paisa milakar shares, bonds, ya dono mein invest karta hai — isse aapko diversification aur professional management milta hai.",
+            "Aapka return fund ke underlying investments (shares/bonds) ki performance se aata hai — jab wo assets badhte hain, aapke fund ki NAV (Net Asset Value) badhti hai, aur wahi aapka gain hai.",
+            "Aap directly kisi company ko paisa nahi dete — aap fund ke 'units' kharidte hain, aur AMC us paisa ko professionally invest karti hai on your behalf.",
+            "SEBI (regulator) aur AMFI in sab funds ko regulate karte hain, taaki investor ka paisa surakshit rahe — lekin market risk phir bhi rehta hai, returns guaranteed nahi hote.",
+        ],
+    },
+    english: {
+        heading: "How Does a Mutual Fund Work?",
+        points: [
+            "Whenever you invest via SIP or Lumpsum, your money goes into a Mutual Fund scheme — managed by an AMC (Asset Management Company) such as HDFC, SBI, ICICI Prudential, etc.",
+            "The AMC's fund manager pools your money with thousands of other investors and invests it in shares, bonds, or both — giving you diversification and professional management.",
+            "Your return comes from the performance of the fund's underlying investments (shares/bonds) — when those assets rise, your fund's NAV (Net Asset Value) rises, and that is your gain.",
+            "You don't give money directly to any company — you buy 'units' of the fund, and the AMC invests that money professionally on your behalf.",
+            "SEBI (the regulator) and AMFI regulate all these funds to keep investor money safe — but market risk still remains, and returns are not guaranteed.",
+        ],
+    },
+    hindi: {
+        heading: "म्यूचुअल फंड कैसे काम करता है?",
+        points: [
+            "जब भी आप SIP या लम्पसम निवेश करते हैं, आपका पैसा एक म्यूचुअल फंड स्कीम में जाता है — जिसे AMC (एसेट मैनेजमेंट कंपनी) मैनेज करती है, जैसे HDFC, SBI, ICICI Prudential आदि।",
+            "AMC का फंड मैनेजर आपके और हज़ारों अन्य निवेशकों के पैसे को मिलाकर शेयर, बॉन्ड, या दोनों में निवेश करता है — इससे आपको विविधीकरण और प्रोफेशनल मैनेजमेंट मिलता है।",
+            "आपका रिटर्न फंड के अंतर्निहित निवेशों (शेयर/बॉन्ड) के प्रदर्शन से आता है — जब वे एसेट बढ़ते हैं, तो आपके फंड की NAV (नेट एसेट वैल्यू) बढ़ती है, और वही आपका लाभ है।",
+            "आप सीधे किसी कंपनी को पैसा नहीं देते — आप फंड की 'यूनिट्स' खरीदते हैं, और AMC उस पैसे को आपकी ओर से प्रोफेशनल तरीके से निवेश करती है।",
+            "SEBI (नियामक) और AMFI इन सभी फंड्स को नियंत्रित करते हैं, ताकि निवेशक का पैसा सुरक्षित रहे — लेकिन बाजार जोखिम फिर भी बना रहता है, रिटर्न की गारंटी नहीं होती।",
+        ],
+    },
 };
 async function waitForImagesToLoad(containerEl, timeoutMs = 3000) {
     if (!containerEl) return;
@@ -1491,10 +1819,34 @@ const PROPOSAL_UI = {
         totalInvestedCol: "Total Invested", futureValueCol: "Future Value", extraGain: "Extra Gain",
         yearOnYear: "Year-on-Year Growth", year: "Year", invested: "Invested", value: "Value", outstanding: "Outstanding",
         suggestions: "Suggestions to Boost Your Wealth", footerBrand: "The Financial Doctor · thefinancialdoctor.in",
-        amfiLine: "AMFI Registered Mutual Fund Distributor · ARN-290298", dateLabel: "Date", scanToInvest: "Scan to Invest", digitalBadge: "Digital Proposal: Click QR to Invest",
+        amfiLine: "AMFI Registered Mutual Fund Distributor · ARN-290298", dateLabel: "Date", scanToInvest: "Scan to Invest", digitalBadge: "Digital Proposal: Click QR to Invest", callNow: "Call Now", whatsappNow: "WhatsApp",
         disclaimer: "This document is an illustrative proposal only and does not constitute investment advice. Mutual fund investments are subject to market risks. Read all scheme-related documents carefully. Future returns are not guaranteed — actual returns may vary. Generated on",
-        years: "Years", yrs: "Yrs", plusYears: "Years",
-    },  withdrawn: "Withdrawn",
+        years: "Years", yrs: "Yrs", plusYears: "Years", withdrawn: "Withdrawn",
+        calcNames: { sip: "SIP Calculator", daily: "Daily SIP Calculator", lumpsum: "Lumpsum Calculator", swp: "SWP Calculator", goal: "Goal Planner", emi: "EMI Calculator", tax: "Income Tax Calculator", gst: "GST Calculator", inflation: "Future Goal Calculator" },
+        howHeading: "How Is This Calculation Done?", interestFreeHeading: "How Can This Loan Become Interest-Free?",
+        totalInterestLoan: "Total Interest (Loan)", zarooriSip: "Required Monthly SIP", assumedSipReturn: "Assumed SIP Return", loanTenureLabel: "Loan Tenure",
+        totalInterestShort: "Total Interest", assumedReturnShort: "Assumed Return", tenureShort: "Tenure",
+        mfEducationHeading: "How Does a Mutual Fund Work?",
+        yoyDesc: (col) => `This table shows how your invested amount and its growth increase each year — the longer the duration, the bigger the gap between "Invested" and "${col}".`,
+        swpWarning: (pct) => `⚠️ You are currently withdrawing ${pct}% of your corpus annually, which is high. A 6-7% annual withdrawal rate is recommended so the corpus lasts longer.`,
+        investedLine: (tab, state) => {
+            if (tab === "sip") {
+                let s = `Monthly SIP: ${fmtINR(state.sipAmount)}`;
+                if (state.sipDailyAddon > 0) s += ` + Additional Daily SIP ${fmtINRFull(state.sipDailyAddon)}/day (22 working days/month)`;
+                if (state.sipStepUp > 0) s += ` · ${state.sipStepUp}% annual step-up`;
+                return s;
+            }
+            if (tab === "daily") return `Daily SIP: ${fmtINR(state.dailyAmount)}/day (22 working days/month)`;
+            if (tab === "lumpsum") return `Lumpsum Amount: ${fmtINR(state.lump)}`;
+            if (tab === "swp") return `Monthly Withdrawal: ${fmtINR(state.swpMonthly)} from ${fmtINR(state.swpCorpus)} corpus`;
+            if (tab === "goal") return `Target Corpus: ${fmtINR(state.goal)}`;
+            if (tab === "emi") return `Loan Amount: ${fmtINR(state.loan)}`;
+            if (tab === "tax") return `Annual Income: ${fmtINR(state.taxIncome)} · 80C: ${fmtINR(state.taxDeductions)}`;
+            if (tab === "gst") return `Amount: ${fmtINR(state.gstAmount)} (${state.gstType}) @ ${state.gstRate}% GST`;
+            if (tab === "inflation") return `Current Cost: ${fmtINR(state.inflCost)} · Inflation: ${state.inflRate}% p.a.`;
+            return "";
+        },
+    },
 
     hindi: {
         suffix: "— वित्तीय प्रस्ताव", subtitle: "समीक्षा हेतु तैयार किया गया अनुमानित प्रस्ताव। आंकड़े अनुमान हैं, भविष्य के रिटर्न की गारंटी नहीं।",
@@ -1504,9 +1856,33 @@ const PROPOSAL_UI = {
         totalInvestedCol: "कुल निवेश", futureValueCol: "भविष्य मूल्य", extraGain: "अतिरिक्त लाभ",
         yearOnYear: "वर्ष-दर-वर्ष वृद्धि", year: "वर्ष", invested: "निवेश", value: "मूल्य", outstanding: "शेष राशि",
         suggestions: "अपनी संपत्ति बढ़ाने के सुझाव", footerBrand: "द फाइनेंशियल डॉक्टर · thefinancialdoctor.in",
-        amfiLine: "एएमएफआई पंजीकृत म्यूचुअल फंड वितरक · ARN-290298", dateLabel: "दिनांक", scanToInvest: "निवेश हेतु स्कैन करें", digitalBadge: "डिजिटल प्रपोजल: सीधे निवेश के लिए QR पर क्लिक करें",
+        amfiLine: "एएमएफआई पंजीकृत म्यूचुअल फंड वितरक · ARN-290298", dateLabel: "दिनांक", scanToInvest: "निवेश हेतु स्कैन करें", digitalBadge: "डिजिटल प्रपोजल: सीधे निवेश के लिए QR पर क्लिक करें", callNow: "कॉल करें", whatsappNow: "व्हाट्सएप",
         disclaimer: "यह दस्तावेज़ केवल एक उदाहरणात्मक प्रस्ताव है और निवेश सलाह नहीं है। म्यूचुअल फंड निवेश बाज़ार जोखिमों के अधीन हैं। सभी स्कीम संबंधी दस्तावेज़ ध्यान से पढ़ें। भविष्य के रिटर्न की कोई गारंटी नहीं है — वास्तविक रिटर्न भिन्न हो सकते हैं। तैयार करने की तारीख:",
         years: "वर्ष", yrs: "वर्ष", plusYears: "वर्ष", withdrawn: "निकासी",
+        calcNames: { sip: "एसआईपी कैलकुलेटर", daily: "डेली एसआईपी कैलकुलेटर", lumpsum: "लम्पसम कैलकुलेटर", swp: "एसडब्ल्यूपी कैलकुलेटर", goal: "गोल प्लानर", emi: "ईएमआई कैलकुलेटर", tax: "आयकर कैलकुलेटर", gst: "जीएसटी कैलकुलेटर", inflation: "फ्यूचर गोल कैलकुलेटर" },
+        howHeading: "यह गणना कैसे होती है?", interestFreeHeading: "यह लोन ब्याज-मुक्त कैसे बन सकता है?",
+        totalInterestLoan: "कुल ब्याज (लोन)", zarooriSip: "आवश्यक मासिक एसआईपी", assumedSipReturn: "अनुमानित एसआईपी रिटर्न", loanTenureLabel: "लोन अवधि",
+        totalInterestShort: "कुल ब्याज", assumedReturnShort: "अनुमानित रिटर्न", tenureShort: "अवधि",
+        mfEducationHeading: "म्यूचुअल फंड कैसे काम करता है?",
+        yoyDesc: (col) => `यह तालिका दिखाती है कि हर साल आपकी निवेशित राशि और उसकी वृद्धि कैसे बढ़ती है — जितना लंबा समय, उतना बड़ा अंतर "निवेश" और "${col}" के बीच।`,
+        swpWarning: (pct) => `⚠️ आप वर्तमान में अपने कोष का ${pct}% सालाना निकाल रहे हैं, जो अधिक है। कोष को लंबे समय तक चलाने के लिए 6-7% वार्षिक निकासी दर की सलाह दी जाती है।`,
+        investedLine: (tab, state) => {
+            if (tab === "sip") {
+                let s = `मासिक SIP: ${fmtINR(state.sipAmount)}`;
+                if (state.sipDailyAddon > 0) s += ` + अतिरिक्त डेली SIP ${fmtINRFull(state.sipDailyAddon)}/दिन (22 कार्य दिवस/माह)`;
+                if (state.sipStepUp > 0) s += ` · ${state.sipStepUp}% वार्षिक स्टेप-अप`;
+                return s;
+            }
+            if (tab === "daily") return `डेली SIP: ${fmtINR(state.dailyAmount)}/दिन (22 कार्य दिवस/माह)`;
+            if (tab === "lumpsum") return `लम्पसम राशि: ${fmtINR(state.lump)}`;
+            if (tab === "swp") return `मासिक निकासी: ${fmtINR(state.swpMonthly)}, ${fmtINR(state.swpCorpus)} कोष से`;
+            if (tab === "goal") return `लक्ष्य कोष: ${fmtINR(state.goal)}`;
+            if (tab === "emi") return `ऋण राशि: ${fmtINR(state.loan)}`;
+            if (tab === "tax") return `वार्षिक आय: ${fmtINR(state.taxIncome)} · 80C: ${fmtINR(state.taxDeductions)}`;
+            if (tab === "gst") return `राशि: ${fmtINR(state.gstAmount)} (${state.gstType}) @ ${state.gstRate}% GST`;
+            if (tab === "inflation") return `वर्तमान लागत: ${fmtINR(state.inflCost)} · महंगाई: ${state.inflRate}% वार्षिक`;
+            return "";
+        },
     },
     hinglish: {
         suffix: "— Financial Proposal", subtitle: "Review ke liye taiyar kiya gaya illustrative proposal. Figures anumaan hain, future returns ki guarantee nahi hai.",
@@ -1516,10 +1892,34 @@ const PROPOSAL_UI = {
         totalInvestedCol: "Total Invested", futureValueCol: "Future Value", extraGain: "Extra Gain",
         yearOnYear: "Year-on-Year Growth", year: "Saal", invested: "Invested", value: "Value", outstanding: "Outstanding",
         suggestions: "Apni Wealth Badhane Ke Suggestions", footerBrand: "The Financial Doctor · thefinancialdoctor.in",
-        amfiLine: "AMFI Registered Mutual Fund Distributor · ARN-290298", dateLabel: "Date", scanToInvest: "Invest Karne Ke Liye Scan Karein", digitalBadge: "Digital Proposal: QR par Click karein aur invest karein",
+        amfiLine: "AMFI Registered Mutual Fund Distributor · ARN-290298", dateLabel: "Date", scanToInvest: "Invest Karne Ke Liye Scan Karein", digitalBadge: "Digital Proposal: QR par Click karein aur invest karein", callNow: "Call Karein", whatsappNow: "WhatsApp Karein",
         disclaimer: "Yeh document sirf ek illustrative proposal hai, investment advice nahi. Mutual fund investments market risks ke adhin hain. Sabhi scheme-related documents dhyan se padhein. Future returns ki guarantee nahi hai — actual returns alag ho sakte hain. Generate hone ki date:",
-        years: "Saal", yrs: "Saal", plusYears: "Saal",
-    },  withdrawn: "Withdrawn",
+        years: "Saal", yrs: "Saal", plusYears: "Saal", withdrawn: "Withdrawn",
+        calcNames: { sip: "SIP Calculator", daily: "Daily SIP Calculator", lumpsum: "Lumpsum Calculator", swp: "SWP Calculator", goal: "Goal Planner", emi: "EMI Calculator", tax: "Income Tax Calculator", gst: "GST Calculator", inflation: "Future Goal Calculator" },
+        howHeading: "Kaise Kaam Karta Hai Ye Calculation?", interestFreeHeading: "Ye Loan Interest-Free Kaise Ban Sakta Hai?",
+        totalInterestLoan: "Total Interest (Loan)", zarooriSip: "Zaroori Monthly SIP", assumedSipReturn: "Assumed SIP Return", loanTenureLabel: "Loan Tenure",
+        totalInterestShort: "Total Interest", assumedReturnShort: "Assumed Return", tenureShort: "Tenure",
+        mfEducationHeading: "Mutual Fund Kaise Kaam Karta Hai?",
+        yoyDesc: (col) => `Ye table dikhata hai har saal aapka invested amount aur uski growth kaise badhti hai — jitna lamba time, utna badi difference "Invested" aur "${col}" ke beech.`,
+        swpWarning: (pct) => `⚠️ Aap abhi apne corpus ka ${pct}% saalana withdraw kar rahe hain, jo high hai. Corpus ko lambe samay tak chalane ke liye 6-7% annual withdrawal rate recommend kiya jaata hai.`,
+        investedLine: (tab, state) => {
+            if (tab === "sip") {
+                let s = `Monthly SIP: ${fmtINR(state.sipAmount)}`;
+                if (state.sipDailyAddon > 0) s += ` + Extra Daily SIP ${fmtINRFull(state.sipDailyAddon)}/din (22 working days/month)`;
+                if (state.sipStepUp > 0) s += ` · ${state.sipStepUp}% saalana step-up`;
+                return s;
+            }
+            if (tab === "daily") return `Daily SIP: ${fmtINR(state.dailyAmount)}/din (22 working days/month)`;
+            if (tab === "lumpsum") return `Lumpsum Amount: ${fmtINR(state.lump)}`;
+            if (tab === "swp") return `Monthly Withdrawal: ${fmtINR(state.swpMonthly)}, ${fmtINR(state.swpCorpus)} corpus se`;
+            if (tab === "goal") return `Target Corpus: ${fmtINR(state.goal)}`;
+            if (tab === "emi") return `Loan Amount: ${fmtINR(state.loan)}`;
+            if (tab === "tax") return `Annual Income: ${fmtINR(state.taxIncome)} · 80C: ${fmtINR(state.taxDeductions)}`;
+            if (tab === "gst") return `Amount: ${fmtINR(state.gstAmount)} (${state.gstType}) @ ${state.gstRate}% GST`;
+            if (tab === "inflation") return `Current Cost: ${fmtINR(state.inflCost)} · Inflation: ${state.inflRate}% saalana`;
+            return "";
+        },
+    },
 };
 
 // Common result-label translations (English label -> localized label)
@@ -1557,30 +1957,48 @@ function ProposalHeader({ T, genDate, lang }) {
     );
 }
 
-function ProposalFooter({ T, genDate, qrDataUrl }) {
+// Digits + country code only — what tel:/wa.me both need. Assumes a plain
+// 10-digit Indian mobile number if no country code is already present.
+function normalizePhoneForLink(phone) {
+    if (!phone) return null;
+    const digits = String(phone).replace(/\D/g, "");
+    if (!digits) return null;
+    return digits.length === 10 ? `91${digits}` : digits;
+}
+
+function ProposalFooter({ T, genDate, qrDataUrl, employeeInfo }) {
+    // The actual tel:/wa.me links only get attached at PDF-export time (see
+    // generateSnapshot's pdf.link() calls) — these on-screen divs are just
+    // the visual placeholder whose position gets read for that, same as the
+    // QR and website links above.
+    const preparedByPhone = normalizePhoneForLink(employeeInfo?.phone);
     return (
         <div style={{ borderTop: "1px solid #E2D8C2", paddingTop: 10, marginTop: "auto" }}>
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16, marginBottom: 8 }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, marginBottom: 8 }}>
                 <div style={{ flex: 1 }}>
                     <div data-pdf-link="website" style={{ fontSize: 11, fontWeight: 700, color: "#024396", textDecoration: "underline", display: "inline-block" }}>{T.footerBrand} <span style={{ fontSize: 8, color: "#C7102E" }}>👉 One-click visit</span></div>
                     <div style={{ fontSize: 8.5, color: "#5C677D", fontStyle: "italic", marginTop: 4, lineHeight: 1.4 }}>
                         {T.disclaimer} {genDate}.
                     </div>
                 </div>
-                <div style={{ textAlign: "center", flexShrink: 0, width: 74 }}>
-                    <div data-pdf-link="qr" style={{
-                        background: "radial-gradient(circle at 30% 30%, #FFE9A8, #FFD700 40%, #C9A227 75%, #8a6d0f 100%)",
-                        padding: 4, borderRadius: "50%", display: "inline-block",
-                        boxShadow: "0 2px 6px rgba(180,140,0,0.4), inset 0 1px 2px rgba(255,255,255,0.6)",
-                    }}>
-                        <div style={{ background: "#fff", width: 68, height: 68, borderRadius: "50%", border: "2px solid #0E1B2C", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                            {qrDataUrl ? (
-                                <img src={qrDataUrl} alt="QR" style={{ width: 58, height: 58, display: "block" }} />
-                            ) : (
-                                <div style={{ width: 58, height: 58 }} />
-                            )}
+
+                {preparedByPhone && (
+                    <div style={{ textAlign: "center", flexShrink: 0, display: "flex", flexDirection: "column", gap: 5 }}>
+                        <div data-pdf-link="call" style={{ background: "#024396", borderRadius: 8, padding: "5px 10px", color: "#fff", fontSize: 9, fontWeight: 700, display: "flex", alignItems: "center", gap: 4, justifyContent: "center" }}>
+                            📞 {T.callNow}
+                        </div>
+                        <div data-pdf-link="whatsapp" style={{ background: "#25D366", borderRadius: 8, padding: "5px 10px", color: "#fff", fontSize: 9, fontWeight: 700, display: "flex", alignItems: "center", gap: 4, justifyContent: "center" }}>
+                            💬 {T.whatsappNow}
                         </div>
                     </div>
+                )}
+
+                <div style={{ textAlign: "center", flexShrink: 0, width: 74 }}>
+                    {qrDataUrl ? (
+                        <img data-pdf-link="qr" src={qrDataUrl} alt="QR" width={76} height={76} style={{ display: "inline-block" }} />
+                    ) : (
+                        <div data-pdf-link="qr" style={{ width: 76, height: 76, display: "inline-block", borderRadius: 10, background: "#D9A928" }} />
+                    )}
                     <div style={{ fontSize: 7.5, marginTop: 4, color: "#C9A227", fontWeight: 800, textTransform: "uppercase", letterSpacing: "0.06em" }}>⭐ {T.scanToInvest} ⭐</div>
                 </div>
             </div>
@@ -1593,10 +2011,7 @@ function ProposalFooter({ T, genDate, qrDataUrl }) {
 function ProposalDocument({ tab, result, state, employeeInfo = null, clientInfo = null, lang = "english", page1Ref, page2Ref, qrDataUrl }) {
     if (!result) return null;
     const T = PROPOSAL_UI[lang] || PROPOSAL_UI.english;
-    const labels = {
-        sip: "SIP Calculator", daily: "Daily SIP Calculator", lumpsum: "Lumpsum Calculator", swp: "SWP Calculator",
-        goal: "Goal Planner", emi: "EMI Calculator", tax: "Income Tax Calculator", gst: "GST Calculator", inflation: "Future Goal Calculator",
-    };
+    const labels = T.calcNames;
 
     const extendable = ["sip", "daily", "lumpsum", "goal"].includes(tab);
     const periods = extendable ? [2, 5, 10] : [];
@@ -1638,23 +2053,8 @@ function ProposalDocument({ tab, result, state, employeeInfo = null, clientInfo 
         return { label: "Future Value", value: fmtINR(result.fv) };
     })();
 
-    const investedLine = (() => {
-        if (tab === "sip") {
-            let s = `Monthly SIP: ${fmtINR(state.sipAmount)}`;
-            if (state.sipDailyAddon > 0) s += ` + Additional Daily SIP ${fmtINRFull(state.sipDailyAddon)}/day (22 working days/month)`;
-            if (state.sipStepUp > 0) s += ` · ${state.sipStepUp}% annual step-up`;
-            return s;
-        }
-        if (tab === "daily") return `Daily SIP: ${fmtINR(state.dailyAmount)}/day (22 working days/month)`;
-        if (tab === "lumpsum") return `Lumpsum Amount: ${fmtINR(state.lump)}`;
-        if (tab === "swp") return `Monthly Withdrawal: ${fmtINR(state.swpMonthly)} from ${fmtINR(state.swpCorpus)} corpus`;
-        if (tab === "goal") return `Target Corpus: ${fmtINR(state.goal)}`;
-        if (tab === "emi") return `Loan Amount: ${fmtINR(state.loan)}`;
-        if (tab === "tax") return `Annual Income: ${fmtINR(state.taxIncome)} · 80C: ${fmtINR(state.taxDeductions)}`;
-        if (tab === "gst") return `Amount: ${fmtINR(state.gstAmount)} (${state.gstType}) @ ${state.gstRate}% GST`;
-        if (tab === "inflation") return `Current Cost: ${fmtINR(state.inflCost)} · Inflation: ${state.inflRate}% p.a.`;
-        return "";
-    })();
+    const investedLine = T.investedLine(tab, state);
+    const mfEd = MF_EDUCATION[lang] || MF_EDUCATION.hinglish;
 
     const bigStats = (() => {
         if (tab === "emi") return [["Loan Amount", fmtINR(state.loan)], ["Total Interest", fmtINR(result.interest)], ["Total Payable", fmtINR(result.total)]];
@@ -1680,7 +2080,7 @@ function ProposalDocument({ tab, result, state, employeeInfo = null, clientInfo 
     const suggestions = upsellScenarios(tab, state, result);
     const suggestionText = (s) => (lang === "hindi" ? s.titleHi : lang === "hinglish" ? s.title : s.detail);
     const tip = (CALC_RECOMMENDATIONS[tab] || [])[0];
-    const tipText = tip ? (lang === "hindi" ? tip.hi : tip.en) : null;
+    const tipText = tip ? (lang === "hindi" ? tip.hi : lang === "hinglish" ? tip.hinglish : tip.en) : null;
     const genDate = new Date().toLocaleDateString("en-IN", { day: "numeric", month: "long", year: "numeric" });
 
     return (
@@ -1750,21 +2150,21 @@ function ProposalDocument({ tab, result, state, employeeInfo = null, clientInfo 
 
                 {CALC_METHODOLOGY[tab] && (
                     <div style={{ marginBottom: 14 }}>
-                        <div style={{ fontSize: 11, fontWeight: 700, color: "#024396", marginBottom: 6, textAlign: "center" }}>Kaise Kaam Karta Hai Ye Calculation?</div>
+                        <div style={{ fontSize: 11, fontWeight: 700, color: "#024396", marginBottom: 6, textAlign: "center" }}>{T.howHeading}</div>
                         <ul style={{ margin: "0 0 8px", paddingLeft: 18, fontSize: 9.5, color: "#2A364B", lineHeight: 1.55 }}>
-                            {CALC_METHODOLOGY[tab].highlights.map((h, i) => <li key={i}>{h}</li>)}
+                            {(CALC_METHODOLOGY[tab][lang] || CALC_METHODOLOGY[tab].hinglish).highlights.map((h, i) => <li key={i}>{h}</li>)}
                         </ul>
                         <div style={{ fontSize: 9, color: "#5C677D", background: "#FBF7EE", border: "1px solid #E2D8C2", borderRadius: 8, padding: "7px 10px", lineHeight: 1.5 }}>
-                            {CALC_METHODOLOGY[tab].how}
+                            {(CALC_METHODOLOGY[tab][lang] || CALC_METHODOLOGY[tab].hinglish).how}
                         </div>
                     </div>
                 )}
 
                 {tab === "emi" && result.interestFreeSip > 0 && (
                     <div style={{ marginBottom: 14 }}>
-                        <div style={{ fontSize: 11, fontWeight: 700, color: "#C7102E", marginBottom: 6, textAlign: "center" }}>💡 Ye Loan Interest-Free Kaise Ban Sakta Hai?</div>
+                        <div style={{ fontSize: 11, fontWeight: 700, color: "#C7102E", marginBottom: 6, textAlign: "center" }}>💡 {T.interestFreeHeading}</div>
                         <table style={{ width: "100%", borderCollapse: "collapse", marginBottom: 6 }}>
-                            <thead><tr>{TH("Total Interest (Loan)")}{TH("Zaroori Monthly SIP")}{TH("Assumed SIP Return")}{TH("Loan Tenure")}</tr></thead>
+                            <thead><tr>{TH(T.totalInterestLoan)}{TH(T.zarooriSip)}{TH(T.assumedSipReturn)}{TH(T.loanTenureLabel)}</tr></thead>
                             <tbody><tr>
                                 {TD(fmtINRFull(result.interest))}
                                 {TD(<strong style={{ color: "#024396" }}>{fmtINRFull(result.interestFreeSip)}/mo</strong>)}
@@ -1773,7 +2173,7 @@ function ProposalDocument({ tab, result, state, employeeInfo = null, clientInfo 
                             </tr></tbody>
                         </table>
                         <div style={{ fontSize: 9, color: "#5C677D", background: "#FBF7EE", border: "1px solid #E2D8C2", borderRadius: 8, padding: "7px 10px", lineHeight: 1.5 }}>
-                            {CALC_METHODOLOGY.emi.interestFreeExplain}
+                            {(CALC_METHODOLOGY.emi[lang] || CALC_METHODOLOGY.emi.hinglish).interestFreeExplain}
                         </div>
                     </div>
                 )}
@@ -1801,7 +2201,7 @@ function ProposalDocument({ tab, result, state, employeeInfo = null, clientInfo 
     if (annualWithdrawalPct > 7) {
         return (
             <div style={{ background: "#FBE4E4", border: "1px solid #C7102E", borderRadius: 8, padding: "9px 12px", marginBottom: 14, fontSize: 9.5, color: "#7A1420", lineHeight: 1.5 }}>
-                ⚠️ Aap abhi apne corpus ka <strong>{annualWithdrawalPct.toFixed(1)}%</strong> saalana withdraw kar rahe hain, jo high hai. Corpus ko lambe samay tak chalane ke liye <strong>6-7% annual withdrawal rate</strong> recommend kiya jaata hai.
+                {T.swpWarning(annualWithdrawalPct.toFixed(1))}
             </div>
         );
     }
@@ -1810,13 +2210,13 @@ function ProposalDocument({ tab, result, state, employeeInfo = null, clientInfo 
 
         {["sip", "daily", "lumpsum", "swp", "goal"].includes(tab) && (
     <div style={{ marginBottom: 14 }}>
-        <div style={{ fontSize: 11, fontWeight: 700, color: "#024396", marginBottom: 6, textAlign: "center" }}>{MF_EDUCATION.heading}</div>
+        <div style={{ fontSize: 11, fontWeight: 700, color: "#024396", marginBottom: 6, textAlign: "center" }}>{mfEd.heading}</div>
         <ul style={{ margin: 0, paddingLeft: 18, fontSize: 9, color: "#2A364B", lineHeight: 1.55 }}>
-            {MF_EDUCATION.points.map((p, i) => <li key={i} style={{ marginBottom: 3 }}>{p}</li>)}
+            {mfEd.points.map((p, i) => <li key={i} style={{ marginBottom: 3 }}>{p}</li>)}
         </ul>
     </div>
 )}
-                <ProposalFooter T={T} genDate={genDate} qrDataUrl={qrDataUrl} />
+                <ProposalFooter T={T} genDate={genDate} qrDataUrl={qrDataUrl} employeeInfo={employeeInfo} lang={lang} />
             </div>
 
             {/* ===== PAGE 2 ===== */}
@@ -1832,7 +2232,7 @@ function ProposalDocument({ tab, result, state, employeeInfo = null, clientInfo 
                     <div style={{ marginBottom: 18 }}>
                         <div style={{ fontSize: 11.5, fontWeight: 700, color: "#024396", marginBottom: 6, textAlign: "center" }}>{T.yearOnYear}</div>
                         <p style={{ fontSize: 9.5, color: "#5C677D", textAlign: "center", marginBottom: 8 }}>
-                            Ye table dikhata hai har saal aapka invested amount aur uski growth kaise badhti hai — jitna lamba time, utna badi difference "Invested" aur "{tab === "emi" ? T.outstanding : T.value}" ke beech.
+                            {T.yoyDesc(tab === "emi" ? T.outstanding : T.value)}
                         </p>
                         <table style={{ width: "100%", borderCollapse: "collapse" }}>
                             <thead><tr>{TH(T.year)}{TH(tab === "swp" ? T.withdrawn : T.invested)}{TH(tab === "emi" ? T.outstanding : T.value)}</tr></thead>
@@ -1867,9 +2267,9 @@ function ProposalDocument({ tab, result, state, employeeInfo = null, clientInfo 
                 )}
                 {tab === "emi" && result.interestFreeSip > 0 && (
                     <div style={{ marginBottom: 14 }}>
-                        <div style={{ fontSize: 10.5, fontWeight: 700, color: "#C7102E", marginBottom: 5, textAlign: "center" }}>💡 Ye Loan Interest-Free Kaise Ban Sakta Hai?</div>
+                        <div style={{ fontSize: 10.5, fontWeight: 700, color: "#C7102E", marginBottom: 5, textAlign: "center" }}>💡 {T.interestFreeHeading}</div>
                         <table style={{ width: "100%", borderCollapse: "collapse", marginBottom: 5 }}>
-                            <thead><tr>{TH("Total Interest")}{TH("Zaroori Monthly SIP")}{TH("Assumed Return")}{TH("Tenure")}</tr></thead>
+                            <thead><tr>{TH(T.totalInterestShort)}{TH(T.zarooriSip)}{TH(T.assumedReturnShort)}{TH(T.tenureShort)}</tr></thead>
                             <tbody><tr>
                                 {TD(fmtINRFull(result.interest))}
                                 {TD(<strong style={{ color: "#024396" }}>{fmtINRFull(result.interestFreeSip)}/mo</strong>)}
@@ -1878,22 +2278,22 @@ function ProposalDocument({ tab, result, state, employeeInfo = null, clientInfo 
                             </tr></tbody>
                         </table>
                         <div style={{ fontSize: 8.5, color: "#5C677D", background: "#FBF7EE", border: "1px solid #E2D8C2", borderRadius: 6, padding: "6px 9px", lineHeight: 1.45 }}>
-                            {CALC_METHODOLOGY.emi.interestFreeExplain}
+                            {(CALC_METHODOLOGY.emi[lang] || CALC_METHODOLOGY.emi.hinglish).interestFreeExplain}
                         </div>
                     </div>
                 )}
 
                 {["sip", "daily", "lumpsum", "swp", "goal"].includes(tab) && (
                     <div style={{ marginBottom: 10 }}>
-                        <div style={{ fontSize: 10.5, fontWeight: 700, color: "#024396", marginBottom: 5, textAlign: "center" }}>{MF_EDUCATION.heading}</div>
+                        <div style={{ fontSize: 10.5, fontWeight: 700, color: "#024396", marginBottom: 5, textAlign: "center" }}>{mfEd.heading}</div>
                         <ul style={{ margin: 0, paddingLeft: 16, fontSize: 8.5, color: "#2A364B", lineHeight: 1.45 }}>
-                            {MF_EDUCATION.points.map((p, i) => <li key={i} style={{ marginBottom: 2 }}>{p}</li>)}
+                            {mfEd.points.map((p, i) => <li key={i} style={{ marginBottom: 2 }}>{p}</li>)}
                         </ul>
                     </div>
                 )}
 
                 <div style={{ flex: 1 }} />
-                <ProposalFooter T={T} genDate={genDate} qrDataUrl={qrDataUrl} />
+                <ProposalFooter T={T} genDate={genDate} qrDataUrl={qrDataUrl} employeeInfo={employeeInfo} lang={lang} />
             </div>
         </>
     );

@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import { useAuth } from "../context/AuthContext";
 import PortalLayout from "../components/PortalLayout";
+import { Button } from "../components/ui/button";
 
 const API_BASE = process.env.REACT_APP_BACKEND_URL || "";
 
@@ -72,23 +73,23 @@ export default function EmployeeOnboarding() {
   };
 
   const set = (k, v) => setForm(prev => ({ ...prev, [k]: v }));
-  const field = "w-full border border-[#E2D8C2] rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#024396]/30 bg-white";
+  const field = "w-full border border-[#E2D8C2] dark:border-white/15 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#024396]/30 bg-white dark:bg-white/5 dark:text-[#F1EDE3]";
 
   const FileUploadBox = ({ label, fieldName }) => {
     const existing = uploads[fieldName];
     return (
-      <div className="border-2 border-dashed border-[#E2D8C2] rounded-xl p-4 text-center hover:border-[#024396]/50 transition-all">
-        <p className="text-xs font-medium text-[#2A364B]/70 mb-2">{label}</p>
+      <div className="border-2 border-dashed border-[#E2D8C2] dark:border-white/15 rounded-xl p-4 text-center hover:border-[#024396]/50 dark:hover:border-[#7CB0FF]/50 transition-all">
+        <p className="text-xs font-medium text-[#2A364B]/70 dark:text-[#8E99AC] mb-2">{label}</p>
         {existing ? (
           <div className="space-y-2">
             {existing.data?.startsWith("data:image") && (
               <img src={existing.data} alt={label} className="h-20 mx-auto rounded-lg object-contain" />
             )}
-            <p className="text-[10px] text-emerald-600 font-medium">Uploaded: {existing.filename}</p>
+            <p className="text-[10px] text-emerald-600 dark:text-emerald-400 font-medium">Uploaded: {existing.filename}</p>
           </div>
         ) : null}
         <label className="mt-2 inline-block cursor-pointer">
-          <span className="text-xs text-[#024396] hover:underline">
+          <span className="text-xs text-[#024396] dark:text-[#7CB0FF] hover:underline">
             {uploadingField === fieldName ? "Uploading..." : existing ? "Replace" : "Choose File"}
           </span>
           <input type="file" className="hidden" accept={fieldName === "resume" ? ".pdf,.doc,.docx" : "image/*"}
@@ -102,14 +103,14 @@ export default function EmployeeOnboarding() {
     return (
       <PortalLayout>
         <div className="max-w-lg mx-auto text-center py-16">
-          <div className="w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-4">
-            <svg className="w-8 h-8 text-emerald-600" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+          <div className="w-16 h-16 bg-emerald-100 dark:bg-emerald-900/30 rounded-full flex items-center justify-center mx-auto mb-4">
+            <svg className="w-8 h-8 text-emerald-600 dark:text-emerald-400" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
             </svg>
           </div>
-          <h2 className="text-xl font-serif text-[#0E1B2C] mb-2">Profile Submitted Successfully!</h2>
-          <p className="text-sm text-[#2A364B]/60">Your details have been saved. You can now access all portal features.</p>
-          <p className="text-xs text-[#2A364B]/40 mt-4">Go to Dashboard to continue.</p>
+          <h2 className="text-xl font-serif text-[#0E1B2C] dark:text-[#F1EDE3] mb-2">Profile Submitted Successfully!</h2>
+          <p className="text-sm text-[#2A364B]/60 dark:text-[#8E99AC]">Your details have been saved. You can now access all portal features.</p>
+          <p className="text-xs text-[#2A364B]/40 dark:text-[#8E99AC]/70 mt-4">Go to Dashboard to continue.</p>
         </div>
       </PortalLayout>
     );
@@ -119,15 +120,15 @@ export default function EmployeeOnboarding() {
     <PortalLayout>
       <div className="max-w-2xl mx-auto space-y-6">
         <div className="text-center">
-          <h2 className="text-xl font-serif text-[#0E1B2C]">Welcome to TFD!</h2>
-          <p className="text-xs text-[#2A364B]/50">Please complete your profile to continue</p>
+          <h2 className="text-xl font-serif text-[#0E1B2C] dark:text-[#F1EDE3]">Welcome to TFD!</h2>
+          <p className="text-xs text-[#2A364B]/50 dark:text-[#8E99AC]">Please complete your profile to continue</p>
         </div>
 
         {/* Step indicator */}
-        <div className="flex items-center justify-center gap-2">
+        <div className="flex items-center justify-center gap-2 flex-wrap">
           {["Personal", "Documents", "Bank & Emergency", "Review & Submit"].map((s, i) => (
             <button key={i} onClick={() => setStep(i + 1)}
-              className={`px-3 py-1.5 rounded-full text-[10px] font-medium transition-all ${step === i + 1 ? "bg-[#024396] text-white" : "bg-white border border-[#E2D8C2] text-[#2A364B]/50"}`}>
+              className={`px-3 py-1.5 rounded-full text-[10px] font-medium transition-all ${step === i + 1 ? "bg-[#024396] dark:bg-[#4C8DFF] text-white" : "bg-white dark:bg-white/5 border border-[#E2D8C2] dark:border-white/15 text-[#2A364B]/50 dark:text-[#8E99AC]"}`}>
               {i + 1}. {s}
             </button>
           ))}
@@ -135,40 +136,40 @@ export default function EmployeeOnboarding() {
 
         {/* Step 1: Personal */}
         {step === 1 && (
-          <div className="bg-white rounded-2xl border border-[#E2D8C2] shadow-sm p-6 space-y-4">
-            <h3 className="text-sm font-semibold text-[#0E1B2C]">Personal Details</h3>
+          <div className="bg-white dark:bg-[#101D2E] rounded-2xl border border-[#E2D8C2] dark:border-white/10 shadow-sm p-6 space-y-4">
+            <h3 className="text-sm font-semibold text-[#0E1B2C] dark:text-[#F1EDE3]">Personal Details</h3>
             <div className="grid sm:grid-cols-2 gap-4">
-              <div><label className="block text-xs text-[#2A364B]/60 mb-1">Full Name *</label><input required value={form.full_name} onChange={e => set("full_name", e.target.value)} className={field} /></div>
-              <div><label className="block text-xs text-[#2A364B]/60 mb-1">Date of Birth *</label><input type="date" value={form.dob} onChange={e => set("dob", e.target.value)} className={field} /></div>
-              <div><label className="block text-xs text-[#2A364B]/60 mb-1">Gender *</label>
+              <div><label className="block text-xs text-[#2A364B]/60 dark:text-[#8E99AC] mb-1">Full Name *</label><input required value={form.full_name} onChange={e => set("full_name", e.target.value)} className={field} /></div>
+              <div><label className="block text-xs text-[#2A364B]/60 dark:text-[#8E99AC] mb-1">Date of Birth *</label><input type="date" value={form.dob} onChange={e => set("dob", e.target.value)} className={field} /></div>
+              <div><label className="block text-xs text-[#2A364B]/60 dark:text-[#8E99AC] mb-1">Gender *</label>
                 <select value={form.gender} onChange={e => set("gender", e.target.value)} className={field}>
                   <option value="">Select</option><option value="male">Male</option><option value="female">Female</option><option value="other">Other</option>
                 </select>
               </div>
-              <div><label className="block text-xs text-[#2A364B]/60 mb-1">Marital Status *</label>
+              <div><label className="block text-xs text-[#2A364B]/60 dark:text-[#8E99AC] mb-1">Marital Status *</label>
                 <select value={form.marital_status} onChange={e => set("marital_status", e.target.value)} className={field}>
                   <option value="">Select</option><option value="unmarried">Unmarried</option><option value="married">Married</option>
                 </select>
               </div>
-              <div><label className="block text-xs text-[#2A364B]/60 mb-1">Contact Number *</label><input value={form.contact_no} onChange={e => set("contact_no", e.target.value)} className={field} /></div>
-              <div><label className="block text-xs text-[#2A364B]/60 mb-1">Email</label><input value={form.email} onChange={e => set("email", e.target.value)} className={field} /></div>
-              <div className="sm:col-span-2"><label className="block text-xs text-[#2A364B]/60 mb-1">Full Address *</label><textarea rows={2} value={form.address} onChange={e => set("address", e.target.value)} className={`${field} resize-none`} /></div>
-              <div><label className="block text-xs text-[#2A364B]/60 mb-1">Father's Name *</label><input value={form.father_name} onChange={e => set("father_name", e.target.value)} className={field} /></div>
-              <div><label className="block text-xs text-[#2A364B]/60 mb-1">Mother's Name *</label><input value={form.mother_name} onChange={e => set("mother_name", e.target.value)} className={field} /></div>
+              <div><label className="block text-xs text-[#2A364B]/60 dark:text-[#8E99AC] mb-1">Contact Number *</label><input value={form.contact_no} onChange={e => set("contact_no", e.target.value)} className={field} /></div>
+              <div><label className="block text-xs text-[#2A364B]/60 dark:text-[#8E99AC] mb-1">Email</label><input value={form.email} onChange={e => set("email", e.target.value)} className={field} /></div>
+              <div className="sm:col-span-2"><label className="block text-xs text-[#2A364B]/60 dark:text-[#8E99AC] mb-1">Full Address *</label><textarea rows={2} value={form.address} onChange={e => set("address", e.target.value)} className={`${field} resize-none`} /></div>
+              <div><label className="block text-xs text-[#2A364B]/60 dark:text-[#8E99AC] mb-1">Father's Name *</label><input value={form.father_name} onChange={e => set("father_name", e.target.value)} className={field} /></div>
+              <div><label className="block text-xs text-[#2A364B]/60 dark:text-[#8E99AC] mb-1">Mother's Name *</label><input value={form.mother_name} onChange={e => set("mother_name", e.target.value)} className={field} /></div>
             </div>
             <div className="flex justify-end pt-2">
-              <button onClick={() => setStep(2)} className="px-6 py-2.5 rounded-xl text-sm font-semibold text-white bg-gradient-to-r from-[#024396] to-[#0356c4]">Next: Documents</button>
+              <Button onClick={() => setStep(2)} className="bg-gradient-to-r from-[#024396] to-[#0356c4]">Next: Documents</Button>
             </div>
           </div>
         )}
 
         {/* Step 2: Documents */}
         {step === 2 && (
-          <div className="bg-white rounded-2xl border border-[#E2D8C2] shadow-sm p-6 space-y-4">
-            <h3 className="text-sm font-semibold text-[#0E1B2C]">Documents & Photos</h3>
+          <div className="bg-white dark:bg-[#101D2E] rounded-2xl border border-[#E2D8C2] dark:border-white/10 shadow-sm p-6 space-y-4">
+            <h3 className="text-sm font-semibold text-[#0E1B2C] dark:text-[#F1EDE3]">Documents & Photos</h3>
             <div className="grid sm:grid-cols-2 gap-4">
-              <div><label className="block text-xs text-[#2A364B]/60 mb-1">Aadhar Card Number *</label><input value={form.aadhar_number} onChange={e => set("aadhar_number", e.target.value)} className={field} placeholder="XXXX XXXX XXXX" /></div>
-              <div><label className="block text-xs text-[#2A364B]/60 mb-1">PAN Number (Optional)</label><input value={form.pan_number} onChange={e => set("pan_number", e.target.value)} className={field} placeholder="ABCDE1234F" /></div>
+              <div><label className="block text-xs text-[#2A364B]/60 dark:text-[#8E99AC] mb-1">Aadhar Card Number *</label><input value={form.aadhar_number} onChange={e => set("aadhar_number", e.target.value)} className={field} placeholder="XXXX XXXX XXXX" /></div>
+              <div><label className="block text-xs text-[#2A364B]/60 dark:text-[#8E99AC] mb-1">PAN Number (Optional)</label><input value={form.pan_number} onChange={e => set("pan_number", e.target.value)} className={field} placeholder="ABCDE1234F" /></div>
             </div>
             <div className="grid sm:grid-cols-2 gap-4">
               <FileUploadBox label="Passport Size Photo *" fieldName="photo" />
@@ -177,52 +178,52 @@ export default function EmployeeOnboarding() {
               <FileUploadBox label="Aadhar Card (Back)" fieldName="aadhar_back" />
             </div>
             <div className="flex justify-between pt-2">
-              <button onClick={() => setStep(1)} className="px-6 py-2.5 rounded-xl text-sm font-medium text-[#2A364B]/70 border border-[#E2D8C2]">Back</button>
-              <button onClick={() => setStep(3)} className="px-6 py-2.5 rounded-xl text-sm font-semibold text-white bg-gradient-to-r from-[#024396] to-[#0356c4]">Next: Bank Details</button>
+              <Button variant="outline" onClick={() => setStep(1)}>Back</Button>
+              <Button onClick={() => setStep(3)} className="bg-gradient-to-r from-[#024396] to-[#0356c4]">Next: Bank Details</Button>
             </div>
           </div>
         )}
 
         {/* Step 3: Bank & Emergency */}
         {step === 3 && (
-          <div className="bg-white rounded-2xl border border-[#E2D8C2] shadow-sm p-6 space-y-4">
-            <h3 className="text-sm font-semibold text-[#0E1B2C]">Bank Details (for Salary)</h3>
+          <div className="bg-white dark:bg-[#101D2E] rounded-2xl border border-[#E2D8C2] dark:border-white/10 shadow-sm p-6 space-y-4">
+            <h3 className="text-sm font-semibold text-[#0E1B2C] dark:text-[#F1EDE3]">Bank Details (for Salary)</h3>
             <div className="grid sm:grid-cols-2 gap-4">
-              <div><label className="block text-xs text-[#2A364B]/60 mb-1">Bank Name *</label><input value={form.bank_name} onChange={e => set("bank_name", e.target.value)} className={field} /></div>
-              <div><label className="block text-xs text-[#2A364B]/60 mb-1">Account Number *</label><input value={form.bank_account_number} onChange={e => set("bank_account_number", e.target.value)} className={field} /></div>
-              <div><label className="block text-xs text-[#2A364B]/60 mb-1">IFSC Code *</label><input value={form.bank_ifsc} onChange={e => set("bank_ifsc", e.target.value)} className={field} /></div>
-              <div><label className="block text-xs text-[#2A364B]/60 mb-1">Branch *</label><input value={form.bank_branch} onChange={e => set("bank_branch", e.target.value)} className={field} /></div>
+              <div><label className="block text-xs text-[#2A364B]/60 dark:text-[#8E99AC] mb-1">Bank Name *</label><input value={form.bank_name} onChange={e => set("bank_name", e.target.value)} className={field} /></div>
+              <div><label className="block text-xs text-[#2A364B]/60 dark:text-[#8E99AC] mb-1">Account Number *</label><input value={form.bank_account_number} onChange={e => set("bank_account_number", e.target.value)} className={field} /></div>
+              <div><label className="block text-xs text-[#2A364B]/60 dark:text-[#8E99AC] mb-1">IFSC Code *</label><input value={form.bank_ifsc} onChange={e => set("bank_ifsc", e.target.value)} className={field} /></div>
+              <div><label className="block text-xs text-[#2A364B]/60 dark:text-[#8E99AC] mb-1">Branch *</label><input value={form.bank_branch} onChange={e => set("bank_branch", e.target.value)} className={field} /></div>
             </div>
-            <h3 className="text-sm font-semibold text-[#0E1B2C] pt-2">Emergency Contact</h3>
+            <h3 className="text-sm font-semibold text-[#0E1B2C] dark:text-[#F1EDE3] pt-2">Emergency Contact</h3>
             <div className="grid sm:grid-cols-2 gap-4">
-              <div><label className="block text-xs text-[#2A364B]/60 mb-1">Name</label><input value={form.emergency_contact_name} onChange={e => set("emergency_contact_name", e.target.value)} className={field} /></div>
-              <div><label className="block text-xs text-[#2A364B]/60 mb-1">Phone</label><input value={form.emergency_contact_number} onChange={e => set("emergency_contact_number", e.target.value)} className={field} /></div>
+              <div><label className="block text-xs text-[#2A364B]/60 dark:text-[#8E99AC] mb-1">Name</label><input value={form.emergency_contact_name} onChange={e => set("emergency_contact_name", e.target.value)} className={field} /></div>
+              <div><label className="block text-xs text-[#2A364B]/60 dark:text-[#8E99AC] mb-1">Phone</label><input value={form.emergency_contact_number} onChange={e => set("emergency_contact_number", e.target.value)} className={field} /></div>
             </div>
             <div className="flex justify-between pt-2">
-              <button onClick={() => setStep(2)} className="px-6 py-2.5 rounded-xl text-sm font-medium text-[#2A364B]/70 border border-[#E2D8C2]">Back</button>
-              <button onClick={() => setStep(4)} className="px-6 py-2.5 rounded-xl text-sm font-semibold text-white bg-gradient-to-r from-[#024396] to-[#0356c4]">Next: Review & Sign</button>
+              <Button variant="outline" onClick={() => setStep(2)}>Back</Button>
+              <Button onClick={() => setStep(4)} className="bg-gradient-to-r from-[#024396] to-[#0356c4]">Next: Review & Sign</Button>
             </div>
           </div>
         )}
 
         {/* Step 4: Review, Agreement & Signature */}
         {step === 4 && (
-          <div className="bg-white rounded-2xl border border-[#E2D8C2] shadow-sm p-6 space-y-5">
-            <h3 className="text-sm font-semibold text-[#0E1B2C]">Review Your Details</h3>
+          <div className="bg-white dark:bg-[#101D2E] rounded-2xl border border-[#E2D8C2] dark:border-white/10 shadow-sm p-6 space-y-5">
+            <h3 className="text-sm font-semibold text-[#0E1B2C] dark:text-[#F1EDE3]">Review Your Details</h3>
             <div className="grid sm:grid-cols-2 gap-3 text-xs">
               {[["Name", form.full_name], ["DOB", form.dob], ["Gender", form.gender], ["Status", form.marital_status],
                 ["Contact", form.contact_no], ["Email", form.email], ["Father", form.father_name], ["Mother", form.mother_name],
                 ["Aadhar", form.aadhar_number], ["PAN", form.pan_number || "-"],
                 ["Bank", `${form.bank_name} - ${form.bank_account_number}`], ["IFSC", form.bank_ifsc],
               ].map(([l, v]) => (
-                <div key={l}><span className="text-[#2A364B]/50">{l}:</span> <span className="font-medium text-[#0E1B2C]">{v || "-"}</span></div>
+                <div key={l}><span className="text-[#2A364B]/50 dark:text-[#8E99AC]">{l}:</span> <span className="font-medium text-[#0E1B2C] dark:text-[#F1EDE3]">{v || "-"}</span></div>
               ))}
             </div>
 
-            <div className="border-t border-[#E2D8C2] pt-4">
-              <h3 className="text-sm font-semibold text-[#0E1B2C] mb-2">Employment Agreement / रोज़गार अनुबंध</h3>
-              <div className="bg-[#FBF7EE] rounded-xl p-4 max-h-60 overflow-y-auto text-xs text-[#2A364B]/80 space-y-2 leading-relaxed">
-                <p className="font-semibold text-[#0E1B2C]">THE FINANCIAL DOCTOR — Employment Terms & Conditions</p>
+            <div className="border-t border-[#E2D8C2] dark:border-white/10 pt-4">
+              <h3 className="text-sm font-semibold text-[#0E1B2C] dark:text-[#F1EDE3] mb-2">Employment Agreement / रोज़गार अनुबंध</h3>
+              <div className="bg-[#FBF7EE] dark:bg-white/5 rounded-xl p-4 max-h-60 overflow-y-auto text-xs text-[#2A364B]/80 dark:text-[#C7CEDA] space-y-2 leading-relaxed">
+                <p className="font-semibold text-[#0E1B2C] dark:text-[#F1EDE3]">THE FINANCIAL DOCTOR — Employment Terms & Conditions</p>
                 <p>1. <strong>Confidentiality & Data Use / गोपनीयता और डेटा उपयोग:</strong> You must not misuse any client or company data. Do not ask clients for their ID/password. आप किसी भी क्लाइंट या कंपनी के डेटा का दुरुपयोग नहीं कर सकते। क्लाइंट से उनका आईडी/पासवर्ड नहीं मांग सकते।</p>
                 <p>2. <strong>Legal Action for Data/Fraud / डाटा या धोखाधड़ी पर कानूनी कार्रवाई:</strong> If you misuse data or commit any fraud, the company can remove you and take legal action. यदि आप किसी प्रकार का धोखा या डाटा का दुरुपयोग करते हैं, तो कंपनी आपको हटा सकती है और आपके खिलाफ कानूनी कार्रवाई कर सकती है।</p>
                 <p>3. <strong>Client Rules / क्लाइंट से संबंधित नियम:</strong> You must not: (a) Collect money in your personal account. (b) Give any returns guarantee. (c) Ask for client&apos;s login details. आप अपने पर्सनल अकाउंट में पैसे नहीं ले सकते। क्लाइंट को मुनाफे की गारंटी नहीं दे सकते। क्लाइंट की लॉगिन डिटेल्स नहीं मांग सकते।</p>
@@ -236,17 +237,17 @@ export default function EmployeeOnboarding() {
               </div>
             </div>
 
-            <div className="border-t border-[#E2D8C2] pt-4">
-              <p className="text-xs text-[#2A364B]/60 mb-2">Upload your signature below to accept the agreement</p>
+            <div className="border-t border-[#E2D8C2] dark:border-white/10 pt-4">
+              <p className="text-xs text-[#2A364B]/60 dark:text-[#8E99AC] mb-2">Upload your signature below to accept the agreement</p>
               <FileUploadBox label="Your Signature *" fieldName="signature" />
             </div>
 
             <div className="flex justify-between pt-2">
-              <button onClick={() => setStep(3)} className="px-6 py-2.5 rounded-xl text-sm font-medium text-[#2A364B]/70 border border-[#E2D8C2]">Back</button>
-              <button onClick={saveProfile} disabled={saving || !uploads.signature}
-                className="px-6 py-2.5 rounded-xl text-sm font-semibold text-white bg-gradient-to-r from-emerald-500 to-emerald-600 disabled:opacity-50">
+              <Button variant="outline" onClick={() => setStep(3)}>Back</Button>
+              <Button onClick={saveProfile} disabled={saving || !uploads.signature}
+                className="bg-gradient-to-r from-emerald-500 to-emerald-600">
                 {saving ? "Submitting..." : "I Agree & Submit Profile"}
-              </button>
+              </Button>
             </div>
           </div>
         )}

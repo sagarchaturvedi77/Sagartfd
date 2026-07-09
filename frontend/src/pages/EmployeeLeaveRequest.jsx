@@ -1,9 +1,12 @@
 import React, { useState, useEffect, useCallback } from "react";
 import PortalLayout from "../components/PortalLayout";
 import { useAuth } from "../context/AuthContext";
+import PageHeader from "../components/portal/PageHeader";
+import StatusBadge from "../components/portal/StatusBadge";
+import EmptyState from "../components/portal/EmptyState";
+import { Button } from "../components/ui/button";
 
 const API_BASE = process.env.REACT_APP_BACKEND_URL || "";
-const STATUS_COLOR = { pending: "bg-yellow-100 text-yellow-700", approved: "bg-green-100 text-green-700", rejected: "bg-red-100 text-red-700" };
 const LEAVE_TYPES = [
   { value: "casual",   label: "Casual Leave" },
   { value: "sick",     label: "Sick Leave" },
@@ -48,83 +51,84 @@ export default function EmployeeLeaveRequest() {
     setSubmitting(false);
   };
 
+  const field = "w-full border border-[#E2D8C2] dark:border-white/15 dark:bg-white/5 dark:text-[#F1EDE3] rounded-xl px-3 py-2 text-sm outline-none focus:border-[#024396] dark:focus:border-[#7CB0FF]";
+
   return (
     <PortalLayout>
       <div className="space-y-5">
-        <div className="flex items-center justify-between">
-          <h1 className="text-2xl font-serif text-[#0E1B2C]">🌴 My Leaves</h1>
-          <button onClick={() => setShowForm((v) => !v)}
-            className="px-4 py-2 rounded-xl text-sm font-semibold text-white bg-[#024396] hover:bg-[#023580]">
-            {showForm ? "Cancel" : "+ Apply Leave"}
-          </button>
-        </div>
+        <PageHeader
+          icon="🌴"
+          title="My Leaves"
+          subtitle="Apply for leave and track approval status"
+          actions={
+            <Button onClick={() => setShowForm((v) => !v)} className="bg-gradient-to-r from-[#024396] to-[#0356c4]">
+              {showForm ? "Cancel" : "+ Apply Leave"}
+            </Button>
+          }
+        />
 
         {showForm && (
-          <form onSubmit={submit} className="bg-white rounded-2xl border border-[#E2D8C2] p-5 shadow-sm space-y-4">
-            <h3 className="font-semibold text-[#0E1B2C]">Apply for Leave</h3>
+          <form onSubmit={submit} className="bg-white dark:bg-[#101D2E] rounded-2xl border border-[#E2D8C2] dark:border-white/10 p-5 shadow-sm space-y-4">
+            <h3 className="font-semibold text-[#0E1B2C] dark:text-[#F1EDE3]">Apply for Leave</h3>
             <div className="grid sm:grid-cols-2 gap-4">
               <div>
-                <label className="text-xs text-[#2A364B]/60 block mb-1">Leave Type</label>
-                <select value={form.leave_type} onChange={(e) => setForm({ ...form, leave_type: e.target.value })}
-                  className="w-full border border-[#E2D8C2] rounded-xl px-3 py-2 text-sm outline-none focus:border-[#024396]">
+                <label className="text-xs text-[#2A364B]/60 dark:text-[#8E99AC] block mb-1">Leave Type</label>
+                <select value={form.leave_type} onChange={(e) => setForm({ ...form, leave_type: e.target.value })} className={field}>
                   {LEAVE_TYPES.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
                 </select>
               </div>
               {form.leave_type === "half_day" && (
                 <div>
-                  <label className="text-xs text-[#2A364B]/60 block mb-1">Session</label>
-                  <select value={form.half_day_session} onChange={(e) => setForm({ ...form, half_day_session: e.target.value })}
-                    className="w-full border border-[#E2D8C2] rounded-xl px-3 py-2 text-sm outline-none focus:border-[#024396]">
+                  <label className="text-xs text-[#2A364B]/60 dark:text-[#8E99AC] block mb-1">Session</label>
+                  <select value={form.half_day_session} onChange={(e) => setForm({ ...form, half_day_session: e.target.value })} className={field}>
                     <option value="morning">Morning</option>
                     <option value="afternoon">Afternoon</option>
                   </select>
                 </div>
               )}
               <div>
-                <label className="text-xs text-[#2A364B]/60 block mb-1">From Date</label>
-                <input type="date" required value={form.from_date} onChange={(e) => setForm({ ...form, from_date: e.target.value })}
-                  className="w-full border border-[#E2D8C2] rounded-xl px-3 py-2 text-sm outline-none focus:border-[#024396]" />
+                <label className="text-xs text-[#2A364B]/60 dark:text-[#8E99AC] block mb-1">From Date</label>
+                <input type="date" required value={form.from_date} onChange={(e) => setForm({ ...form, from_date: e.target.value })} className={field} />
               </div>
               <div>
-                <label className="text-xs text-[#2A364B]/60 block mb-1">To Date</label>
+                <label className="text-xs text-[#2A364B]/60 dark:text-[#8E99AC] block mb-1">To Date</label>
                 <input type="date" required value={form.to_date} onChange={(e) => setForm({ ...form, to_date: e.target.value })}
-                  min={form.from_date}
-                  className="w-full border border-[#E2D8C2] rounded-xl px-3 py-2 text-sm outline-none focus:border-[#024396]" />
+                  min={form.from_date} className={field} />
               </div>
             </div>
             <div>
-              <label className="text-xs text-[#2A364B]/60 block mb-1">Reason (optional)</label>
+              <label className="text-xs text-[#2A364B]/60 dark:text-[#8E99AC] block mb-1">Reason (optional)</label>
               <textarea rows={3} value={form.reason} onChange={(e) => setForm({ ...form, reason: e.target.value })}
-                placeholder="Brief reason for leave…"
-                className="w-full border border-[#E2D8C2] rounded-xl px-3 py-2 text-sm outline-none focus:border-[#024396] resize-none" />
+                placeholder="Brief reason for leave…" className={`${field} resize-none`} />
             </div>
-            <button type="submit" disabled={submitting}
-              className="px-5 py-2 rounded-xl text-sm font-semibold text-white bg-[#024396] hover:bg-[#023580] disabled:opacity-50">
+            <Button type="submit" disabled={submitting} className="bg-gradient-to-r from-[#024396] to-[#0356c4]">
               {submitting ? "Submitting…" : "Submit Leave Request"}
-            </button>
+            </Button>
           </form>
         )}
 
         {loading ? (
-          <p className="text-sm text-center text-[#2A364B]/50 py-8">Loading…</p>
+          <div className="flex justify-center py-16">
+            <div className="w-8 h-8 border-2 border-[#024396] dark:border-[#7CB0FF] border-t-transparent rounded-full animate-spin" />
+          </div>
         ) : leaves.length === 0 ? (
-          <div className="bg-white rounded-2xl border border-[#E2D8C2] p-10 text-center">
-            <p className="text-[#2A364B]/50 text-sm">No leave requests yet.</p>
+          <div className="bg-white dark:bg-[#101D2E] rounded-2xl border border-[#E2D8C2] dark:border-white/10 shadow-sm">
+            <EmptyState icon="🌴" title="No leave requests yet." />
           </div>
         ) : (
           <div className="grid gap-3">
             {leaves.map((lv) => (
-              <div key={lv.id} className="bg-white rounded-2xl border border-[#E2D8C2] p-4 shadow-sm flex items-center justify-between gap-4 flex-wrap">
+              <div key={lv.id} className="bg-white dark:bg-[#101D2E] rounded-2xl border border-[#E2D8C2] dark:border-white/10 p-4 shadow-sm flex items-center justify-between gap-4 flex-wrap">
                 <div>
                   <div className="flex items-center gap-2 mb-1">
-                    <p className="font-medium text-[#0E1B2C] text-sm">{LEAVE_TYPES.find((t) => t.value === lv.leave_type)?.label || lv.leave_type}</p>
-                    <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${STATUS_COLOR[lv.status]}`}>{lv.status}</span>
+                    <p className="font-medium text-[#0E1B2C] dark:text-[#F1EDE3] text-sm">{LEAVE_TYPES.find((t) => t.value === lv.leave_type)?.label || lv.leave_type}</p>
+                    <StatusBadge status={lv.status} />
                   </div>
-                  <p className="text-xs text-[#2A364B]/60">{lv.from_date} → {lv.to_date}</p>
-                  {lv.reason && <p className="text-xs text-[#2A364B]/50 mt-0.5">{lv.reason}</p>}
-                  {lv.admin_note && <p className="text-xs text-[#024396] mt-0.5 italic">Admin: {lv.admin_note}</p>}
+                  <p className="text-xs text-[#2A364B]/60 dark:text-[#8E99AC]">{lv.from_date} → {lv.to_date}</p>
+                  {lv.reason && <p className="text-xs text-[#2A364B]/50 dark:text-[#8E99AC]/70 mt-0.5">{lv.reason}</p>}
+                  {lv.admin_note && <p className="text-xs text-[#024396] dark:text-[#7CB0FF] mt-0.5 italic">Admin: {lv.admin_note}</p>}
                 </div>
-                <p className="text-[10px] text-[#2A364B]/40">{new Date(lv.created_at).toLocaleDateString("en-IN")}</p>
+                <p className="text-[10px] text-[#2A364B]/40 dark:text-[#8E99AC]/60">{new Date(lv.created_at).toLocaleDateString("en-IN")}</p>
               </div>
             ))}
           </div>

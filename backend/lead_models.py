@@ -15,6 +15,7 @@ class LeadCreate(BaseModel):
     assigned_to: Optional[str] = None  # employee user_id
     pipeline_id: Optional[str] = None  # which custom pipeline this lead follows
     reference_note: Optional[str] = None  # e.g. "Referred by Priya Sharma (client)"
+    referred_by_lead_id: Optional[str] = None  # structural link to the existing client who referred this lead
 
 
 class LeadUpdate(BaseModel):
@@ -40,12 +41,14 @@ class CallOutcomeIn(BaseModel):
     # not_connected branch: "npc" | "switchoff" | "invalid" | "network_issue"
     notes: Optional[str] = None
     service_interest: Optional[str] = None
-    code_name: Optional[str] = None            # converted: product/plan code
+    code_name: Optional[str] = None            # converted: product/plan code, or Demat Client ID etc.
     service_duration_months: Optional[int] = None  # converted: for monthly-service expiry reminders
+    service_price: Optional[float] = None       # converted: amount paid for the product/course
     follow_up_date: Optional[str] = None        # "YYYY-MM-DD"
     follow_up_time: Optional[str] = None        # "HH:MM"
     referred_by_lead_id: Optional[str] = None   # if this client was referred by another existing client
     pipeline_stage_id: Optional[str] = None     # if the employee's pipeline has custom stages, which one they picked
+    reassign_to: Optional[str] = None           # not_interested only: employee id to hand this lead to instead of retrying
 
 
 class TransferIn(BaseModel):
@@ -57,6 +60,14 @@ class LeadStatusUpdate(BaseModel):
     status: str  # new, contacted, follow_up, interested, converted, lost
     follow_up_note: Optional[str] = None
     follow_up_date: Optional[str] = None  # ISO date string
+    service_interest: Optional[str] = None      # converted: which product/service
+    code_name: Optional[str] = None             # converted: product/plan code, or Demat Client ID etc.
+    service_price: Optional[float] = None       # converted: amount paid
+    service_duration_months: Optional[int] = None  # converted: for monthly-service expiry reminders
+
+
+class LeadNameUpdate(BaseModel):
+    name: str
 
 
 class LeadInDB(BaseModel):
@@ -84,10 +95,13 @@ class LeadInDB(BaseModel):
     last_call_at: Optional[str] = None
     transfer_history: list = Field(default_factory=list)   # [{from, to, note, at}]
     reference_note: Optional[str] = None        # visible on the lead so employees know who referred them
+    referred_by_lead_id: Optional[str] = None   # structural link to the existing client who referred this lead
     code_name: Optional[str] = None
     service_duration_months: Optional[int] = None
     service_expires_at: Optional[str] = None
+    service_price: Optional[float] = None
     call_touched: bool = False                  # False until first call attempt — used for the "10 at a time" queue
+    reassign_count: int = 0                     # how many times auto-reassigned for not-connected non-response (caps at 2, then lost)
 
 
 class LeadOut(BaseModel):
@@ -114,9 +128,12 @@ class LeadOut(BaseModel):
     transfer_history: list = Field(default_factory=list)
     status_history: list = Field(default_factory=list)
     reference_note: Optional[str] = None
+    referred_by_lead_id: Optional[str] = None
     code_name: Optional[str] = None
     service_duration_months: Optional[int] = None
     service_expires_at: Optional[str] = None
+    service_price: Optional[float] = None
     call_touched: bool = False
+    reassign_count: int = 0
     batch_id: Optional[str] = None
     batch_date: Optional[str] = None

@@ -31,14 +31,20 @@ export default function useFirebaseMessaging() {
           body: JSON.stringify({ token: fcmToken }),
         });
 
-        // Handle foreground messages
+        // Handle foreground messages — payload is data-only (see
+        // backend/notification_service.py), so read from payload.data.
         onMessage(messaging, (payload) => {
-          const { title, body } = payload.notification || payload.data || {};
+          const { title, body, link } = payload.data || payload.notification || {};
           if (title && Notification.permission === "granted") {
-            new Notification(title, {
+            const n = new Notification(title, {
               body: body || "",
-              icon: "/logo192.png",
+              icon: "/tfd-workspace-logo.png",
+              badge: "/tfd-workspace-logo.png",
             });
+            n.onclick = () => {
+              window.focus();
+              if (link) window.location.href = link;
+            };
           }
         });
       } catch (e) {

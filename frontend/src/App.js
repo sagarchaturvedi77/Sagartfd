@@ -1,6 +1,6 @@
 import "./App.css";
 import React from "react";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import Home from "./pages/Home";
 import CareerPage from "./pages/CareerPage";
 import AboutPage from "./pages/AboutPage";
@@ -16,6 +16,7 @@ import EducationPortal from './pages/EducationPortal';
 import EmployeeTasks from "./pages/EmployeeTasks";
 // Staff Portal (Admin + Employee)
 import { AuthProvider } from "./context/AuthContext";
+import { ThemeProvider } from "./context/ThemeContext";
 import ProtectedRoute from "./components/ProtectedRoute";
 import PortalLogin from "./pages/PortalLogin";
 import AdminDashboard from "./pages/AdminDashboard";
@@ -25,6 +26,7 @@ import EmployeeDashboard from "./pages/EmployeeDashboard";
 import EmployeeAttendance from "./pages/EmployeeAttendance";
 import EmployeeTargets from "./pages/EmployeeTargets";
 import EmployeeSettings from "./pages/EmployeeSettings";
+import AdminSettings from "./pages/AdminSettings";
 import EmployeeLeads from "./pages/EmployeeLeads";
 import EmployeeSalary from "./pages/EmployeeSalary";
 import AdminAnnounce from "./pages/AdminAnnounce";
@@ -39,7 +41,6 @@ import AdminAccounts from "./pages/AdminAccounts";
 import AnalyticsTracker from "./components/AnalyticsTracker";
 import WebsiteNotificationPrompt from "./components/WebsiteNotificationPrompt";
 import EmployeeOnboarding from "./pages/EmployeeOnboarding";
-import EmployeeIDCard from "./pages/EmployeeIDCard";
 import EmployeeProfile from "./pages/EmployeeProfile";
 import AdminWebsiteContent from "./pages/AdminWebsiteContent";
 import AdminPipelines from "./pages/AdminPipelines";
@@ -65,6 +66,7 @@ function App() {
     <div className="App">
       <LanguageProvider>
         <ModalProvider>
+          <ThemeProvider>
           <AuthProvider>
             <BrowserRouter>
               <AnalyticsTracker />
@@ -189,6 +191,14 @@ function App() {
                   }
                 />
                 <Route
+                  path="/portal/admin/announce"
+                  element={
+                    <ProtectedRoute requiredRole="admin">
+                      <AdminAnnounce />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
                   path="/portal/admin/accounts"
                   element={
                     <ProtectedRoute requiredRole="admin">
@@ -233,6 +243,14 @@ function App() {
                   element={
                     <ProtectedRoute requiredRole="admin">
                       <AdminAccessControl />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/portal/admin/settings"
+                  element={
+                    <ProtectedRoute requiredRole="admin">
+                      <AdminSettings />
                     </ProtectedRoute>
                   }
                 />
@@ -300,14 +318,7 @@ element={
                     </ProtectedRoute>
                   }
                 />
-                <Route
-                  path="/portal/employee/documents"
-                  element={
-                    <ProtectedRoute requiredRole="employee">
-                      <EmployeeIDCard />
-                    </ProtectedRoute>
-                  }
-                />
+                <Route path="/portal/employee/documents" element={<Navigate to="/portal/employee/id-card" replace />} />
                 <Route
                   path="/portal/employee/id-card"
                   element={
@@ -380,6 +391,7 @@ element={
               }}
             />
           </AuthProvider>
+          </ThemeProvider>
         </ModalProvider>
       </LanguageProvider>
     </div>

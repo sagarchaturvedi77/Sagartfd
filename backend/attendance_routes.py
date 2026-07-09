@@ -87,7 +87,7 @@ async def clock_in(
 
     # Geofence check ─────────────────────────────────────────────
     office = await get_office_settings()
-    if office["enforce"] and office["lat"] and office["lng"]:
+    if office["enforce"] and office["lat"] is not None and office["lng"] is not None:
         if loc.lat is None or loc.lng is None:
             raise HTTPException(
                 status_code=400,

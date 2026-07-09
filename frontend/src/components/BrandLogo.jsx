@@ -1,7 +1,7 @@
 import React from "react";
 
 // TFD Workspace logo (served from /public). Falls back to a styled monogram.
-export default function BrandLogo({ className = "h-10", rounded = false, variant = "workspace" }) {
+export default function BrandLogo({ className = "h-10", rounded = false, variant = "workspace", animate = true }) {
   const [failed, setFailed] = React.useState(false);
 
   if (failed) {
@@ -21,7 +21,9 @@ export default function BrandLogo({ className = "h-10", rounded = false, variant
       src={src}
       alt="TFD Workspace"
       onError={() => setFailed(true)}
-      className={`${className} object-contain ${rounded ? "rounded-xl" : ""}`}
+      className={`${className} object-contain ${rounded ? "rounded-xl" : ""} ${
+        animate ? "animate-in fade-in-0 zoom-in-95 slide-in-from-top-2 duration-700 ease-out drop-shadow-[0_4px_18px_rgba(2,67,150,0.35)]" : ""
+      }`}
     />
   );
 }

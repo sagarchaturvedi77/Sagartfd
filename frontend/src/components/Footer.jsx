@@ -3,6 +3,7 @@ import { Instagram, Youtube, Linkedin, MessageCircle, Sparkles } from "lucide-re
 
 const LOGO_URL =
     "https://customer-assets.emergentagent.com/job_advisor-phase4-build/artifacts/buhrts3f_IMG_2870.png";
+const WORKSPACE_LOGO_URL = "/tfd-workspace-logo.png";
 
 export default function Footer() {
     return (
@@ -58,7 +59,14 @@ export default function Footer() {
                         <li><a href="#services" className="hover:text-[#F6F1E8]">Services</a></li>
                         <li><a href="#reviews" className="hover:text-[#F6F1E8]">Reviews</a></li>
                         <li><a href="#contact" className="hover:text-[#F6F1E8]">Contact</a></li>
+                        <li><a href="/portal/login" className="hover:text-[#F6F1E8]">Employee Login</a></li>
                     </ul>
+
+                    <div className="flex gap-2.5 mt-5">
+                        <FooterLogoBox href="/partner-with-us" src={LOGO_URL} label="TFD Partner" />
+                        <FooterLogoBox href="/portal/login" src={WORKSPACE_LOGO_URL} label="TFD Workspace" />
+                        <FooterLogoBox href="/internship.html" src={LOGO_URL} label="TFD Internship" />
+                    </div>
                 </div>
 
                 <div>
@@ -78,6 +86,19 @@ export default function Footer() {
                 © {new Date().getFullYear()} The Financial Doctor. Built with care in Sehore, MP.
             </div>
         </footer>
+    );
+}
+
+function FooterLogoBox({ href, src, label }) {
+    return (
+        <a
+            href={href}
+            title={label}
+            aria-label={label}
+            className="w-14 h-14 rounded-lg bg-[#F6F1E8] border border-[#2A364B] flex items-center justify-center p-1.5 hover:border-[#C7102E] transition-colors shrink-0"
+        >
+            <img src={src} alt={label} className="w-full h-full object-contain" />
+        </a>
     );
 }
 

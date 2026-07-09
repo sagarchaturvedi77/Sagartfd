@@ -23,7 +23,7 @@ from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile, File, Request
 from pydantic import BaseModel, Field
 
-from lead_models import LeadCreate, LeadUpdate, LeadStatusUpdate, LeadInDB, LeadOut, CallOutcomeIn, TransferIn
+from lead_models import LeadCreate, LeadUpdate, LeadStatusUpdate, LeadNameUpdate, LeadInDB, LeadOut, CallOutcomeIn, TransferIn
 from auth_utils import get_current_user_payload, require_admin
 from database import leads_collection, users_collection, db, reminders_collection, pipelines_collection
 from notification_service import create_notification
@@ -37,7 +37,12 @@ VALID_STATUSES = {"new", "contacted", "follow_up", "interested", "converted", "l
 
 
 def to_lead_out(doc: dict) -> LeadOut:
-    return LeadOut(**{k: doc.get(k) for k in LeadOut.model_fields})
+    # Omit fields the doc doesn't have (or has as None) instead of passing
+    # None explicitly — lets Pydantic fall back to each field's own default
+    # (e.g. reassign_count: int = 0) rather than failing validation on
+    # older lead documents that predate a newer field being added.
+    data = {k: doc[k] for k in LeadOut.model_fields if doc.get(k) is not None}
+    return LeadOut(**data)
 
 
 async def find_pipeline_for_employee(employee_id: str) -> Optional[str]:
@@ -103,20 +108,40 @@ async def lead_stats(admin: dict = Depends(require_admin)):
 @router.get("/my", response_model=list[LeadOut])
 async def my_leads(payload: dict = Depends(get_current_user_payload)):
     """Leads assigned to the current employee. Leads that have already been
-    called at least once (call_touched) always show. Brand-new, never-called
-    leads are capped to 10 at a time — the 11th only appears once one of the
-    current 10 has been called, so no one can see the whole pile up front."""
+    called at least once (call_touched), or that are a referral from an
+    existing client, always show — a referral is a warm lead and shouldn't
+    get buried behind a pile of cold ones. Everything else (brand-new,
+    never-called, non-referral leads) is capped to 10 at a time — the 11th
+    only appears once one of the current 10 has been called."""
     touched_cursor = leads_collection.find(
-        {"assigned_to": payload["sub"], "call_touched": True}
+        {"assigned_to": payload["sub"], "$or": [
+            {"call_touched": True},
+            {"referred_by_lead_id": {"$exists": True, "$ne": None}},
+        ]}
     ).sort("updated_at", -1)
     touched = [doc async for doc in touched_cursor]
 
+    # Querying a field as None matches both "explicitly null" and "missing
+    # entirely" in MongoDB, so this alone covers old leads (field never
+    # existed) and new non-referral leads (field explicitly None) in one go.
     fresh_cursor = leads_collection.find(
-        {"assigned_to": payload["sub"], "call_touched": {"$ne": True}}
+        {"assigned_to": payload["sub"], "call_touched": {"$ne": True}, "referred_by_lead_id": None}
     ).sort("created_at", 1).limit(10)
     fresh = [doc async for doc in fresh_cursor]
 
     return [to_lead_out(doc) for doc in touched + fresh]
+
+
+@router.get("/my/summary")
+async def my_leads_summary(payload: dict = Depends(get_current_user_payload)):
+    """Counts for the employee's own queue — lets the UI tell them how many
+    more never-called leads are waiting behind the 10-at-a-time cap in /my,
+    so a freshly assigned batch doesn't look like it silently vanished."""
+    total_new = await leads_collection.count_documents(
+        {"assigned_to": payload["sub"], "call_touched": {"$ne": True}}
+    )
+    visible_new = min(total_new, 10)
+    return {"total_new": total_new, "visible_new": visible_new, "queued": max(total_new - visible_new, 0)}
 
 
 @router.get("/", response_model=list[LeadOut])
@@ -347,10 +372,39 @@ async def update_lead_status(
     if data.follow_up_date is not None:
         updates["follow_up_date"] = data.follow_up_date
 
+    reminder_to_create = None  # (type, due_at, title, body) — mirrors the call-outcome route
+    if data.status == "converted":
+        if data.service_interest:
+            updates["service_interest"] = data.service_interest
+        if data.code_name:
+            updates["code_name"] = data.code_name
+        if data.service_price is not None:
+            updates["service_price"] = data.service_price
+        if data.service_duration_months:
+            updates["service_duration_months"] = data.service_duration_months
+            expiry = datetime.now(timezone.utc) + timedelta(days=30 * data.service_duration_months)
+            updates["service_expires_at"] = expiry.date().isoformat()
+            reminder_due = expiry - timedelta(days=3)
+            reminder_to_create = ("service_expiry", reminder_due, "Service Expiring Soon", f"{doc['name']}'s service ends in 3 days — reach out to renew")
+
     await leads_collection.update_one(
         {"id": lead_id},
         {"$set": updates, "$push": {"status_history": history_entry}},
     )
+
+    if reminder_to_create:
+        rtype, due_dt, title, body = reminder_to_create
+        await reminders_collection.insert_one({
+            "id": str(uuid.uuid4()),
+            "user_id": doc.get("assigned_to") or payload["sub"],
+            "lead_id": lead_id,
+            "type": rtype,
+            "title": title,
+            "body": body,
+            "next_send_at": due_dt,
+            "active": True,
+            "created_at": now,
+        })
 
     # Notify admin when employee updates lead status
     if payload["role"] != "admin":
@@ -367,6 +421,28 @@ async def update_lead_status(
             )
 
     return {"status": "updated", "new_status": data.status}
+
+
+@router.put("/{lead_id}/name")
+async def update_lead_name(
+    lead_id: str, data: LeadNameUpdate, payload: dict = Depends(get_current_user_payload)
+):
+    """Lets whoever owns a lead fill in a name when only a phone number was
+    captured (e.g. a missed-call/website lead) — admin's PUT /{lead_id} is
+    admin-only, so employees need this narrower endpoint."""
+    name = data.name.strip()
+    if not name:
+        raise HTTPException(status_code=400, detail="Name cannot be empty")
+
+    doc = await leads_collection.find_one({"id": lead_id})
+    if not doc:
+        raise HTTPException(status_code=404, detail="Lead not found")
+    if payload["role"] != "admin" and doc.get("assigned_to") != payload["sub"]:
+        raise HTTPException(status_code=403, detail="Lead not assigned to you")
+
+    now = datetime.now(timezone.utc).isoformat()
+    await leads_collection.update_one({"id": lead_id}, {"$set": {"name": name, "updated_at": now}})
+    return {"status": "updated", "name": name}
 
 
 class QuickNoteIn(BaseModel):
@@ -404,7 +480,30 @@ async def add_quick_note(
 
 CONNECTED_TERMINAL = {"converted", "lost"}
 NOT_CONNECTED_DIRECT_LOST = {"invalid"}  # invalid number -> lost immediately, no retries
-MAX_ATTEMPTS = 3
+MAX_NOT_INTERESTED_ATTEMPTS = 3
+MAX_REASSIGNS = 2  # after this many hand-offs with still no connect, give up and mark lost
+REASON_LABELS = {
+    "npc": "no response (NPC)", "switchoff": "switched off",
+    "network_issue": "network issue", "busy": "busy", "invalid": "invalid number",
+}
+
+
+async def _pick_reassign_target(exclude_id: Optional[str]) -> Optional[dict]:
+    """Pick another active employee to hand a stalled lead off to — the one
+    with the fewest currently-open leads, so hand-offs don't all pile onto
+    whichever employee happens to be queried first."""
+    candidates = [
+        e async for e in users_collection.find({"role": "employee", "is_active": {"$ne": False}})
+        if e["id"] != exclude_id
+    ]
+    best, best_load = None, None
+    for emp in candidates:
+        load = await leads_collection.count_documents({
+            "assigned_to": emp["id"], "status": {"$nin": ["lost", "converted"]},
+        })
+        if best_load is None or load < best_load:
+            best, best_load = emp, load
+    return best
 
 
 @router.post("/{lead_id}/call-outcome")
@@ -413,7 +512,19 @@ async def submit_call_outcome(
 ):
     """Saves the result of the Connected/Not-Connected decision tree shown
     right after an employee finishes a call, and drives what happens next:
-    reminders, 3-attempt auto-lost, and service-expiry reminders."""
+    reminders, auto-lost, auto-reassignment, and service-expiry reminders.
+
+    Not-connected rules:
+      - invalid number -> lost immediately, no retry.
+      - switched off / network issue / busy / NPC -> retry same employee next
+        day; a 2nd consecutive miss hands the lead to a different employee
+        (up to 2 hand-offs total) before it's finally marked lost with the
+        full reason trail in status_history/transfer_history.
+
+    Connected + Not Interested -> normal retry-then-lost flow, unless the
+    employee opts (via `reassign_to`) to hand it straight to another
+    employee, carrying the notes/service_interest forward.
+    """
     doc = await leads_collection.find_one({"id": lead_id})
     if not doc:
         raise HTTPException(status_code=404, detail="Lead not found")
@@ -435,6 +546,8 @@ async def submit_call_outcome(
         history_entry["note"] = data.notes
 
     reminder_to_create = None  # (type, due_at, title, body)
+    transfer_entry = None      # set when the lead is handed to a different employee
+    notify_new_assignee = None # employee id to immediately notify of a hand-off
 
     if data.connection_status == "connected":
         if data.sub_stage == "interested":
@@ -450,14 +563,32 @@ async def submit_call_outcome(
                 reminder_to_create = ("lead_follow_up", due_dt, "Follow-up Due", f"Time to follow up with {doc['name']} ({doc['phone']})")
 
         elif data.sub_stage == "not_interested":
-            new_attempts = int(doc.get("call_attempts", 0)) + 1
-            updates["call_attempts"] = new_attempts
-            if new_attempts >= MAX_ATTEMPTS:
-                updates["status"] = "lost"
+            if data.reassign_to:
+                new_emp = await users_collection.find_one({"id": data.reassign_to})
+                if not new_emp:
+                    raise HTTPException(status_code=404, detail="Employee to reassign to not found")
+                transfer_entry = {
+                    "from": doc.get("assigned_to"), "from_name": doc.get("assigned_to_name"),
+                    "to": data.reassign_to, "to_name": new_emp.get("name"),
+                    "note": f"Reassigned after 'Not Interested'" + (f" — {data.notes}" if data.notes else ""),
+                    "at": now_iso,
+                }
+                updates["assigned_to"] = data.reassign_to
+                updates["assigned_to_name"] = new_emp.get("name")
+                updates["call_attempts"] = 0
+                updates["status"] = "new"
+                if data.notes:
+                    updates["notes"] = data.notes
+                notify_new_assignee = data.reassign_to
             else:
-                updates["status"] = "follow_up"
-                due_dt = now + timedelta(days=1)
-                reminder_to_create = ("lead_retry", due_dt, "Retry Call", f"{doc['name']} wasn't interested last time — try again today")
+                new_attempts = int(doc.get("call_attempts", 0)) + 1
+                updates["call_attempts"] = new_attempts
+                if new_attempts >= MAX_NOT_INTERESTED_ATTEMPTS:
+                    updates["status"] = "lost"
+                else:
+                    updates["status"] = "follow_up"
+                    due_dt = now + timedelta(days=1)
+                    reminder_to_create = ("lead_retry", due_dt, "Retry Call", f"{doc['name']} wasn't interested last time — try again today")
 
         elif data.sub_stage == "converted":
             updates["status"] = "converted"
@@ -466,6 +597,8 @@ async def submit_call_outcome(
                 updates["service_interest"] = data.service_interest
             if data.code_name:
                 updates["code_name"] = data.code_name
+            if data.service_price is not None:
+                updates["service_price"] = data.service_price
             if data.service_duration_months:
                 updates["service_duration_months"] = data.service_duration_months
                 expiry = now + timedelta(days=30 * data.service_duration_months)
@@ -477,27 +610,54 @@ async def submit_call_outcome(
             updates["status"] = "lost"
 
     else:  # not_connected
-        new_attempts = int(doc.get("call_attempts", 0)) + 1
-        updates["call_attempts"] = new_attempts
+        reason_label = REASON_LABELS.get(data.sub_stage, data.sub_stage)
         if data.sub_stage in NOT_CONNECTED_DIRECT_LOST:
             updates["status"] = "lost"
-        elif new_attempts >= MAX_ATTEMPTS:
-            updates["status"] = "lost"
+            updates["call_attempts"] = 0
+            history_entry["note"] = f"Lost — {reason_label}, no retry for invalid numbers."
         else:
-            updates["status"] = "follow_up"
-            due_dt = now + timedelta(days=1)
-            reminder_to_create = ("lead_retry", due_dt, "Retry Call", f"Couldn't reach {doc['name']} — try again today")
+            new_attempts = int(doc.get("call_attempts", 0)) + 1
+            updates["call_attempts"] = new_attempts
+            if new_attempts == 1:
+                updates["status"] = "follow_up"
+                due_dt = now + timedelta(days=1)
+                reminder_to_create = ("lead_retry", due_dt, "Retry Call", f"Couldn't reach {doc['name']} ({reason_label}) — try again today")
+            else:
+                reassign_count = int(doc.get("reassign_count", 0))
+                if reassign_count >= MAX_REASSIGNS:
+                    updates["status"] = "lost"
+                    updates["call_attempts"] = 0
+                    history_entry["note"] = f"Lost — no response after {reassign_count} reassignment(s) across employees. Last reason: {reason_label}."
+                else:
+                    new_emp = await _pick_reassign_target(doc.get("assigned_to"))
+                    if not new_emp:
+                        updates["status"] = "lost"
+                        updates["call_attempts"] = 0
+                        history_entry["note"] = f"Lost — no response ({reason_label}), no other active employee available to reassign to."
+                    else:
+                        transfer_entry = {
+                            "from": doc.get("assigned_to"), "from_name": doc.get("assigned_to_name"),
+                            "to": new_emp["id"], "to_name": new_emp.get("name"),
+                            "note": f"Auto-reassigned — 2 consecutive not-connected attempts ({reason_label})",
+                            "at": now_iso,
+                        }
+                        updates["assigned_to"] = new_emp["id"]
+                        updates["assigned_to_name"] = new_emp.get("name")
+                        updates["call_attempts"] = 0
+                        updates["reassign_count"] = reassign_count + 1
+                        updates["status"] = "follow_up"
+                        notify_new_assignee = new_emp["id"]
 
-    await leads_collection.update_one(
-        {"id": lead_id},
-        {"$set": updates, "$push": {"status_history": history_entry}},
-    )
+    update_op = {"$set": updates, "$push": {"status_history": history_entry}}
+    if transfer_entry:
+        update_op["$push"]["transfer_history"] = transfer_entry
+    await leads_collection.update_one({"id": lead_id}, update_op)
 
     if reminder_to_create:
         rtype, due_dt, title, body = reminder_to_create
         await reminders_collection.insert_one({
             "id": str(uuid.uuid4()),
-            "user_id": doc.get("assigned_to") or payload["sub"],
+            "user_id": updates.get("assigned_to") or doc.get("assigned_to") or payload["sub"],
             "lead_id": lead_id,
             "type": rtype,
             "title": title,
@@ -507,14 +667,23 @@ async def submit_call_outcome(
             "created_at": now_iso,
         })
 
-    # If the lead just hit auto-lost after 3 attempts, flag admin so they can reassign
-    if updates.get("status") == "lost" and int(doc.get("call_attempts", 0)) + 1 >= MAX_ATTEMPTS:
+    if notify_new_assignee:
+        await create_notification(
+            user_id=notify_new_assignee,
+            title="Lead Reassigned to You",
+            body=f"{doc['name']} ({doc['phone']}) — {transfer_entry['note'] if transfer_entry else ''}",
+            n_type="lead",
+            link="/portal/employee/leads",
+        )
+
+    # If the lead just hit final auto-lost, flag admin so they know it happened
+    if updates.get("status") == "lost":
         admins = users_collection.find({"role": "admin"})
         async for adm in admins:
             await create_notification(
                 user_id=adm["id"],
-                title=f"Lead needs attention: {doc['name']}",
-                body="3 attempts with no result — consider reassigning this lead.",
+                title=f"Lead marked Lost: {doc['name']}",
+                body=history_entry.get("note") or "No result after repeated attempts.",
                 n_type="lead",
                 link="/portal/admin/leads",
             )
@@ -584,12 +753,24 @@ async def transfer_lead(
 @router.post("/my", response_model=LeadOut)
 async def create_my_lead(data: LeadCreate, payload: dict = Depends(get_current_user_payload)):
     """Any employee can add a lead directly (referrals, walk-ins, etc.) — it's
-    auto-assigned to them."""
+    auto-assigned to them. If referred_by_lead_id is set, this becomes a
+    structural referral: source flips to "referral" and reference_note is
+    auto-filled from the referring client's name (unless already supplied)."""
     user = await users_collection.find_one({"id": payload["sub"]})
     lead = LeadInDB(**data.model_dump())
     lead.assigned_to = payload["sub"]
     lead.assigned_to_name = user.get("name") if user else None
     lead.source = data.source or "employee_added"
+
+    if data.referred_by_lead_id:
+        referrer = await leads_collection.find_one({"id": data.referred_by_lead_id})
+        if referrer:
+            lead.source = "referral"
+            if not lead.reference_note:
+                lead.reference_note = f"Referred by {referrer.get('name', 'a client')} ({referrer.get('phone', '')})"
+        else:
+            lead.referred_by_lead_id = None
+
     lead.pipeline_id = await find_pipeline_for_employee(payload["sub"])
     await leads_collection.insert_one(lead.model_dump())
     return to_lead_out(lead.model_dump())
@@ -771,7 +952,11 @@ async def shuffle_assign_leads(request: Request, admin: dict = Depends(require_a
 
 
 @router.post("/website/{web_lead_id}/convert")
-async def convert_web_lead(web_lead_id: str, admin: dict = Depends(require_admin)):
+async def convert_web_lead(
+    web_lead_id: str,
+    assign_to: Optional[str] = Query(default=None),
+    admin: dict = Depends(require_admin),
+):
     wl = await web_leads_collection.find_one({"id": web_lead_id})
     if not wl:
         raise HTTPException(status_code=404, detail="Website lead not found")
@@ -784,9 +969,74 @@ async def convert_web_lead(web_lead_id: str, admin: dict = Depends(require_admin
         service_interest=wl.get("service"),
         notes=wl.get("message"),
     )
+    if assign_to:
+        emp = await users_collection.find_one({"id": assign_to})
+        if emp:
+            lead.assigned_to = assign_to
+            lead.assigned_to_name = emp.get("name")
+            lead.pipeline_id = await find_pipeline_for_employee(assign_to)
     await leads_collection.insert_one(lead.model_dump())
     await web_leads_collection.update_one({"id": web_lead_id}, {"$set": {"converted": True}})
+    if lead.assigned_to:
+        await create_notification(
+            user_id=lead.assigned_to,
+            title="New Lead Assigned",
+            body=f"{lead.name} ({lead.phone}) — {lead.service_interest or 'Website enquiry'}",
+            n_type="lead",
+            link="/portal/employee/leads",
+        )
     return {"status": "converted", "lead_id": lead.id}
+
+
+# ── Career Leads (from Career page applications) ──────────────────
+
+@router.post("/career/{career_lead_id}/convert")
+async def convert_career_lead(
+    career_lead_id: str,
+    assign_to: Optional[str] = Query(default=None),
+    admin: dict = Depends(require_admin),
+):
+    """Turn a career application into a callable lead (e.g. for follow-up
+    or referring the applicant to a paid service), optionally assigning it
+    to an employee in the same step."""
+    cl = await career_leads_collection.find_one({"id": career_lead_id})
+    if not cl:
+        raise HTTPException(status_code=404, detail="Career lead not found")
+    lead = LeadInDB(
+        name=cl.get("full_name", "Unknown"),
+        phone=cl.get("phone", ""),
+        email=cl.get("email"),
+        source="career",
+        service_interest=cl.get("position"),
+        notes=cl.get("message"),
+    )
+    if assign_to:
+        emp = await users_collection.find_one({"id": assign_to})
+        if emp:
+            lead.assigned_to = assign_to
+            lead.assigned_to_name = emp.get("name")
+            lead.pipeline_id = await find_pipeline_for_employee(assign_to)
+    await leads_collection.insert_one(lead.model_dump())
+    await career_leads_collection.update_one({"id": career_lead_id}, {"$set": {"converted": True}})
+    if lead.assigned_to:
+        await create_notification(
+            user_id=lead.assigned_to,
+            title="New Lead Assigned",
+            body=f"{lead.name} ({lead.phone}) — Career applicant: {lead.service_interest or 'General'}",
+            n_type="lead",
+            link="/portal/employee/leads",
+        )
+    return {"status": "converted", "lead_id": lead.id}
+
+
+# ── Admin: delete an entire imported batch ────────────────────────
+
+@router.delete("/batches/{batch_id}")
+async def delete_batch(batch_id: str, admin: dict = Depends(require_admin)):
+    result = await leads_collection.delete_many({"batch_id": batch_id})
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Batch not found")
+    return {"status": "deleted", "count": result.deleted_count}
 
 
 @router.delete("/website/{web_lead_id}")

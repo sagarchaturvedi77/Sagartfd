@@ -4,36 +4,28 @@
  */
 import React, { useState } from "react";
 
+// NOTE: this list is intentionally scoped to widgets that actually exist as
+// distinct, independently-hideable sections on AdminDashboard.jsx today. The
+// customizer previously listed many more (tasks, leaves, salary, chat...) but
+// nothing on either dashboard ever read `activeWidgets` — every toggle was a
+// no-op. Only list what genuinely responds to being turned on/off; expand this
+// (and wire up the matching section in AdminDashboard.jsx) as new dashboard
+// sections are built, rather than promising a toggle that does nothing.
 export const ALL_ADMIN_WIDGETS = [
-  { id: "stats",      label: "📊 Stats Cards",        desc: "Total employees, active, system status" },
+  { id: "stats",      label: "📊 Stats Cards",        desc: "Total employees, active, system status, targets link" },
   { id: "team",       label: "👥 Team List",           desc: "All employees with details" },
-  { id: "attendance", label: "🕐 Today's Attendance",  desc: "Who punched in today" },
-  { id: "leads",      label: "📋 Recent Leads",        desc: "Latest leads overview" },
-  { id: "tasks",      label: "✅ Pending Tasks",       desc: "Tasks assigned but not done" },
-  { id: "targets",    label: "🎯 Target Progress",     desc: "Monthly target vs achievement" },
-  { id: "leaves",     label: "🌴 Pending Leaves",      desc: "Leave requests waiting for approval" },
-  { id: "salary",     label: "💰 Salary Overview",     desc: "This month salary summary" },
-  { id: "chat",       label: "💬 Recent Messages",     desc: "Last few team chat messages" },
-  { id: "announce",   label: "📢 Announcements",       desc: "Latest announcements" },
 ];
 
 export const ALL_EMPLOYEE_WIDGETS = [
-  { id: "attendance", label: "🕐 My Attendance",       desc: "Today punch in/out + history" },
-  { id: "targets",    label: "🎯 My Targets",          desc: "Monthly target progress" },
-  { id: "tasks",      label: "✅ My Tasks",            desc: "Tasks assigned to me" },
-  { id: "salary",     label: "💰 My Salary",           desc: "Latest salary info" },
-  { id: "leaves",     label: "🌴 My Leaves",           desc: "Leave balance and history" },
-  { id: "leads",      label: "📋 My Leads",            desc: "Leads assigned to me" },
-  { id: "chat",       label: "💬 Team Chat",           desc: "Recent team messages" },
-  { id: "announce",   label: "📢 Announcements",       desc: "Company announcements" },
-  { id: "id_card",    label: "🪪 My ID Card",          desc: "Quick access to ID card" },
-  { id: "profile",    label: "👤 My Profile",          desc: "Profile summary" },
+  { id: "attendance", label: "🕐 Punch In/Out",        desc: "Today's attendance card" },
+  { id: "targets",    label: "🎯 My Target",           desc: "This month's target progress card" },
+  { id: "leads",      label: "📋 My Leads",            desc: "Lead stats, search/filter and lead list" },
 ];
 
 export function useWidgets(userId, role) {
   const storageKey = `dashboard_widgets_${userId}_${role}`;
   const allWidgets = role === "admin" ? ALL_ADMIN_WIDGETS : ALL_EMPLOYEE_WIDGETS;
-  const defaultActive = allWidgets.slice(0, 6).map(w => w.id);
+  const defaultActive = allWidgets.map(w => w.id);
 
   const [activeWidgets, setActiveWidgets] = useState(() => {
     try {
@@ -118,7 +110,7 @@ export function DashboardCustomizerPanel({ userId, role, onClose }) {
               <button
                 onClick={() => toggle(widget.id)}
                 style={{
-                  padding: "5px 12px", borderRadius: 8, border: "none", cursor: "pointer",
+                  padding: "5px 12px", borderRadius: 8, cursor: "pointer",
                   fontSize: 12, fontWeight: 600,
                   background: isActive ? "#024396" : "#fff",
                   color: isActive ? "#fff" : "#024396",

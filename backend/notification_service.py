@@ -51,8 +51,13 @@ async def _send_fcm(user_id: str, title: str, body: str, link: str | None = None
         if not token:
             continue
         try:
+            # Data-only payload (no `notification` block): if a `notification`
+            # payload is present, browsers auto-display it themselves and skip
+            # our service worker's onBackgroundMessage handler entirely — which
+            # means our TFD logo/icon and click-through link never get applied.
+            # Data-only forces our handler (public/firebase-messaging-sw.js) to
+            # run for every delivery, in foreground and background alike.
             message = fcm_messaging.Message(
-                notification=fcm_messaging.Notification(title=title, body=body),
                 data={"link": link or "/portal/employee", "title": title, "body": body},
                 token=token,
             )

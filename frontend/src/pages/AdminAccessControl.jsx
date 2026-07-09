@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useCallback } from "react";
 import PortalLayout from "../components/PortalLayout";
 import { useAuth } from "../context/AuthContext";
+import PageHeader from "../components/portal/PageHeader";
+import EmptyState from "../components/portal/EmptyState";
 
 const API_BASE = process.env.REACT_APP_BACKEND_URL || "";
 
@@ -44,22 +46,21 @@ export default function AdminAccessControl() {
   return (
     <PortalLayout>
       <div className="space-y-5">
-        <div>
-          <h1 className="text-2xl font-serif text-[#0E1B2C]">🔑 Access Control</h1>
-          <p className="text-sm text-[#2A364B]/60 mt-1">Enable or disable portal sections for each employee. Changes apply immediately.</p>
-        </div>
+        <PageHeader icon="🔑" title="Access Control" subtitle="Enable or disable portal sections for each employee. Changes apply immediately." />
 
         {loading ? (
-          <p className="text-sm text-center text-[#2A364B]/50 py-8">Loading…</p>
+          <div className="flex justify-center py-16">
+            <div className="w-8 h-8 border-2 border-[#024396] dark:border-[#7CB0FF] border-t-transparent rounded-full animate-spin" />
+          </div>
         ) : employees.length === 0 ? (
-          <div className="bg-white rounded-2xl border border-[#E2D8C2] p-10 text-center">
-            <p className="text-[#2A364B]/50 text-sm">No employees found.</p>
+          <div className="bg-white dark:bg-[#101D2E] rounded-2xl border border-[#E2D8C2] dark:border-white/10">
+            <EmptyState icon="🔑" title="No employees found." />
           </div>
         ) : (
           <div className="grid gap-5">
             {employees.map((emp) => (
-              <div key={emp.id} className="bg-white rounded-2xl border border-[#E2D8C2] p-5 shadow-sm">
-                <p className="font-semibold text-[#0E1B2C] mb-3">{emp.name}</p>
+              <div key={emp.id} className="bg-white dark:bg-[#101D2E] rounded-2xl border border-[#E2D8C2] dark:border-white/10 p-5 shadow-sm">
+                <p className="font-semibold text-[#0E1B2C] dark:text-[#F1EDE3] mb-3">{emp.name}</p>
                 <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
                   {Object.entries(SECTION_LABELS).map(([key, label]) => {
                     const enabled = emp.access?.[key] !== false;
@@ -71,11 +72,11 @@ export default function AdminAccessControl() {
                         disabled={!!saving[savingKey]}
                         className={`flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-medium border transition-all ${
                           enabled
-                            ? "border-[#024396] bg-[#024396]/5 text-[#024396]"
-                            : "border-[#E2D8C2] bg-[#F5F1EB] text-[#2A364B]/40 line-through"
+                            ? "border-[#024396] dark:border-[#4C8DFF]/50 bg-[#024396]/5 dark:bg-[#4C8DFF]/10 text-[#024396] dark:text-[#7CB0FF]"
+                            : "border-[#E2D8C2] dark:border-white/10 bg-[#F5F1EB] dark:bg-white/5 text-[#2A364B]/40 dark:text-[#8E99AC]/60 line-through"
                         } disabled:opacity-50`}
                       >
-                        <span className={`w-2 h-2 rounded-full shrink-0 ${enabled ? "bg-[#024396]" : "bg-[#2A364B]/20"}`} />
+                        <span className={`w-2 h-2 rounded-full shrink-0 ${enabled ? "bg-[#024396] dark:bg-[#7CB0FF]" : "bg-[#2A364B]/20 dark:bg-white/20"}`} />
                         {label}
                       </button>
                     );

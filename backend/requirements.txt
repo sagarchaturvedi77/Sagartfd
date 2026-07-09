@@ -11,3 +11,6 @@ httpx
 aiofiles
 qrcode[pil]>=7.4.2
 openpyxl
+firebase-admin
+pywebpush
+pytz

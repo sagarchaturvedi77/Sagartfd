@@ -1,6 +1,8 @@
 import React, { useState } from "react";
 import { useAuth } from "../context/AuthContext";
 import PortalLayout from "../components/PortalLayout";
+import PageHeader from "../components/portal/PageHeader";
+import { Button } from "../components/ui/button";
 
 const API_BASE = process.env.REACT_APP_BACKEND_URL || "";
 
@@ -43,41 +45,37 @@ export default function AdminAnnounce() {
     }
   };
 
-  const field = "w-full border border-[#E2D8C2] rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#024396]/30";
+  const field = "w-full border border-[#E2D8C2] dark:border-white/15 dark:bg-white/5 dark:text-[#F1EDE3] rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#024396]/30";
 
   return (
     <PortalLayout>
       <div className="max-w-lg mx-auto space-y-6">
-        <div>
-          <h2 className="text-xl font-serif text-[#0E1B2C]">Announce</h2>
-          <p className="text-xs text-[#2A364B]/50">Send a notification to all employees</p>
-        </div>
+        <PageHeader icon="📣" title="Announce" subtitle="Send a notification to all employees" />
 
-        <div className="bg-white rounded-2xl border border-[#E2D8C2] shadow-sm p-6">
+        <div className="bg-white dark:bg-[#101D2E] rounded-2xl border border-[#E2D8C2] dark:border-white/10 shadow-sm p-6">
           <form onSubmit={submit} className="space-y-4">
             <div>
-              <label className="block text-xs font-medium text-[#2A364B]/70 mb-1">Type</label>
+              <label className="block text-xs font-medium text-[#2A364B]/70 dark:text-[#8E99AC] mb-1">Type</label>
               <select value={type} onChange={(e) => setType(e.target.value)} className={field}>
                 {TYPES.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
               </select>
             </div>
             <div>
-              <label className="block text-xs font-medium text-[#2A364B]/70 mb-1">Title</label>
+              <label className="block text-xs font-medium text-[#2A364B]/70 dark:text-[#8E99AC] mb-1">Title</label>
               <input required value={title} onChange={(e) => setTitle(e.target.value)}
                 placeholder="e.g. Office closed on Monday" className={field} />
             </div>
             <div>
-              <label className="block text-xs font-medium text-[#2A364B]/70 mb-1">Message</label>
+              <label className="block text-xs font-medium text-[#2A364B]/70 dark:text-[#8E99AC] mb-1">Message</label>
               <textarea required rows={4} value={body} onChange={(e) => setBody(e.target.value)}
                 placeholder="Details of the announcement..." className={`${field} resize-none`} />
             </div>
             {msg && (
-              <p className={`text-sm ${msg.type === "ok" ? "text-emerald-600" : "text-red-600"}`}>{msg.text}</p>
+              <p className={`text-sm ${msg.type === "ok" ? "text-emerald-600 dark:text-emerald-400" : "text-red-600 dark:text-red-400"}`}>{msg.text}</p>
             )}
-            <button type="submit" disabled={sending}
-              className="w-full py-2.5 rounded-xl text-sm font-semibold text-white bg-gradient-to-r from-[#024396] to-[#0356c4] hover:from-[#023580] transition-all shadow-lg shadow-[#024396]/25 disabled:opacity-60">
+            <Button type="submit" disabled={sending} className="w-full bg-gradient-to-r from-[#024396] to-[#0356c4]">
               {sending ? "Sending..." : "Send to All Employees"}
-            </button>
+            </Button>
           </form>
         </div>
       </div>

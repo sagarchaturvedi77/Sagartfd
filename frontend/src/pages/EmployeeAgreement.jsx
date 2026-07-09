@@ -1,12 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import PortalLayout from '../components/PortalLayout';
 import { useAuth } from '../context/AuthContext';
+import PageHeader from '../components/portal/PageHeader';
+import { Button } from '../components/ui/button';
 
 const API_BASE = process.env.REACT_APP_BACKEND_URL || "";
+const MAIN_LOGO_URL = "https://customer-assets.emergentagent.com/job_advisor-phase4-build/artifacts/buhrts3f_IMG_2870.png";
 
 export default function EmployeeAgreement() {
   const { user, token } = useAuth();
   const [profile, setProfile] = useState(null);
+  const [uploads, setUploads] = useState({});
   const [location, setLocation] = useState(null);
 
   useEffect(() => {
@@ -14,6 +18,12 @@ export default function EmployeeAgreement() {
     fetch(`${API_BASE}/api/profile/${user.id}`, { headers: { Authorization: `Bearer ${token}` } })
       .then(r => r.ok ? r.json() : {})
       .then(setProfile)
+      .catch(() => {});
+    // Photo + signature live in the uploads collection (set during onboarding),
+    // not on the profile document — profile.passport_photo/signature never existed.
+    fetch(`${API_BASE}/api/uploads/${user.id}`, { headers: { Authorization: `Bearer ${token}` } })
+      .then(r => r.ok ? r.json() : {})
+      .then(setUploads)
       .catch(() => {});
   }, [token, user]);
 
@@ -42,8 +52,8 @@ export default function EmployeeAgreement() {
   const locationStr = location ? `Lat: ${typeof location.lat === 'number' ? location.lat.toFixed(6) : location.lat}, Lng: ${typeof location.lng === 'number' ? location.lng.toFixed(6) : location.lng}` : 'Fetching...';
 
   const printAgreement = () => {
-    const photoUrl = profile?.passport_photo || user?.photo_url || '';
-    const signatureUrl = profile?.signature || '';
+    const photoUrl = uploads?.photo?.data || '';
+    const signatureUrl = uploads?.signature?.data || '';
 
     const html = `<!DOCTYPE html>
 <html><head><meta charset="utf-8"><title>Employment Agreement - ${employeeName}</title>
@@ -78,7 +88,7 @@ export default function EmployeeAgreement() {
 <div style="position:relative;">
 
 <div class="header">
-  <img src="/tfd-workspace-logo.png" class="logo" alt="TFD" />
+  <img src="${MAIN_LOGO_URL}" class="logo" alt="TFD" />
   <div class="company-name">The Financial Doctor</div>
   <div class="company-sub">AMFI Registered | ARN-290298 | Mutual Funds & Insurance Advisory</div>
   <div class="company-sub">1st Floor, New Bus Stand, Sekdakhedi Road, Sehore, MP - 466001</div>
@@ -180,7 +190,7 @@ ${photoUrl ? `<div class="photo-section"><img src="${photoUrl}" alt="Employee Ph
     <div class="sig-label">Employee / कर्मचारी</div>
   </div>
   <div class="sig-box">
-    <img src="/assets/sagar-signature.png" alt="Authorized Signatory" style="height:50px;" />
+    <img src="/assets/sagar-signature.png" alt="Authorized Signatory" style="height:50px;" onerror="this.style.display='none'" />
     <div class="sig-line"></div>
     <div class="sig-label"><strong>Sagar Chaturvedi</strong></div>
     <div class="sig-label">CEO, The Financial Doctor</div>
@@ -205,24 +215,27 @@ ${photoUrl ? `<div class="photo-section"><img src="${photoUrl}" alt="Employee Ph
 
   return (
     <PortalLayout>
-      <div className="bg-white rounded-2xl border border-[#E2D8C2] p-6 shadow-sm">
-        <h3 className="text-lg font-semibold text-[#0E1B2C]">Employment Agreement</h3>
-        <p className="text-sm text-[#6B7280] mt-1">View or print your complete employment agreement with all terms, conditions, and declarations.</p>
+      <div className="max-w-2xl mx-auto space-y-6">
+        <PageHeader icon="📄" title="Employment Agreement" subtitle="View or print your complete employment agreement" />
 
-        <div className="mt-4 bg-[#F5F1EB] rounded-xl p-4 text-sm space-y-1.5">
-          <p><span className="font-medium">Employee:</span> {employeeName}</p>
-          <p><span className="font-medium">Designation:</span> {designation}</p>
-          <p><span className="font-medium">Date:</span> {date}</p>
-          {location && <p><span className="font-medium">Location:</span> {locationStr}</p>}
+        <div className="bg-white dark:bg-[#101D2E] rounded-2xl border border-[#E2D8C2] dark:border-white/10 p-6 shadow-sm">
+          <p className="text-sm text-[#6B7280] dark:text-[#8E99AC]">All terms, conditions, and declarations included below.</p>
+
+          <div className="mt-4 bg-[#F5F1EB] dark:bg-white/5 rounded-xl p-4 text-sm space-y-1.5 text-[#0E1B2C] dark:text-[#F1EDE3]">
+            <p><span className="font-medium">Employee:</span> {employeeName}</p>
+            <p><span className="font-medium">Designation:</span> {designation}</p>
+            <p><span className="font-medium">Date:</span> {date}</p>
+            {location && <p><span className="font-medium">Location:</span> {locationStr}</p>}
+          </div>
+
+          <div className="mt-4 flex gap-3">
+            <Button onClick={printAgreement} className="bg-gradient-to-r from-[#024396] to-[#0356c4]">
+              Print / Save PDF
+            </Button>
+          </div>
+
+          <p className="text-xs text-[#2A364B]/40 dark:text-[#8E99AC]/70 mt-3">Agreement includes: Company logo, employee photo, all 10 clauses (Hindi + English), declaration with GPS location & timestamp, employee signature, and authorized signatory.</p>
         </div>
-
-        <div className="mt-4 flex gap-3">
-          <button onClick={printAgreement} className="px-5 py-2.5 bg-[#024396] text-white rounded-xl text-sm font-semibold hover:bg-[#023580] transition-all">
-            Print / Save PDF
-          </button>
-        </div>
-
-        <p className="text-xs text-[#2A364B]/40 mt-3">Agreement includes: Company logo, employee photo, all 10 clauses (Hindi + English), declaration with GPS location & timestamp, employee signature, and authorized signatory.</p>
       </div>
     </PortalLayout>
   );

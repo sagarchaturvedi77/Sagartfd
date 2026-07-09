@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import PortalLayout from "../components/PortalLayout";
 import { useAuth } from "../context/AuthContext";
 import { Plus, X, Trash2, Users, Pencil, PhoneCall, PhoneOff, ChevronRight, GripVertical, LayoutGrid } from "lucide-react";
+import PageHeader from "../components/portal/PageHeader";
 
 const API_BASE = process.env.REACT_APP_BACKEND_URL || "";
 
@@ -34,9 +35,9 @@ const emptyStage = () => ({
   color: COLORS[0],
 });
 
-const field = "w-full border border-[#E2D8C2] rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#024396]/30";
+const field = "w-full border border-[#E2D8C2] dark:border-white/10 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#024396]/30";
 const btnPrimary = "bg-[#024396] text-white py-2.5 px-6 rounded-xl text-sm font-medium hover:bg-[#023580] shadow-md shadow-[#024396]/20 inline-flex items-center gap-2 disabled:opacity-50";
-const btnGhost = "text-[#2A364B] text-sm font-medium px-4 py-2.5 rounded-xl hover:bg-[#2A364B]/5 inline-flex items-center gap-2";
+const btnGhost = "text-[#2A364B] dark:text-[#8E99AC] text-sm font-medium px-4 py-2.5 rounded-xl hover:bg-[#2A364B]/5 inline-flex items-center gap-2";
 
 export default function AdminPipelines() {
   const { token } = useAuth();
@@ -80,28 +81,26 @@ export default function AdminPipelines() {
   const employeeName = (id) => employees.find((e) => e.id === id)?.name || "Unknown";
 
   if (loading) {
-    return <PortalLayout><div className="py-24 text-center text-[#2A364B]/50 text-sm">Loading pipelines…</div></PortalLayout>;
+    return <PortalLayout><div className="py-24 text-center text-[#2A364B]/50 dark:text-[#8E99AC]/50 text-sm">Loading pipelines…</div></PortalLayout>;
   }
 
   return (
     <PortalLayout>
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
-        <div>
-          <h2 className="text-xl font-serif text-[#0E1B2C]">Lead Pipelines</h2>
-          <p className="text-xs text-[#2A364B]/50 mt-0.5">
-            Build call-flow pipelines for your team — separate paths for calls that connect and calls that don't.
-            Leads are auto-attached to whichever pipeline their employee is assigned.
-          </p>
-        </div>
-        <button className={btnPrimary} onClick={() => setEditingPipeline({})}>
-          <Plus size={16} /> New Pipeline
-        </button>
-      </div>
+      <PageHeader
+        icon="🔀"
+        title="Lead Pipelines"
+        subtitle="Build call-flow pipelines for your team — separate paths for calls that connect and calls that don't. Leads are auto-attached to whichever pipeline their employee is assigned."
+        actions={
+          <button className={btnPrimary} onClick={() => setEditingPipeline({})}>
+            <Plus size={16} /> New Pipeline
+          </button>
+        }
+      />
 
       {pipelines.length === 0 ? (
-        <div className="bg-white rounded-2xl border border-[#E2D8C2] p-14 text-center shadow-sm">
-          <p className="text-[#0E1B2C] font-medium mb-1">No pipelines yet</p>
-          <p className="text-sm text-[#2A364B]/50 mb-5">Create your first pipeline to organise how your team follows up on leads.</p>
+        <div className="bg-white dark:bg-[#101D2E] rounded-2xl border border-[#E2D8C2] dark:border-white/10 p-14 text-center shadow-sm">
+          <p className="text-[#0E1B2C] dark:text-[#F1EDE3] font-medium mb-1">No pipelines yet</p>
+          <p className="text-sm text-[#2A364B]/50 dark:text-[#8E99AC]/50 mb-5">Create your first pipeline to organise how your team follows up on leads.</p>
           <button className={btnPrimary} onClick={() => setEditingPipeline({})}>
             <Plus size={16} /> Create a Pipeline
           </button>
@@ -109,16 +108,16 @@ export default function AdminPipelines() {
       ) : (
         <div className="grid md:grid-cols-2 xl:grid-cols-3 gap-5">
           {pipelines.map((p) => (
-            <div key={p.id} className="bg-white rounded-2xl border border-[#E2D8C2] p-5 shadow-sm flex flex-col">
+            <div key={p.id} className="bg-white dark:bg-[#101D2E] rounded-2xl border border-[#E2D8C2] dark:border-white/10 p-5 shadow-sm flex flex-col">
               <div className="flex items-start justify-between gap-2 mb-1">
-                <h3 className="font-serif text-[16px] text-[#0E1B2C] leading-snug">{p.name}</h3>
+                <h3 className="font-serif text-[16px] text-[#0E1B2C] dark:text-[#F1EDE3] leading-snug">{p.name}</h3>
                 {!p.is_active && (
-                  <span className="text-[10px] font-bold uppercase tracking-wide text-[#C7102E] bg-[#FBE4E4] px-2 py-0.5 rounded-full shrink-0">Inactive</span>
+                  <span className="text-[10px] font-bold uppercase tracking-wide text-[#C7102E] bg-[#FBE4E4] dark:bg-red-900/20 px-2 py-0.5 rounded-full shrink-0">Inactive</span>
                 )}
               </div>
-              {p.description && <p className="text-[13px] text-[#2A364B]/60 mb-4 leading-relaxed">{p.description}</p>}
+              {p.description && <p className="text-[13px] text-[#2A364B]/60 dark:text-[#8E99AC]/60 mb-4 leading-relaxed">{p.description}</p>}
 
-              <div className="flex items-center gap-4 text-[12.5px] text-[#2A364B]/70 mb-4">
+              <div className="flex items-center gap-4 text-[12.5px] text-[#2A364B]/70 dark:text-[#8E99AC]/70 mb-4">
                 <span className="inline-flex items-center gap-1.5">
                   <PhoneCall size={13} className="text-[#16a34a]" /> {countStages(p.connected_stages)} stages
                 </span>
@@ -129,29 +128,29 @@ export default function AdminPipelines() {
 
               <div className="mb-4">
                 {(p.assigned_to || []).length === 0 ? (
-                  <p className="text-[12px] text-[#2A364B]/40">Not assigned to anyone yet</p>
+                  <p className="text-[12px] text-[#2A364B]/40 dark:text-[#8E99AC]/40">Not assigned to anyone yet</p>
                 ) : (
                   <div className="flex flex-wrap gap-1.5">
                     {(p.assigned_to || []).slice(0, 4).map((id) => (
-                      <span key={id} className="text-[11px] bg-[#F6F1E8] border border-[#E2D8C2] text-[#2A364B] px-2 py-1 rounded-full">
+                      <span key={id} className="text-[11px] bg-[#F6F1E8] dark:bg-white/5 border border-[#E2D8C2] dark:border-white/10 text-[#2A364B] dark:text-[#8E99AC] px-2 py-1 rounded-full">
                         {employeeName(id)}
                       </span>
                     ))}
                     {p.assigned_to.length > 4 && (
-                      <span className="text-[11px] text-[#2A364B]/50 px-1 py-1">+{p.assigned_to.length - 4} more</span>
+                      <span className="text-[11px] text-[#2A364B]/50 dark:text-[#8E99AC]/50 px-1 py-1">+{p.assigned_to.length - 4} more</span>
                     )}
                   </div>
                 )}
               </div>
 
-              <div className="mt-auto flex items-center gap-2 pt-3 border-t border-[#E2D8C2]">
+              <div className="mt-auto flex items-center gap-2 pt-3 border-t border-[#E2D8C2] dark:border-white/10">
                 <button onClick={() => navigate(`/portal/admin/pipelines/${p.id}/board`)} className="flex-1 inline-flex items-center justify-center gap-1.5 text-xs font-medium text-white bg-[#024396] hover:bg-[#023580] rounded-lg py-2">
                   <LayoutGrid size={13} /> View Board
                 </button>
                 <button onClick={() => setEditingPipeline(p)} title="Manage Stages" className="p-2 text-[#024396] bg-[#024396]/5 hover:bg-[#024396]/10 rounded-lg">
                   <Pencil size={13} />
                 </button>
-                <button onClick={() => setAssigningPipeline(p)} title="Assign" className="p-2 text-[#2A364B] bg-[#2A364B]/5 hover:bg-[#2A364B]/10 rounded-lg">
+                <button onClick={() => setAssigningPipeline(p)} title="Assign" className="p-2 text-[#2A364B] dark:text-[#8E99AC] bg-[#2A364B]/5 hover:bg-[#2A364B]/10 rounded-lg">
                   <Users size={13} />
                 </button>
                 <button onClick={() => handleDelete(p)} title="Delete" className="p-2 text-[#C7102E]/70 hover:text-[#C7102E] hover:bg-[#C7102E]/10 rounded-lg">
@@ -222,25 +221,25 @@ function PipelineModal({ pipeline, onClose, onSaved, headers, saving, setSaving 
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm px-4 py-6">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[92vh] overflow-y-auto">
-        <div className="sticky top-0 bg-white border-b border-[#E2D8C2] px-6 py-4 flex items-center justify-between z-10">
-          <h3 className="font-serif text-lg text-[#0E1B2C]">{isNew ? "New Pipeline" : `Edit — ${pipeline.name}`}</h3>
-          <button onClick={onClose} className="p-1.5 hover:bg-[#2A364B]/5 rounded-lg text-[#2A364B]/60"><X size={18} /></button>
+      <div className="bg-white dark:bg-[#101D2E] rounded-2xl shadow-2xl w-full max-w-4xl max-h-[92vh] overflow-y-auto">
+        <div className="sticky top-0 bg-white dark:bg-[#101D2E] border-b border-[#E2D8C2] dark:border-white/10 px-6 py-4 flex items-center justify-between z-10">
+          <h3 className="font-serif text-lg text-[#0E1B2C] dark:text-[#F1EDE3]">{isNew ? "New Pipeline" : `Edit — ${pipeline.name}`}</h3>
+          <button onClick={onClose} className="p-1.5 hover:bg-[#2A364B]/5 rounded-lg text-[#2A364B]/60 dark:text-[#8E99AC]/60"><X size={18} /></button>
         </div>
 
         <div className="p-6 space-y-6">
           <div className="grid sm:grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-semibold text-[#2A364B] mb-1.5">Pipeline Name</label>
+              <label className="block text-xs font-semibold text-[#2A364B] dark:text-[#8E99AC] mb-1.5">Pipeline Name</label>
               <input className={field} value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Mutual Fund Follow-up" />
             </div>
             <div>
-              <label className="block text-xs font-semibold text-[#2A364B] mb-1.5">Description <span className="font-normal text-[#2A364B]/40">(optional)</span></label>
+              <label className="block text-xs font-semibold text-[#2A364B] dark:text-[#8E99AC] mb-1.5">Description <span className="font-normal text-[#2A364B]/40 dark:text-[#8E99AC]/40">(optional)</span></label>
               <input className={field} value={description} onChange={(e) => setDescription(e.target.value)} placeholder="What is this pipeline for?" />
             </div>
           </div>
 
-          <p className="text-xs text-[#2A364B]/50 -mt-2">
+          <p className="text-xs text-[#2A364B]/50 dark:text-[#8E99AC]/50 -mt-2">
             Build two call-outcome flows below. Each stage can have sub-stages — click <span className="font-medium">+ sub-stage</span> to nest one.
             The small dropdown on each stage tells the call popup what it means (Interested, Lost, etc) — leave it blank for a purely organisational stage.
           </p>
@@ -265,11 +264,11 @@ function PipelineModal({ pipeline, onClose, onSaved, headers, saving, setSaving 
           </div>
 
           {error && (
-            <div className="text-[13px] text-[#9B2335] bg-[#FBE4E4] border border-[#F0B4B4] rounded-lg px-3 py-2.5">{error}</div>
+            <div className="text-[13px] text-[#9B2335] dark:text-red-400 bg-[#FBE4E4] dark:bg-red-900/20 border border-[#F0B4B4] dark:border-red-900/50 rounded-lg px-3 py-2.5">{error}</div>
           )}
         </div>
 
-        <div className="sticky bottom-0 bg-white border-t border-[#E2D8C2] px-6 py-4 flex items-center justify-end gap-3">
+        <div className="sticky bottom-0 bg-white dark:bg-[#101D2E] border-t border-[#E2D8C2] dark:border-white/10 px-6 py-4 flex items-center justify-end gap-3">
           <button onClick={onClose} className={btnGhost}>Cancel</button>
           <button onClick={handleSave} disabled={saving} className={btnPrimary}>
             {saving ? "Saving…" : isNew ? "Create Pipeline" : "Save Changes"}
@@ -293,14 +292,14 @@ function StageColumn({ title, icon, accent, stages, setStages, outcomeOptions })
   const addStage = () => setStages([...stages, emptyStage()]);
 
   return (
-    <div className="bg-[#F6F1E8] rounded-xl p-4 border border-[#E2D8C2]">
+    <div className="bg-[#F6F1E8] dark:bg-white/5 rounded-xl p-4 border border-[#E2D8C2] dark:border-white/10">
       <div className="flex items-center gap-1.5 mb-3">
         {icon}
-        <h4 className="text-[13px] font-semibold text-[#0E1B2C]">{title}</h4>
+        <h4 className="text-[13px] font-semibold text-[#0E1B2C] dark:text-[#F1EDE3]">{title}</h4>
       </div>
 
       {stages.length === 0 && (
-        <p className="text-[12px] text-[#2A364B]/40 mb-3">No stages yet.</p>
+        <p className="text-[12px] text-[#2A364B]/40 dark:text-[#8E99AC]/40 mb-3">No stages yet.</p>
       )}
 
       <div className="space-y-2">
@@ -322,7 +321,7 @@ function StageColumn({ title, icon, accent, stages, setStages, outcomeOptions })
 
       <button
         onClick={addStage}
-        className="mt-3 inline-flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-lg hover:bg-white"
+        className="mt-3 inline-flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-lg hover:bg-white dark:hover:bg-white/10"
         style={{ color: accent }}
       >
         <Plus size={13} /> Add Stage
@@ -355,9 +354,9 @@ const StageNode = memo(function StageNode({ stage, depth, outcomeOptions, onChan
   };
 
   return (
-    <div style={{ marginLeft: depth ? 16 : 0 }} className={depth ? "border-l-2 border-[#E2D8C2] pl-3" : ""}>
-      <div className="flex items-center gap-1.5 bg-white border border-[#E2D8C2] rounded-lg px-2 py-1.5 mb-2 flex-wrap">
-        <GripVertical size={13} className="text-[#2A364B]/25 shrink-0" />
+    <div style={{ marginLeft: depth ? 16 : 0 }} className={depth ? "border-l-2 border-[#E2D8C2] dark:border-white/10 pl-3" : ""}>
+      <div className="flex items-center gap-1.5 bg-white dark:bg-[#101D2E] border border-[#E2D8C2] dark:border-white/10 rounded-lg px-2 py-1.5 mb-2 flex-wrap">
+        <GripVertical size={13} className="text-[#2A364B]/25 dark:text-[#8E99AC]/25 shrink-0" />
 
         <div className="relative shrink-0">
           <button
@@ -368,7 +367,7 @@ const StageNode = memo(function StageNode({ stage, depth, outcomeOptions, onChan
             title="Change colour"
           />
           {showColors && (
-            <div className="absolute z-20 top-6 left-0 bg-white border border-[#E2D8C2] rounded-lg shadow-lg p-2 flex gap-1.5">
+            <div className="absolute z-20 top-6 left-0 bg-white dark:bg-[#101D2E] border border-[#E2D8C2] dark:border-white/10 rounded-lg shadow-lg p-2 flex gap-1.5">
               {COLORS.map((c) => (
                 <button
                   key={c}
@@ -386,13 +385,13 @@ const StageNode = memo(function StageNode({ stage, depth, outcomeOptions, onChan
           value={stage.name}
           onChange={(e) => onChange({ ...stage, name: e.target.value })}
           placeholder="Stage name"
-          className="flex-1 min-w-[90px] text-[13px] outline-none bg-transparent text-[#0E1B2C]"
+          className="flex-1 min-w-[90px] text-[13px] outline-none bg-transparent text-[#0E1B2C] dark:text-[#F1EDE3]"
         />
 
         <select
           value={stage.outcome_type || ""}
           onChange={(e) => onChange({ ...stage, outcome_type: e.target.value || null })}
-          className="text-[11px] border border-[#E2D8C2] rounded-md px-1.5 py-1 bg-white text-[#2A364B] shrink-0"
+          className="text-[11px] border border-[#E2D8C2] dark:border-white/10 rounded-md px-1.5 py-1 bg-white dark:bg-[#101D2E] text-[#2A364B] dark:text-[#8E99AC] shrink-0"
           title="What this stage means to the call-flow engine"
         >
           {outcomeOptions.map((o) => (
@@ -400,10 +399,10 @@ const StageNode = memo(function StageNode({ stage, depth, outcomeOptions, onChan
           ))}
         </select>
 
-        <button type="button" onClick={addChild} title="Add sub-stage" className="text-[11px] text-[#2A364B]/50 hover:text-[#024396] px-1.5 py-1 shrink-0 inline-flex items-center gap-0.5">
+        <button type="button" onClick={addChild} title="Add sub-stage" className="text-[11px] text-[#2A364B]/50 dark:text-[#8E99AC]/50 hover:text-[#024396] px-1.5 py-1 shrink-0 inline-flex items-center gap-0.5">
           <ChevronRight size={12} /> sub-stage
         </button>
-        <button type="button" onClick={onRemove} title="Remove stage" className="p-1 text-[#2A364B]/40 hover:text-[#C7102E] shrink-0">
+        <button type="button" onClick={onRemove} title="Remove stage" className="p-1 text-[#2A364B]/40 dark:text-[#8E99AC]/40 hover:text-[#C7102E] shrink-0">
           <X size={14} />
         </button>
       </div>
@@ -451,17 +450,17 @@ function AssignModal({ pipeline, employees, onClose, onSaved, headers }) {
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm px-4">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6 max-h-[90vh] overflow-y-auto">
-        <h3 className="font-serif text-lg text-[#0E1B2C] mb-1">Assign — {pipeline.name}</h3>
-        <p className="text-xs text-[#2A364B]/50 mb-4">Select who should follow this pipeline for their leads. Their new/reassigned leads will automatically use these stages.</p>
+      <div className="bg-white dark:bg-[#101D2E] rounded-2xl shadow-2xl w-full max-w-md p-6 max-h-[90vh] overflow-y-auto">
+        <h3 className="font-serif text-lg text-[#0E1B2C] dark:text-[#F1EDE3] mb-1">Assign — {pipeline.name}</h3>
+        <p className="text-xs text-[#2A364B]/50 dark:text-[#8E99AC]/50 mb-4">Select who should follow this pipeline for their leads. Their new/reassigned leads will automatically use these stages.</p>
 
         <div className="space-y-1.5 max-h-72 overflow-y-auto mb-5">
-          {employees.length === 0 && <p className="text-sm text-[#2A364B]/40">No employees found.</p>}
+          {employees.length === 0 && <p className="text-sm text-[#2A364B]/40 dark:text-[#8E99AC]/40">No employees found.</p>}
           {employees.map((emp) => (
-            <label key={emp.id} className="flex items-center gap-2.5 px-3 py-2 rounded-lg hover:bg-[#F6F1E8] cursor-pointer">
+            <label key={emp.id} className="flex items-center gap-2.5 px-3 py-2 rounded-lg hover:bg-[#F6F1E8] dark:bg-white/5 cursor-pointer">
               <input type="checkbox" checked={selected.includes(emp.id)} onChange={() => toggle(emp.id)} className="accent-[#024396]" />
-              <span className="text-sm text-[#0E1B2C]">{emp.name}</span>
-              {emp.designation && <span className="text-[11px] text-[#2A364B]/40">— {emp.designation}</span>}
+              <span className="text-sm text-[#0E1B2C] dark:text-[#F1EDE3]">{emp.name}</span>
+              {emp.designation && <span className="text-[11px] text-[#2A364B]/40 dark:text-[#8E99AC]/40">— {emp.designation}</span>}
             </label>
           ))}
         </div>

@@ -3,17 +3,16 @@ import { useParams, useNavigate } from "react-router-dom";
 import PortalLayout from "../components/PortalLayout";
 import { useAuth } from "../context/AuthContext";
 import { ArrowLeft, Phone, Mail, Briefcase, MessageSquarePlus, Clock } from "lucide-react";
+import PortalModal from "../components/portal/PortalModal";
+import StatusBadge from "../components/portal/StatusBadge";
+import EmptyState from "../components/portal/EmptyState";
+import { Button } from "../components/ui/button";
 
 const API_BASE = process.env.REACT_APP_BACKEND_URL || "";
 
 const STATUS_LABELS = {
   new: "New", contacted: "Contacted", follow_up: "Follow Up",
   interested: "Interested", converted: "Converted", lost: "Lost",
-};
-const STATUS_COLORS = {
-  new: "bg-blue-100 text-blue-700", contacted: "bg-yellow-100 text-yellow-700",
-  follow_up: "bg-orange-100 text-orange-700", interested: "bg-purple-100 text-purple-700",
-  converted: "bg-emerald-100 text-emerald-700", lost: "bg-red-100 text-red-700",
 };
 
 export default function AdminEmployeeProfile() {
@@ -59,14 +58,20 @@ export default function AdminEmployeeProfile() {
   };
 
   if (loading) {
-    return <PortalLayout><div className="py-24 text-center text-[#2A364B]/50 text-sm">Loading profile…</div></PortalLayout>;
+    return (
+      <PortalLayout>
+        <div className="flex justify-center py-24">
+          <div className="w-8 h-8 border-2 border-[#024396] dark:border-[#7CB0FF] border-t-transparent rounded-full animate-spin" />
+        </div>
+      </PortalLayout>
+    );
   }
   if (!employee) {
     return (
       <PortalLayout>
-        <div className="bg-white rounded-2xl border border-[#E2D8C2] p-12 text-center shadow-sm">
-          <p className="text-[#0E1B2C] font-medium mb-1">Employee not found</p>
-          <button onClick={() => navigate("/portal/admin/leads")} className="text-sm text-[#024396] font-medium mt-2">← Back</button>
+        <div className="bg-white dark:bg-[#101D2E] rounded-2xl border border-[#E2D8C2] dark:border-white/10 p-12 text-center shadow-sm">
+          <p className="text-[#0E1B2C] dark:text-[#F1EDE3] font-medium mb-1">Employee not found</p>
+          <button onClick={() => navigate("/portal/admin/leads")} className="text-sm text-[#024396] dark:text-[#7CB0FF] font-medium mt-2">← Back</button>
         </div>
       </PortalLayout>
     );
@@ -77,87 +82,85 @@ export default function AdminEmployeeProfile() {
 
   return (
     <PortalLayout>
-      <button onClick={() => navigate(-1)} className="inline-flex items-center gap-1.5 text-xs text-[#2A364B]/60 hover:text-[#024396] mb-4">
+      <button onClick={() => navigate(-1)} className="inline-flex items-center gap-1.5 text-xs text-[#2A364B]/60 dark:text-[#8E99AC] hover:text-[#024396] dark:hover:text-[#7CB0FF] mb-4">
         <ArrowLeft size={13} /> Back
       </button>
 
       {/* Employee header card */}
-      <div className="bg-white rounded-2xl border border-[#E2D8C2] p-6 shadow-sm mb-6 flex items-start gap-4 flex-wrap">
+      <div className="bg-white dark:bg-[#101D2E] rounded-2xl border border-[#E2D8C2] dark:border-white/10 p-6 shadow-sm mb-6 flex items-start gap-4 flex-wrap">
         <div className="w-14 h-14 rounded-full bg-gradient-to-br from-[#024396] to-[#0356c4] flex items-center justify-center text-white font-serif text-xl shrink-0">
           {(employee.name || "?").charAt(0).toUpperCase()}
         </div>
         <div className="flex-1 min-w-[200px]">
-          <h2 className="text-xl font-serif text-[#0E1B2C]">{employee.name}</h2>
-          <p className="text-xs text-[#2A364B]/50">{employee.designation || "Employee"}</p>
-          <div className="flex flex-wrap gap-4 mt-2 text-xs text-[#2A364B]/60">
+          <h2 className="text-xl font-serif text-[#0E1B2C] dark:text-[#F1EDE3]">{employee.name}</h2>
+          <p className="text-xs text-[#2A364B]/50 dark:text-[#8E99AC]">{employee.designation || "Employee"}</p>
+          <div className="flex flex-wrap gap-4 mt-2 text-xs text-[#2A364B]/60 dark:text-[#8E99AC]">
             {employee.email && <span className="inline-flex items-center gap-1"><Mail size={12} /> {employee.email}</span>}
             {employee.phone && <span className="inline-flex items-center gap-1"><Phone size={12} /> {employee.phone}</span>}
             {employee.join_date && <span className="inline-flex items-center gap-1"><Briefcase size={12} /> Since {employee.join_date}</span>}
           </div>
         </div>
         {employee.is_active === false && (
-          <span className="text-[10px] font-bold uppercase tracking-wide text-[#C7102E] bg-[#FBE4E4] px-2.5 py-1 rounded-full shrink-0">Inactive</span>
+          <span className="text-[10px] font-bold uppercase tracking-wide text-[#C7102E] dark:text-red-400 bg-[#FBE4E4] dark:bg-red-900/20 px-2.5 py-1 rounded-full shrink-0">Inactive</span>
         )}
       </div>
 
       {/* Stats */}
       <div className="flex gap-2 overflow-x-auto pb-1 mb-6">
         {Object.entries(STATUS_LABELS).map(([key, label]) => (
-          <div key={key} className="shrink-0 bg-white rounded-xl border border-[#E2D8C2] px-4 py-2 text-center min-w-[80px]">
-            <p className="text-lg font-bold text-[#0E1B2C]">{statCounts[key] || 0}</p>
-            <p className="text-[10px] text-[#2A364B]/50 uppercase">{label}</p>
+          <div key={key} className="shrink-0 bg-white dark:bg-[#101D2E] rounded-xl border border-[#E2D8C2] dark:border-white/10 px-4 py-2 text-center min-w-[80px]">
+            <p className="text-lg font-bold text-[#0E1B2C] dark:text-[#F1EDE3]">{statCounts[key] || 0}</p>
+            <p className="text-[10px] text-[#2A364B]/50 dark:text-[#8E99AC] uppercase">{label}</p>
           </div>
         ))}
       </div>
 
       {/* Quick note modal */}
-      {noteFor && (
-        <div className="fixed inset-0 z-[110] flex items-center justify-center bg-black/55 backdrop-blur-sm px-4">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-5">
-            <h3 className="font-serif text-[16px] text-[#0E1B2C] mb-1">Add Update</h3>
-            <p className="text-xs text-[#2A364B]/50 mb-4">{noteFor.name} · {noteFor.phone}</p>
-            <form onSubmit={submitNote} className="space-y-3">
-              <textarea
-                rows={3}
-                autoFocus
-                placeholder="What's the update?"
-                value={noteText}
-                onChange={(e) => setNoteText(e.target.value)}
-                className="w-full border border-[#E2D8C2] rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#024396]/30 resize-none"
-              />
-              <div className="flex gap-2">
-                <button type="button" onClick={() => setNoteFor(null)} className="flex-1 py-2.5 rounded-xl text-sm font-medium text-[#2A364B]/70 border border-[#E2D8C2]">Cancel</button>
-                <button type="submit" disabled={saving} className="flex-1 py-2.5 rounded-xl text-sm font-semibold text-white bg-[#024396] disabled:opacity-60">
-                  {saving ? "Saving…" : "Save Update"}
-                </button>
-              </div>
-            </form>
+      <PortalModal
+        open={!!noteFor}
+        onOpenChange={(v) => !v && setNoteFor(null)}
+        title="Add Update"
+        description={noteFor ? `${noteFor.name} · ${noteFor.phone}` : ""}
+        maxWidth="max-w-sm"
+      >
+        <form onSubmit={submitNote} className="space-y-3">
+          <textarea
+            rows={3}
+            autoFocus
+            placeholder="What's the update?"
+            value={noteText}
+            onChange={(e) => setNoteText(e.target.value)}
+            className="w-full border border-[#E2D8C2] dark:border-white/15 dark:bg-white/5 dark:text-[#F1EDE3] rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#024396]/30 resize-none"
+          />
+          <div className="flex gap-2">
+            <Button type="button" variant="outline" className="flex-1" onClick={() => setNoteFor(null)}>Cancel</Button>
+            <Button type="submit" disabled={saving} className="flex-1 bg-gradient-to-r from-[#024396] to-[#0356c4]">
+              {saving ? "Saving…" : "Save Update"}
+            </Button>
           </div>
-        </div>
-      )}
+        </form>
+      </PortalModal>
 
       {/* Leads + their update history */}
-      <h3 className="text-sm font-semibold text-[#0E1B2C] mb-3">Leads &amp; Updates</h3>
+      <h3 className="text-sm font-semibold text-[#0E1B2C] dark:text-[#F1EDE3] mb-3">Leads &amp; Updates</h3>
       {leads.length === 0 ? (
-        <div className="bg-white rounded-2xl border border-[#E2D8C2] p-10 text-center">
-          <p className="text-[#2A364B]/50 text-sm">No leads assigned to this employee yet.</p>
+        <div className="bg-white dark:bg-[#101D2E] rounded-2xl border border-[#E2D8C2] dark:border-white/10">
+          <EmptyState icon="👤" title="No leads assigned to this employee yet." />
         </div>
       ) : (
         <div className="space-y-4">
           {leads.map((lead) => (
-            <div key={lead.id} className="bg-white rounded-2xl border border-[#E2D8C2] shadow-sm p-5">
+            <div key={lead.id} className="bg-white dark:bg-[#101D2E] rounded-2xl border border-[#E2D8C2] dark:border-white/10 shadow-sm p-5">
               <div className="flex items-start justify-between gap-3 mb-3">
                 <div>
-                  <p className="font-semibold text-[#0E1B2C]">{lead.name}</p>
-                  <p className="text-xs text-[#2A364B]/50">{lead.phone} {lead.city ? `· ${lead.city}` : ""}</p>
+                  <p className="font-semibold text-[#0E1B2C] dark:text-[#F1EDE3]">{lead.name}</p>
+                  <p className="text-xs text-[#2A364B]/50 dark:text-[#8E99AC]">{lead.phone} {lead.city ? `· ${lead.city}` : ""}</p>
                 </div>
                 <div className="flex items-center gap-2 shrink-0">
-                  <span className={`text-[10px] font-semibold uppercase px-2 py-0.5 rounded-full ${STATUS_COLORS[lead.status] || "bg-gray-100"}`}>
-                    {STATUS_LABELS[lead.status] || lead.status}
-                  </span>
+                  <StatusBadge status={lead.status} label={STATUS_LABELS[lead.status]} />
                   <button
                     onClick={() => { setNoteFor(lead); setNoteText(""); }}
-                    className="inline-flex items-center gap-1 text-[11px] font-medium text-[#024396] bg-[#024396]/5 hover:bg-[#024396]/10 rounded-lg px-2.5 py-1.5"
+                    className="inline-flex items-center gap-1 text-[11px] font-medium text-[#024396] dark:text-[#7CB0FF] bg-[#024396]/5 dark:bg-white/5 hover:bg-[#024396]/10 dark:hover:bg-white/10 rounded-lg px-2.5 py-1.5"
                   >
                     <MessageSquarePlus size={12} /> Add Update
                   </button>
@@ -165,18 +168,18 @@ export default function AdminEmployeeProfile() {
               </div>
 
               {(lead.status_history || []).length === 0 ? (
-                <p className="text-[11px] text-[#2A364B]/35">No updates logged yet.</p>
+                <p className="text-[11px] text-[#2A364B]/35 dark:text-[#8E99AC]/60">No updates logged yet.</p>
               ) : (
-                <div className="space-y-2 border-t border-[#E2D8C2] pt-3">
+                <div className="space-y-2 border-t border-[#E2D8C2] dark:border-white/10 pt-3">
                   {[...(lead.status_history || [])].reverse().slice(0, 6).map((h, i) => (
                     <div key={i} className="flex gap-2 text-[12px]">
-                      <Clock size={12} className="text-[#2A364B]/30 mt-0.5 shrink-0" />
+                      <Clock size={12} className="text-[#2A364B]/30 dark:text-[#8E99AC]/50 mt-0.5 shrink-0" />
                       <div>
-                        <span className="text-[#2A364B]/40 text-[10.5px]">
+                        <span className="text-[#2A364B]/40 dark:text-[#8E99AC]/70 text-[10.5px]">
                           {new Date(h.date).toLocaleString("en-IN", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" })}
                           {h.by_name ? ` · ${h.by_name}` : ""}
                         </span>
-                        <p className="text-[#2A364B]/80">
+                        <p className="text-[#2A364B]/80 dark:text-[#C7CEDA]">
                           {h.note || (h.status ? `Status → ${STATUS_LABELS[h.status] || h.status}` : h.connection_status ? `Call: ${h.connection_status} (${h.sub_stage})` : "Updated")}
                         </p>
                       </div>

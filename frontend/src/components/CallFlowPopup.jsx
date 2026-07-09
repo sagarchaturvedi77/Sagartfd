@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from "react";
-import { PhoneCall, PhoneOff, X, CheckCircle2, XCircle, Trophy, Clock, PhoneMissed, PhoneOff as SwitchOffIcon, Ban, WifiOff } from "lucide-react";
+import { PhoneCall, PhoneOff, X, CheckCircle2, XCircle, Trophy, Clock, PhoneMissed, PhoneOff as SwitchOffIcon, Ban, WifiOff, Voicemail, ArrowRightLeft } from "lucide-react";
+import { codeFieldLabel } from "../lib/utils";
 
 const API_BASE = process.env.REACT_APP_BACKEND_URL || "";
 
 const field = "w-full border border-[#E2D8C2] rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#024396]/30";
 
-const SERVICE_OPTIONS = ["Mutual Fund", "Insurance - Term", "Insurance - Health", "Insurance - Motor", "NPS", "Bonds/NCDs", "Portfolio Management", "Other"];
+const SERVICE_OPTIONS = ["Mutual Fund", "Insurance - Term", "Insurance - Health", "Insurance - Motor", "NPS", "Bonds/NCDs", "Portfolio Management", "Demat Account", "Course", "Other"];
 
 const CONNECTED_OPTIONS = [
   { key: "interested", label: "Interested", icon: CheckCircle2, color: "#16a34a", bg: "#EAF6EE" },
@@ -17,13 +18,14 @@ const CONNECTED_OPTIONS = [
 const NOT_CONNECTED_OPTIONS = [
   { key: "npc", label: "No Response (NPC)", icon: PhoneMissed, color: "#B8862B", bg: "#FBF1DD" },
   { key: "switchoff", label: "Switched Off", icon: SwitchOffIcon, color: "#5C677D", bg: "#F0F1F3" },
+  { key: "busy", label: "Busy", icon: Voicemail, color: "#7c3aed", bg: "#F1EAFB" },
   { key: "invalid", label: "Invalid Number", icon: Ban, color: "#C7102E", bg: "#FBE4E4" },
   { key: "network_issue", label: "Network Issue", icon: WifiOff, color: "#0891b2", bg: "#E3F4F7" },
 ];
 
 const ICON_BY_OUTCOME = {
   interested: CheckCircle2, not_interested: XCircle, converted: Trophy, lost: XCircle,
-  npc: PhoneMissed, switchoff: SwitchOffIcon, invalid: Ban, network_issue: WifiOff,
+  npc: PhoneMissed, switchoff: SwitchOffIcon, invalid: Ban, network_issue: WifiOff, busy: Voicemail,
 };
 
 // Flatten a nested custom-stage tree into a flat list of pickable options,
@@ -52,11 +54,12 @@ export default function CallFlowPopup({ lead, token, onClose, onSaved }) {
   const [pipeline, setPipeline] = useState(null);
   const [pipelineLoading, setPipelineLoading] = useState(!!lead.pipeline_id);
   const [form, setForm] = useState({
-    notes: "", service_interest: "", code_name: "", service_duration_months: "",
-    follow_up_date: "", follow_up_time: "",
+    notes: "", service_interest: "", code_name: "", service_duration_months: "", service_price: "",
+    follow_up_date: "", follow_up_time: "", reassign_to: "",
   });
   const [saving, setSaving] = useState(false);
   const [result, setResult] = useState(null); // server response after save
+  const [employees, setEmployees] = useState([]);
 
   const headers = { Authorization: `Bearer ${token}`, "Content-Type": "application/json" };
 
@@ -69,6 +72,14 @@ export default function CallFlowPopup({ lead, token, onClose, onSaved }) {
       .finally(() => setPipelineLoading(false));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [lead.pipeline_id]);
+
+  useEffect(() => {
+    fetch(`${API_BASE}/api/auth/employees`, { headers })
+      .then((r) => (r.ok ? r.json() : []))
+      .then((data) => setEmployees(data.filter((e) => e.id !== lead.assigned_to)))
+      .catch(() => {});
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const reset = () => { setConnectionStatus(null); setSubStage(null); setPickedStageId(null); setResult(null); };
 
@@ -87,9 +98,11 @@ export default function CallFlowPopup({ lead, token, onClose, onSaved }) {
         notes: form.notes || null,
         service_interest: form.service_interest || null,
         code_name: form.code_name || null,
+        service_price: form.service_price ? Number(form.service_price) : null,
         service_duration_months: form.service_duration_months ? Number(form.service_duration_months) : null,
         follow_up_date: form.follow_up_date || null,
         follow_up_time: form.follow_up_time || null,
+        reassign_to: subStage === "not_interested" ? (form.reassign_to || null) : null,
       };
       const res = await fetch(`${API_BASE}/api/leads/${lead.id}/call-outcome`, {
         method: "POST", headers, body: JSON.stringify(payload),
@@ -185,6 +198,7 @@ export default function CallFlowPopup({ lead, token, onClose, onSaved }) {
                 setForm={setForm}
                 saving={saving}
                 onSubmit={submit}
+                employees={employees}
               />
             </>
           )}
@@ -194,7 +208,7 @@ export default function CallFlowPopup({ lead, token, onClose, onSaved }) {
   );
 }
 
-function SubStageForm({ subStage, form, setForm, saving, onSubmit }) {
+function SubStageForm({ subStage, form, setForm, saving, onSubmit, employees = [] }) {
   const set = (k, v) => setForm((f) => ({ ...f, [k]: v }));
 
   if (subStage === "interested") {
@@ -230,9 +244,13 @@ function SubStageForm({ subStage, form, setForm, saving, onSubmit }) {
           <option value="">Select service…</option>
           {SERVICE_OPTIONS.map((s) => <option key={s} value={s}>{s}</option>)}
         </select>
-        <input placeholder="Plan / code name" value={form.code_name} onChange={(e) => set("code_name", e.target.value)} className={field} />
+        <input placeholder={codeFieldLabel(form.service_interest)} value={form.code_name} onChange={(e) => set("code_name", e.target.value)} className={field} />
         <div>
-          <label className="text-[11px] text-[#2A364B]/50 mb-1 block">If this is a monthly service, how many months?</label>
+          <label className="text-[11px] text-[#2A364B]/50 mb-1 block">Amount / Price (₹)</label>
+          <input type="number" min="0" placeholder="e.g. 5000" value={form.service_price} onChange={(e) => set("service_price", e.target.value)} className={field} />
+        </div>
+        <div>
+          <label className="text-[11px] text-[#2A364B]/50 mb-1 block">Valid for how many months? (course / monthly service)</label>
           <input type="number" min="1" placeholder="e.g. 12" value={form.service_duration_months} onChange={(e) => set("service_duration_months", e.target.value)} className={field} />
         </div>
         <textarea rows={2} placeholder="Notes (optional)" value={form.notes} onChange={(e) => set("notes", e.target.value)} className={`${field} resize-none`} />
@@ -248,10 +266,23 @@ function SubStageForm({ subStage, form, setForm, saving, onSubmit }) {
     return (
       <form onSubmit={(e) => { e.preventDefault(); onSubmit(); }} className="space-y-3">
         <p className="text-[12.5px] text-[#2A364B]/60">
-          We'll remind you to try again tomorrow. After 3 "not interested" calls, this lead moves to Lost automatically.
+          {form.reassign_to
+            ? "This lead will be handed straight to the selected employee, carrying your note forward."
+            : "We'll remind you to try again tomorrow. After 3 \"not interested\" calls, this lead moves to Lost automatically."}
         </p>
         <textarea rows={2} placeholder="Reason (optional)" value={form.notes} onChange={(e) => set("notes", e.target.value)} className={`${field} resize-none`} />
-        <SubmitBtn saving={saving} />
+        {employees.length > 0 && (
+          <div>
+            <label className="text-[11px] text-[#2A364B]/50 mb-1 flex items-center gap-1"><ArrowRightLeft size={11} /> Reassign to another employee? (optional)</label>
+            <select value={form.reassign_to} onChange={(e) => set("reassign_to", e.target.value)} className={field}>
+              <option value="">No — keep retrying myself</option>
+              {employees.map((e) => (
+                <option key={e.id} value={e.id}>{e.name}{e.designation ? ` — ${e.designation}` : ""}</option>
+              ))}
+            </select>
+          </div>
+        )}
+        <SubmitBtn saving={saving} label={form.reassign_to ? "Save & Reassign" : "Save"} />
       </form>
     );
   }
@@ -275,11 +306,12 @@ function SubStageForm({ subStage, form, setForm, saving, onSubmit }) {
     );
   }
 
-  // npc / switchoff / network_issue
+  // npc / switchoff / busy / network_issue
   return (
     <form onSubmit={(e) => { e.preventDefault(); onSubmit(); }} className="space-y-3">
       <p className="text-[12.5px] text-[#2A364B]/60">
-        We'll remind you to try again tomorrow. After 3 unanswered attempts, this lead moves to Lost automatically.
+        We'll remind you to try again tomorrow. If it's still not connecting after that, this lead auto-hands off
+        to another employee (up to 2 hand-offs) before finally moving to Lost with the full reason trail.
       </p>
       <SubmitBtn saving={saving} />
     </form>
@@ -301,9 +333,10 @@ function SubmitBtn({ saving, label = "Save" }) {
 function ResultScreen({ result, onDone }) {
   const statusMessages = {
     interested: "Marked as Interested — follow-up reminder set.",
-    follow_up: "Reminder set to retry tomorrow.",
+    follow_up: "Reminder set to retry tomorrow (or handed to another employee).",
     converted: "🎉 Marked as Converted!",
     lost: "This lead has been marked Lost.",
+    new: "Lead reassigned to the selected employee.",
   };
   return (
     <div className="text-center py-6">

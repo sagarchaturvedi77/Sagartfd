@@ -280,6 +280,22 @@ async def fund_detail(code: str):
 
 # -------------- ROUTES: AI Chat (Sagar ji persona) --------------
 
+
+def _extract_gemini_text(data: dict) -> str:
+    """The Gemini `/v1beta/interactions` endpoint does NOT return a top-level
+    `output_text` field (verified against the live API) — the answer is
+    nested in `steps[]`, in the entry with type == "model_output", as a list
+    of {"text": ..., "type": "text"} content parts. Earlier `steps` entries
+    are internal "thought" steps and must be skipped."""
+    for step in data.get("steps", []):
+        if step.get("type") == "model_output":
+            parts = step.get("content") or []
+            texts = [p.get("text", "") for p in parts if p.get("type") == "text"]
+            if texts:
+                return "".join(texts).strip()
+    return ""
+
+
 SAGAR_SYSTEM_PROMPT = """
 You are TFD-AI, the official AI assistant for The Financial Doctor and Sagar Chaturvedi.
 
@@ -352,7 +368,7 @@ async def ai_chat(payload: AIChatRequest):
                 return
 
             data = response.json()
-            answer = data.get("output_text") or "Sorry, main abhi answer generate nahi kar pa raha hoon."
+            answer = _extract_gemini_text(data) or "Sorry, main abhi answer generate nahi kar pa raha hoon."
 
             full_response_chunks.append(answer)
             yield _sse(answer)

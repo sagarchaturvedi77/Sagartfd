@@ -1,7 +1,11 @@
 import React, { useState, useEffect, useCallback } from "react";
 import PortalLayout from "../components/PortalLayout";
 import { useAuth } from "../context/AuthContext";
-import { FileText, Upload, Trash2, FolderOpen, Plus } from "lucide-react";
+import { FileText, Upload, Trash2, Plus } from "lucide-react";
+import PageHeader from "../components/portal/PageHeader";
+import EmptyState from "../components/portal/EmptyState";
+import PortalModal from "../components/portal/PortalModal";
+import { Button } from "../components/ui/button";
 
 const API = process.env.REACT_APP_BACKEND_URL || "";
 
@@ -69,61 +73,65 @@ export default function AdminDocuments() {
   };
 
   const filtered = filterCat === "All" ? docs : docs.filter(d => d.category === filterCat);
+  const field = "w-full border border-[#E2D8C2] dark:border-white/15 dark:bg-white/5 dark:text-[#F1EDE3] rounded-xl px-3 py-2 text-sm outline-none focus:border-[#024396] dark:focus:border-[#7CB0FF]";
 
   return (
     <PortalLayout>
       <div className="space-y-4">
-        <div className="flex items-center justify-between">
-          <h2 className="text-lg font-semibold text-[#0E1B2C]">Company Documents</h2>
-          <button onClick={() => setShowAdd(true)} className="flex items-center gap-1.5 px-3 py-2 bg-[#024396] text-white rounded-lg text-xs font-semibold">
-            <Plus size={14} /> Add Document
-          </button>
-        </div>
+        <PageHeader
+          icon="🗂️"
+          title="Company Documents"
+          subtitle="Shared HR policies, templates, and reference files"
+          actions={
+            <Button onClick={() => setShowAdd(true)} className="bg-gradient-to-r from-[#024396] to-[#0356c4]">
+              <Plus size={14} className="mr-1" /> Add Document
+            </Button>
+          }
+        />
 
-        {/* Category Filter */}
         <div className="flex gap-2 flex-wrap">
           {["All", ...CATEGORIES].map(cat => (
             <button
               key={cat}
               onClick={() => setFilterCat(cat)}
-              className={`px-3 py-1.5 rounded-lg text-xs font-medium border ${filterCat === cat ? "bg-[#024396] text-white border-[#024396]" : "bg-white text-[#2A364B] border-[#E2D8C2]"}`}
+              className={`px-3 py-1.5 rounded-lg text-xs font-medium border ${filterCat === cat ? "bg-[#024396] dark:bg-[#4C8DFF] text-white border-[#024396] dark:border-[#4C8DFF]" : "bg-white dark:bg-white/5 text-[#2A364B] dark:text-[#8E99AC] border-[#E2D8C2] dark:border-white/10"}`}
             >
               {cat}
             </button>
           ))}
         </div>
 
-        {/* Documents List */}
         {loading ? (
-          <p className="text-sm text-[#5C677D]">Loading...</p>
+          <div className="flex justify-center py-16">
+            <div className="w-8 h-8 border-2 border-[#024396] dark:border-[#7CB0FF] border-t-transparent rounded-full animate-spin" />
+          </div>
         ) : filtered.length === 0 ? (
-          <div className="bg-white rounded-xl border border-[#E2D8C2] p-8 text-center">
-            <FolderOpen size={40} className="mx-auto text-[#E2D8C2] mb-2" />
-            <p className="text-sm text-[#5C677D]">No documents yet. Upload your first company document.</p>
+          <div className="bg-white dark:bg-[#101D2E] rounded-xl border border-[#E2D8C2] dark:border-white/10">
+            <EmptyState icon="🗂️" title="No documents yet." subtitle="Upload your first company document." />
           </div>
         ) : (
           <div className="grid gap-3">
             {filtered.map(doc => (
-              <div key={doc.id} className="bg-white rounded-xl border border-[#E2D8C2] p-4 flex items-start gap-3">
-                <div className="w-10 h-10 rounded-lg bg-[#F5F1EB] flex items-center justify-center flex-shrink-0">
-                  <FileText size={18} className="text-[#024396]" />
+              <div key={doc.id} className="bg-white dark:bg-[#101D2E] rounded-xl border border-[#E2D8C2] dark:border-white/10 p-4 flex items-start gap-3">
+                <div className="w-10 h-10 rounded-lg bg-[#F5F1EB] dark:bg-white/5 flex items-center justify-center flex-shrink-0">
+                  <FileText size={18} className="text-[#024396] dark:text-[#7CB0FF]" />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <h4 className="text-sm font-semibold text-[#0E1B2C] truncate">{doc.title}</h4>
-                  <p className="text-xs text-[#5C677D] mt-0.5">{doc.category} {doc.file_name && `· ${doc.file_name}`}</p>
-                  {doc.description && <p className="text-xs text-[#2A364B]/60 mt-1">{doc.description}</p>}
-                  <p className="text-[10px] text-[#5C677D] mt-1">
+                  <h4 className="text-sm font-semibold text-[#0E1B2C] dark:text-[#F1EDE3] truncate">{doc.title}</h4>
+                  <p className="text-xs text-[#5C677D] dark:text-[#8E99AC] mt-0.5">{doc.category} {doc.file_name && `· ${doc.file_name}`}</p>
+                  {doc.description && <p className="text-xs text-[#2A364B]/60 dark:text-[#8E99AC] mt-1">{doc.description}</p>}
+                  <p className="text-[10px] text-[#5C677D] dark:text-[#8E99AC]/70 mt-1">
                     Uploaded: {new Date(doc.created_at).toLocaleDateString("en-IN")}
                   </p>
                 </div>
                 <div className="flex gap-2 flex-shrink-0">
                   {doc.file_url && (
                     <a href={doc.file_url} download={doc.file_name} target="_blank" rel="noreferrer"
-                      className="p-2 rounded-lg bg-[#F5F1EB] text-[#024396] hover:bg-[#EAF1FB]">
+                      className="p-2 rounded-lg bg-[#F5F1EB] dark:bg-white/5 text-[#024396] dark:text-[#7CB0FF] hover:bg-[#EAF1FB] dark:hover:bg-white/10">
                       <Upload size={14} />
                     </a>
                   )}
-                  <button onClick={() => handleDelete(doc.id)} className="p-2 rounded-lg bg-red-50 text-red-600 hover:bg-red-100">
+                  <button onClick={() => handleDelete(doc.id)} className="p-2 rounded-lg bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/40">
                     <Trash2 size={14} />
                   </button>
                 </div>
@@ -132,48 +140,46 @@ export default function AdminDocuments() {
           </div>
         )}
 
-        {/* Add Document Modal */}
-        {showAdd && (
-          <div className="fixed inset-0 z-[100] bg-black/50 flex items-center justify-center p-4" onClick={() => setShowAdd(false)}>
-            <form onSubmit={handleSubmit} className="bg-white rounded-2xl p-6 max-w-md w-full space-y-4" onClick={e => e.stopPropagation()}>
-              <h3 className="text-lg font-semibold text-[#0E1B2C]">Upload Document</h3>
+        <PortalModal
+          open={showAdd}
+          onOpenChange={setShowAdd}
+          title="Upload Document"
+          maxWidth="max-w-md"
+        >
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div>
+              <label className="text-xs text-[#5C677D] dark:text-[#8E99AC] block mb-1">Title *</label>
+              <input value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))}
+                className={field} placeholder="Document title" />
+            </div>
 
-              <div>
-                <label className="text-xs text-[#5C677D] block mb-1">Title *</label>
-                <input value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))}
-                  className="w-full border border-[#E2D8C2] rounded-xl px-3 py-2 text-sm outline-none focus:border-[#024396]" placeholder="Document title" />
-              </div>
+            <div>
+              <label className="text-xs text-[#5C677D] dark:text-[#8E99AC] block mb-1">Category</label>
+              <select value={form.category} onChange={e => setForm(f => ({ ...f, category: e.target.value }))} className={field}>
+                {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
+              </select>
+            </div>
 
-              <div>
-                <label className="text-xs text-[#5C677D] block mb-1">Category</label>
-                <select value={form.category} onChange={e => setForm(f => ({ ...f, category: e.target.value }))}
-                  className="w-full border border-[#E2D8C2] rounded-xl px-3 py-2 text-sm outline-none focus:border-[#024396]">
-                  {CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
-                </select>
-              </div>
+            <div>
+              <label className="text-xs text-[#5C677D] dark:text-[#8E99AC] block mb-1">Description (optional)</label>
+              <textarea value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
+                className={field} rows={2} placeholder="Brief description" />
+            </div>
 
-              <div>
-                <label className="text-xs text-[#5C677D] block mb-1">Description (optional)</label>
-                <textarea value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
-                  className="w-full border border-[#E2D8C2] rounded-xl px-3 py-2 text-sm outline-none focus:border-[#024396]" rows={2} placeholder="Brief description" />
-              </div>
+            <div>
+              <label className="text-xs text-[#5C677D] dark:text-[#8E99AC] block mb-1">File</label>
+              <input type="file" onChange={handleFileUpload} className="text-sm text-[#2A364B] dark:text-[#C7CEDA]" accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.png,.jpg,.jpeg" />
+              {form.file_name && <p className="text-xs text-green-600 dark:text-green-400 mt-1">Selected: {form.file_name}</p>}
+            </div>
 
-              <div>
-                <label className="text-xs text-[#5C677D] block mb-1">File</label>
-                <input type="file" onChange={handleFileUpload} className="text-sm" accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.png,.jpg,.jpeg" />
-                {form.file_name && <p className="text-xs text-green-600 mt-1">Selected: {form.file_name}</p>}
-              </div>
-
-              <div className="flex gap-3">
-                <button type="button" onClick={() => setShowAdd(false)} className="flex-1 py-2.5 rounded-xl border border-[#E2D8C2] text-sm">Cancel</button>
-                <button type="submit" disabled={uploading || !form.title.trim()}
-                  className="flex-1 py-2.5 rounded-xl bg-[#024396] text-white text-sm font-semibold disabled:opacity-50">
-                  {uploading ? "Uploading..." : "Save Document"}
-                </button>
-              </div>
-            </form>
-          </div>
-        )}
+            <div className="flex gap-3 pt-1">
+              <Button type="button" variant="outline" className="flex-1" onClick={() => setShowAdd(false)}>Cancel</Button>
+              <Button type="submit" disabled={uploading || !form.title.trim()} className="flex-1 bg-gradient-to-r from-[#024396] to-[#0356c4]">
+                {uploading ? "Uploading..." : "Save Document"}
+              </Button>
+            </div>
+          </form>
+        </PortalModal>
       </div>
     </PortalLayout>
   );

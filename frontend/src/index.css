@@ -37,6 +37,40 @@
     --radius: 0.75rem;
 }
 
+.dark {
+    --bg: #0B1420;
+    --bg-soft: #101D2E;
+    --ink: #F1EDE3;
+    --ink-soft: #C7CEDA;
+    --ink-mute: #8E99AC;
+    --line: #22334A;
+    --emerald: #4C8DFF;
+    --emerald-deep: #2F6FDB;
+    --ochre: #FF5C72;
+    --terracotta: #FF5C72;
+    --gold: #FF5C72;
+
+    --background: 218 40% 8%;
+    --foreground: 40 20% 94%;
+    --card: 218 35% 12%;
+    --card-foreground: 40 20% 94%;
+    --popover: 218 35% 12%;
+    --popover-foreground: 40 20% 94%;
+    --primary: 214 100% 66%;
+    --primary-foreground: 218 40% 8%;
+    --secondary: 218 25% 18%;
+    --secondary-foreground: 40 20% 94%;
+    --muted: 218 25% 16%;
+    --muted-foreground: 218 14% 65%;
+    --accent: 351 100% 68%;
+    --accent-foreground: 218 40% 8%;
+    --destructive: 351 100% 68%;
+    --destructive-foreground: 218 40% 8%;
+    --border: 218 25% 20%;
+    --input: 218 25% 20%;
+    --ring: 214 100% 66%;
+}
+
 * {
     border-color: hsl(var(--border));
 }

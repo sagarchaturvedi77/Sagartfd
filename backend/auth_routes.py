@@ -3,11 +3,14 @@ from datetime import datetime
 import random
 import string
 
+from pydantic import BaseModel
+
 from auth_models import UserCreate, UserLogin, UserOut, UserInDB, TokenResponse, PasswordChange
 from auth_utils import hash_password, verify_password, create_access_token, require_admin, get_current_user_payload
 from database import users_collection
 from utils.employee import gen_employee_id_from_phone
 from utils.audit import write_audit
+from email_service import send_welcome_email, email_configured
 
 router = APIRouter(prefix="/api/auth", tags=["auth"])
 
@@ -162,8 +165,10 @@ async def change_password(
 
 
 @router.get("/employees", response_model=list[UserOut])
-async def list_employees(admin=Depends(require_admin)):
-    """ADMIN ONLY — lists all employee accounts for the admin dashboard."""
+async def list_employees(_payload: dict = Depends(get_current_user_payload)):
+    """Any logged-in user (admin or employee) — lists all employee accounts.
+    Used by the admin dashboard, and by employee-facing lead transfer/reassign
+    pickers (TransferLeadModal, CallFlowPopup) which need to pick a colleague."""
     cursor = users_collection.find({"role": "employee"})
     employees = [to_user_out(doc) async for doc in cursor]
     return employees
@@ -219,3 +224,30 @@ async def reset_employee_password(employee_id: str, admin=Depends(require_admin)
         {"$set": {"password_hash": hash_password(new_password)}},
     )
     return {"new_password": new_password, "phone": emp.get("phone", ""), "name": emp.get("name", "")}
+
+
+class WelcomeEmailIn(BaseModel):
+    """Credentials are passed in directly (from the just-created-account popup)
+    rather than looked up — the plaintext password only ever exists in memory
+    at creation time, it is never stored or retrievable afterwards."""
+    email: str
+    name: str
+    phone: str
+    password: str
+
+
+@router.get("/email-status")
+async def email_status(_admin=Depends(require_admin)):
+    """ADMIN ONLY — whether GMAIL_SENDER_EMAIL/GMAIL_APP_PASSWORD are configured,
+    so the frontend can hide/disable the Email button instead of failing silently."""
+    return {"configured": email_configured()}
+
+
+@router.post("/send-welcome-email")
+async def send_welcome_email_route(data: WelcomeEmailIn, admin=Depends(require_admin)):
+    """ADMIN ONLY — one-click send of login credentials to a newly created
+    employee's email, from ceo@thefinancialdoctor.in."""
+    ok, message = send_welcome_email(data.email, data.name, data.phone, data.password)
+    if not ok:
+        raise HTTPException(status_code=503, detail=message)
+    return {"status": "sent"}

@@ -1,18 +1,34 @@
 import React, { useCallback, useEffect, useState } from "react";
 import { useAuth } from "../context/AuthContext";
 import PortalLayout from "../components/PortalLayout";
+import EmployeeTasks from "./EmployeeTasks";
+import PageHeader from "../components/portal/PageHeader";
+import EmptyState from "../components/portal/EmptyState";
+import PortalModal from "../components/portal/PortalModal";
+import { Button } from "../components/ui/button";
 
 const API_BASE = process.env.REACT_APP_BACKEND_URL || "";
+const monthNames = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+
+function formatTargetValue(t) {
+  if (t.unit === "count") return `${t.target_amount % 1 === 0 ? t.target_amount : t.target_amount.toFixed(1)} ${t.target_type}`;
+  return new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR", maximumFractionDigits: 0 }).format(t.target_amount);
+}
+function formatAchievedValue(t) {
+  if (t.unit === "count") return `${t.achieved_amount % 1 === 0 ? t.achieved_amount : t.achieved_amount.toFixed(1)}`;
+  return new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR", maximumFractionDigits: 0 }).format(t.achieved_amount);
+}
 
 export default function EmployeeTargets() {
   const { token } = useAuth();
   const now = new Date();
+  const [tab, setTab] = useState("targets"); // targets | tasks
   const [month, setMonth] = useState(now.getMonth() + 1);
   const [year, setYear] = useState(now.getFullYear());
   const [targets, setTargets] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  const [showForm, setShowForm] = useState(false);
+  const [updateTarget, setUpdateTarget] = useState(null);
   const [achieved, setAchieved] = useState("");
   const [note, setNote] = useState("");
   const [saving, setSaving] = useState(false);
@@ -29,16 +45,11 @@ export default function EmployeeTargets() {
 
   useEffect(() => { fetchTargets(); }, [fetchTargets]);
 
-  const monthNames = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
-  const formatCurrency = (v) => new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR", maximumFractionDigits: 0 }).format(v);
-
-  const currentTarget = targets[0];
-
-  const openForm = () => {
-    setAchieved(currentTarget ? String(currentTarget.achieved_amount || "") : "");
-    setNote(currentTarget?.note || "");
+  const openUpdate = (t) => {
+    setUpdateTarget(t);
+    setAchieved(String(t.achieved_amount || ""));
+    setNote(t.note || "");
     setMsg("");
-    setShowForm(true);
   };
 
   const submitProgress = async (e) => {
@@ -46,7 +57,7 @@ export default function EmployeeTargets() {
     setSaving(true);
     setMsg("");
     try {
-      const res = await fetch(`${API_BASE}/api/targets/my/${currentTarget.id}/progress`, {
+      const res = await fetch(`${API_BASE}/api/targets/my/${updateTarget.id}/progress`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
         body: JSON.stringify({ achieved_amount: Number(achieved), note: note || null }),
@@ -56,7 +67,7 @@ export default function EmployeeTargets() {
         throw new Error(err.detail || "Update failed");
       }
       await fetchTargets();
-      setShowForm(false);
+      setUpdateTarget(null);
     } catch (err) {
       setMsg(err.message);
     } finally {
@@ -66,182 +77,134 @@ export default function EmployeeTargets() {
 
   return (
     <PortalLayout>
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
-        <div>
-          <h2 className="text-xl font-serif text-[#0E1B2C]">My Targets</h2>
-          <p className="text-xs text-[#2A364B]/50">Track your monthly performance</p>
-        </div>
-        <div className="flex items-center gap-2">
-          <select value={month} onChange={e => setMonth(Number(e.target.value))} className="border border-[#E2D8C2] rounded-lg px-3 py-2 text-sm bg-white">
-            {monthNames.map((m, i) => <option key={i} value={i + 1}>{m}</option>)}
-          </select>
-          <select value={year} onChange={e => setYear(Number(e.target.value))} className="border border-[#E2D8C2] rounded-lg px-3 py-2 text-sm bg-white">
-            {[2025, 2026, 2027].map(y => <option key={y} value={y}>{y}</option>)}
-          </select>
-        </div>
+      <PageHeader
+        icon="🎯"
+        title="My Targets"
+        subtitle="Track your monthly performance"
+        actions={tab === "targets" && (
+          <>
+            <select value={month} onChange={e => setMonth(Number(e.target.value))} className="border border-[#E2D8C2] dark:border-white/10 rounded-lg px-3 py-2 text-sm bg-white dark:bg-[#101D2E]">
+              {monthNames.map((m, i) => <option key={i} value={i + 1}>{m}</option>)}
+            </select>
+            <select value={year} onChange={e => setYear(Number(e.target.value))} className="border border-[#E2D8C2] dark:border-white/10 rounded-lg px-3 py-2 text-sm bg-white dark:bg-[#101D2E]">
+              {[2025, 2026, 2027].map(y => <option key={y} value={y}>{y}</option>)}
+            </select>
+          </>
+        )}
+      />
+
+      {/* Tabs */}
+      <div className="flex gap-2 border-b border-[#E2D8C2] dark:border-white/10 mb-6">
+        {[["targets", "🎯 Targets"], ["tasks", "✅ Tasks"]].map(([key, label]) => (
+          <button key={key} onClick={() => setTab(key)}
+            className={`px-4 py-2 text-sm font-medium border-b-2 transition-all ${tab === key ? "border-[#024396] dark:border-[#4C8DFF] text-[#024396] dark:text-[#7CB0FF]" : "border-transparent text-[#2A364B]/50 dark:text-[#8E99AC]/50 hover:text-[#2A364B] dark:hover:text-[#F1EDE3]"}`}>
+            {label}
+          </button>
+        ))}
       </div>
 
-      {loading ? (
-        <div className="bg-white rounded-2xl border border-[#E2D8C2] p-12 text-center text-[#2A364B]/50 shadow-sm">
-          <svg className="animate-spin h-6 w-6 mx-auto mb-2 text-[#024396]" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
+      {/* Self-update modal */}
+      <PortalModal
+        open={!!updateTarget}
+        onOpenChange={(v) => !v && setUpdateTarget(null)}
+        title="Update My Progress"
+        description={updateTarget ? `${updateTarget.target_type} — target ${formatTargetValue(updateTarget)}` : ""}
+        maxWidth="max-w-sm"
+      >
+        <form onSubmit={submitProgress} className="space-y-4">
+          <div>
+            <label className="block text-xs font-medium text-[#2A364B]/70 dark:text-[#8E99AC]/70 mb-1">
+              {updateTarget?.unit === "count" ? "Total achieved (count)" : "Total achieved amount (₹)"}
+            </label>
+            <input
+              type="number" min="0" required value={achieved}
+              onChange={(e) => setAchieved(e.target.value)}
+              placeholder={updateTarget?.unit === "count" ? "e.g. 3" : "e.g. 500000"}
+              className="w-full border border-[#E2D8C2] dark:border-white/10 dark:bg-white/5 dark:text-[#F1EDE3] rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#024396]/30"
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-[#2A364B]/70 dark:text-[#8E99AC]/70 mb-1">Work details / note (optional)</label>
+            <textarea
+              rows={3} value={note}
+              onChange={(e) => setNote(e.target.value)}
+              placeholder="What did you achieve? e.g. Closed 3 SIPs, 1 insurance policy..."
+              className="w-full border border-[#E2D8C2] dark:border-white/10 dark:bg-white/5 dark:text-[#F1EDE3] rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#024396]/30 resize-none"
+            />
+          </div>
+          {msg && <p className="text-sm text-red-600 dark:text-red-400">{msg}</p>}
+          <div className="flex gap-3">
+            <Button type="button" variant="outline" className="flex-1" onClick={() => setUpdateTarget(null)}>Cancel</Button>
+            <Button type="submit" disabled={saving} className="flex-1 bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600">
+              {saving ? "Saving..." : "Submit"}
+            </Button>
+          </div>
+        </form>
+      </PortalModal>
+
+      {tab === "tasks" ? (
+        <EmployeeTasks wrapInLayout={false} />
+      ) : loading ? (
+        <div className="bg-white dark:bg-[#101D2E] rounded-2xl border border-[#E2D8C2] dark:border-white/10 p-12 text-center text-[#2A364B]/50 dark:text-[#8E99AC]/50 shadow-sm">
+          <svg className="animate-spin h-6 w-6 mx-auto mb-2 text-[#024396] dark:text-[#7CB0FF]" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
           Loading...
         </div>
-      ) : !currentTarget ? (
-        <div className="bg-white rounded-2xl border border-[#E2D8C2] p-12 text-center shadow-sm">
-          <svg className="w-12 h-12 mx-auto mb-3 text-[#2A364B]/20" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24">
-            <path d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
-          </svg>
-          <p className="text-[#2A364B]/40 text-sm">No target set for {monthNames[month - 1]} {year}.</p>
-          <p className="text-[#2A364B]/30 text-xs mt-1">Your admin will set your monthly target.</p>
+      ) : targets.length === 0 ? (
+        <div className="bg-white dark:bg-[#101D2E] rounded-2xl border border-[#E2D8C2] dark:border-white/10 shadow-sm">
+          <EmptyState icon="🎯" title={`No target set for ${monthNames[month - 1]} ${year}`} subtitle="Your admin will set your monthly target(s)." />
         </div>
       ) : (
-        <>
-          {/* Main progress card */}
-          <div className="bg-white rounded-2xl border border-[#E2D8C2] shadow-sm p-6 sm:p-8 mb-6">
-            <div className="text-center mb-6">
-              <p className="text-xs text-[#2A364B]/50 uppercase tracking-wider mb-2">{monthNames[month - 1]} {year} Target</p>
-              <p className="text-sm text-[#2A364B]/60 mb-1">{currentTarget.target_type}</p>
-            </div>
+        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {targets.map((t) => (
+            <div key={t.id} className="bg-white dark:bg-[#101D2E] rounded-2xl border border-[#E2D8C2] dark:border-white/10 shadow-sm p-5">
+              <div className="flex items-center justify-between mb-3">
+                <span className="text-[10px] font-semibold uppercase tracking-wide text-[#024396] dark:text-[#7CB0FF] bg-[#024396]/10 dark:bg-white/10 px-2 py-0.5 rounded-full">{t.target_type}</span>
+                <span className="text-[10px] text-[#2A364B]/40 dark:text-[#8E99AC]/40">{monthNames[t.month - 1]} {t.year}</span>
+              </div>
 
-            {/* Circular progress indicator */}
-            <div className="flex justify-center mb-6">
-              <div className="relative w-44 h-44">
-                <svg className="w-44 h-44 transform -rotate-90" viewBox="0 0 176 176">
-                  <circle cx="88" cy="88" r="78" stroke="#E2D8C2" strokeWidth="12" fill="none" />
-                  <circle
-                    cx="88" cy="88" r="78"
-                    stroke={currentTarget.progress_pct >= 100 ? "#10b981" : currentTarget.progress_pct >= 50 ? "#024396" : "#f59e0b"}
-                    strokeWidth="12"
-                    fill="none"
-                    strokeLinecap="round"
-                    strokeDasharray={`${Math.min(currentTarget.progress_pct, 100) * 4.9} 490`}
-                    className="transition-all duration-1000"
-                  />
-                </svg>
-                <div className="absolute inset-0 flex flex-col items-center justify-center">
-                  <span className={`text-3xl font-bold ${
-                    currentTarget.progress_pct >= 100 ? "text-emerald-600" :
-                    currentTarget.progress_pct >= 50 ? "text-[#024396]" : "text-amber-600"
-                  }`}>
-                    {currentTarget.progress_pct}%
+              <div className="mb-3">
+                <div className="flex justify-between text-xs mb-1">
+                  <span className="text-[#2A364B]/60 dark:text-[#8E99AC]/60">Progress</span>
+                  <span className={`font-bold ${t.progress_pct >= 100 ? "text-emerald-600 dark:text-emerald-400" : t.progress_pct >= 50 ? "text-[#024396] dark:text-[#7CB0FF]" : "text-amber-600 dark:text-amber-400"}`}>
+                    {t.progress_pct}%
                   </span>
-                  <span className="text-xs text-[#2A364B]/50">Achieved</span>
+                </div>
+                <div className="h-2.5 bg-[#E2D8C2]/50 dark:bg-white/10 rounded-full overflow-hidden">
+                  <div
+                    className={`h-full rounded-full transition-all duration-500 ${
+                      t.progress_pct >= 100 ? "bg-gradient-to-r from-emerald-400 to-emerald-500" :
+                      t.progress_pct >= 50 ? "bg-gradient-to-r from-[#024396] to-[#0356c4]" :
+                      "bg-gradient-to-r from-amber-400 to-amber-500"
+                    }`}
+                    style={{ width: `${Math.min(t.progress_pct, 100)}%` }}
+                  />
                 </div>
               </div>
-            </div>
 
-            {/* Stats row */}
-            <div className="grid grid-cols-2 gap-4">
-              <div className="bg-[#FBF7EE] rounded-xl p-4 text-center">
-                <p className="text-[10px] text-[#2A364B]/50 uppercase tracking-wider mb-1">Achieved</p>
-                <p className="text-xl font-bold text-[#024396]">{formatCurrency(currentTarget.achieved_amount)}</p>
+              <div className="flex justify-between text-xs text-[#2A364B]/70 dark:text-[#8E99AC]/70 mb-1">
+                <span>Achieved: <b className="text-[#0E1B2C] dark:text-[#F1EDE3]">{formatAchievedValue(t)}</b></span>
+                <span>Target: <b className="text-[#0E1B2C] dark:text-[#F1EDE3]">{formatTargetValue(t)}</b></span>
               </div>
-              <div className="bg-[#FBF7EE] rounded-xl p-4 text-center">
-                <p className="text-[10px] text-[#2A364B]/50 uppercase tracking-wider mb-1">Target</p>
-                <p className="text-xl font-bold text-[#0E1B2C]">{formatCurrency(currentTarget.target_amount)}</p>
-              </div>
-            </div>
 
-            {/* Remaining */}
-            {currentTarget.progress_pct < 100 && (
-              <div className="mt-4 text-center">
-                <p className="text-sm text-[#2A364B]/60">
-                  Remaining: <b className="text-[#0E1B2C]">{formatCurrency(currentTarget.target_amount - currentTarget.achieved_amount)}</b>
-                </p>
-              </div>
-            )}
-
-            {currentTarget.note && (
-              <div className="mt-4 bg-[#FBF7EE] rounded-xl p-3 text-sm text-[#2A364B]/70">
-                <span className="text-[10px] uppercase tracking-wider text-[#2A364B]/40 block mb-0.5">Last update note</span>
-                {currentTarget.note}
-              </div>
-            )}
-
-            {/* Self-update */}
-            <div className="mt-6 pt-6 border-t border-[#E2D8C2]">
-              {!showForm ? (
-                <button
-                  onClick={openForm}
-                  className="w-full py-3 rounded-xl text-sm font-semibold text-white bg-gradient-to-r from-[#024396] to-[#0356c4] hover:from-[#023580] transition-all shadow-lg shadow-[#024396]/25"
-                >
-                  Update My Progress
-                </button>
-              ) : (
-                <form onSubmit={submitProgress} className="space-y-4">
-                  <div>
-                    <label className="block text-xs font-medium text-[#2A364B]/70 mb-1">Total achieved amount (₹)</label>
-                    <input
-                      type="number" min="0" required value={achieved}
-                      onChange={(e) => setAchieved(e.target.value)}
-                      placeholder="e.g. 500000"
-                      className="w-full border border-[#E2D8C2] rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#024396]/30"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-medium text-[#2A364B]/70 mb-1">Work details / note (optional)</label>
-                    <textarea
-                      rows={3} value={note}
-                      onChange={(e) => setNote(e.target.value)}
-                      placeholder="What did you achieve? e.g. Closed 3 SIPs, 1 insurance policy..."
-                      className="w-full border border-[#E2D8C2] rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#024396]/30 resize-none"
-                    />
-                  </div>
-                  {msg && <p className="text-sm text-red-600">{msg}</p>}
-                  <div className="flex gap-3">
-                    <button type="button" onClick={() => setShowForm(false)}
-                      className="flex-1 py-2.5 rounded-xl text-sm font-medium text-[#2A364B]/70 border border-[#E2D8C2] hover:bg-[#F5F1EB] transition-all">
-                      Cancel
-                    </button>
-                    <button type="submit" disabled={saving}
-                      className="flex-1 py-2.5 rounded-xl text-sm font-semibold text-white bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 transition-all disabled:opacity-60">
-                      {saving ? "Saving..." : "Submit"}
-                    </button>
-                  </div>
-                </form>
+              {t.target_description && (
+                <p className="text-xs text-[#2A364B]/60 dark:text-[#8E99AC]/60 bg-[#FBF7EE] dark:bg-white/5 rounded-lg p-2 mt-2">{t.target_description}</p>
               )}
-            </div>
-          </div>
+              {t.note && (
+                <p className="text-xs text-[#2A364B]/50 dark:text-[#8E99AC]/50 mt-2">
+                  <span className="uppercase tracking-wider text-[10px] text-[#2A364B]/40 dark:text-[#8E99AC]/40 block mb-0.5">Last update</span>
+                  {t.note}
+                </p>
+              )}
 
-          {/* All targets history */}
-          {targets.length > 1 && (
-            <div className="bg-white rounded-2xl border border-[#E2D8C2] shadow-sm overflow-hidden">
-              <div className="p-4 border-b border-[#E2D8C2] bg-[#FBF7EE]/50">
-                <h3 className="text-sm font-semibold text-[#0E1B2C]">Previous Targets</h3>
-              </div>
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="bg-[#FBF7EE]/30">
-                      <th className="text-left p-3 text-xs font-semibold text-[#2A364B]/60 uppercase tracking-wider">Period</th>
-                      <th className="text-left p-3 text-xs font-semibold text-[#2A364B]/60 uppercase tracking-wider">Type</th>
-                      <th className="text-right p-3 text-xs font-semibold text-[#2A364B]/60 uppercase tracking-wider">Target</th>
-                      <th className="text-right p-3 text-xs font-semibold text-[#2A364B]/60 uppercase tracking-wider">Achieved</th>
-                      <th className="text-right p-3 text-xs font-semibold text-[#2A364B]/60 uppercase tracking-wider">Progress</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {targets.slice(1).map((t) => (
-                      <tr key={t.id} className="border-t border-[#E2D8C2]/50">
-                        <td className="p-3 font-medium text-[#0E1B2C]">{monthNames[t.month - 1]} {t.year}</td>
-                        <td className="p-3 text-[#2A364B]/70">{t.target_type}</td>
-                        <td className="p-3 text-right text-[#2A364B]/70">{formatCurrency(t.target_amount)}</td>
-                        <td className="p-3 text-right text-[#2A364B]/70">{formatCurrency(t.achieved_amount)}</td>
-                        <td className="p-3 text-right">
-                          <span className={`px-2.5 py-1 rounded-full text-xs font-medium ${
-                            t.progress_pct >= 100 ? "bg-emerald-50 text-emerald-700" :
-                            t.progress_pct >= 50 ? "bg-blue-50 text-blue-700" : "bg-amber-50 text-amber-700"
-                          }`}>{t.progress_pct}%</span>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+              <button
+                onClick={() => openUpdate(t)}
+                className="w-full mt-3 py-2.5 rounded-xl text-sm font-semibold text-white bg-gradient-to-r from-[#024396] to-[#0356c4] hover:from-[#023580] transition-all shadow-md shadow-[#024396]/20"
+              >
+                Update My Progress
+              </button>
             </div>
-          )}
-        </>
+          ))}
+        </div>
       )}
     </PortalLayout>
   );

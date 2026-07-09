@@ -1,19 +1,35 @@
 import os
 import time
 import json
+import random
 import logging
 from datetime import datetime, timedelta
 
 import pytz
 from pymongo import MongoClient
 
-# Firebase Admin will be initialized via backend/init_firebase.py helper
+# Firebase Admin will be initialized via backend/init_firebase.py helper.
+# This module is run directly (`python scheduler_worker.py` from inside
+# backend/), not as `backend.scheduler_worker` — a `backend.` prefixed
+# import here always raised ModuleNotFoundError, silently caught below,
+# which meant FCM sending from this worker never actually worked.
 try:
     from firebase_admin import messaging
-    from backend.init_firebase import init_firebase_from_env
+    from init_firebase import init_firebase_from_env
 except Exception:
     messaging = None
     init_firebase_from_env = None
+
+try:
+    from pywebpush import webpush, WebPushException
+    _PYWEBPUSH_OK = True
+except Exception:
+    _PYWEBPUSH_OK = False
+
+try:
+    import httpx
+except Exception:
+    httpx = None
 
 LOG = logging.getLogger("scheduler")
 LOG.setLevel(logging.INFO)
@@ -34,6 +50,14 @@ attendance = db.get_collection("attendance")
 fcm_tokens = db.get_collection("fcm_tokens")
 reminders = db.get_collection("reminders")
 leads = db.get_collection("leads")
+web_push_subs = db.get_collection("web_push_subs")
+scheduler_state = db.get_collection("scheduler_state")
+
+GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "")
+GEMINI_MODEL = os.environ.get("GEMINI_MODEL", "gemini-3.5-flash")
+VAPID_PRIVATE_KEY = os.environ.get("VAPID_PRIVATE_KEY", "")
+VAPID_CLAIM_EMAIL = os.environ.get("VAPID_CLAIM_EMAIL", "mailto:admin@thefinancialdoctor.in")
+WEBSITE_NOTIF_INTERVAL_DAYS = float(os.environ.get("WEBSITE_NOTIF_INTERVAL_DAYS", "2"))
 
 # initialize firebase admin if available
 if init_firebase_from_env:
@@ -44,10 +68,14 @@ def send_fcm_token(token: str, title: str, body: str, data: dict | None = None) 
     if messaging is None:
         LOG.warning("firebase_admin.messaging not available — skipping send")
         return False
+    # Data-only (no `notification` block): a `notification` payload gets
+    # auto-displayed by the browser itself, bypassing our service worker's
+    # onBackgroundMessage handler — which is what applies the TFD logo icon
+    # and click-through link. See backend/notification_service.py for the
+    # same fix on the main app's send path.
     message = messaging.Message(
-        notification=messaging.Notification(title=title, body=body),
+        data={"title": title, "body": body, **{k: str(v) for k, v in (data or {}).items()}},
         token=token,
-        data=data or {},
     )
     attempt = 0
     while attempt < MAX_RETRIES:
@@ -242,6 +270,125 @@ def send_followup_reminders():
                     send_fcm_token(tok, title, body, {"screen": "leads"})
 
 
+# ── Automated website visitor notifications (Gemini-generated, Hinglish) ──
+
+WEBSITE_NOTIF_TOPICS = [
+    "SIP (Systematic Investment Plan) shuru karne ke fayde",
+    "Lumpsum investment kab aur kaise karein",
+    "Term Insurance kyu zaroori hai har kamaane wale ke liye",
+    "Health Insurance / Mediclaim ki ahmiyat medical emergency mein",
+    "Financial discipline aur paisa bachane ki motivation",
+    "TFD se ek free personalised financial proposal banwaayein",
+]
+
+
+def _extract_gemini_text(data: dict) -> str:
+    """The Gemini `/v1beta/interactions` endpoint does NOT return a top-level
+    `output_text` field (verified against the live API) — the answer is
+    nested in `steps[]`, in the entry with type == "model_output". See the
+    identical helper in server.py for the AI chat endpoint."""
+    for step in data.get("steps", []):
+        if step.get("type") == "model_output":
+            parts = step.get("content") or []
+            texts = [p.get("text", "") for p in parts if p.get("type") == "text"]
+            if texts:
+                return "".join(texts).strip()
+    return ""
+
+
+def generate_website_notification_content() -> tuple[str, str]:
+    """Returns (title, body) in Hinglish via Gemini — a different topic each
+    time so it never feels like the same repeated notification. Falls back
+    to a canned message if Gemini isn't configured or the call fails, so a
+    broadcast cycle is never silently skipped just because of that."""
+    topic = random.choice(WEBSITE_NOTIF_TOPICS)
+    fallback = ("The Financial Doctor", "Apne financial goals ke liye sahi planning zaroori hai — TFD se free consultation lein!")
+    if not (GEMINI_API_KEY and httpx):
+        return fallback
+    try:
+        prompt = (
+            f"Ek chhota mobile push notification likho, Hinglish (Roman script Hindi + English mix) mein, "
+            f"is topic par: \"{topic}\". Title max 40 characters, body max 110 characters. "
+            f"Ye The Financial Doctor (TFD) ki taraf se ja raha hai — ek AMFI-registered mutual fund distributor "
+            f"(Sagar Chaturvedi, Sehore MP). Guaranteed returns ka wada mat karo, koi specific fund/scheme "
+            f"recommend mat karo, sirf general awareness/motivation do. "
+            f"Sirf is exact JSON format mein jawab do, kuch aur text nahi: {{\"title\": \"...\", \"body\": \"...\"}}"
+        )
+        resp = httpx.post(
+            "https://generativelanguage.googleapis.com/v1beta/interactions",
+            headers={"Content-Type": "application/json", "x-goog-api-key": GEMINI_API_KEY},
+            json={"model": GEMINI_MODEL, "input": prompt, "generation_config": {"temperature": 0.9}},
+            timeout=20.0,
+        )
+        if resp.status_code != 200:
+            LOG.warning("Gemini website-notification call failed: %s", resp.text)
+            return fallback
+        text = _extract_gemini_text(resp.json())
+        parsed = json.loads(text[text.find("{"): text.rfind("}") + 1])
+        title = (parsed.get("title") or fallback[0]).strip()[:60] or fallback[0]
+        body = (parsed.get("body") or fallback[1]).strip()[:150] or fallback[1]
+        return title, body
+    except Exception as e:
+        LOG.exception("Gemini website-notification generation failed: %s", e)
+        return fallback
+
+
+def send_website_broadcast() -> bool:
+    """Sends one Gemini-generated Hinglish notification to every website
+    visitor who opted into push (web_push_subs) — raw Web Push via
+    pywebpush, delivered through public/web-push-sw.js (icon = TFD logo).
+    Returns True only if a send was actually attempted (so the caller
+    doesn't start the throttle clock on a day with zero subscribers)."""
+    if not (_PYWEBPUSH_OK and VAPID_PRIVATE_KEY):
+        LOG.warning("Website push not configured (pywebpush/VAPID_PRIVATE_KEY) — skipping broadcast")
+        return False
+    subs = list(web_push_subs.find())
+    if not subs:
+        LOG.info("No website push subscribers yet — skipping broadcast")
+        return False
+
+    title, body = generate_website_notification_content()
+    payload = json.dumps({"title": title, "body": body, "url": "https://thefinancialdoctor.in/"})
+    sent, stale = 0, []
+    for sub in subs:
+        try:
+            webpush(
+                subscription_info={"endpoint": sub["endpoint"], "keys": sub["keys"]},
+                data=payload,
+                vapid_private_key=VAPID_PRIVATE_KEY,
+                vapid_claims={"sub": VAPID_CLAIM_EMAIL},
+            )
+            sent += 1
+        except WebPushException as e:
+            resp = getattr(e, "response", None)
+            if resp is not None and resp.status_code in (404, 410):
+                stale.append(sub["_id"])
+            else:
+                LOG.warning("Website push error: %s", e)
+        except Exception as e:
+            LOG.warning("Website push error: %s", e)
+
+    if stale:
+        web_push_subs.delete_many({"_id": {"$in": stale}})
+    LOG.info("Website broadcast '%s' sent to %s/%s subscribers, %s stale removed", title, sent, len(subs), len(stale))
+    return True
+
+
+def maybe_send_website_broadcast():
+    """Runs at most once every WEBSITE_NOTIF_INTERVAL_DAYS. This is a single
+    broadcast to everyone, not a per-user reminder, so throttling is tracked
+    via one shared timestamp doc rather than per-subscriber state. Only
+    starts the throttle clock once a broadcast is actually sent, so an empty
+    subscriber list today doesn't suppress tomorrow's attempt."""
+    state = scheduler_state.find_one({"_id": "website_broadcast"}) or {}
+    last_sent = state.get("last_sent_at")
+    now = datetime.utcnow()
+    if last_sent and (now - last_sent) < timedelta(days=WEBSITE_NOTIF_INTERVAL_DAYS):
+        return
+    if send_website_broadcast():
+        scheduler_state.update_one({"_id": "website_broadcast"}, {"$set": {"last_sent_at": now}}, upsert=True)
+
+
 def run_loop():
     tz = pytz.timezone(APP_TZ)
     LOG.info("Scheduler started, timezone=%s", APP_TZ)
@@ -267,6 +414,11 @@ def run_loop():
 
             # process reminders (every CHECK_INTERVAL seconds)
             process_due_reminders()
+
+            # Website visitor broadcast — internally throttled to once every
+            # WEBSITE_NOTIF_INTERVAL_DAYS, safe to check every loop tick.
+            maybe_send_website_broadcast()
+
             time.sleep(CHECK_INTERVAL)
     except KeyboardInterrupt:
         LOG.info("Scheduler stopped by KeyboardInterrupt")

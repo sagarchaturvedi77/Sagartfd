@@ -9,6 +9,7 @@ import React from "react";
 import PortalLayout from "../components/PortalLayout";
 import Calculators from "../components/Calculators";
 import { useAuth } from "../context/AuthContext";
+import PageHeader from "../components/portal/PageHeader";
 
 export default function EmployeeCalculators() {
   const { user } = useAuth();
@@ -16,10 +17,7 @@ export default function EmployeeCalculators() {
   return (
     <PortalLayout>
       <div className="space-y-6">
-        <div>
-          <h1 className="text-2xl font-serif text-[#0E1B2C]">🧮 Financial Calculators</h1>
-          <p className="text-sm text-[#2A364B]/60">Use these to build plans and generate a client proposal.</p>
-        </div>
+        <PageHeader icon="🧮" title="Financial Calculators" subtitle="Build plans and generate a client proposal." />
 
         {/*
           Confirmed via EmployeeIDCardPage.js (which also reads /api/auth/me)
