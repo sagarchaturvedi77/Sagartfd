@@ -54,18 +54,29 @@ export default function EmployeeLeads() {
   const [searching, setSearching] = useState(false);
   const [queuedCount, setQueuedCount] = useState(0);
 
+  const [leadDates, setLeadDates] = useState([]);
+  const [selectedDate, setSelectedDate] = useState("");
+
   const load = useCallback(async () => {
     try {
-      const res = await fetch(`${API_BASE}/api/leads/my`, { headers });
+      const url = selectedDate ? `${API_BASE}/api/leads/my?date=${selectedDate}` : `${API_BASE}/api/leads/my`;
+      const res = await fetch(url, { headers });
       if (res.ok) setLeads(await res.json());
     } catch { /* silent */ }
     setLoading(false);
-  }, [token]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [token, selectedDate]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const loadSummary = useCallback(async () => {
     try {
       const res = await fetch(`${API_BASE}/api/leads/my/summary`, { headers });
       if (res.ok) setQueuedCount((await res.json()).queued || 0);
+    } catch { /* silent */ }
+  }, [token]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const loadDates = useCallback(async () => {
+    try {
+      const res = await fetch(`${API_BASE}/api/leads/my/dates`, { headers });
+      if (res.ok) setLeadDates(await res.json());
     } catch { /* silent */ }
   }, [token]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -76,16 +87,16 @@ export default function EmployeeLeads() {
     } catch { /* silent */ }
   }, [token]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  useEffect(() => { load(); loadServices(); loadSummary(); }, [load, loadServices, loadSummary]);
+  useEffect(() => { load(); loadServices(); loadSummary(); loadDates(); }, [load, loadServices, loadSummary, loadDates]);
 
   const { startCall } = useCallReturn((lead) => setOutcomeLead(lead));
 
   const runGlobalSearch = async (q) => {
     setGlobalSearch(q);
-    if (q.trim().length < 3) { setGlobalResults(null); return; }
+    if (q.trim().length < 2) { setGlobalResults(null); return; }
     setSearching(true);
     try {
-      const res = await fetch(`${API_BASE}/api/leads/search?phone=${encodeURIComponent(q.trim())}`, { headers });
+      const res = await fetch(`${API_BASE}/api/leads/search?q=${encodeURIComponent(q.trim())}`, { headers });
       if (res.ok) setGlobalResults(await res.json());
     } finally { setSearching(false); }
   };
@@ -133,7 +144,7 @@ export default function EmployeeLeads() {
       method: "POST", headers,
       body: JSON.stringify(payload),
     });
-    if (res.ok) { setStatusLead(null); setStatusForm({ status: "", follow_up_note: "", follow_up_date: "", service_interest: "", code_name: "", service_price: "", service_duration_months: "" }); load(); loadSummary(); }
+    if (res.ok) { setStatusLead(null); setStatusForm({ status: "", follow_up_note: "", follow_up_date: "", service_interest: "", code_name: "", service_price: "", service_duration_months: "" }); load(); loadSummary(); loadDates(); }
     else { const err = await res.json().catch(() => ({})); alert(err.detail || "Failed to update status"); }
   };
 
@@ -181,7 +192,7 @@ export default function EmployeeLeads() {
           <Search size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#2A364B]/40 dark:text-[#8E99AC]" />
           <input
             value={globalSearch} onChange={(e) => runGlobalSearch(e.target.value)}
-            placeholder="Search any phone number..."
+            placeholder="Search by name or phone..."
             className="w-full pl-10 pr-4 py-3 rounded-xl border border-[#E2D8C2] dark:border-white/15 dark:bg-white/5 dark:text-[#F1EDE3] text-sm focus:outline-none focus:ring-2 focus:ring-[#024396]/30 bg-white"
           />
           {globalResults !== null && (
@@ -202,7 +213,25 @@ export default function EmployeeLeads() {
           )}
         </div>
 
-        {queuedCount > 0 && (
+        {leadDates.length > 0 && (
+          <div className="flex items-center gap-2 flex-wrap">
+            <label className="text-xs text-[#2A364B]/60 dark:text-[#8E99AC] shrink-0">Calling batch:</label>
+            <select
+              value={selectedDate}
+              onChange={(e) => setSelectedDate(e.target.value)}
+              className="text-xs border border-[#E2D8C2] dark:border-white/15 dark:bg-white/5 dark:text-[#F1EDE3] rounded-lg px-3 py-1.5 bg-white"
+            >
+              <option value="">Oldest first (default queue)</option>
+              {leadDates.map((d) => (
+                <option key={d.date} value={d.date}>
+                  {new Date(d.date).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })} — {d.count} new
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
+
+        {!selectedDate && queuedCount > 0 && (
           <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 text-amber-700 dark:text-amber-400 text-xs rounded-xl px-4 py-2.5">
             {queuedCount} more new lead{queuedCount > 1 ? "s are" : " is"} assigned to you and waiting in queue —
             they'll appear in "New" once you've called through the current batch.
@@ -337,7 +366,12 @@ export default function EmployeeLeads() {
                 <button onClick={() => setDetailLead(null)} className="flex items-center gap-1 text-xs text-[#024396] dark:text-[#7CB0FF]"><ChevronLeft size={14} /> Back</button>
                 <StatusBadge status={detailLead.status} label={STATUS_LABELS[detailLead.status]} />
               </div>
-              <h3 className="font-semibold text-lg text-[#0E1B2C] dark:text-[#F1EDE3]">{detailLead.name}</h3>
+              <h3 className="font-semibold text-lg text-[#0E1B2C] dark:text-[#F1EDE3] flex items-center gap-2">
+                {detailLead.name}
+                {detailLead.source === "employee_added" && (
+                  <span className="text-[9px] font-semibold uppercase tracking-wide text-violet-600 dark:text-violet-400 bg-violet-50 dark:bg-violet-900/30 px-1.5 py-0.5 rounded">Self-added</span>
+                )}
+              </h3>
               <p className="text-xs text-[#2A364B]/60 dark:text-[#8E99AC]">{detailLead.phone} {detailLead.email && `| ${detailLead.email}`} {detailLead.city && `| ${detailLead.city}`}</p>
               {detailLead.service_interest && <p className="text-xs text-[#024396] dark:text-[#7CB0FF] mt-1">Services: {detailLead.service_interest}</p>}
               {detailLead.follow_up_date && <p className="text-xs text-orange-600 dark:text-orange-400 mt-1">Follow-up: {detailLead.follow_up_date}</p>}
@@ -411,7 +445,7 @@ export default function EmployeeLeads() {
           )}
         </PortalModal>
 
-        {outcomeLead && <CallFlowPopup lead={outcomeLead} token={token} onClose={() => setOutcomeLead(null)} onSaved={() => { load(); loadSummary(); }} />}
+        {outcomeLead && <CallFlowPopup lead={outcomeLead} token={token} onClose={() => setOutcomeLead(null)} onSaved={() => { load(); loadSummary(); loadDates(); }} />}
         {transferLead && <TransferLeadModal lead={transferLead} token={token} onClose={() => setTransferLead(null)} onSaved={load} />}
         {waLead && <WhatsAppTemplateModal lead={waLead} token={token} onClose={() => setWaLead(null)} />}
 
@@ -428,7 +462,12 @@ export default function EmployeeLeads() {
               {filteredLeads.map((lead) => (
                 <div key={lead.id} className="flex items-center justify-between p-4 hover:bg-[#FBF7EE] dark:hover:bg-white/5 transition-colors cursor-pointer" onClick={() => setDetailLead(lead)}>
                   <div className="flex-1 min-w-0">
-                    <p className="font-medium text-[#0E1B2C] dark:text-[#F1EDE3] text-sm truncate">{lead.name}</p>
+                    <p className="font-medium text-[#0E1B2C] dark:text-[#F1EDE3] text-sm truncate flex items-center gap-1.5">
+                      {lead.name}
+                      {lead.source === "employee_added" && (
+                        <span className="text-[9px] font-semibold uppercase tracking-wide text-violet-600 dark:text-violet-400 bg-violet-50 dark:bg-violet-900/30 px-1.5 py-0.5 rounded shrink-0">Self-added</span>
+                      )}
+                    </p>
                     <p className="text-xs text-[#2A364B]/50 dark:text-[#8E99AC]">{lead.phone} {lead.service_interest && `· ${lead.service_interest}`}</p>
                     {lead.follow_up_date && <p className="text-[10px] text-orange-500 dark:text-orange-400 mt-0.5">Follow-up: {lead.follow_up_date}</p>}
                   </div>

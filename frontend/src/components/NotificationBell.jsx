@@ -16,6 +16,7 @@ const typeIcon = {
   holiday: "🌴",
   announcement: "📢",
   lead: "🎯",
+  employee_lead_added: "🙋",
   task: "✅",
   target: "📈",
   general: "🔔",

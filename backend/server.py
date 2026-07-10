@@ -495,6 +495,9 @@ app.include_router(accounts_router)
 from internal_routes import router as internal_router
 app.include_router(internal_router)
 
+from activity_routes import router as activity_router
+app.include_router(activity_router)
+
 app.add_middleware(
     CORSMiddleware,
     allow_credentials=True,

@@ -13,6 +13,7 @@ class NotificationInDB(BaseModel):
     link: Optional[str] = None             # in-app route to open
     read: bool = False
     created_at: datetime = Field(default_factory=datetime.utcnow)
+    meta: Optional[dict] = None            # optional grouping key, e.g. {"employee_id": ..., "count": ...}
 
 
 class NotificationOut(BaseModel):
@@ -23,6 +24,7 @@ class NotificationOut(BaseModel):
     link: Optional[str] = None
     read: bool
     created_at: datetime
+    meta: Optional[dict] = None
 
 
 class BroadcastIn(BaseModel):

@@ -6,7 +6,7 @@ import PageHeader from "../components/portal/PageHeader";
 import PortalModal from "../components/portal/PortalModal";
 import StatusBadge from "../components/portal/StatusBadge";
 import { Button } from "../components/ui/button";
-import { Upload } from "lucide-react";
+import { Upload, Search } from "lucide-react";
 import { codeFieldLabel } from "../lib/utils";
 import MyLeadsTab from "./leads/MyLeadsTab";
 import EmployeeLeadsTab from "./leads/EmployeeLeadsTab";
@@ -23,15 +23,15 @@ const STATUS_LABELS = {
 const SOURCES = ["manual", "website", "referral", "calculator", "whatsapp", "excel"];
 
 export default function AdminLeads() {
-  const { token } = useAuth();
+  const { token, user } = useAuth();
   const navigate = useNavigate(); // eslint-disable-line no-unused-vars
-  const [leads, setLeads] = useState([]); // eslint-disable-line no-unused-vars
+  const [leads, setLeads] = useState([]);
   const [myLeads, setMyLeads] = useState([]);
   const [employees, setEmployees] = useState([]);
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true); // eslint-disable-line no-unused-vars
   const [filter, setFilter] = useState("");
-  const [search, setSearch] = useState(""); // eslint-disable-line no-unused-vars
+  const [search, setSearch] = useState("");
   const [showAdd, setShowAdd] = useState(false);
   const [tab, setTab] = useState("my_leads");
   const [webLeads, setWebLeads] = useState([]);
@@ -44,8 +44,9 @@ export default function AdminLeads() {
 
   const [showAssignDialog, setShowAssignDialog] = useState(false);
   const [importFile, setImportFile] = useState(null);
-  const [assignMode, setAssignMode] = useState("none");
+  const [assignMode, setAssignMode] = useState("self");
   const [selectedAssignEmps, setSelectedAssignEmps] = useState([]);
+  const [includeExistingDuplicates, setIncludeExistingDuplicates] = useState(false);
 
   const [batches, setBatches] = useState([]);
   const [openBatch, setOpenBatch] = useState(null);
@@ -57,6 +58,10 @@ export default function AdminLeads() {
 
   const [form, setForm] = useState({ name: "", phone: "", email: "", city: "", source: "manual", service_interest: "", notes: "", assigned_to: "" });
   const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    if (user?.id) setForm((f) => (f.assigned_to ? f : { ...f, assigned_to: user.id }));
+  }, [user]);
 
   const headers = { Authorization: `Bearer ${token}`, "Content-Type": "application/json" };
 
@@ -126,15 +131,19 @@ export default function AdminLeads() {
 
   const addLead = async (e) => {
     e.preventDefault();
+    if (!form.assigned_to) {
+      alert("Assign this lead to yourself or an employee before saving.");
+      return;
+    }
     setSaving(true);
     try {
       const res = await fetch(`${API_BASE}/api/leads/`, {
         method: "POST", headers,
-        body: JSON.stringify({ ...form, assigned_to: form.assigned_to || null }),
+        body: JSON.stringify(form),
       });
       if (res.ok) {
         setShowAdd(false);
-        setForm({ name: "", phone: "", email: "", city: "", source: "manual", service_interest: "", notes: "", assigned_to: "" });
+        setForm({ name: "", phone: "", email: "", city: "", source: "manual", service_interest: "", notes: "", assigned_to: user?.id || "" });
         load(); loadMyLeads();
       }
     } catch { /* silent */ }
@@ -171,11 +180,15 @@ export default function AdminLeads() {
 
   const executeImport = async () => {
     if (!importFile) return;
+    if (assignMode === "selected" && selectedAssignEmps.length === 0) {
+      alert("Select at least one employee to assign these leads to.");
+      return;
+    }
     setImporting(true);
     setShowAssignDialog(false);
     const fd = new FormData();
     fd.append("file", importFile);
-    let url = `${API_BASE}/api/leads/import-excel?assign_mode=${assignMode}`;
+    let url = `${API_BASE}/api/leads/import-excel?assign_mode=${assignMode}&include_existing_duplicates=${includeExistingDuplicates}`;
     if (assignMode === "selected" && selectedAssignEmps.length > 0) {
       url += `&employee_ids=${selectedAssignEmps.join(",")}`;
     }
@@ -187,7 +200,14 @@ export default function AdminLeads() {
       });
       if (res.ok) {
         const data = await res.json();
-        alert(`${data.count} leads imported successfully!`);
+        alert(
+          `${data.count} leads imported successfully` +
+          (data.reassigned_existing_count > 0 ? ` (${data.reassigned_existing_count} were existing numbers re-assigned)` : "") + `!\n` +
+          `Skipped: ${data.incomplete_count} incomplete, ` +
+          `${data.duplicate_infile_count} duplicate within this file, ` +
+          `${data.duplicate_existing_count} duplicate already in database` +
+          (includeExistingDuplicates ? " (but re-assigned, not skipped)." : ".")
+        );
         load(); loadMyLeads(); loadBatches();
       } else {
         const err = await res.json();
@@ -196,7 +216,8 @@ export default function AdminLeads() {
     } catch { alert("Import failed"); }
     setImporting(false);
     setImportFile(null);
-    setAssignMode("none");
+    setAssignMode("self");
+    setIncludeExistingDuplicates(false);
     setSelectedAssignEmps([]);
   };
 
@@ -253,6 +274,24 @@ export default function AdminLeads() {
     loadCareerLeads();
   };
 
+  const downloadBatchReport = async (batchId) => {
+    try {
+      const res = await fetch(`${API_BASE}/api/leads/batches/${batchId}/report`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) { alert("Failed to generate report"); return; }
+      const blob = await res.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `lead_batch_report_${batchId.slice(0, 8)}.xlsx`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+    } catch { alert("Failed to generate report"); }
+  };
+
   const deleteBatch = async (batchId) => {
     if (!window.confirm("Delete this entire batch? All leads imported in it will be permanently removed.")) return;
     await fetch(`${API_BASE}/api/leads/batches/${batchId}`, { method: "DELETE", headers });
@@ -298,6 +337,39 @@ export default function AdminLeads() {
           }
         />
 
+        {/* Search across all leads */}
+        <div className="relative">
+          <Search size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#2A364B]/40 dark:text-[#8E99AC]" />
+          <input
+            value={search} onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search all leads by name or phone..."
+            className="w-full pl-10 pr-4 py-3 rounded-xl border border-[#E2D8C2] dark:border-white/15 dark:bg-white/5 dark:text-[#F1EDE3] text-sm focus:outline-none focus:ring-2 focus:ring-[#024396]/30 bg-white"
+          />
+          {search.trim().length > 0 && (
+            <div className="absolute z-20 top-full mt-1.5 left-0 right-0 bg-white dark:bg-[#101D2E] border border-[#E2D8C2] dark:border-white/15 rounded-xl shadow-lg max-h-72 overflow-y-auto">
+              {leads.length === 0 ? (
+                <p className="text-xs text-center py-4 text-[#2A364B]/40 dark:text-[#8E99AC]">No matching leads</p>
+              ) : (
+                leads.map((r) => (
+                  <div
+                    key={r.id}
+                    onClick={() => { setDetailLead(r); setSearch(""); }}
+                    className="px-4 py-2.5 border-b border-[#E2D8C2] dark:border-white/10 last:border-0 text-xs cursor-pointer hover:bg-[#FBF7EE] dark:hover:bg-white/5"
+                  >
+                    <p className="font-medium text-[#0E1B2C] dark:text-[#F1EDE3] flex items-center gap-1.5">
+                      {r.name} — {r.phone}
+                      {r.source === "employee_added" && (
+                        <span className="text-[9px] font-semibold uppercase tracking-wide text-violet-600 dark:text-violet-400 bg-violet-50 dark:bg-violet-900/30 px-1.5 py-0.5 rounded shrink-0">Self-added</span>
+                      )}
+                    </p>
+                    <p className="text-[#2A364B]/50 dark:text-[#8E99AC]">Status: {STATUS_LABELS[r.status] || r.status} · {r.assigned_to_name || "Unassigned"}</p>
+                  </div>
+                ))
+              )}
+            </div>
+          )}
+        </div>
+
         {/* Tabs */}
         <div className="flex gap-2 border-b border-[#E2D8C2] dark:border-white/10 overflow-x-auto">
           {TABS.map(([key, label]) => (
@@ -315,10 +387,9 @@ export default function AdminLeads() {
 
         {/* Import Assign Dialog */}
         <PortalModal open={showAssignDialog} onOpenChange={(v) => { setShowAssignDialog(v); if (!v) setImportFile(null); }} title="Import Leads — Assign To" maxWidth="max-w-md">
-          <p className="text-xs text-[#2A364B]/60 dark:text-[#8E99AC] -mt-2">Choose how to assign the imported leads:</p>
+          <p className="text-xs text-[#2A364B]/60 dark:text-[#8E99AC] -mt-2">Every imported lead must go to someone — choose who:</p>
           <div className="space-y-3">
             {[
-              ["none", "Don't assign (import only)", "Leads will remain unassigned"],
               ["self", "Assign to myself", "All leads go to My Leads"],
               ["all", "Shuffle to all employees", "Auto-distribute equally among all active employees"],
               ["selected", "Select employees", "Choose specific employees to distribute to"],
@@ -347,6 +418,24 @@ export default function AdminLeads() {
               </div>
             )}
           </div>
+
+          <label className="flex items-start gap-2.5 p-3 rounded-xl border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-900/20 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={includeExistingDuplicates}
+              onChange={(e) => setIncludeExistingDuplicates(e.target.checked)}
+              className="mt-0.5 rounded"
+            />
+            <div>
+              <p className="text-sm font-medium text-[#0E1B2C] dark:text-[#F1EDE3]">Also include numbers already in the database</p>
+              <p className="text-xs text-[#2A364B]/60 dark:text-[#8E99AC]">
+                Off (default): numbers that already exist as a lead are skipped and reported as duplicates.
+                On: those existing leads get re-assigned to whoever this import goes to, instead of being skipped.
+                (Numbers repeated within this same file are always deduped either way.)
+              </p>
+            </div>
+          </label>
+
           <div className="flex gap-3 pt-2">
             <Button variant="outline" className="flex-1" onClick={() => { setShowAssignDialog(false); setImportFile(null); }}>Cancel</Button>
             <Button className="flex-1 bg-gradient-to-r from-[#024396] to-[#0356c4]" onClick={executeImport}>Import</Button>
@@ -367,8 +456,8 @@ export default function AdminLeads() {
               <option value="">Service Interest</option>
               {services.map((s) => <option key={s.id} value={s.name}>{s.name}</option>)}
             </select>
-            <select value={form.assigned_to} onChange={(e) => setForm({ ...form, assigned_to: e.target.value })} className={field}>
-              <option value="">Assign to Employee</option>
+            <select required value={form.assigned_to} onChange={(e) => setForm({ ...form, assigned_to: e.target.value })} className={field}>
+              {user?.id && <option value={user.id}>Myself ({user.name})</option>}
               {employees.map((emp) => <option key={emp.id} value={emp.id}>{emp.name}</option>)}
             </select>
             <textarea placeholder="Notes" rows={2} value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} className={`${field} resize-none`} />
@@ -395,6 +484,9 @@ export default function AdminLeads() {
                 <StatusBadge status={detailLead.status} label={STATUS_LABELS[detailLead.status]} />
                 {detailLead.service_interest && (
                   <span className="text-xs text-[#024396] dark:text-[#7CB0FF] bg-[#024396]/5 dark:bg-white/10 px-2 py-0.5 rounded">{detailLead.service_interest}</span>
+                )}
+                {detailLead.source === "employee_added" && (
+                  <span className="text-[10px] font-semibold uppercase tracking-wide text-violet-600 dark:text-violet-400 bg-violet-50 dark:bg-violet-900/30 px-2 py-0.5 rounded">Self-added by employee</span>
                 )}
               </div>
               {detailLead.assigned_to_name && <p className="text-xs text-[#0E1B2C] dark:text-[#F1EDE3]">Assigned to: <strong>{detailLead.assigned_to_name}</strong></p>}
@@ -441,6 +533,7 @@ export default function AdminLeads() {
             batchLoading={batchLoading} employees={employees} openBatchDetail={openBatchDetail}
             filterBatchByEmp={filterBatchByEmp} deleteBatch={deleteBatch} assignLead={assignLead}
             setOpenBatch={setOpenBatch} setBatchLeads={setBatchLeads} setDetailLead={setDetailLead}
+            downloadBatchReport={downloadBatchReport}
           />
         )}
 

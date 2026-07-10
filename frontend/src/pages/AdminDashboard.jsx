@@ -7,7 +7,7 @@ import PageHeader from "../components/portal/PageHeader";
 import StatCard from "../components/portal/StatCard";
 import DataTable from "../components/portal/DataTable";
 import PortalModal from "../components/portal/PortalModal";
-import RecentActivity from "../components/portal/RecentActivity";
+import AdminActivityLog from "../components/portal/AdminActivityLog";
 import { Button } from "../components/ui/button";
 
 const API_BASE = process.env.REACT_APP_BACKEND_URL || "";
@@ -25,7 +25,6 @@ export default function AdminDashboard() {
   const [empDetail, setEmpDetail] = useState(null);
   const [createdCreds, setCreatedCreds] = useState(null); // show credentials after creation
   const [emailState, setEmailState] = useState("idle"); // idle | sending | sent | error
-  const [recentLeads, setRecentLeads] = useState([]);
 
   const fetchEmployees = useCallback(async () => {
     setLoading(true);
@@ -36,19 +35,9 @@ export default function AdminDashboard() {
     setLoading(false);
   }, [token]);
 
-  const fetchRecentLeads = useCallback(async () => {
-    try {
-      const res = await fetch(`${API_BASE}/api/leads/?limit=8`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (res.ok) setRecentLeads(await res.json());
-    } catch { /* silent */ }
-  }, [token]);
-
   useEffect(() => {
     fetchEmployees();
-    fetchRecentLeads();
-  }, [fetchEmployees, fetchRecentLeads]);
+  }, [fetchEmployees]);
 
   const handleAddEmployee = async (e) => {
     e.preventDefault();
@@ -188,8 +177,8 @@ export default function AdminDashboard() {
 
       <div className="bg-white dark:bg-[#101D2E] rounded-2xl border border-[#E2D8C2] dark:border-white/10 p-4 sm:p-5 shadow-sm mb-6">
         <h3 className="text-sm font-semibold text-[#0E1B2C] dark:text-[#F1EDE3] mb-1">Recent Activity</h3>
-        <p className="text-xs text-[#2A364B]/50 dark:text-[#8E99AC] mb-2">Latest calls and status updates across the team</p>
-        <RecentActivity leads={recentLeads} token={token} onUpdated={fetchRecentLeads} />
+        <p className="text-xs text-[#2A364B]/50 dark:text-[#8E99AC] mb-2">What you've done recently in the portal</p>
+        <AdminActivityLog token={token} />
       </div>
 
       {activeWidgets.includes("team") && (

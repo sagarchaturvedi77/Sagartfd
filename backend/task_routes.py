@@ -9,6 +9,7 @@ from task_models import TaskCreate, TaskUpdate, TaskInDB, TaskOut
 from auth_utils import get_current_user_payload
 from database import db, users_collection
 from notification_service import create_notification
+from activity_service import log_activity
 
 router = APIRouter(prefix="/api/tasks", tags=["tasks"])
 
@@ -46,6 +47,12 @@ async def create_task(data: TaskCreate, payload: dict = Depends(get_current_user
             n_type="task_assigned",
             link="/portal/employee/tasks",
         )
+
+    if payload.get("role") == "admin":
+        desc = f"Added a task: {task.title}"
+        if assigned_by:
+            desc += f" (assigned to {(await users_collection.find_one({'id': owner_id}) or {}).get('name', 'an employee')})"
+        await log_activity(payload["sub"], "task_added", desc, link="/portal/admin/tasks")
 
     return to_task_out(task.model_dump())
 

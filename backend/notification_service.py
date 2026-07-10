@@ -62,12 +62,16 @@ async def create_notification(
     body: str,
     n_type: str = "general",
     link: str | None = None,
+    push: bool = True,
 ) -> None:
-    """Store an in-app notification and send it via VAPID web push."""
+    """Store an in-app notification and, unless push=False, send it via VAPID
+    web push too (push=False is for notifications that should only ever show
+    inside the portal's bell, never as an outside-app push)."""
     note = NotificationInDB(user_id=user_id, title=title, body=body, type=n_type, link=link)
     await notifications_collection.insert_one(note.dict())
-    # "url" matches the key public/web-push-sw.js reads (shared by portal + website).
-    await _send_web_push(
-        user_id,
-        {"title": title, "body": body, "url": link or "/portal/employee"},
-    )
+    if push:
+        # "url" matches the key public/web-push-sw.js reads (shared by portal + website).
+        await _send_web_push(
+            user_id,
+            {"title": title, "body": body, "url": link or "/portal/employee"},
+        )

@@ -16,6 +16,7 @@ Employee:
 
 import io
 import random
+import re
 import uuid
 from datetime import datetime, timezone, timedelta
 from typing import Optional
@@ -24,9 +25,11 @@ from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile, File, 
 from pydantic import BaseModel, Field
 
 from lead_models import LeadCreate, LeadUpdate, LeadStatusUpdate, LeadNameUpdate, LeadInDB, LeadOut, CallOutcomeIn, TransferIn
+from notification_models import NotificationInDB
 from auth_utils import get_current_user_payload, require_admin
-from database import leads_collection, users_collection, db, reminders_collection, pipelines_collection
+from database import leads_collection, users_collection, db, reminders_collection, pipelines_collection, lead_batches_collection, notifications_collection
 from notification_service import create_notification
+from activity_service import log_activity
 
 router = APIRouter(prefix="/api/leads", tags=["leads"])
 
@@ -34,6 +37,10 @@ web_leads_collection = db["web_leads"]
 career_leads_collection = db["career_leads"]
 
 VALID_STATUSES = {"new", "contacted", "follow_up", "interested", "converted", "lost"}
+STATUS_LABELS = {
+    "new": "New", "contacted": "Contacted", "follow_up": "Follow Up",
+    "interested": "Interested", "converted": "Converted", "lost": "Lost",
+}
 
 
 def to_lead_out(doc: dict) -> LeadOut:
@@ -43,6 +50,38 @@ def to_lead_out(doc: dict) -> LeadOut:
     # older lead documents that predate a newer field being added.
     data = {k: doc[k] for k in LeadOut.model_fields if doc.get(k) is not None}
     return LeadOut(**data)
+
+
+async def notify_admins_employee_added_lead(emp_id: str, emp_name: str, lead_name: str, lead_phone: str) -> None:
+    """In-app-only (no push) notification to every admin that an employee
+    self-added a lead. Multiple leads added by the same employee collapse
+    into one growing notification instead of flooding the bell with a
+    separate row per lead — it keeps updating the same unread entry until
+    an admin reads it, then the next add starts a fresh one."""
+    admins = users_collection.find({"role": "admin"})
+    async for adm in admins:
+        existing = await notifications_collection.find_one({
+            "user_id": adm["id"], "type": "employee_lead_added",
+            "read": False, "meta.employee_id": emp_id,
+        })
+        if existing:
+            count = (existing.get("meta") or {}).get("count", 1) + 1
+            await notifications_collection.update_one(
+                {"id": existing["id"]},
+                {"$set": {
+                    "body": f"{emp_name} added {count} leads themselves — latest: {lead_name} ({lead_phone})",
+                    "created_at": datetime.now(timezone.utc),
+                    "meta": {"employee_id": emp_id, "count": count},
+                }},
+            )
+        else:
+            note = NotificationInDB(
+                user_id=adm["id"], title="Employee Added a Lead",
+                body=f"{emp_name} added {lead_name} ({lead_phone}) themselves",
+                type="employee_lead_added", link="/portal/admin/leads",
+                meta={"employee_id": emp_id, "count": 1},
+            )
+            await notifications_collection.insert_one(note.dict())
 
 
 async def find_pipeline_for_employee(employee_id: str) -> Optional[str]:
@@ -61,21 +100,28 @@ async def find_pipeline_for_employee(employee_id: str) -> Optional[str]:
 
 @router.post("/", response_model=LeadOut)
 async def create_lead(data: LeadCreate, admin: dict = Depends(require_admin)):
+    if not data.assigned_to:
+        raise HTTPException(status_code=400, detail="Assign this lead to yourself or an employee")
     lead = LeadInDB(**data.model_dump())
-    if data.assigned_to:
-        emp = await users_collection.find_one({"id": data.assigned_to})
-        if emp:
-            lead.assigned_to_name = emp.get("name")
-            if not lead.pipeline_id:
-                lead.pipeline_id = await find_pipeline_for_employee(data.assigned_to)
-            await create_notification(
-                user_id=data.assigned_to,
-                title="New Lead Assigned",
-                body=f"{lead.name} ({lead.phone}) — {lead.service_interest or 'General'}",
-                n_type="lead",
-                link="/portal/employee/leads",
-            )
+    emp = await users_collection.find_one({"id": data.assigned_to})
+    if not emp:
+        raise HTTPException(status_code=404, detail="Selected employee not found")
+    lead.assigned_to_name = emp.get("name")
+    if not lead.pipeline_id:
+        lead.pipeline_id = await find_pipeline_for_employee(data.assigned_to)
     await leads_collection.insert_one(lead.model_dump())
+    await create_notification(
+        user_id=data.assigned_to,
+        title="New Lead Assigned",
+        body=f"{lead.name} ({lead.phone}) — {lead.service_interest or 'General'}",
+        n_type="lead",
+        link="/portal/employee/leads",
+    )
+    await log_activity(
+        admin["sub"], "lead_added",
+        f"Added a lead: {lead.name} ({lead.phone}) — assigned to {lead.assigned_to_name}",
+        link="/portal/admin/leads",
+    )
     return to_lead_out(lead.model_dump())
 
 
@@ -105,18 +151,30 @@ async def lead_stats(admin: dict = Depends(require_admin)):
     }
 
 
+DATE_RE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
+
+
 @router.get("/my", response_model=list[LeadOut])
-async def my_leads(payload: dict = Depends(get_current_user_payload)):
+async def my_leads(date: Optional[str] = Query(default=None), payload: dict = Depends(get_current_user_payload)):
     """Leads assigned to the current employee. Leads that have already been
-    called at least once (call_touched), or that are a referral from an
-    existing client, always show — a referral is a warm lead and shouldn't
-    get buried behind a pile of cold ones. Everything else (brand-new,
-    never-called, non-referral leads) is capped to 10 at a time — the 11th
-    only appears once one of the current 10 has been called."""
+    called at least once (call_touched), that are a referral from an
+    existing client, or that the employee added themselves, always show —
+    a referral is a warm lead and a self-added lead was just entered by the
+    employee, so neither should get buried behind a pile of cold ones.
+    Everything else (brand-new, never-called, non-referral leads — however
+    admin added them: manual, Excel batch, shuffle-assign) is capped to 10
+    at a time — the 11th only appears once one of the current 10 has been
+    called. Pass `date` (YYYY-MM-DD, see /my/dates) to work through a
+    specific day's leads instead of always the oldest first — e.g. calling
+    a batch admin uploaded 10 days ago, or jumping straight to today's."""
+    if date is not None and not DATE_RE.match(date):
+        raise HTTPException(status_code=400, detail="date must be YYYY-MM-DD")
+
     touched_cursor = leads_collection.find(
         {"assigned_to": payload["sub"], "$or": [
             {"call_touched": True},
             {"referred_by_lead_id": {"$exists": True, "$ne": None}},
+            {"source": "employee_added"},
         ]}
     ).sort("updated_at", -1)
     touched = [doc async for doc in touched_cursor]
@@ -124,12 +182,38 @@ async def my_leads(payload: dict = Depends(get_current_user_payload)):
     # Querying a field as None matches both "explicitly null" and "missing
     # entirely" in MongoDB, so this alone covers old leads (field never
     # existed) and new non-referral leads (field explicitly None) in one go.
-    fresh_cursor = leads_collection.find(
-        {"assigned_to": payload["sub"], "call_touched": {"$ne": True}, "referred_by_lead_id": None}
-    ).sort("created_at", 1).limit(10)
+    fresh_query = {
+        "assigned_to": payload["sub"], "call_touched": {"$ne": True},
+        "referred_by_lead_id": None, "source": {"$ne": "employee_added"},
+    }
+    if date:
+        fresh_query["created_at"] = {"$regex": f"^{date}"}
+    fresh_cursor = leads_collection.find(fresh_query).sort("created_at", 1).limit(10)
     fresh = [doc async for doc in fresh_cursor]
 
     return [to_lead_out(doc) for doc in touched + fresh]
+
+
+@router.get("/my/dates")
+async def my_lead_dates(payload: dict = Depends(get_current_user_payload)):
+    """Distinct calendar dates (from created_at) among the employee's
+    not-yet-called leads, newest first with counts — powers a picker so they
+    can jump straight to a specific admin-added batch/day instead of only
+    working the global oldest-first queue."""
+    pipeline = [
+        {"$match": {
+            "assigned_to": payload["sub"],
+            "call_touched": {"$ne": True},
+            "referred_by_lead_id": None,
+            "source": {"$ne": "employee_added"},
+        }},
+        {"$group": {"_id": {"$substrCP": ["$created_at", 0, 10]}, "count": {"$sum": 1}}},
+        {"$sort": {"_id": -1}},
+    ]
+    dates = []
+    async for doc in leads_collection.aggregate(pipeline):
+        dates.append({"date": doc["_id"], "count": doc["count"]})
+    return dates
 
 
 @router.get("/my/summary")
@@ -191,10 +275,15 @@ async def get_career_leads(admin: dict = Depends(require_admin)):
 
 
 @router.get("/search")
-async def search_all_leads(phone: str = Query(..., min_length=3), payload: dict = Depends(get_current_user_payload)):
-    """Global search by (partial) phone number — any employee can check if a
-    number is already a client before calling, so no one duplicates outreach."""
-    cursor = leads_collection.find({"phone": {"$regex": phone, "$options": "i"}}).limit(20)
+async def search_all_leads(q: str = Query(..., min_length=2), payload: dict = Depends(get_current_user_payload)):
+    """Global search by (partial) name or phone number — any employee can check if a
+    lead already exists before calling, so no one duplicates outreach."""
+    cursor = leads_collection.find({
+        "$or": [
+            {"name": {"$regex": q, "$options": "i"}},
+            {"phone": {"$regex": q, "$options": "i"}},
+        ]
+    }).limit(20)
     results = [to_lead_out(doc) async for doc in cursor]
     return results
 
@@ -219,6 +308,7 @@ async def list_lead_batches(admin: dict = Depends(require_admin)):
     ]
     batches = []
     async for doc in leads_collection.aggregate(pipeline_agg):
+        meta = await lead_batches_collection.find_one({"batch_id": doc["_id"]}) or {}
         batches.append({
             "batch_id": doc["_id"],
             "date": doc["date"],
@@ -228,6 +318,13 @@ async def list_lead_batches(admin: dict = Depends(require_admin)):
             "converted": doc["converted"],
             "follow_up": doc["follow_up"],
             "lost": doc["lost"],
+            # Import-time stats, kept around so admin can check them later too,
+            # not just in the one-time success alert.
+            "incomplete_count": meta.get("incomplete_count", 0),
+            "duplicate_infile_count": meta.get("duplicate_infile_count", 0),
+            "duplicate_existing_count": meta.get("duplicate_existing_count", 0),
+            "reassigned_existing_count": meta.get("reassigned_existing_count", 0),
+            "included_existing_duplicates": meta.get("included_existing_duplicates", False),
         })
     return batches
 
@@ -244,6 +341,117 @@ async def get_batch_leads(
         query["assigned_to"] = employee_filter
     cursor = leads_collection.find(query).sort("assigned_to_name", 1)
     return [to_lead_out(doc) async for doc in cursor]
+
+
+SUB_STAGE_LABELS = {
+    **REASON_LABELS,
+    "interested": "Interested", "not_interested": "Not Interested",
+    "converted": "Converted", "lost": "Lost (on call)",
+}
+
+
+def lead_call_outcome_label(lead: dict) -> str:
+    """Human label for a lead's most recent call result — Interested / Not
+    Interested / Switched Off / Invalid Number / Busy / No Response /
+    Network Issue / Converted / Lost / Not called yet — for the per-lead
+    row in the Excel report."""
+    if not lead.get("call_touched"):
+        return "Not called yet"
+    for h in reversed(lead.get("status_history", [])):
+        if h.get("sub_stage"):
+            return SUB_STAGE_LABELS.get(h["sub_stage"], h["sub_stage"])
+    return "Connected" if lead.get("connection_status") == "connected" else "Not Connected"
+
+
+@router.get("/batches/{batch_id}/report")
+async def download_batch_report(batch_id: str, admin: dict = Depends(require_admin)):
+    """Excel report for one imported batch: calls made, connection outcomes
+    (connected / switched-off / etc.), duplicate & incomplete numbers skipped
+    at import time, and a full per-lead breakdown — so admin can audit an
+    upload without digging through the UI."""
+    import openpyxl
+    from fastapi.responses import StreamingResponse
+
+    meta = await lead_batches_collection.find_one({"batch_id": batch_id})
+    leads = [doc async for doc in leads_collection.find({"batch_id": batch_id})]
+    if not leads and not meta:
+        raise HTTPException(status_code=404, detail="Batch not found")
+
+    called = sum(1 for l in leads if l.get("call_touched"))
+    status_counts = {}
+    for l in leads:
+        s = l.get("status", "new")
+        status_counts[s] = status_counts.get(s, 0) + 1
+    connected = sum(1 for l in leads if l.get("connection_status") == "connected")
+    not_connected = sum(1 for l in leads if l.get("connection_status") == "not_connected")
+
+    reason_counts = {}
+    for l in leads:
+        for h in l.get("status_history", []):
+            sub = h.get("sub_stage")
+            if sub:
+                reason_counts[sub] = reason_counts.get(sub, 0) + 1
+
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = "Summary"
+    meta = meta or {}
+    ws.append(["Metric", "Value"])
+    ws.append(["Batch ID", batch_id])
+    ws.append(["Uploaded on", meta.get("created_at", "")])
+    ws.append(["Total rows in file", meta.get("total_rows", len(leads))])
+    ws.append(["Imported", meta.get("imported_count", len(leads))])
+    ws.append(["Incomplete numbers skipped", meta.get("incomplete_count", 0)])
+    ws.append(["Duplicate numbers — within this same file", meta.get("duplicate_infile_count", 0)])
+    ws.append(["Duplicate numbers — already in database", meta.get("duplicate_existing_count", 0)])
+    ws.append(["  ...of which re-assigned instead of skipped", meta.get("reassigned_existing_count", 0)])
+    ws.append(["", ""])
+    ws.append(["Called", called])
+    ws.append(["Not called yet", len(leads) - called])
+    ws.append(["Connected", connected])
+    ws.append(["Not connected", not_connected])
+    ws.append(["", ""])
+    ws.append(["Status breakdown", ""])
+    for status, count in status_counts.items():
+        ws.append([STATUS_LABELS.get(status, status), count])
+    ws.append(["", ""])
+    ws.append(["Call outcome breakdown (all attempts)", ""])
+    for sub, count in reason_counts.items():
+        ws.append([SUB_STAGE_LABELS.get(sub, sub), count])
+
+    ws2 = wb.create_sheet("Leads")
+    ws2.append(["Name", "Phone", "Assigned To", "Status", "Call Outcome", "Connection Status", "Last Call At", "Call Attempts", "Follow-up Date"])
+    for l in leads:
+        ws2.append([
+            l.get("name"), l.get("phone"), l.get("assigned_to_name") or "Unassigned",
+            STATUS_LABELS.get(l.get("status"), l.get("status")), lead_call_outcome_label(l),
+            l.get("connection_status") or "", l.get("last_call_at") or "",
+            l.get("call_attempts", 0), l.get("follow_up_date") or "",
+        ])
+
+    if meta.get("incomplete_samples") or meta.get("duplicate_infile_samples") or meta.get("duplicate_existing_samples"):
+        ws3 = wb.create_sheet("Skipped Numbers")
+        ws3.append(["Reason", "Name", "Phone (as entered)"])
+        for r in meta.get("incomplete_samples", []):
+            ws3.append(["Incomplete number", r.get("name"), r.get("phone")])
+        for r in meta.get("duplicate_infile_samples", []):
+            ws3.append(["Duplicate — within this file", r.get("name"), r.get("phone")])
+        for r in meta.get("duplicate_existing_samples", []):
+            ws3.append(["Duplicate — already in database", r.get("name"), r.get("phone")])
+
+    buf = io.BytesIO()
+    wb.save(buf)
+    buf.seek(0)
+    await log_activity(
+        admin["sub"], "report_downloaded",
+        f"Downloaded the lead report for a batch ({len(leads)} leads)",
+        link="/portal/admin/leads",
+    )
+    return StreamingResponse(
+        buf,
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={"Content-Disposition": f'attachment; filename="lead_batch_report_{batch_id[:8]}.xlsx"'},
+    )
 
 
 @router.get("/admin-my")
@@ -753,14 +961,18 @@ async def transfer_lead(
 @router.post("/my", response_model=LeadOut)
 async def create_my_lead(data: LeadCreate, payload: dict = Depends(get_current_user_payload)):
     """Any employee can add a lead directly (referrals, walk-ins, etc.) — it's
-    auto-assigned to them. If referred_by_lead_id is set, this becomes a
-    structural referral: source flips to "referral" and reference_note is
-    auto-filled from the referring client's name (unless already supplied)."""
+    auto-assigned to them. Always tagged source="employee_added" (regardless
+    of whatever LeadCreate.source default came through) so both the employee
+    and admin can tell it was self-added rather than assigned from elsewhere.
+    If referred_by_lead_id is set, this becomes a structural referral: source
+    flips to "referral" and reference_note is auto-filled from the referring
+    client's name (unless already supplied)."""
     user = await users_collection.find_one({"id": payload["sub"]})
+    emp_name = user.get("name") if user else None
     lead = LeadInDB(**data.model_dump())
     lead.assigned_to = payload["sub"]
-    lead.assigned_to_name = user.get("name") if user else None
-    lead.source = data.source or "employee_added"
+    lead.assigned_to_name = emp_name
+    lead.source = "employee_added"
 
     if data.referred_by_lead_id:
         referrer = await leads_collection.find_one({"id": data.referred_by_lead_id})
@@ -773,6 +985,9 @@ async def create_my_lead(data: LeadCreate, payload: dict = Depends(get_current_u
 
     lead.pipeline_id = await find_pipeline_for_employee(payload["sub"])
     await leads_collection.insert_one(lead.model_dump())
+
+    await notify_admins_employee_added_lead(payload["sub"], emp_name or "An employee", lead.name, lead.phone)
+
     return to_lead_out(lead.model_dump())
 
 
@@ -800,12 +1015,29 @@ async def update_my_lead_service(lead_id: str, data: ServiceUpdateBody, payload:
 
 # ── Excel Import ─────────────────────────────────────────────────
 
+def normalize_phone(raw: Optional[str]) -> str:
+    """Strips everything but digits and drops a leading country code (91/0)
+    so the same number typed as '+91 98765 43210', '09876543210' or
+    '9876543210' all dedupe to the same 10-digit key."""
+    digits = re.sub(r"\D", "", raw or "")
+    if len(digits) == 12 and digits.startswith("91"):
+        digits = digits[2:]
+    elif len(digits) == 11 and digits.startswith("0"):
+        digits = digits[1:]
+    return digits
+
+
+def is_complete_phone(digits: str) -> bool:
+    return len(digits) == 10
+
+
 @router.post("/import-excel")
 async def import_leads_excel(
     file: UploadFile = File(...),
     assign_to: Optional[str] = Query(default=None),
-    assign_mode: Optional[str] = Query(default=None),  # "self", "all", "selected", None
+    assign_mode: Optional[str] = Query(default=None),  # "self", "all", "selected" — required, no unassigned imports
     employee_ids: Optional[str] = Query(default=None),  # comma-separated
+    include_existing_duplicates: bool = Query(default=False),  # if True, numbers already in the DB get re-assigned instead of skipped
     admin: dict = Depends(require_admin),
 ):
     import openpyxl
@@ -832,7 +1064,8 @@ async def import_leads_excel(
     if "name" not in col_map or "phone" not in col_map:
         raise HTTPException(status_code=400, detail="Excel must have Name and Phone/Contact columns")
 
-    # Determine assignment targets
+    # Determine assignment targets — importing without assigning to someone
+    # (self or one/more employees) is no longer allowed.
     target_employees = []
     if assign_mode == "self":
         target_employees = [admin["sub"]]
@@ -843,6 +1076,11 @@ async def import_leads_excel(
         target_employees = [eid.strip() for eid in employee_ids.split(",") if eid.strip()]
     elif assign_to:
         target_employees = [assign_to]
+    if not target_employees:
+        raise HTTPException(
+            status_code=400,
+            detail="Choose who to assign these leads to — yourself, all employees, or specific employees.",
+        )
 
     # Resolve names and pipelines for targets
     emp_names = {}
@@ -853,15 +1091,67 @@ async def import_leads_excel(
             emp_names[eid] = emp.get("name", "")
         emp_pipelines[eid] = await find_pipeline_for_employee(eid)
 
+    # Every phone already in the system, normalized, so a duplicate is caught
+    # regardless of how it was formatted the first time it was entered.
+    # existing_phone_to_id lets an "include existing duplicates" import
+    # re-assign the lead that's already there instead of creating a second,
+    # literally-duplicate lead document for the same number.
+    existing_phones = set()
+    existing_phone_to_id = {}
+    async for doc in leads_collection.find({}, {"phone": 1, "id": 1}):
+        norm = normalize_phone(doc.get("phone"))
+        if norm:
+            existing_phones.add(norm)
+            existing_phone_to_id.setdefault(norm, doc.get("id"))
+    seen_in_file = set()
+
     batch_id = str(uuid.uuid4())
     now_iso = datetime.now(timezone.utc).isoformat()
     imported = 0
+    reassigned_existing = 0
     imported_ids = []
+    incomplete_rows = []          # [{name, phone}] — not a complete 10-digit number
+    duplicate_infile_rows = []    # [{name, phone}] — repeated more than once within this same upload
+    duplicate_existing_rows = []  # [{name, phone}] — already present in the database from before
+
     for row in rows:
         name = str(row[col_map["name"]]).strip() if row[col_map["name"]] else ""
         phone = str(row[col_map["phone"]]).strip() if row[col_map["phone"]] else ""
         if not name or not phone:
             continue
+
+        norm_phone = normalize_phone(phone)
+        if not is_complete_phone(norm_phone):
+            incomplete_rows.append({"name": name, "phone": phone})
+            continue
+        if norm_phone in seen_in_file:
+            duplicate_infile_rows.append({"name": name, "phone": phone})
+            continue
+        seen_in_file.add(norm_phone)
+
+        if norm_phone in existing_phones:
+            duplicate_existing_rows.append({"name": name, "phone": phone})
+            if not include_existing_duplicates:
+                continue
+            # Re-assign the existing lead to the next target rather than
+            # inserting a second lead document for the same phone number.
+            existing_id = existing_phone_to_id.get(norm_phone)
+            if existing_id:
+                eid = target_employees[imported % len(target_employees)]
+                await leads_collection.update_one(
+                    {"id": existing_id},
+                    {"$set": {
+                        "assigned_to": eid, "assigned_to_name": emp_names.get(eid, ""),
+                        "pipeline_id": emp_pipelines.get(eid), "pipeline_stage_id": None,
+                        "batch_id": batch_id, "batch_date": now_iso,
+                        "updated_at": now_iso,
+                    }},
+                )
+                imported += 1
+                reassigned_existing += 1
+                imported_ids.append(existing_id)
+            continue
+
         lead = LeadInDB(
             name=name,
             phone=phone,
@@ -874,34 +1164,63 @@ async def import_leads_excel(
         lead_doc["batch_id"] = batch_id
         lead_doc["batch_date"] = now_iso
 
-        # Auto-assign if targets specified (round-robin)
-        if target_employees:
-            eid = target_employees[imported % len(target_employees)]
-            lead_doc["assigned_to"] = eid
-            lead_doc["assigned_to_name"] = emp_names.get(eid, "")
-            lead_doc["pipeline_id"] = emp_pipelines.get(eid)
+        eid = target_employees[imported % len(target_employees)]
+        lead_doc["assigned_to"] = eid
+        lead_doc["assigned_to_name"] = emp_names.get(eid, "")
+        lead_doc["pipeline_id"] = emp_pipelines.get(eid)
 
         await leads_collection.insert_one(lead_doc)
         imported += 1
         imported_ids.append(lead.id)
     wb.close()
 
-    # Send notifications to assigned employees
-    if target_employees:
-        assignment_counts = {}
-        for i, lid in enumerate(imported_ids):
-            eid = target_employees[i % len(target_employees)]
-            assignment_counts[eid] = assignment_counts.get(eid, 0) + 1
-        for eid, count in assignment_counts.items():
-            await create_notification(
-                user_id=eid,
-                title=f"{count} New Leads Assigned",
-                body=f"{count} leads from Excel import have been assigned to you",
-                n_type="lead",
-                link="/portal/employee/leads",
-            )
+    await lead_batches_collection.insert_one({
+        "batch_id": batch_id,
+        "total_rows": len(rows),
+        "imported_count": imported,
+        "reassigned_existing_count": reassigned_existing,
+        "incomplete_count": len(incomplete_rows),
+        "duplicate_infile_count": len(duplicate_infile_rows),
+        "duplicate_existing_count": len(duplicate_existing_rows),
+        "incomplete_samples": incomplete_rows[:50],
+        "duplicate_infile_samples": duplicate_infile_rows[:50],
+        "duplicate_existing_samples": duplicate_existing_rows[:50],
+        "included_existing_duplicates": include_existing_duplicates,
+        "created_at": now_iso,
+    })
 
-    return {"status": "imported", "count": imported, "lead_ids": imported_ids, "batch_id": batch_id}
+    # Send notifications to assigned employees
+    assignment_counts = {}
+    for i, lid in enumerate(imported_ids):
+        eid = target_employees[i % len(target_employees)]
+        assignment_counts[eid] = assignment_counts.get(eid, 0) + 1
+    for eid, count in assignment_counts.items():
+        await create_notification(
+            user_id=eid,
+            title=f"{count} New Leads Assigned",
+            body=f"{count} leads from Excel import have been assigned to you",
+            n_type="lead",
+            link="/portal/employee/leads",
+        )
+
+    await log_activity(
+        admin["sub"], "lead_imported",
+        f"Imported {imported} leads via Excel ({len(incomplete_rows)} incomplete, "
+        f"{len(duplicate_infile_rows)} duplicate-in-file, {len(duplicate_existing_rows)} duplicate-in-database"
+        f"{f', {reassigned_existing} of those re-assigned' if reassigned_existing else ''})",
+        link="/portal/admin/leads",
+    )
+
+    return {
+        "status": "imported",
+        "count": imported,
+        "reassigned_existing_count": reassigned_existing,
+        "lead_ids": imported_ids,
+        "batch_id": batch_id,
+        "incomplete_count": len(incomplete_rows),
+        "duplicate_infile_count": len(duplicate_infile_rows),
+        "duplicate_existing_count": len(duplicate_existing_rows),
+    }
 
 
 # ── Shuffle & Assign leads to employees ──────────────────────────

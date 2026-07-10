@@ -1,5 +1,5 @@
 import React from "react";
-import { Trash2 } from "lucide-react";
+import { Trash2, Download } from "lucide-react";
 import DataTable from "../../components/portal/DataTable";
 import StatusBadge from "../../components/portal/StatusBadge";
 import EmptyState from "../../components/portal/EmptyState";
@@ -13,6 +13,7 @@ const STATUS_LABELS = {
 export default function EmployeeLeadsTab({
   batches, openBatch, batchLeads, batchEmpFilter, batchLoading, employees,
   openBatchDetail, filterBatchByEmp, deleteBatch, assignLead, setOpenBatch, setBatchLeads, setDetailLead,
+  downloadBatchReport,
 }) {
   if (openBatch) {
     const columns = [
@@ -27,7 +28,7 @@ export default function EmployeeLeadsTab({
               onChange={(e) => e.target.value && assignLead(lead.id, e.target.value)}
               className="text-xs border border-[#E2D8C2] dark:border-white/15 dark:bg-white/5 dark:text-[#F1EDE3] rounded-lg px-2 py-1.5 text-[#024396] dark:text-[#7CB0FF] bg-white max-w-[160px]"
             >
-              <option value="">Unassigned</option>
+              {!lead.assigned_to && <option value="" disabled>Choose employee</option>}
               {employees.filter((emp) => emp.is_active !== false).map((emp) => (
                 <option key={emp.id} value={emp.id}>{emp.name}</option>
               ))}
@@ -55,6 +56,9 @@ export default function EmployeeLeadsTab({
               <option value="">All Employees</option>
               {employees.map((emp) => <option key={emp.id} value={emp.id}>{emp.name}</option>)}
             </select>
+            <Button variant="outline" size="sm" onClick={() => downloadBatchReport(openBatch.batch_id)}>
+              <Download size={13} className="mr-1" /> Report
+            </Button>
             <Button variant="destructive" size="sm" onClick={() => deleteBatch(openBatch.batch_id)}>
               <Trash2 size={13} className="mr-1" /> Delete Batch
             </Button>
@@ -98,10 +102,21 @@ export default function EmployeeLeadsTab({
                   <div className="text-center"><p className="text-sm font-bold text-emerald-600 dark:text-emerald-400">{batch.converted}</p><p className="text-[9px] text-[#2A364B]/40 dark:text-[#8E99AC]">Converted</p></div>
                   <div className="text-center"><p className="text-sm font-bold text-red-600 dark:text-red-400">{batch.lost}</p><p className="text-[9px] text-[#2A364B]/40 dark:text-[#8E99AC]">Lost</p></div>
                 </div>
+                {(batch.incomplete_count > 0 || batch.duplicate_infile_count > 0 || batch.duplicate_existing_count > 0) && (
+                  <p className="text-[10px] text-[#2A364B]/50 dark:text-[#8E99AC] mt-3">
+                    Skipped at import: {batch.incomplete_count} incomplete, {batch.duplicate_infile_count} duplicate-in-file, {batch.duplicate_existing_count} duplicate-in-database
+                    {batch.reassigned_existing_count > 0 && ` (${batch.reassigned_existing_count} of those re-assigned)`}
+                  </p>
+                )}
               </div>
-              <button onClick={() => deleteBatch(batch.batch_id)} className="mt-3 text-[11px] font-medium text-red-500 dark:text-red-400 hover:underline">
-                🗑️ Delete this batch
-              </button>
+              <div className="flex items-center gap-3 mt-3">
+                <button onClick={() => downloadBatchReport(batch.batch_id)} className="text-[11px] font-medium text-[#024396] dark:text-[#7CB0FF] hover:underline">
+                  ⬇️ Download report
+                </button>
+                <button onClick={() => deleteBatch(batch.batch_id)} className="text-[11px] font-medium text-red-500 dark:text-red-400 hover:underline">
+                  🗑️ Delete this batch
+                </button>
+              </div>
             </div>
           ))}
         </div>

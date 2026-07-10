@@ -6,6 +6,7 @@ import WelcomeAnimation from "../components/WelcomeAnimation";
 import { Input } from "../components/ui/input";
 import { Label } from "../components/ui/label";
 import { Button } from "../components/ui/button";
+import InstallAppPrompt from "../components/InstallAppPrompt";
 
 const FEATURES = [
   { icon: "📋", text: "Track and convert leads end-to-end" },
@@ -155,6 +156,8 @@ export default function PortalLogin() {
                 ) : "Sign In"}
               </Button>
             </form>
+
+            <InstallAppPrompt />
 
             <div className="mt-8 pt-6 border-t border-[#E2D8C2]/50 dark:border-white/10">
               <p className="text-xs text-[#2A364B]/50 dark:text-[#8E99AC] text-center">
