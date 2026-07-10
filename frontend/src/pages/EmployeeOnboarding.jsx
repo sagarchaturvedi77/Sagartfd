@@ -82,7 +82,7 @@ export default function EmployeeOnboarding() {
         <p className="text-xs font-medium text-[#2A364B]/70 dark:text-[#8E99AC] mb-2">{label}</p>
         {existing ? (
           <div className="space-y-2">
-            {existing.data?.startsWith("data:image") && (
+            {existing.content_type?.startsWith("image/") && (
               <img src={existing.data} alt={label} className="h-20 mx-auto rounded-lg object-contain" />
             )}
             <p className="text-[10px] text-emerald-600 dark:text-emerald-400 font-medium">Uploaded: {existing.filename}</p>

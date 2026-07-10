@@ -121,7 +121,7 @@ export default function EmployeeProfile() {
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
                 {Object.entries(uploads).map(([key, val]) => (
                   <div key={key} className="text-center">
-                    {val.data?.startsWith("data:image") ? (
+                    {val.content_type?.startsWith("image/") ? (
                       <img src={val.data} alt={key} className="h-20 mx-auto rounded-xl object-contain border border-[#E2D8C2] dark:border-white/10" />
                     ) : (
                       <div className="h-20 bg-[#FBF7EE] dark:bg-white/5 rounded-xl flex items-center justify-center">

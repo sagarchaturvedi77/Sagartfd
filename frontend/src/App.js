@@ -20,6 +20,14 @@ import { ThemeProvider } from "./context/ThemeContext";
 import ProtectedRoute from "./components/ProtectedRoute";
 import PortalLogin from "./pages/PortalLogin";
 import AdminDashboard from "./pages/AdminDashboard";
+import AdminEmployeeList from "./pages/AdminEmployeeList";
+import AdminStorageStatus from "./pages/AdminStorageStatus";
+import AdminDataCleanup from "./pages/AdminDataCleanup";
+import AdminCertificates from "./pages/AdminCertificates";
+import AdminInvoices from "./pages/AdminInvoices";
+import AdminCalculators from "./pages/AdminCalculators";
+import AdminLetterheads from "./pages/AdminLetterheads";
+import AdminDocumentSearch from "./pages/AdminDocumentSearch";
 import AdminAttendance from "./pages/AdminAttendance";
 import AdminTargets from "./pages/AdminTargets";
 import EmployeeDashboard from "./pages/EmployeeDashboard";
@@ -42,6 +50,7 @@ import AnalyticsTracker from "./components/AnalyticsTracker";
 import WebsiteNotificationPrompt from "./components/WebsiteNotificationPrompt";
 import EmployeeOnboarding from "./pages/EmployeeOnboarding";
 import EmployeeProfile from "./pages/EmployeeProfile";
+import EmployeeAchievements from "./pages/EmployeeAchievements";
 import AdminWebsiteContent from "./pages/AdminWebsiteContent";
 import AdminPipelines from "./pages/AdminPipelines";
 import AdminEmployeeProfile from "./pages/AdminEmployeeProfile";
@@ -54,6 +63,8 @@ import EmployeeLeaveRequest from "./pages/EmployeeLeaveRequest";
 import EmployeeIDCardPage from "./pages/EmployeeIDCardPage";
 import EmployeeAgreement from "./pages/EmployeeAgreement";
 import PublicVerifyEmployee from "./pages/PublicVerifyEmployee";
+import PublicVerify from "./pages/PublicVerify";
+import InternApplicationPage from "./pages/InternApplicationPage";
 
 // 🩺 TEMPORARY PLACEHOLDERS (Design ready hone par inhe alag files me daal denge)
 const TermInsurancePage = () => <div className="min-h-screen bg-[#FBF7EE] p-20 text-center text-3xl font-serif">Term Insurance Solutions (Coming Soon)</div>;
@@ -215,6 +226,70 @@ function App() {
                   }
                 />
                 <Route
+                  path="/portal/admin/employees"
+                  element={
+                    <ProtectedRoute requiredRole="admin">
+                      <AdminEmployeeList />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/portal/admin/storage"
+                  element={
+                    <ProtectedRoute requiredRole="admin">
+                      <AdminStorageStatus />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/portal/admin/data-cleanup"
+                  element={
+                    <ProtectedRoute requiredRole="admin">
+                      <AdminDataCleanup />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/portal/admin/certificates"
+                  element={
+                    <ProtectedRoute requiredRole="admin">
+                      <AdminCertificates />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/portal/admin/invoices"
+                  element={
+                    <ProtectedRoute requiredRole="admin">
+                      <AdminInvoices />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/portal/admin/calculators"
+                  element={
+                    <ProtectedRoute requiredRole="admin">
+                      <AdminCalculators />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/portal/admin/letterheads"
+                  element={
+                    <ProtectedRoute requiredRole="admin">
+                      <AdminLetterheads />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/portal/admin/document-search"
+                  element={
+                    <ProtectedRoute requiredRole="admin">
+                      <AdminDocumentSearch />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
                   path="/portal/admin/employees/:employeeId"
                   element={
                     <ProtectedRoute requiredRole="admin">
@@ -351,7 +426,17 @@ element={
                     </ProtectedRoute>
                   }
                 />
-                {/* Public QR verify page — no auth needed */}
+                <Route
+                  path="/portal/employee/achievements"
+                  element={
+                    <ProtectedRoute requiredRole="employee">
+                      <EmployeeAchievements />
+                    </ProtectedRoute>
+                  }
+                />
+                {/* Public verification pages — no auth needed */}
+                <Route path="/verify" element={<PublicVerify />} />
+                <Route path="/intern-application" element={<InternApplicationPage />} />
                 <Route path="/verify/:employee_id" element={<PublicVerifyEmployee />} />
                 <Route
                   path="/portal/employee/profile"

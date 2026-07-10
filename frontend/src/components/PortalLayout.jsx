@@ -17,7 +17,7 @@ import {
   LayoutDashboard, Clock, Users, Briefcase, GitBranch, Landmark, BarChart3,
   FolderOpen, Palmtree, KeyRound, Megaphone, Globe, Settings, Calculator,
   UserCircle, LogOut, Menu, Languages, MessageCircle, Sun, Moon, MoreHorizontal,
-  Wallet, IdCard, Download, Smartphone, X, Send,
+  Wallet, IdCard, Download, Smartphone, X, Send, HardDrive, GraduationCap, Receipt, FileText, Search,
 } from "lucide-react";
 
 // Salary, ID Card and Team Chat are intentionally not top-level sidebar items —
@@ -29,15 +29,21 @@ const adminItems = [
   { key: "dashboard",  label: "Dashboard",         path: "/portal/admin", icon: LayoutDashboard },
   { key: "attendance", label: "Attendance",        path: "/portal/admin/attendance", icon: Clock },
   { key: "leads",      label: "Leads",             path: "/portal/admin/leads", icon: Users },
+  { key: "calculators", label: "Calculators",      path: "/portal/admin/calculators", icon: Calculator },
   { key: "services",   label: "Services",          path: "/portal/admin/services", icon: Briefcase },
   { key: "pipelines",  label: "Pipelines",         path: "/portal/admin/pipelines", icon: GitBranch },
   { key: "accounts",   label: "Accounts",          path: "/portal/admin/accounts", icon: Landmark },
   { key: "reports",    label: "Reports",           path: "/portal/admin/reports", icon: BarChart3 },
   { key: "documents",  label: "Documents",         path: "/portal/admin/documents", icon: FolderOpen },
   { key: "leaves",     label: "Leave Requests",    path: "/portal/admin/leaves", icon: Palmtree },
+  { key: "certificates", label: "Certificates",     path: "/portal/admin/certificates", icon: GraduationCap },
+  { key: "letterheads", label: "Blank Letterhead",  path: "/portal/admin/letterheads", icon: FileText },
+  { key: "invoices",   label: "Billing / Invoices", path: "/portal/admin/invoices", icon: Receipt },
+  { key: "document-search", label: "Document Search", path: "/portal/admin/document-search", icon: Search },
   { key: "access",     label: "Access Control",    path: "/portal/admin/access", icon: KeyRound },
   { key: "announce",   label: "Announcements",     path: "/portal/admin/announce", icon: Megaphone },
   { key: "website",    label: "Website / Content", path: "/portal/admin/website", icon: Globe },
+  { key: "storage",    label: "Storage Status",    path: "/portal/admin/storage", icon: HardDrive },
   { key: "settings",   label: "Settings",          path: "/portal/admin/settings", icon: Settings },
 ];
 
@@ -47,6 +53,7 @@ const employeeItems = [
   { key: "leads",       label: "My Leads",     path: "/portal/employee/leads", icon: Users },
   { key: "calculators", label: "Calculators",  path: "/portal/employee/calculators", icon: Calculator },
   { key: "leaves",      label: "My Leaves",    path: "/portal/employee/leaves", icon: Palmtree },
+  { key: "achievements", label: "Achievements", path: "/portal/employee/achievements", icon: GraduationCap },
   { key: "profile",     label: "My Profile",   path: "/portal/employee/profile", icon: UserCircle },
   { key: "settings",    label: "Settings",     path: "/portal/employee/settings", icon: Settings },
 ];

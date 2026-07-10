@@ -6,8 +6,10 @@ const PUBLIC_KEY = "FvB3BN4WHB03ZhD5R";
 
 emailjs.init(PUBLIC_KEY);
 
-// Backend ka base URL (Jo abhi humne port 5000 par start kiya hai)
-const BACKEND_BASE_URL = "http://localhost:5000/api";
+// Backend base URL — same env var portal/api.js uses, so this works against
+// whatever backend is actually running (local dev port or the deployed
+// Render URL) instead of a hardcoded dead address.
+const BACKEND_BASE_URL = `${process.env.REACT_APP_BACKEND_URL || ""}/api`;
 
 export const api = {
     // 1. Contact Form Submit (EmailJS + Backend DB Backup)

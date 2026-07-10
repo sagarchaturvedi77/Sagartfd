@@ -10,6 +10,7 @@ from fastapi.responses import JSONResponse
 
 from auth_utils import get_current_user_payload, require_admin
 from database import db, users_collection
+from storage_r2 import r2_enabled, upload_bytes, presigned_url
 
 router = APIRouter(prefix="/api", tags=["onboarding"])
 
@@ -20,7 +21,9 @@ call_logs_collection = db["call_logs"]
 UPLOAD_FIELDS = {"photo", "aadhar_front", "aadhar_back", "resume", "signature"}
 
 
-# ── File Upload (base64 stored in DB for simplicity on free tier) ──────────
+# ── File Upload — Cloudflare R2 (bucket is private; served via presigned
+# URLs, see storage_r2.py). Falls back to base64-in-Mongo only if R2 isn't
+# configured, so local dev without R2 credentials still works. ────────────
 
 @router.post("/upload")
 async def upload_file(
@@ -35,7 +38,6 @@ async def upload_file(
     if len(data) > 5 * 1024 * 1024:
         raise HTTPException(status_code=400, detail="File too large (max 5MB)")
 
-    b64 = base64.b64encode(data).decode()
     content_type = file.content_type or "application/octet-stream"
     file_doc = {
         "id": str(uuid.uuid4()),
@@ -43,15 +45,27 @@ async def upload_file(
         "field": field,
         "filename": file.filename,
         "content_type": content_type,
-        "data": f"data:{content_type};base64,{b64}",
         "uploaded_at": datetime.now(timezone.utc).isoformat(),
     }
+    if r2_enabled():
+        r2_key = f"employee-uploads/{payload['sub']}/{field}"
+        upload_bytes(r2_key, data, content_type)
+        file_doc["r2_key"] = r2_key
+    else:
+        b64 = base64.b64encode(data).decode()
+        file_doc["data"] = f"data:{content_type};base64,{b64}"
+
     await db.uploads.update_one(
         {"user_id": payload["sub"], "field": field},
         {"$set": file_doc},
         upsert=True,
     )
-    return {"id": file_doc["id"], "field": field, "url": file_doc["data"][:80] + "..."}
+    return {"id": file_doc["id"], "field": field}
+
+
+def _upload_doc_to_out(doc: dict) -> dict:
+    url = presigned_url(doc["r2_key"]) if doc.get("r2_key") else doc.get("data")
+    return {"data": url, "filename": doc.get("filename"), "content_type": doc.get("content_type")}
 
 
 @router.get("/uploads/{user_id}")
@@ -61,7 +75,7 @@ async def get_uploads(user_id: str, payload: dict = Depends(get_current_user_pay
     cursor = db.uploads.find({"user_id": user_id})
     result = {}
     async for doc in cursor:
-        result[doc["field"]] = {"data": doc["data"], "filename": doc.get("filename")}
+        result[doc["field"]] = _upload_doc_to_out(doc)
     return result
 
 
@@ -156,7 +170,7 @@ async def get_employee_full(employee_id: str, _admin: dict = Depends(require_adm
     profile = await profiles_collection.find_one({"user_id": employee_id}, {"_id": 0})
     uploads = {}
     async for doc in db.uploads.find({"user_id": employee_id}):
-        uploads[doc["field"]] = {"data": doc["data"], "filename": doc.get("filename")}
+        uploads[doc["field"]] = _upload_doc_to_out(doc)
     return {"user": user, "profile": profile or {}, "uploads": uploads}
 
 

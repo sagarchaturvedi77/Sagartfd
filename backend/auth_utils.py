@@ -6,7 +6,14 @@ from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 
 # 🔐 Set a strong random value for JWT_SECRET in your .env — never hardcode in production.
-JWT_SECRET = os.environ.get("JWT_SECRET", "CHANGE_THIS_SECRET_KEY")
+# Refuses to start rather than silently signing tokens with a known-weak
+# default: a missing/placeholder secret would let anyone forge admin logins.
+JWT_SECRET = os.environ.get("JWT_SECRET")
+if not JWT_SECRET or JWT_SECRET == "CHANGE_THIS_SECRET_KEY":
+    raise RuntimeError(
+        "JWT_SECRET environment variable is missing (or still the placeholder value). "
+        "Set a strong random JWT_SECRET before starting the app."
+    )
 JWT_ALGORITHM = "HS256"
 # Staff expect to stay logged in on their own device indefinitely, the same
 # way the native app-switcher behaves for any other app — sessions should

@@ -19,6 +19,7 @@ const typeIcon = {
   employee_lead_added: "🙋",
   task: "✅",
   target: "📈",
+  storage_warning: "📦",
   general: "🔔",
 };
 

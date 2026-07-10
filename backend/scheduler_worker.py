@@ -697,6 +697,18 @@ def run_due_checks() -> dict:
         send_followup_miss_check()
         ran.append("evening_checks")
 
+    # Once a day: refresh the storage-usage dashboard cache (MongoDB/R2 live,
+    # Render/Netlify from admin-entered figures) and notify admins on any
+    # 80%/95% threshold crossing.
+    if _job_due_today("storage_status_refresh", now_local):
+        LOG.info("Refreshing storage status at %s", now_local.isoformat())
+        try:
+            from storage_status import refresh_storage_status
+            refresh_storage_status()
+        except Exception as e:
+            LOG.exception("Storage status refresh failed: %s", e)
+        ran.append("storage_status_refresh")
+
     # Hourly-interval reminders (punch-out repeats, single-shot lead nudges) —
     # naturally idempotent via each reminder's own next_send_at field.
     process_due_reminders()

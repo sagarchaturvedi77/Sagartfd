@@ -26,6 +26,17 @@ db = client[os.environ['DB_NAME']]
 app = FastAPI(title="The Financial Doctor API")
 api_router = APIRouter(prefix="/api")
 
+# Rate limiting for public, unauthenticated endpoints (currently: the /verify
+# employee-code and certificate-number lookups in qr_routes.py) — deters
+# bulk-guessing codes at scale. The same `limiter` instance from rate_limit.py
+# is what qr_routes.py's @limiter.limit(...) decorators use.
+from slowapi import _rate_limit_exceeded_handler
+from slowapi.errors import RateLimitExceeded
+from rate_limit import limiter
+
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+
 # -------------- MODELS --------------
 
 class Review(BaseModel):
@@ -498,6 +509,24 @@ app.include_router(internal_router)
 from activity_routes import router as activity_router
 app.include_router(activity_router)
 
+from storage_routes import router as storage_router
+app.include_router(storage_router)
+
+from cleanup_routes import router as cleanup_router
+app.include_router(cleanup_router)
+
+from certificate_routes import router as certificate_router
+app.include_router(certificate_router)
+
+from invoice_routes import router as invoice_router
+app.include_router(invoice_router)
+
+from letterhead_routes import router as letterhead_router
+app.include_router(letterhead_router)
+
+from document_search_routes import router as document_search_router
+app.include_router(document_search_router)
+
 app.add_middleware(
     CORSMiddleware,
     allow_credentials=True,
@@ -508,6 +537,23 @@ app.add_middleware(
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
+
+
+@app.on_event("startup")
+async def create_db_indexes():
+    """Idempotent — safe to run on every boot. leads/users are the two
+    heaviest-queried collections (search, per-employee filtering, login
+    lookup) and previously had no indexes beyond the default _id."""
+    from database import leads_collection, users_collection
+    await leads_collection.create_index("phone")
+    await leads_collection.create_index("name")
+    await leads_collection.create_index("assigned_to")
+    await leads_collection.create_index("status")
+    await leads_collection.create_index("batch_id")
+    await leads_collection.create_index([("assigned_to", 1), ("call_touched", 1)])
+    await users_collection.create_index("phone")
+    await users_collection.create_index("email")
+    await users_collection.create_index("role")
 
 
 @app.on_event("shutdown")

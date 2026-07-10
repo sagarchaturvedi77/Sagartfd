@@ -13,7 +13,6 @@ import React, { useState } from "react";
 // sections are built, rather than promising a toggle that does nothing.
 export const ALL_ADMIN_WIDGETS = [
   { id: "stats",      label: "📊 Stats Cards",        desc: "Total employees, active, system status, targets link" },
-  { id: "team",       label: "👥 Team List",           desc: "All employees with details" },
 ];
 
 export const ALL_EMPLOYEE_WIDGETS = [

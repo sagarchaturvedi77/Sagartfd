@@ -1,5 +1,5 @@
 import React from "react";
-import { Instagram, Youtube, Linkedin, MessageCircle, Sparkles } from "lucide-react";
+import { Instagram, Youtube, Linkedin, MessageCircle, Sparkles, ShieldCheck } from "lucide-react";
 
 const LOGO_URL =
     "https://customer-assets.emergentagent.com/job_advisor-phase4-build/artifacts/buhrts3f_IMG_2870.png";
@@ -61,6 +61,13 @@ export default function Footer() {
                         <li><a href="#contact" className="hover:text-[#F6F1E8]">Contact</a></li>
                         <li><a href="/portal/login" className="hover:text-[#F6F1E8]">Employee Login</a></li>
                     </ul>
+
+                    <a
+                        href="/verify"
+                        className="inline-flex items-center gap-2 mt-4 text-xs font-semibold text-[#0E1B2C] bg-[#F6F1E8] hover:bg-white px-3.5 py-2 rounded-full transition-colors"
+                    >
+                        <ShieldCheck size={14} className="text-[#C7102E]" /> Verify Certificate / Employee
+                    </a>
 
                     <div className="flex gap-2.5 mt-5">
                         <FooterLogoBox href="/partner-with-us" src={LOGO_URL} label="TFD Partner" />

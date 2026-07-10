@@ -16,7 +16,8 @@ export default function AdminDocuments() {
   const [docs, setDocs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showAdd, setShowAdd] = useState(false);
-  const [form, setForm] = useState({ title: "", category: "General", description: "", file_url: "", file_name: "" });
+  const [form, setForm] = useState({ title: "", category: "General", description: "" });
+  const [selectedFile, setSelectedFile] = useState(null);
   const [uploading, setUploading] = useState(false);
   const [filterCat, setFilterCat] = useState("All");
 
@@ -30,37 +31,42 @@ export default function AdminDocuments() {
 
   useEffect(() => { fetchDocs(); }, [fetchDocs]);
 
-  const handleFileUpload = async (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-    setUploading(true);
-    try {
-      const reader = new FileReader();
-      reader.onload = () => {
-        setForm(f => ({ ...f, file_url: reader.result, file_name: file.name, file_type: file.type }));
-        setUploading(false);
-      };
-      reader.readAsDataURL(file);
-    } catch {
-      setUploading(false);
-    }
+  const handleFileUpload = (e) => {
+    setSelectedFile(e.target.files[0] || null);
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!form.title.trim()) return;
+    setUploading(true);
     try {
-      const r = await fetch(`${API}/api/documents`, {
-        method: "POST",
-        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
-        body: JSON.stringify(form),
-      });
+      let r;
+      if (selectedFile) {
+        const fd = new FormData();
+        fd.append("file", selectedFile);
+        fd.append("title", form.title);
+        fd.append("category", form.category);
+        fd.append("description", form.description);
+        r = await fetch(`${API}/api/documents/upload`, {
+          method: "POST",
+          headers: { Authorization: `Bearer ${token}` },
+          body: fd,
+        });
+      } else {
+        r = await fetch(`${API}/api/documents`, {
+          method: "POST",
+          headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+          body: JSON.stringify(form),
+        });
+      }
       if (r.ok) {
         setShowAdd(false);
-        setForm({ title: "", category: "General", description: "", file_url: "", file_name: "" });
+        setForm({ title: "", category: "General", description: "" });
+        setSelectedFile(null);
         fetchDocs();
       }
     } catch { /* ignore */ }
+    setUploading(false);
   };
 
   const handleDelete = async (id) => {
@@ -169,7 +175,7 @@ export default function AdminDocuments() {
             <div>
               <label className="text-xs text-[#5C677D] dark:text-[#8E99AC] block mb-1">File</label>
               <input type="file" onChange={handleFileUpload} className="text-sm text-[#2A364B] dark:text-[#C7CEDA]" accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.png,.jpg,.jpeg" />
-              {form.file_name && <p className="text-xs text-green-600 dark:text-green-400 mt-1">Selected: {form.file_name}</p>}
+              {selectedFile && <p className="text-xs text-green-600 dark:text-green-400 mt-1">Selected: {selectedFile.name}</p>}
             </div>
 
             <div className="flex gap-3 pt-1">

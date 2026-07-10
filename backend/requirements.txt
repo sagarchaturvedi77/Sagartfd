@@ -13,3 +13,6 @@ qrcode[pil]>=7.4.2
 openpyxl
 pywebpush
 pytz
+boto3
+reportlab
+slowapi

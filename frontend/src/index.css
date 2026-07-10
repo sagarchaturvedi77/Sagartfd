@@ -87,7 +87,18 @@ body {
     overflow-x: hidden;
     width: 100%;
     max-width: 100vw;
-    overscroll-behavior-y: contain;
+}
+
+/* Pull-to-refresh containment is a touch-gesture concern only — scoping it
+   to coarse pointers (touchscreens) avoids a confirmed Chrome desktop bug
+   where `overscroll-behavior-y: contain` on html/body silently breaks
+   mouse-wheel/trackpad scrolling entirely (scrollbar drag + keyboard scroll
+   stay unaffected, which is what made this so hard to spot). */
+@media (pointer: coarse) {
+    html,
+    body {
+        overscroll-behavior-y: contain;
+    }
 }
 
 #root {
