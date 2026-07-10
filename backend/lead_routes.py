@@ -343,6 +343,10 @@ async def get_batch_leads(
     return [to_lead_out(doc) async for doc in cursor]
 
 
+REASON_LABELS = {
+    "npc": "no response (NPC)", "switchoff": "switched off",
+    "network_issue": "network issue", "busy": "busy", "invalid": "invalid number",
+}
 SUB_STAGE_LABELS = {
     **REASON_LABELS,
     "interested": "Interested", "not_interested": "Not Interested",
@@ -690,10 +694,6 @@ CONNECTED_TERMINAL = {"converted", "lost"}
 NOT_CONNECTED_DIRECT_LOST = {"invalid"}  # invalid number -> lost immediately, no retries
 MAX_NOT_INTERESTED_ATTEMPTS = 3
 MAX_REASSIGNS = 2  # after this many hand-offs with still no connect, give up and mark lost
-REASON_LABELS = {
-    "npc": "no response (NPC)", "switchoff": "switched off",
-    "network_issue": "network issue", "busy": "busy", "invalid": "invalid number",
-}
 
 
 async def _pick_reassign_target(exclude_id: Optional[str]) -> Optional[dict]:
