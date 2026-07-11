@@ -688,6 +688,23 @@ async def add_quick_note(
     return {"status": "noted"}
 
 
+@router.post("/{lead_id}/call-started")
+async def mark_call_started(lead_id: str, payload: dict = Depends(get_current_user_payload)):
+    """Fired the moment the employee taps the tel: link — before the call
+    happens or any outcome is known. Lets a "Recent Calls" widget recover a
+    call whose outcome popup was missed/dismissed (app backgrounded and
+    killed mid-call, accidental tap-away, etc.), since last_call_at only
+    gets set once an outcome is actually submitted."""
+    doc = await leads_collection.find_one({"id": lead_id})
+    if not doc:
+        raise HTTPException(status_code=404, detail="Lead not found")
+    if payload["role"] != "admin" and doc.get("assigned_to") != payload["sub"]:
+        raise HTTPException(status_code=403, detail="Lead not assigned to you")
+    now = datetime.now(timezone.utc).isoformat()
+    await leads_collection.update_one({"id": lead_id}, {"$set": {"last_call_attempted_at": now}})
+    return {"status": "ok", "last_call_attempted_at": now}
+
+
 # ── Employee: full call-flow outcome (the popup after every call) ──
 
 CONNECTED_TERMINAL = {"converted", "lost"}
@@ -738,6 +755,13 @@ async def submit_call_outcome(
         raise HTTPException(status_code=404, detail="Lead not found")
     if payload["role"] != "admin" and doc.get("assigned_to") != payload["sub"]:
         raise HTTPException(status_code=403, detail="Lead not assigned to you")
+    if doc.get("status") == "lost":
+        # Calling an already-lost lead through this flow again (easy to do
+        # by mistake, repeatedly) would otherwise write a fresh history
+        # entry and re-fire notifications every single time. If they really
+        # need to change it, that's a direct status edit elsewhere, not
+        # another "call outcome" submission.
+        raise HTTPException(status_code=400, detail="This lead is already marked Lost. Use the status editor if you need to change it to something else.")
 
     now = datetime.now(timezone.utc)
     now_iso = now.isoformat()
@@ -959,14 +983,85 @@ async def transfer_lead(
 # ── Employee: add a lead themselves ─────────────────────────────
 
 @router.post("/my", response_model=LeadOut)
-async def create_my_lead(data: LeadCreate, payload: dict = Depends(get_current_user_payload)):
+async def create_my_lead(
+    data: LeadCreate,
+    confirm_merge: bool = Query(default=False),
+    payload: dict = Depends(get_current_user_payload),
+):
     """Any employee can add a lead directly (referrals, walk-ins, etc.) — it's
     auto-assigned to them. Always tagged source="employee_added" (regardless
     of whatever LeadCreate.source default came through) so both the employee
     and admin can tell it was self-added rather than assigned from elsewhere.
     If referred_by_lead_id is set, this becomes a structural referral: source
     flips to "referral" and reference_note is auto-filled from the referring
-    client's name (unless already supplied)."""
+    client's name (unless already supplied).
+
+    Phone must be a complete, valid 10-digit Indian mobile number (normalized
+    the same way import-excel dedupes — see normalize_phone/is_complete_phone
+    below). If the number already exists among this employee's own leads,
+    the create is rejected with 409 + the existing lead's summary unless the
+    caller passes confirm_merge=true, in which case the new submission's
+    details are folded into the existing lead (as a note) instead of creating
+    a duplicate record."""
+    norm_new = normalize_phone(data.phone)
+    if not is_complete_phone(norm_new) or not re.match(r"^[6-9]\d{9}$", norm_new):
+        raise HTTPException(
+            status_code=400,
+            detail="Enter a valid 10-digit Indian mobile number (must start with 6-9).",
+        )
+
+    existing = None
+    async for doc in leads_collection.find(
+        {"assigned_to": payload["sub"]},
+        {"id": 1, "name": 1, "phone": 1, "status": 1, "service_interest": 1, "created_at": 1},
+    ):
+        if normalize_phone(doc.get("phone")) == norm_new:
+            existing = doc
+            break
+
+    if existing and not confirm_merge:
+        raise HTTPException(
+            status_code=409,
+            detail={
+                "message": f"{data.name.strip() or 'This number'} ({data.phone}) is already in your leads as \"{existing.get('name')}\".",
+                "existing_lead": {
+                    "id": existing["id"],
+                    "name": existing.get("name"),
+                    "phone": existing.get("phone"),
+                    "status": existing.get("status"),
+                    "service_interest": existing.get("service_interest"),
+                    "created_at": existing.get("created_at"),
+                },
+            },
+        )
+
+    if existing and confirm_merge:
+        now = datetime.now(timezone.utc).isoformat()
+        who = await users_collection.find_one({"id": payload["sub"]})
+        note_bits = [f"Merged a duplicate re-add (name entered: \"{data.name.strip()}\")"]
+        update: dict = {"updated_at": now}
+        if data.service_interest and data.service_interest != existing.get("service_interest"):
+            note_bits.append(f"service interest: {data.service_interest}")
+            update["service_interest"] = data.service_interest
+        if data.notes:
+            note_bits.append(f"note: {data.notes}")
+        if data.city:
+            update["city"] = data.city
+        if data.email:
+            update["email"] = data.email
+        history_entry = {
+            "note": " — ".join(note_bits),
+            "date": now,
+            "by": payload["sub"],
+            "by_name": who.get("name") if who else "Unknown",
+        }
+        await leads_collection.update_one(
+            {"id": existing["id"]},
+            {"$set": update, "$push": {"status_history": history_entry}},
+        )
+        merged = await leads_collection.find_one({"id": existing["id"]})
+        return to_lead_out(merged)
+
     user = await users_collection.find_one({"id": payload["sub"]})
     emp_name = user.get("name") if user else None
     lead = LeadInDB(**data.model_dump())

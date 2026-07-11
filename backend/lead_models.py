@@ -93,6 +93,7 @@ class LeadInDB(BaseModel):
     connection_status: Optional[str] = None     # last call outcome: connected / not_connected
     call_attempts: int = 0                      # consecutive unresolved attempts (resets on interested/converted)
     last_call_at: Optional[str] = None
+    last_call_attempted_at: Optional[str] = None  # set the moment tel: is tapped, before any outcome is known — lets a missed outcome popup be recovered from a "Recent Calls" list
     transfer_history: list = Field(default_factory=list)   # [{from, to, note, at}]
     reference_note: Optional[str] = None        # visible on the lead so employees know who referred them
     referred_by_lead_id: Optional[str] = None   # structural link to the existing client who referred this lead
@@ -125,6 +126,7 @@ class LeadOut(BaseModel):
     connection_status: Optional[str] = None
     call_attempts: int = 0
     last_call_at: Optional[str] = None
+    last_call_attempted_at: Optional[str] = None
     transfer_history: list = Field(default_factory=list)
     status_history: list = Field(default_factory=list)
     reference_note: Optional[str] = None

@@ -104,8 +104,13 @@ export default function EmployeeDashboard() {
   // Lead stats
   const todayStr = now.toISOString().split("T")[0];
   const newLeads = leads.filter(l => l.status === "new").length;
-  const followUpLeads = leads.filter(l => l.status === "follow_up").length;
-  const totalClients = leads.length;
+  // Matches EmployeeLeads.jsx's Follow Up tab exactly: any lead with a
+  // scheduled follow_up_date counts, not just status === "follow_up"
+  // literally (e.g. an "interested" lead can still have a pending
+  // follow-up) — this card previously used the narrower definition, which
+  // is why the count here never matched what the Follow Up tab showed.
+  const followUpLeads = leads.filter(l => l.follow_up_date && !["lost", "converted"].includes(l.status)).length;
+  const totalClients = leads.filter(l => l.status === "converted").length;
   const todayFollowUps = leads.filter(l => l.follow_up_date && l.follow_up_date.startsWith(todayStr));
 
   // Filter leads for search/filter view
@@ -171,9 +176,9 @@ export default function EmployeeDashboard() {
           )}
           {activeWidgets.includes("leads") && (
             <>
-              <StatCard label="New Leads" color="navy" value={newLeads} onClick={() => navigate("/portal/employee/leads")} className="flex-1 min-w-[140px]" />
-              <StatCard label="Follow Ups" color="amber" value={followUpLeads} onClick={() => navigate("/portal/employee/leads")} className="flex-1 min-w-[140px]" />
-              <StatCard label="Total Clients" color="slate" value={totalClients} onClick={() => navigate("/portal/employee/leads")} className="flex-1 min-w-[140px]" />
+              <StatCard label="New Leads" color="navy" value={newLeads} onClick={() => navigate("/portal/employee/leads?tab=new")} className="flex-1 min-w-[140px]" />
+              <StatCard label="Follow Ups" color="amber" value={followUpLeads} onClick={() => navigate("/portal/employee/leads?tab=follow_up")} className="flex-1 min-w-[140px]" />
+              <StatCard label="Total Clients" color="slate" value={totalClients} onClick={() => navigate("/portal/employee/leads?tab=converted")} className="flex-1 min-w-[140px]" />
               <StatCard
                 label="Today's Follow-ups" color="purple" value={todayFollowUps.length}
                 onClick={() => setShowFollowUps(true)} className="flex-1 min-w-[140px] relative"

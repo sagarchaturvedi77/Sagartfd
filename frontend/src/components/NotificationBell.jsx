@@ -64,7 +64,14 @@ export default function NotificationBell() {
   const toggle = async () => {
     const next = !open;
     setOpen(next);
-    if (next) await loadList();
+    if (next) {
+      await loadList();
+      // Opening the panel counts as "seen" — clear the badge immediately
+      // instead of requiring a click on every item or "Mark all read".
+      setUnread(0);
+      setItems((prev) => prev.map((n) => ({ ...n, read: true })));
+      apiSend("/api/notifications/mark-all-read", "POST").catch(() => {});
+    }
   };
 
   const markAllRead = async () => {

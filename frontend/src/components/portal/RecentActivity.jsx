@@ -30,6 +30,21 @@ function hasRealName(lead) {
 
 function describeLead(lead) {
   const lastHistory = lead.status_history?.[lead.status_history.length - 1];
+  const lastHistoryAt = lastHistory?.at || lastHistory?.date;
+  const attemptAt = lead.last_call_attempted_at;
+
+  // A call was started (tel: link tapped) but nothing was recorded since —
+  // the outcome popup was likely missed or dismissed (app backgrounded and
+  // killed mid-call, accidental tap-away). Surface this distinctly so the
+  // employee knows to tap "Add update" and finish recording it, instead of
+  // it silently vanishing from view.
+  const outcomePending = attemptAt
+    && (!lead.last_call_at || new Date(attemptAt) > new Date(lead.last_call_at))
+    && (!lastHistoryAt || new Date(attemptAt) > new Date(lastHistoryAt));
+  if (outcomePending) {
+    return { text: "Call started — outcome not recorded yet", at: attemptAt, isCall: true, pending: true };
+  }
+
   if (lastHistory?.status) {
     return { text: STATUS_TEXT[lastHistory.status] || `Status: ${lastHistory.status}`, at: lastHistory.at, isCall: false };
   }
@@ -142,9 +157,14 @@ export default function RecentActivity({ leads = [], limit = 6, token, onUpdated
   const [historyLead, setHistoryLead] = useState(null);
   const [updateLead, setUpdateLead] = useState(null);
 
+  const activityAt = (l) => {
+    const times = [l.updated_at, l.last_call_attempted_at].filter(Boolean).map((t) => new Date(t).getTime());
+    return times.length ? Math.max(...times) : 0;
+  };
+
   const sorted = [...leads]
-    .filter((l) => l.updated_at)
-    .sort((a, b) => new Date(b.updated_at) - new Date(a.updated_at))
+    .filter((l) => l.updated_at || l.last_call_attempted_at)
+    .sort((a, b) => activityAt(b) - activityAt(a))
     .slice(0, limit);
 
   if (sorted.length === 0) {
@@ -155,24 +175,27 @@ export default function RecentActivity({ leads = [], limit = 6, token, onUpdated
     <>
       <div className="divide-y divide-[#E2D8C2]/60 dark:divide-white/10">
         {sorted.map((lead) => {
-          const { text, at, isCall } = describeLead(lead);
+          const { text, at, isCall, pending } = describeLead(lead);
           const waPhone = normalizePhone(lead.phone);
           const named = hasRealName(lead);
           return (
-            <div key={lead.id} className="flex items-center gap-3 py-2.5">
+            <div key={lead.id} className={`flex items-center gap-3 py-2.5 ${pending ? "bg-amber-50/60 dark:bg-amber-900/10 -mx-2 px-2 rounded-lg" : ""}`}>
               <button
                 onClick={() => named && setHistoryLead(lead)}
-                className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold shrink-0 ${
-                  isCall ? "bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400" : "bg-blue-50 dark:bg-blue-900/30 text-[#024396] dark:text-[#7CB0FF]"
+                className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold shrink-0 relative ${
+                  pending
+                    ? "bg-amber-100 dark:bg-amber-900/40 text-amber-600 dark:text-amber-400"
+                    : isCall ? "bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400" : "bg-blue-50 dark:bg-blue-900/30 text-[#024396] dark:text-[#7CB0FF]"
                 }`}
               >
                 {isCall ? <Phone size={14} /> : named ? lead.name.charAt(0).toUpperCase() : "?"}
+                {pending && <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 bg-red-500 rounded-full animate-pulse border-2 border-white dark:border-[#101D2E]" />}
               </button>
 
               {named ? (
                 <button onClick={() => setHistoryLead(lead)} className="min-w-0 flex-1 text-left">
                   <p className="text-sm font-medium text-[#0E1B2C] dark:text-[#F1EDE3] truncate hover:underline">{lead.name}</p>
-                  <p className="text-xs text-[#2A364B]/50 dark:text-[#8E99AC] truncate">{text} · {timeAgo(at || lead.updated_at)}</p>
+                  <p className={`text-xs truncate ${pending ? "text-amber-600 dark:text-amber-400 font-medium" : "text-[#2A364B]/50 dark:text-[#8E99AC]"}`}>{text} · {timeAgo(at || lead.updated_at)}</p>
                 </button>
               ) : token ? (
                 <NameEditor lead={lead} token={token} onSaved={onUpdated} />
@@ -215,8 +238,12 @@ export default function RecentActivity({ leads = [], limit = 6, token, onUpdated
                 {token && (
                   <button
                     onClick={() => setUpdateLead(lead)}
-                    className="w-8 h-8 rounded-full bg-amber-50 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 flex items-center justify-center hover:bg-amber-100 dark:hover:bg-amber-900/50 transition-colors"
-                    title={`Add update for ${lead.name || lead.phone}`}
+                    className={`w-8 h-8 rounded-full flex items-center justify-center transition-colors ${
+                      pending
+                        ? "bg-red-500 text-white hover:bg-red-600 animate-pulse"
+                        : "bg-amber-50 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 hover:bg-amber-100 dark:hover:bg-amber-900/50"
+                    }`}
+                    title={pending ? `Record call outcome for ${lead.name || lead.phone}` : `Add update for ${lead.name || lead.phone}`}
                   >
                     <PencilLine size={14} />
                   </button>

@@ -84,7 +84,7 @@ export default function PortalLayout({ children }) {
   const [moreOpen, setMoreOpen] = useState(false);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const [unreadChat, setUnreadChat] = useState(0);
-  const [lastSeen] = useState(() => localStorage.getItem("chat_last_seen") || "");
+  const [lastSeen, setLastSeen] = useState(() => localStorage.getItem("chat_last_seen") || "");
   const [showTranslator, setShowTranslator] = useState(false);
   const [inputText, setInputText] = useState("");
   const [translatedText, setTranslatedText] = useState("");
@@ -113,9 +113,21 @@ export default function PortalLayout({ children }) {
     if (location.pathname.includes("/chat")) {
       const now = new Date().toISOString();
       localStorage.setItem("chat_last_seen", now);
+      setLastSeen(now);
       setUnreadChat(0);
     }
   }, [location.pathname]);
+
+  // Mark chat as seen when the floating popup is opened (the primary way
+  // most users read Team Chat, per the FAB comment above)
+  useEffect(() => {
+    if (showChatPopup) {
+      const now = new Date().toISOString();
+      localStorage.setItem("chat_last_seen", now);
+      setLastSeen(now);
+      setUnreadChat(0);
+    }
+  }, [showChatPopup]);
 
   const loadPopupChat = useCallback(async () => {
     if (!token) return;

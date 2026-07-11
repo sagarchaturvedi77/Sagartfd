@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from "react";
+import { useSearchParams } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import PortalLayout from "../components/PortalLayout";
 import CallFlowPopup from "../components/CallFlowPopup";
@@ -27,16 +28,24 @@ export default function EmployeeLeads() {
   const { token } = useAuth();
   const headers = { Authorization: `Bearer ${token}`, "Content-Type": "application/json" };
 
+  const [searchParams] = useSearchParams();
   const [leads, setLeads] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState("new");
+  const [activeTab, setActiveTab] = useState(() => {
+    const tab = searchParams.get("tab");
+    return TABS.includes(tab) ? tab : "new";
+  });
   const [services, setServices] = useState([]);
+  const [selfAddedOnly, setSelfAddedOnly] = useState(false);
 
   const [outcomeLead, setOutcomeLead] = useState(null);
   const [transferLead, setTransferLead] = useState(null);
   const [waLead, setWaLead] = useState(null);
   const [addingLead, setAddingLead] = useState(false);
   const [newLead, setNewLead] = useState({ name: "", phone: "", city: "", service_interest: "", reference_note: "" });
+  const [addLeadError, setAddLeadError] = useState("");
+  const [duplicateLead, setDuplicateLead] = useState(null); // { message, existing_lead }
+  const [merging, setMerging] = useState(false);
 
   const [detailLead, setDetailLead] = useState(null);
   const [addServiceLead, setAddServiceLead] = useState(null);
@@ -91,6 +100,14 @@ export default function EmployeeLeads() {
 
   const { startCall } = useCallReturn((lead) => setOutcomeLead(lead));
 
+  // Records the call attempt on the backend (before any outcome is known)
+  // so a missed/dismissed outcome popup can still be recovered later from
+  // the dashboard's Recent Calls widget.
+  const handleStartCall = (lead) => {
+    startCall(lead);
+    fetch(`${API_BASE}/api/leads/${lead.id}/call-started`, { method: "POST", headers }).catch(() => {});
+  };
+
   const runGlobalSearch = async (q) => {
     setGlobalSearch(q);
     if (q.trim().length < 2) { setGlobalResults(null); return; }
@@ -104,10 +121,39 @@ export default function EmployeeLeads() {
   const submitNewLead = async (e) => {
     e.preventDefault();
     if (!newLead.name.trim() || !newLead.phone.trim()) return;
+    setAddLeadError("");
     const res = await fetch(`${API_BASE}/api/leads/my`, {
       method: "POST", headers, body: JSON.stringify(newLead),
     });
-    if (res.ok) { setAddingLead(false); setNewLead({ name: "", phone: "", city: "", service_interest: "", reference_note: "" }); load(); }
+    if (res.ok) {
+      setAddingLead(false);
+      setNewLead({ name: "", phone: "", city: "", service_interest: "", reference_note: "" });
+      load();
+      return;
+    }
+    const err = await res.json().catch(() => ({}));
+    if (res.status === 409 && err.detail?.existing_lead) {
+      setDuplicateLead(err.detail);
+    } else {
+      setAddLeadError(typeof err.detail === "string" ? err.detail : "Could not add lead — check the details and try again.");
+    }
+  };
+
+  const confirmMergeLead = async () => {
+    setMerging(true);
+    try {
+      const res = await fetch(`${API_BASE}/api/leads/my?confirm_merge=true`, {
+        method: "POST", headers, body: JSON.stringify(newLead),
+      });
+      if (res.ok) {
+        setDuplicateLead(null);
+        setAddingLead(false);
+        setNewLead({ name: "", phone: "", city: "", service_interest: "", reference_note: "" });
+        load();
+      }
+    } finally {
+      setMerging(false);
+    }
   };
 
   const submitReferral = async (e) => {
@@ -164,14 +210,63 @@ export default function EmployeeLeads() {
   // the main reason follow-ups looked like they "weren't happening": the
   // date was saved correctly, it just never surfaced anywhere.
   const hasPendingFollowUp = (l) => l.follow_up_date && !["lost", "converted"].includes(l.status);
+  const todayStr = new Date().toISOString().split("T")[0];
+  const isMissedFollowUp = (l) => hasPendingFollowUp(l) && l.follow_up_date.split("T")[0] < todayStr;
 
   const statCounts = {};
   leads.forEach((l) => { statCounts[l.status] = (statCounts[l.status] || 0) + 1; });
   statCounts.follow_up = leads.filter(hasPendingFollowUp).length;
+  const missedFollowUpCount = leads.filter(isMissedFollowUp).length;
 
-  const filteredLeads = activeTab === "follow_up"
+  const selfAddedCount = leads.filter((l) => l.source === "employee_added").length;
+
+  const filteredLeads = (activeTab === "follow_up"
     ? leads.filter(hasPendingFollowUp)
-    : leads.filter((l) => l.status === activeTab);
+    : leads.filter((l) => l.status === activeTab)
+  ).filter((l) => !selfAddedOnly || l.source === "employee_added");
+
+  const missedFollowUps = activeTab === "follow_up" ? filteredLeads.filter(isMissedFollowUp) : [];
+  const upcomingFollowUps = activeTab === "follow_up" ? filteredLeads.filter((l) => !isMissedFollowUp(l)) : [];
+
+  const renderLeadRow = (lead, missed) => (
+    <div key={lead.id} className="flex items-center justify-between p-4 hover:bg-[#FBF7EE] dark:hover:bg-white/5 transition-colors cursor-pointer" onClick={() => setDetailLead(lead)}>
+      <div className="flex-1 min-w-0">
+        <p className="font-medium text-[#0E1B2C] dark:text-[#F1EDE3] text-sm truncate flex items-center gap-1.5">
+          {lead.name}
+          {lead.source === "employee_added" && (
+            <span className="text-[9px] font-semibold uppercase tracking-wide text-violet-600 dark:text-violet-400 bg-violet-50 dark:bg-violet-900/30 px-1.5 py-0.5 rounded shrink-0">Self-added</span>
+          )}
+          {missed && (
+            <span className="text-[9px] font-semibold uppercase tracking-wide text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/30 px-1.5 py-0.5 rounded shrink-0">Missed</span>
+          )}
+        </p>
+        <p className="text-xs text-[#2A364B]/50 dark:text-[#8E99AC]">{lead.phone} {lead.service_interest && `· ${lead.service_interest}`}</p>
+        {lead.follow_up_date && (
+          <p className={`text-[10px] mt-0.5 ${missed ? "text-red-600 dark:text-red-400 font-semibold" : "text-orange-500 dark:text-orange-400"}`}>
+            Follow-up: {lead.follow_up_date}
+          </p>
+        )}
+      </div>
+      <div className="flex items-center gap-1.5 shrink-0 ml-3" onClick={(e) => e.stopPropagation()}>
+        <a href={`tel:+91${lead.phone.replace(/\D/g, "")}`} onClick={() => handleStartCall(lead)}
+          className="w-8 h-8 rounded-lg bg-[#024396] flex items-center justify-center text-white">
+          <Phone size={14} />
+        </a>
+        <button onClick={() => setWaLead(lead)} className="w-8 h-8 rounded-lg bg-emerald-50 dark:bg-emerald-900/30 flex items-center justify-center text-emerald-600 dark:text-emerald-400">
+          <MessageCircle size={14} />
+        </button>
+        <button onClick={() => setTransferLead(lead)} className="w-8 h-8 rounded-lg bg-violet-50 dark:bg-violet-900/30 flex items-center justify-center text-violet-600 dark:text-violet-400">
+          <ArrowRightLeft size={14} />
+        </button>
+        <button
+          onClick={() => { setStatusLead(lead); setStatusForm({ status: "", follow_up_note: "", follow_up_date: "", service_interest: "", code_name: "", service_price: "", service_duration_months: "" }); }}
+          title="Quick update"
+          className="w-8 h-8 rounded-lg bg-[#024396]/10 dark:bg-white/10 flex items-center justify-center text-[#024396] dark:text-[#7CB0FF] font-bold">
+          <Plus size={14} />
+        </button>
+      </div>
+    </div>
+  );
 
   return (
     <PortalLayout>
@@ -248,16 +343,43 @@ export default function EmployeeLeads() {
               active={activeTab === s}
               compact
               onClick={() => setActiveTab(s)}
-              className="w-auto min-w-[90px] shrink-0"
+              className="w-auto min-w-[90px] shrink-0 relative"
+              icon={s === "follow_up" && missedFollowUpCount > 0
+                ? <span className="inline-block w-2 h-2 bg-red-500 rounded-full animate-pulse" />
+                : null}
             />
           ))}
         </div>
 
+        {/* Self-added leads filter */}
+        {selfAddedCount > 0 && (
+          <button
+            onClick={() => setSelfAddedOnly((v) => !v)}
+            className={`inline-flex items-center gap-1.5 text-xs font-medium rounded-full px-3.5 py-1.5 border transition-colors ${
+              selfAddedOnly
+                ? "bg-violet-600 border-violet-600 text-white"
+                : "bg-violet-50 dark:bg-violet-900/20 border-violet-200 dark:border-violet-800 text-violet-600 dark:text-violet-400"
+            }`}
+          >
+            🙋 My Self-Added Leads ({selfAddedCount}){selfAddedOnly ? " · showing only these ✕" : ""}
+          </button>
+        )}
+
         {/* Add Lead Modal */}
-        <PortalModal open={addingLead} onOpenChange={setAddingLead} title="Add a Lead" maxWidth="max-w-sm">
+        <PortalModal
+          open={addingLead}
+          onOpenChange={(v) => { setAddingLead(v); if (!v) setAddLeadError(""); }}
+          title="Add a Lead"
+          maxWidth="max-w-sm"
+        >
           <form onSubmit={submitNewLead} className="space-y-3">
+            {addLeadError && (
+              <div className="text-xs text-red-600 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg px-3 py-2">
+                {addLeadError}
+              </div>
+            )}
             <input placeholder="Name *" value={newLead.name} onChange={(e) => setNewLead({ ...newLead, name: e.target.value })} className={field} required />
-            <input placeholder="Phone *" value={newLead.phone} onChange={(e) => setNewLead({ ...newLead, phone: e.target.value })} className={field} required />
+            <input placeholder="Phone * (10-digit mobile)" value={newLead.phone} onChange={(e) => setNewLead({ ...newLead, phone: e.target.value })} className={field} required />
             <input placeholder="City (optional)" value={newLead.city} onChange={(e) => setNewLead({ ...newLead, city: e.target.value })} className={field} />
             <select value={newLead.service_interest} onChange={(e) => setNewLead({ ...newLead, service_interest: e.target.value })} className={field}>
               <option value="">Service interest (optional)</option>
@@ -265,6 +387,44 @@ export default function EmployeeLeads() {
             </select>
             <Button type="submit" className="w-full bg-[#024396] hover:bg-[#023580]">Add Lead</Button>
           </form>
+        </PortalModal>
+
+        {/* Duplicate lead — merge confirmation */}
+        <PortalModal
+          open={!!duplicateLead}
+          onOpenChange={(v) => !v && setDuplicateLead(null)}
+          title="Already in your leads"
+          maxWidth="max-w-sm"
+        >
+          {duplicateLead && (
+            <div className="space-y-4">
+              <p className="text-sm text-[#2A364B] dark:text-[#C7CEDA]">{duplicateLead.message}</p>
+              <div className="bg-[#F5F1EB] dark:bg-white/5 rounded-xl px-4 py-3 text-xs space-y-1">
+                <p className="font-semibold text-[#0E1B2C] dark:text-[#F1EDE3]">{duplicateLead.existing_lead.name}</p>
+                <p className="text-[#2A364B]/70 dark:text-[#8E99AC]">{duplicateLead.existing_lead.phone}</p>
+                <p className="text-[#2A364B]/70 dark:text-[#8E99AC]">Status: {STATUS_LABELS[duplicateLead.existing_lead.status] || duplicateLead.existing_lead.status}</p>
+                {duplicateLead.existing_lead.service_interest && (
+                  <p className="text-[#2A364B]/70 dark:text-[#8E99AC]">Service: {duplicateLead.existing_lead.service_interest}</p>
+                )}
+              </div>
+              <p className="text-xs text-[#2A364B]/60 dark:text-[#8E99AC]">
+                Merge to add what you just entered as a note on the existing lead, instead of creating a duplicate.
+              </p>
+              <div className="flex gap-2">
+                <Button
+                  type="button"
+                  disabled={merging}
+                  onClick={() => setDuplicateLead(null)}
+                  className="flex-1 bg-transparent border border-[#E2D8C2] dark:border-white/15 text-[#2A364B] dark:text-[#C7CEDA] hover:bg-[#F5F1EB] dark:hover:bg-white/10"
+                >
+                  Cancel
+                </Button>
+                <Button type="button" disabled={merging} onClick={confirmMergeLead} className="flex-1 bg-[#024396] hover:bg-[#023580]">
+                  {merging ? "Merging..." : "Merge"}
+                </Button>
+              </div>
+            </div>
+          )}
         </PortalModal>
 
         {/* Add Referral Modal — creates a new lead linked back to referralLead */}
@@ -456,41 +616,38 @@ export default function EmployeeLeads() {
           <div className="bg-white dark:bg-[#101D2E] rounded-2xl border border-[#E2D8C2] dark:border-white/10 shadow-sm">
             <EmptyState icon="📋" title={`No ${STATUS_LABELS[activeTab]} leads`} />
           </div>
+        ) : activeTab === "follow_up" ? (
+          <div className="space-y-5">
+            {missedFollowUps.length > 0 && (
+              <div>
+                <div className="flex items-center gap-2 mb-2 px-1">
+                  <h3 className="text-sm font-semibold text-red-600 dark:text-red-400">Missed Follow-ups</h3>
+                  <span className="text-[10px] font-bold bg-red-100 dark:bg-red-900/40 text-red-600 dark:text-red-400 rounded-full px-2 py-0.5">{missedFollowUps.length}</span>
+                </div>
+                <div className="bg-white dark:bg-[#101D2E] rounded-2xl border border-red-200 dark:border-red-900/40 shadow-sm overflow-hidden">
+                  <div className="divide-y divide-[#F0EADD] dark:divide-white/10">
+                    {missedFollowUps.map((lead) => renderLeadRow(lead, true))}
+                  </div>
+                </div>
+              </div>
+            )}
+            {upcomingFollowUps.length > 0 && (
+              <div>
+                {missedFollowUps.length > 0 && (
+                  <h3 className="text-sm font-semibold text-[#2A364B] dark:text-[#C7CEDA] mb-2 px-1">Upcoming Follow-ups</h3>
+                )}
+                <div className="bg-white dark:bg-[#101D2E] rounded-2xl border border-[#E2D8C2] dark:border-white/10 shadow-sm overflow-hidden">
+                  <div className="divide-y divide-[#F0EADD] dark:divide-white/10">
+                    {upcomingFollowUps.map((lead) => renderLeadRow(lead, false))}
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
         ) : (
           <div className="bg-white dark:bg-[#101D2E] rounded-2xl border border-[#E2D8C2] dark:border-white/10 shadow-sm overflow-hidden">
             <div className="divide-y divide-[#F0EADD] dark:divide-white/10">
-              {filteredLeads.map((lead) => (
-                <div key={lead.id} className="flex items-center justify-between p-4 hover:bg-[#FBF7EE] dark:hover:bg-white/5 transition-colors cursor-pointer" onClick={() => setDetailLead(lead)}>
-                  <div className="flex-1 min-w-0">
-                    <p className="font-medium text-[#0E1B2C] dark:text-[#F1EDE3] text-sm truncate flex items-center gap-1.5">
-                      {lead.name}
-                      {lead.source === "employee_added" && (
-                        <span className="text-[9px] font-semibold uppercase tracking-wide text-violet-600 dark:text-violet-400 bg-violet-50 dark:bg-violet-900/30 px-1.5 py-0.5 rounded shrink-0">Self-added</span>
-                      )}
-                    </p>
-                    <p className="text-xs text-[#2A364B]/50 dark:text-[#8E99AC]">{lead.phone} {lead.service_interest && `· ${lead.service_interest}`}</p>
-                    {lead.follow_up_date && <p className="text-[10px] text-orange-500 dark:text-orange-400 mt-0.5">Follow-up: {lead.follow_up_date}</p>}
-                  </div>
-                  <div className="flex items-center gap-1.5 shrink-0 ml-3" onClick={(e) => e.stopPropagation()}>
-                    <a href={`tel:+91${lead.phone.replace(/\D/g, "")}`} onClick={() => startCall(lead)}
-                      className="w-8 h-8 rounded-lg bg-[#024396] flex items-center justify-center text-white">
-                      <Phone size={14} />
-                    </a>
-                    <button onClick={() => setWaLead(lead)} className="w-8 h-8 rounded-lg bg-emerald-50 dark:bg-emerald-900/30 flex items-center justify-center text-emerald-600 dark:text-emerald-400">
-                      <MessageCircle size={14} />
-                    </button>
-                    <button onClick={() => setTransferLead(lead)} className="w-8 h-8 rounded-lg bg-violet-50 dark:bg-violet-900/30 flex items-center justify-center text-violet-600 dark:text-violet-400">
-                      <ArrowRightLeft size={14} />
-                    </button>
-                    <button
-                      onClick={() => { setStatusLead(lead); setStatusForm({ status: "", follow_up_note: "", follow_up_date: "", service_interest: "", code_name: "", service_price: "", service_duration_months: "" }); }}
-                      title="Quick update"
-                      className="w-8 h-8 rounded-lg bg-[#024396]/10 dark:bg-white/10 flex items-center justify-center text-[#024396] dark:text-[#7CB0FF] font-bold">
-                      <Plus size={14} />
-                    </button>
-                  </div>
-                </div>
-              ))}
+              {filteredLeads.map((lead) => renderLeadRow(lead, false))}
             </div>
           </div>
         )}
