@@ -264,7 +264,7 @@ async def email_status(_admin=Depends(require_admin)):
 @router.post("/send-welcome-email")
 async def send_welcome_email_route(data: WelcomeEmailIn, admin=Depends(require_admin)):
     """ADMIN ONLY — one-click send of login credentials to a newly created
-    employee's email, from ceo@thefinancialdoctor.in."""
+    employee's email, from team@thefinancialdoctor.in."""
     ok, message = send_welcome_email(data.email, data.name, data.phone, data.password)
     if not ok:
         raise HTTPException(status_code=503, detail=message)

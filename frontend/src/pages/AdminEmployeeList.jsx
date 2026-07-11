@@ -5,9 +5,10 @@ import PageHeader from "../components/portal/PageHeader";
 import DataTable from "../components/portal/DataTable";
 import PortalModal from "../components/portal/PortalModal";
 import { Button } from "../components/ui/button";
-import { Search } from "lucide-react";
+import { Search, Award, FileText, Download, Mail } from "lucide-react";
 
 const API_BASE = process.env.REACT_APP_BACKEND_URL || "";
+const DEPARTMENTS = ["HR", "Sales", "Marketing", "Accounts"];
 
 export default function AdminEmployeeList() {
   const { token } = useAuth();
@@ -23,6 +24,70 @@ export default function AdminEmployeeList() {
 
   const [search, setSearch] = useState("");
   const [designationFilter, setDesignationFilter] = useState("");
+
+  const [certificates, setCertificates] = useState([]);
+  const [showEmpCert, setShowEmpCert] = useState(false);
+  const [empCertForm, setEmpCertForm] = useState({ employee_id: "", department: "Sales", start_date: "", end_date: "" });
+  const [showAchievement, setShowAchievement] = useState(false);
+  const [achievementForm, setAchievementForm] = useState({ employee_id: "", title: "", description: "" });
+  const [emailCertTarget, setEmailCertTarget] = useState(null);
+  const [emailCertAddress, setEmailCertAddress] = useState("");
+  const [sendingCertEmail, setSendingCertEmail] = useState(false);
+
+  const fetchCertificates = useCallback(async () => {
+    const res = await fetch(`${API_BASE}/api/certificates`, { headers: { Authorization: `Bearer ${token}` } });
+    if (res.ok) {
+      const all = await res.json();
+      setCertificates(all.filter((c) => c.type === "employee" || c.type === "achievement"));
+    }
+  }, [token]);
+
+  useEffect(() => { fetchCertificates(); }, [fetchCertificates]);
+
+  const submitEmpCert = async (e) => {
+    e.preventDefault();
+    const res = await fetch(`${API_BASE}/api/certificates/employee`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ ...empCertForm, end_date: empCertForm.end_date || null }),
+    });
+    if (res.ok) {
+      setShowEmpCert(false);
+      setEmpCertForm({ employee_id: "", department: "Sales", start_date: "", end_date: "" });
+      fetchCertificates();
+    }
+  };
+
+  const submitAchievement = async (e) => {
+    e.preventDefault();
+    const res = await fetch(`${API_BASE}/api/certificates/achievement`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+      body: JSON.stringify(achievementForm),
+    });
+    if (res.ok) {
+      setShowAchievement(false);
+      setAchievementForm({ employee_id: "", title: "", description: "" });
+      fetchCertificates();
+    }
+  };
+
+  const sendCertEmail = async () => {
+    if (!emailCertAddress.trim() || sendingCertEmail) return;
+    if (!window.confirm(`Send certificate email to ${emailCertAddress.trim()}?`)) return;
+    setSendingCertEmail(true);
+    try {
+      const res = await fetch(`${API_BASE}/api/certificates/${emailCertTarget.id}/email`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ to_email: emailCertAddress.trim() }),
+      });
+      if (res.ok) { alert("Emailed!"); setEmailCertTarget(null); setEmailCertAddress(""); }
+      else { const err = await res.json().catch(() => ({})); alert(err.detail || "Failed to send"); }
+    } finally {
+      setSendingCertEmail(false);
+    }
+  };
 
   const fetchEmployees = useCallback(async () => {
     setLoading(true);
@@ -137,6 +202,7 @@ export default function AdminEmployeeList() {
   };
 
   const formatCurrency = (v) => v ? new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR", maximumFractionDigits: 0 }).format(v) : "-";
+  const field = "w-full border border-[#E2D8C2] dark:border-white/15 dark:bg-white/5 dark:text-[#F1EDE3] rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#024396]/30";
 
   const columns = [
     {
@@ -181,7 +247,17 @@ export default function AdminEmployeeList() {
 
   return (
     <PortalLayout>
-      <PageHeader icon="👥" title="Total Employees" subtitle={`${employees.length} employees registered`} />
+      <PageHeader
+        icon="👥"
+        title="Total Employees"
+        subtitle={`${employees.length} employees registered`}
+        actions={
+          <>
+            <Button onClick={() => setShowEmpCert(true)} variant="outline"><FileText size={14} className="mr-1.5" /> Employee Certificate</Button>
+            <Button onClick={() => setShowAchievement(true)} variant="outline"><Award size={14} className="mr-1.5" /> Add Achievement</Button>
+          </>
+        }
+      />
 
       <div className="bg-white dark:bg-[#101D2E] rounded-2xl border border-[#E2D8C2] dark:border-white/10 shadow-sm overflow-hidden">
         <div className="p-6 border-b border-[#E2D8C2] dark:border-white/10 flex flex-col gap-4">
@@ -264,6 +340,64 @@ export default function AdminEmployeeList() {
           />
         )}
       </div>
+
+      {/* Employee Certificates & Achievements */}
+      <div className="bg-white dark:bg-[#101D2E] rounded-2xl border border-[#E2D8C2] dark:border-white/10 shadow-sm overflow-hidden mt-6">
+        <div className="p-5 border-b border-[#E2D8C2] dark:border-white/10">
+          <h3 className="text-sm font-semibold text-[#0E1B2C] dark:text-[#F1EDE3]">Employee Certificates &amp; Achievements</h3>
+        </div>
+        <div className="p-5 space-y-3">
+          {certificates.map((cert) => (
+            <div key={cert.id} className="bg-[#F5F1EB] dark:bg-white/5 rounded-xl p-4 flex items-center justify-between flex-wrap gap-2">
+              <div>
+                <p className="font-medium text-[#0E1B2C] dark:text-[#F1EDE3]">{cert.person_name}</p>
+                <p className="text-xs text-[#2A364B]/50 dark:text-[#8E99AC]">{cert.certificate_number} · {cert.type} · {cert.department} · {cert.duration_label}</p>
+              </div>
+              <div className="flex gap-2">
+                {cert.pdf_url && <a href={cert.pdf_url} target="_blank" rel="noreferrer"><Button size="sm" variant="outline"><Download size={12} className="mr-1" /> Download</Button></a>}
+                <Button size="sm" variant="outline" onClick={() => { setEmailCertTarget(cert); setEmailCertAddress(""); }}><Mail size={12} className="mr-1" /> Email</Button>
+              </div>
+            </div>
+          ))}
+          {certificates.length === 0 && <p className="text-sm text-[#2A364B]/50 dark:text-[#8E99AC] text-center py-6">No employee certificates or achievements yet.</p>}
+        </div>
+      </div>
+
+      <PortalModal open={showEmpCert} onOpenChange={setShowEmpCert} title="Generate Employee Certificate" maxWidth="max-w-md">
+        <form onSubmit={submitEmpCert} className="space-y-3">
+          <select required value={empCertForm.employee_id} onChange={(e) => setEmpCertForm({ ...empCertForm, employee_id: e.target.value })} className={field}>
+            <option value="">Select Employee *</option>
+            {employees.map((emp) => <option key={emp.id} value={emp.id}>{emp.name}</option>)}
+          </select>
+          <select value={empCertForm.department} onChange={(e) => setEmpCertForm({ ...empCertForm, department: e.target.value })} className={field}>
+            {DEPARTMENTS.map((d) => <option key={d} value={d}>{d}</option>)}
+          </select>
+          <div className="grid grid-cols-2 gap-3">
+            <div><label className="text-xs text-[#2A364B]/60 dark:text-[#8E99AC] mb-1 block">Start Date</label><input required type="date" value={empCertForm.start_date} onChange={(e) => setEmpCertForm({ ...empCertForm, start_date: e.target.value })} className={field} /></div>
+            <div><label className="text-xs text-[#2A364B]/60 dark:text-[#8E99AC] mb-1 block">End Date (blank = ongoing)</label><input type="date" value={empCertForm.end_date} onChange={(e) => setEmpCertForm({ ...empCertForm, end_date: e.target.value })} className={field} /></div>
+          </div>
+          <Button type="submit" className="w-full bg-[#024396] hover:bg-[#023580]">Generate Certificate</Button>
+        </form>
+      </PortalModal>
+
+      <PortalModal open={showAchievement} onOpenChange={setShowAchievement} title="Add Achievement" maxWidth="max-w-md">
+        <form onSubmit={submitAchievement} className="space-y-3">
+          <select required value={achievementForm.employee_id} onChange={(e) => setAchievementForm({ ...achievementForm, employee_id: e.target.value })} className={field}>
+            <option value="">Select Employee *</option>
+            {employees.map((emp) => <option key={emp.id} value={emp.id}>{emp.name}</option>)}
+          </select>
+          <input required placeholder="Title (e.g. Employee of the Month — June 2026) *" value={achievementForm.title} onChange={(e) => setAchievementForm({ ...achievementForm, title: e.target.value })} className={field} />
+          <textarea placeholder="Description (optional)" rows={2} value={achievementForm.description} onChange={(e) => setAchievementForm({ ...achievementForm, description: e.target.value })} className={`${field} resize-none`} />
+          <Button type="submit" className="w-full bg-[#024396] hover:bg-[#023580]">Add Achievement</Button>
+        </form>
+      </PortalModal>
+
+      <PortalModal open={!!emailCertTarget} onOpenChange={(v) => !v && setEmailCertTarget(null)} title="Email Certificate" maxWidth="max-w-sm">
+        <div className="space-y-3">
+          <input type="email" placeholder="recipient@email.com" value={emailCertAddress} onChange={(e) => setEmailCertAddress(e.target.value)} className={field} />
+          <Button onClick={sendCertEmail} disabled={sendingCertEmail || !emailCertAddress.trim()} className="w-full bg-[#024396] hover:bg-[#023580]">{sendingCertEmail ? "Sending..." : "Send"}</Button>
+        </div>
+      </PortalModal>
 
       {/* Credentials popup */}
       <PortalModal open={!!createdCreds} onOpenChange={(v) => !v && setCreatedCreds(null)} maxWidth="max-w-sm">

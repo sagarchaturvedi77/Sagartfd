@@ -4,7 +4,7 @@ import PortalLayout from "../components/PortalLayout";
 import PageHeader from "../components/portal/PageHeader";
 import PortalModal from "../components/portal/PortalModal";
 import { Button } from "../components/ui/button";
-import { Download, Mail, Award, FileText, Send, Link2, Check, X } from "lucide-react";
+import { Download, Mail, Award, Send, Link2, Check, X } from "lucide-react";
 
 const API_BASE = process.env.REACT_APP_BACKEND_URL || "";
 const DEPARTMENTS = ["HR", "Sales", "Marketing", "Accounts"];
@@ -38,14 +38,9 @@ export default function AdminCertificates() {
   const [showAddIntern, setShowAddIntern] = useState(false);
   const [internForm, setInternForm] = useState({ name: "", college: "", department: "Sales", start_date: "", end_date: "", stipend: "", manager_name: "", manager_designation: "" });
 
-  const [showEmpCert, setShowEmpCert] = useState(false);
-  const [empCertForm, setEmpCertForm] = useState({ employee_id: "", department: "Sales", start_date: "", end_date: "" });
-
-  const [showAchievement, setShowAchievement] = useState(false);
-  const [achievementForm, setAchievementForm] = useState({ employee_id: "", title: "", description: "" });
-
   const [emailTarget, setEmailTarget] = useState(null);
   const [emailAddress, setEmailAddress] = useState("");
+  const [sendingEmail, setSendingEmail] = useState(false);
 
   const [emailInternTarget, setEmailInternTarget] = useState(null);
   const [emailInternAddress, setEmailInternAddress] = useState("");
@@ -174,27 +169,18 @@ export default function AdminCertificates() {
     }
   };
 
-  const submitEmpCert = async (e) => {
-    e.preventDefault();
-    const res = await fetch(`${API_BASE}/api/certificates/employee`, {
-      method: "POST", headers,
-      body: JSON.stringify({ ...empCertForm, end_date: empCertForm.end_date || null }),
-    });
-    if (res.ok) { setShowEmpCert(false); setEmpCertForm({ employee_id: "", department: "Sales", start_date: "", end_date: "" }); load(); }
-  };
-
-  const submitAchievement = async (e) => {
-    e.preventDefault();
-    const res = await fetch(`${API_BASE}/api/certificates/achievement`, { method: "POST", headers, body: JSON.stringify(achievementForm) });
-    if (res.ok) { setShowAchievement(false); setAchievementForm({ employee_id: "", title: "", description: "" }); load(); }
-  };
-
   const sendEmail = async () => {
-    if (!emailAddress.trim()) return;
-    const res = await fetch(`${API_BASE}/api/certificates/${emailTarget.id}/email`, {
-      method: "POST", headers, body: JSON.stringify({ to_email: emailAddress.trim() }),
-    });
-    if (res.ok) { alert("Emailed!"); setEmailTarget(null); setEmailAddress(""); } else { const err = await res.json().catch(() => ({})); alert(err.detail || "Failed to send"); }
+    if (!emailAddress.trim() || sendingEmail) return;
+    if (!window.confirm(`Send certificate email to ${emailAddress.trim()}?`)) return;
+    setSendingEmail(true);
+    try {
+      const res = await fetch(`${API_BASE}/api/certificates/${emailTarget.id}/email`, {
+        method: "POST", headers, body: JSON.stringify({ to_email: emailAddress.trim() }),
+      });
+      if (res.ok) { alert("Emailed!"); setEmailTarget(null); setEmailAddress(""); } else { const err = await res.json().catch(() => ({})); alert(err.detail || "Failed to send"); }
+    } finally {
+      setSendingEmail(false);
+    }
   };
 
   const toggleInternDoc = (doc) => {
@@ -202,7 +188,8 @@ export default function AdminCertificates() {
   };
 
   const sendInternEmail = async () => {
-    if (!emailInternAddress.trim() || emailInternDocs.length === 0) return;
+    if (!emailInternAddress.trim() || emailInternDocs.length === 0 || sendingInternEmail) return;
+    if (!window.confirm(`Send ${emailInternDocs.length === 1 ? "this document" : "these documents"} to ${emailInternAddress.trim()}?`)) return;
     setSendingInternEmail(true);
     try {
       const res = await fetch(`${API_BASE}/api/interns/${emailInternTarget.id}/email`, {
@@ -226,23 +213,13 @@ export default function AdminCertificates() {
     <PortalLayout>
       <PageHeader icon="🎓" title="Certificates &amp; Letters" subtitle="Offer letters, completion letters, and verifiable certificates" />
 
-      <div className="flex gap-2 border-b border-[#E2D8C2] dark:border-white/10 mb-4">
-        {[["interns", "Interns"], ["certificates", "All Certificates"]].map(([key, label]) => (
-          <button key={key} onClick={() => setTab(key)}
-            className={`px-4 py-2 text-sm font-medium border-b-2 ${tab === key ? "border-[#024396] dark:border-[#4C8DFF] text-[#024396] dark:text-[#7CB0FF]" : "border-transparent text-[#2A364B]/50 dark:text-[#8E99AC]"}`}>
-            {label}
-          </button>
-        ))}
-      </div>
-
-      {tab === "interns" && (
+      {(
         <div className="space-y-4">
           <div className="flex gap-2 flex-wrap">
             <Button onClick={() => setShowAddIntern(true)} className="bg-[#024396] hover:bg-[#023580]">+ Add Intern</Button>
             <Button onClick={copyApplicationLink} variant="outline"><Link2 size={14} className="mr-1.5" /> Generate Intern Form Link</Button>
-            <Button onClick={() => setShowEmpCert(true)} variant="outline"><FileText size={14} className="mr-1.5" /> Employee Certificate</Button>
-            <Button onClick={() => setShowAchievement(true)} variant="outline"><Award size={14} className="mr-1.5" /> Add Achievement</Button>
           </div>
+          <p className="text-xs text-[#2A364B]/50 dark:text-[#8E99AC]">Looking for Employee Certificates or Achievements? Those moved to <a href="/portal/admin/employees" className="text-[#024396] dark:text-[#7CB0FF] underline">Total Employees</a>.</p>
 
           {pendingInterns.length > 0 && (
             <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-2xl p-4">
@@ -285,7 +262,7 @@ export default function AdminCertificates() {
                       ) : (
                         <Button size="sm" onClick={() => openTemplateEdit(intern, "certificate")} className="bg-[#024396] hover:bg-[#023580]"><Award size={12} className="mr-1" /> Generate Certificate</Button>
                       )}
-                      <Button size="sm" variant="outline" onClick={() => { setEmailInternTarget(intern); setEmailInternDocs([]); }}>
+                      <Button size="sm" variant="outline" onClick={() => { setEmailInternTarget(intern); setEmailInternAddress(intern.contact_email || ""); setEmailInternDocs([]); }}>
                         <Send size={12} className="mr-1" /> Email Documents
                       </Button>
                     </div>
@@ -295,24 +272,6 @@ export default function AdminCertificates() {
               {interns.length === 0 && <p className="text-sm text-[#2A364B]/50 dark:text-[#8E99AC] text-center py-8">No interns added yet.</p>}
             </div>
           )}
-        </div>
-      )}
-
-      {tab === "certificates" && (
-        <div className="space-y-3">
-          {certificates.map((cert) => (
-            <div key={cert.id} className="bg-white dark:bg-[#101D2E] rounded-2xl border border-[#E2D8C2] dark:border-white/10 p-4 flex items-center justify-between flex-wrap gap-2">
-              <button onClick={() => openCertificateDetail(cert)} className="text-left">
-                <p className="font-medium text-[#0E1B2C] dark:text-[#F1EDE3] hover:underline">{cert.person_name}</p>
-                <p className="text-xs text-[#2A364B]/50 dark:text-[#8E99AC]">{cert.certificate_number} · {cert.type} · {cert.department} · {cert.duration_label}</p>
-              </button>
-              <div className="flex gap-2">
-                {cert.pdf_url && <a href={cert.pdf_url} target="_blank" rel="noreferrer"><Button size="sm" variant="outline"><Download size={12} className="mr-1" /> Download</Button></a>}
-                <Button size="sm" variant="outline" onClick={() => setEmailTarget(cert)}><Mail size={12} className="mr-1" /> Email</Button>
-              </div>
-            </div>
-          ))}
-          {certificates.length === 0 && <p className="text-sm text-[#2A364B]/50 dark:text-[#8E99AC] text-center py-8">No certificates generated yet.</p>}
         </div>
       )}
 
@@ -348,39 +307,11 @@ export default function AdminCertificates() {
         )}
       </PortalModal>
 
-      <PortalModal open={showEmpCert} onOpenChange={setShowEmpCert} title="Generate Employee Certificate" maxWidth="max-w-md">
-        <form onSubmit={submitEmpCert} className="space-y-3">
-          <select required value={empCertForm.employee_id} onChange={(e) => setEmpCertForm({ ...empCertForm, employee_id: e.target.value })} className={field}>
-            <option value="">Select Employee *</option>
-            {employees.map((emp) => <option key={emp.id} value={emp.id}>{emp.name}</option>)}
-          </select>
-          <select value={empCertForm.department} onChange={(e) => setEmpCertForm({ ...empCertForm, department: e.target.value })} className={field}>
-            {DEPARTMENTS.map((d) => <option key={d} value={d}>{d}</option>)}
-          </select>
-          <div className="grid grid-cols-2 gap-3">
-            <div><label className="text-xs text-[#2A364B]/60 dark:text-[#8E99AC] mb-1 block">Start Date</label><input required type="date" value={empCertForm.start_date} onChange={(e) => setEmpCertForm({ ...empCertForm, start_date: e.target.value })} className={field} /></div>
-            <div><label className="text-xs text-[#2A364B]/60 dark:text-[#8E99AC] mb-1 block">End Date (blank = ongoing)</label><input type="date" value={empCertForm.end_date} onChange={(e) => setEmpCertForm({ ...empCertForm, end_date: e.target.value })} className={field} /></div>
-          </div>
-          <Button type="submit" className="w-full bg-[#024396] hover:bg-[#023580]">Generate Certificate</Button>
-        </form>
-      </PortalModal>
-
-      <PortalModal open={showAchievement} onOpenChange={setShowAchievement} title="Add Achievement" maxWidth="max-w-md">
-        <form onSubmit={submitAchievement} className="space-y-3">
-          <select required value={achievementForm.employee_id} onChange={(e) => setAchievementForm({ ...achievementForm, employee_id: e.target.value })} className={field}>
-            <option value="">Select Employee *</option>
-            {employees.map((emp) => <option key={emp.id} value={emp.id}>{emp.name}</option>)}
-          </select>
-          <input required placeholder="Title (e.g. Employee of the Month — June 2026) *" value={achievementForm.title} onChange={(e) => setAchievementForm({ ...achievementForm, title: e.target.value })} className={field} />
-          <textarea placeholder="Description (optional)" rows={2} value={achievementForm.description} onChange={(e) => setAchievementForm({ ...achievementForm, description: e.target.value })} className={`${field} resize-none`} />
-          <Button type="submit" className="w-full bg-[#024396] hover:bg-[#023580]">Add Achievement</Button>
-        </form>
-      </PortalModal>
 
       <PortalModal open={!!emailTarget} onOpenChange={(v) => !v && setEmailTarget(null)} title="Email Certificate" maxWidth="max-w-sm">
         <div className="space-y-3">
           <input type="email" placeholder="recipient@email.com" value={emailAddress} onChange={(e) => setEmailAddress(e.target.value)} className={field} />
-          <Button onClick={sendEmail} className="w-full bg-[#024396] hover:bg-[#023580]">Send</Button>
+          <Button onClick={sendEmail} disabled={sendingEmail || !emailAddress.trim()} className="w-full bg-[#024396] hover:bg-[#023580]">{sendingEmail ? "Sending..." : "Send"}</Button>
         </div>
       </PortalModal>
 
@@ -473,11 +404,19 @@ export default function AdminCertificates() {
                   <DetailRow label="Created By" value={personDetail.cert.created_by === user?.id ? "You" : personDetail.cert.created_by} />
                   <DetailRow label="Created At" value={new Date(personDetail.cert.created_at).toLocaleString("en-IN")} />
                 </div>
-                {personDetail.cert.pdf_url && (
-                  <a href={personDetail.cert.pdf_url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 mt-2 text-xs font-medium text-[#024396] dark:text-[#7CB0FF]">
-                    <Download size={12} /> Download Certificate PDF
-                  </a>
-                )}
+                <div className="flex items-center gap-3 mt-2">
+                  {personDetail.cert.pdf_url && (
+                    <a href={personDetail.cert.pdf_url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 text-xs font-medium text-[#024396] dark:text-[#7CB0FF]">
+                      <Download size={12} /> Download Certificate PDF
+                    </a>
+                  )}
+                  <button
+                    onClick={() => { setEmailTarget(personDetail.cert); setEmailAddress(personDetail.intern?.contact_email || ""); }}
+                    className="inline-flex items-center gap-1.5 text-xs font-medium text-[#024396] dark:text-[#7CB0FF]"
+                  >
+                    <Mail size={12} /> Email Certificate
+                  </button>
+                </div>
               </div>
             )}
 

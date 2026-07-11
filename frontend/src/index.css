@@ -89,17 +89,13 @@ body {
     max-width: 100vw;
 }
 
-/* Pull-to-refresh containment is a touch-gesture concern only — scoping it
-   to coarse pointers (touchscreens) avoids a confirmed Chrome desktop bug
-   where `overscroll-behavior-y: contain` on html/body silently breaks
-   mouse-wheel/trackpad scrolling entirely (scrollbar drag + keyboard scroll
-   stay unaffected, which is what made this so hard to spot). */
-@media (pointer: coarse) {
-    html,
-    body {
-        overscroll-behavior-y: contain;
-    }
-}
+/* `overscroll-behavior-y: contain` was here to stop mobile pull-to-refresh,
+   but it's a confirmed Chromium bug trigger — it silently broke desktop
+   mouse-wheel scrolling entirely even scoped to touch devices only (see git
+   history), and the same Chromium engine (WebView/TWA) is what renders the
+   Android APK, where it very likely caused the same "scroll doesn't work at
+   all" failure. Removed outright rather than re-scoped — a working scroll
+   matters far more than avoiding an occasional pull-to-refresh reload. */
 
 #root {
     overflow-x: hidden;

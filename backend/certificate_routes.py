@@ -19,7 +19,10 @@ from certificate_pdf import (
     next_certificate_number,
 )
 from certificate_content import DEPARTMENTS
-from email_service import send_email_with_pdfs, document_email_html, email_configured
+from email_service import (
+    send_email_with_pdfs, document_email_html, email_configured,
+    certificate_completion_email_html, offer_letter_email_html,
+)
 from activity_service import log_activity
 from notification_service import create_notification
 
@@ -343,8 +346,7 @@ async def create_intern_certificate(intern_id: str, data: GenerateCertificateIn 
     await interns_collection.update_one({"id": intern_id}, {"$set": {"certificate_id": cert_id}})
     await log_activity(admin["sub"], "certificate_generated", f"Generated internship certificate {cert_number} for {intern['name']}", link="/portal/admin/certificates")
 
-    cert_doc.pop("_id", None)
-    return cert_doc
+    return _cert_to_out(cert_doc)
 
 
 # ── Employee certificates (existing employees, experience-framed) ──────
@@ -372,6 +374,8 @@ async def create_employee_certificate(data: EmployeeCertificateCreate, admin: di
     cert_data = {
         "certificate_number": cert_number, "person_name": emp["name"], "cert_type": "employee",
         "department": data.department, "issue_date": end, "duration_label": duration_label,
+        "designation": emp.get("designation") or "Team Member",
+        "start_date": data.start_date, "ongoing": data.end_date is None,
     }
     pdf_bytes = generate_certificate_pdf(cert_data, _verify_url(cert_number))
 
@@ -389,8 +393,7 @@ async def create_employee_certificate(data: EmployeeCertificateCreate, admin: di
     }
     await certificates_collection.insert_one(cert_doc)
     await log_activity(admin["sub"], "certificate_generated", f"Generated employee certificate {cert_number} for {emp['name']}", link="/portal/admin/certificates")
-    cert_doc.pop("_id", None)
-    return cert_doc
+    return _cert_to_out(cert_doc)
 
 
 class AchievementCreate(BaseModel):
@@ -415,7 +418,7 @@ async def create_achievement(data: AchievementCreate, admin: dict = Depends(requ
     cert_number = next_certificate_number("employee", year, seq)
 
     cert_data = {
-        "certificate_number": cert_number, "person_name": emp["name"], "cert_type": "employee",
+        "certificate_number": cert_number, "person_name": emp["name"], "cert_type": "achievement",
         "department": emp.get("designation") or "General", "issue_date": issue_date, "duration_label": data.title,
     }
     pdf_bytes = generate_certificate_pdf(cert_data, _verify_url(cert_number))
@@ -434,8 +437,7 @@ async def create_achievement(data: AchievementCreate, admin: dict = Depends(requ
     }
     await certificates_collection.insert_one(cert_doc)
     await log_activity(admin["sub"], "certificate_generated", f"Added achievement '{data.title}' for {emp['name']}", link="/portal/admin/certificates")
-    cert_doc.pop("_id", None)
-    return cert_doc
+    return _cert_to_out(cert_doc)
 
 
 # ── Listing / download / email ──────────────────────────────────────────
@@ -498,15 +500,20 @@ async def email_certificate(cert_id: str, data: EmailCertificateIn, admin: dict 
     attachments = [(f"Certificate_{doc['certificate_number'].replace('/', '_')}.pdf", obj["Body"].read())]
     doc_labels = [f"Certificate ({doc['certificate_number']})"]
 
-    if doc.get("type") == "internship" and doc.get("intern_id"):
+    is_internship = doc.get("type") == "internship" and doc.get("intern_id")
+    if is_internship:
         intern = await interns_collection.find_one({"id": doc["intern_id"]})
         if intern:
             completion_pdf = generate_completion_letter_pdf(intern)
             attachments.append((f"Completion_Letter_{intern['name'].replace(' ', '_')}.pdf", completion_pdf))
             doc_labels.append("Internship Completion Letter")
 
-    subject = f"Your Documents from The Financial Doctor — {doc['certificate_number']}"
-    body_html = document_email_html(doc["person_name"], doc_labels)
+    if is_internship:
+        subject = "Your Internship Certificate & Completion Letter — The Financial Doctor"
+        body_html = certificate_completion_email_html(doc["person_name"], doc["department"])
+    else:
+        subject = f"Your Documents from The Financial Doctor — {doc['certificate_number']}"
+        body_html = document_email_html(doc["person_name"], doc_labels)
     ok, message = send_email_with_pdfs(data.to_email, subject, body_html, attachments)
     if not ok:
         raise HTTPException(status_code=503, detail=message)
@@ -556,8 +563,15 @@ async def email_intern_documents(intern_id: str, data: InternEmailIn, admin: dic
         attachments.append((f"Certificate_{cert['certificate_number'].replace('/', '_')}.pdf", obj["Body"].read()))
         doc_labels.append(f"Certificate ({cert['certificate_number']})")
 
-    subject = f"Your Documents from The Financial Doctor — {intern['name']}"
-    body_html = document_email_html(intern["name"], doc_labels)
+    if "certificate" in wanted:
+        subject = "Your Internship Certificate & Completion Letter — The Financial Doctor"
+        body_html = certificate_completion_email_html(intern["name"], intern["department"])
+    elif wanted == {"offer_letter"}:
+        subject = "Your Internship Offer Letter — The Financial Doctor"
+        body_html = offer_letter_email_html(intern["name"])
+    else:
+        subject = f"Your Documents from The Financial Doctor — {intern['name']}"
+        body_html = document_email_html(intern["name"], doc_labels)
     ok, message = send_email_with_pdfs(data.to_email, subject, body_html, attachments)
     if not ok:
         raise HTTPException(status_code=503, detail=message)

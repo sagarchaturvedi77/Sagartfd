@@ -1,9 +1,10 @@
 import React from "react";
 import { Instagram, Youtube, Linkedin, MessageCircle, Sparkles, ShieldCheck } from "lucide-react";
 
-const LOGO_URL =
-    "https://customer-assets.emergentagent.com/job_advisor-phase4-build/artifacts/buhrts3f_IMG_2870.png";
-const WORKSPACE_LOGO_URL = "/tfd-workspace-logo.png";
+const LOGO_URL = "/assets/logos/TFD-MAIN-LOGO.png";
+const WORKSPACE_LOGO_URL = "/assets/logos/TFD-WORKSPACE-LOGO.png";
+const PARTNER_LOGO_URL = "/assets/logos/TFD-PARTNERHUB-LOGO.png";
+const INTERNSHIP_LOGO_URL = "/assets/logos/TFD-INTERNSHIP-LOGO.png";
 
 export default function Footer() {
     return (
@@ -70,9 +71,9 @@ export default function Footer() {
                     </a>
 
                     <div className="flex gap-2.5 mt-5">
-                        <FooterLogoBox href="/partner-with-us" src={LOGO_URL} label="TFD Partner" />
+                        <FooterLogoBox href="/partner-with-us" src={PARTNER_LOGO_URL} label="TFD Partner" />
                         <FooterLogoBox href="/portal/login" src={WORKSPACE_LOGO_URL} label="TFD Workspace" />
-                        <FooterLogoBox href="/internship.html" src={LOGO_URL} label="TFD Internship" />
+                        <FooterLogoBox href="/internship.html" src={INTERNSHIP_LOGO_URL} label="TFD Internship" />
                     </div>
                 </div>
 

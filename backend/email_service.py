@@ -1,5 +1,7 @@
-"""One-click welcome email for newly-created employees, sent via SMTP from
-ceo@thefinancialdoctor.in. That mailbox is hosted on Hostinger, not Gmail —
+"""All automated system email (welcome emails, certificates/letters,
+invoices, and any future automated communication) is sent via SMTP from
+team@thefinancialdoctor.in — a dedicated mailbox for system-generated mail,
+kept separate from the CEO's own inbox. Hosted on Hostinger, not Gmail —
 plain SMTP_SSL with the mailbox's own password (no Google App Password/OAuth
 involved).
 """
@@ -14,10 +16,10 @@ logger = logging.getLogger(__name__)
 
 SMTP_HOST = os.environ.get("SMTP_HOST", "smtp.hostinger.com")
 SMTP_PORT = int(os.environ.get("SMTP_PORT", "465"))
-SMTP_USERNAME = os.environ.get("SMTP_USERNAME", "ceo@thefinancialdoctor.in")
+SMTP_USERNAME = os.environ.get("SMTP_USERNAME", "team@thefinancialdoctor.in")
 SMTP_PASSWORD = os.environ.get("SMTP_PASSWORD", "")
 
-TFD_LOGO_URL = "https://customer-assets.emergentagent.com/job_advisor-phase4-build/artifacts/buhrts3f_IMG_2870.png"
+TFD_LOGO_URL = "https://thefinancialdoctor.in/assets/logos/TFD-MAIN-LOGO.png"
 WORKSPACE_LOGO_URL = "https://thefinancialdoctor.in/tfd-workspace-logo.png"
 LOGIN_URL = "https://thefinancialdoctor.in/portal/login"
 ANDROID_APK_URL = "https://thefinancialdoctor.in/TFD-Workspace.apk"
@@ -90,7 +92,7 @@ def send_email_with_pdfs(to_email: str, subject: str, body_html: str, attachment
 
     msg = MIMEMultipart("mixed")
     msg["Subject"] = subject
-    msg["From"] = f"The Financial Doctor <{SMTP_USERNAME}>"
+    msg["From"] = f"Team - The Financial Doctor <{SMTP_USERNAME}>"
     msg["To"] = to_email
     msg.attach(MIMEText(body_html, "html"))
 
@@ -107,6 +109,53 @@ def send_email_with_pdfs(to_email: str, subject: str, body_html: str, attachment
     except Exception as exc:
         logger.exception("Failed to send %s document(s) to %s", len(attachments), to_email)
         return False, str(exc)
+
+
+def _branded_wrapper(heading: str, body_paragraphs: list[str]) -> str:
+    paras = "".join(f"<p style='color:#5C677D;font-size:13px;margin:0 0 14px;'>{p}</p>" for p in body_paragraphs)
+    return f"""
+    <div style="font-family:'Segoe UI',Arial,sans-serif;max-width:520px;margin:0 auto;background:#F5F1EB;padding:24px;">
+      <div style="text-align:center;margin-bottom:20px;">
+        <img src="{TFD_LOGO_URL}" alt="The Financial Doctor" style="height:56px;object-fit:contain;background:#fff;border-radius:8px;padding:6px;" />
+      </div>
+      <div style="background:#fff;border-radius:16px;padding:28px;border:1px solid #E2D8C2;">
+        <h2 style="color:#0E1B2C;margin:0 0 4px;font-size:20px;">{heading}</h2>
+        {paras}
+        <p style="color:#2A364B;font-size:13px;margin:16px 0 0;">Warm regards,<br/><strong>Team - The Financial Doctor</strong></p>
+      </div>
+      <div style="text-align:center;margin-top:18px;">
+        <p style="font-size:11px;color:#9AA5B4;">The Financial Doctor &middot; AMFI Registered &middot; ARN-290298</p>
+        <p style="font-size:10.5px;color:#9AA5B4;">thefinancialdoctor.in</p>
+      </div>
+    </div>
+    """
+
+
+def certificate_completion_email_html(intern_name: str, department: str) -> str:
+    """Sent when an internship Certificate (+ auto-bundled Completion
+    Letter) goes out to a completed intern."""
+    return _branded_wrapper(
+        f"Dear {intern_name},",
+        [
+            "Congratulations on successfully completing your internship with The Financial Doctor! "
+            f"Please find attached your Internship Certificate and Completion Letter, recognising your contribution "
+            f"during your time with us in the {department} department.",
+            "We truly appreciated your dedication and hard work, and we wish you the very best in your future endeavours. "
+            "Feel free to reach out to us anytime — we'd love to stay in touch.",
+        ],
+    )
+
+
+def offer_letter_email_html(intern_name: str) -> str:
+    """Sent when an internship Offer Letter goes out on its own."""
+    return _branded_wrapper(
+        f"Dear {intern_name},",
+        [
+            "We are delighted to share your internship offer letter with The Financial Doctor, attached to this email. "
+            "Please review the details and confirm your acceptance at your earliest convenience.",
+            "We look forward to having you join our team!",
+        ],
+    )
 
 
 def document_email_html(person_name: str, document_labels: list[str]) -> str:

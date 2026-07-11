@@ -16,36 +16,22 @@ naturally lands on whichever page is last, never mid-document.
 import io
 import re
 
-from reportlab.lib import colors
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.units import mm
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, ListFlowable, ListItem
 
-from certificate_pdf import _letter_styles, _letterhead, _signature_block, watermark_page
+from certificate_pdf import _letter_styles, _signature_block, make_formal_letter_decorator
 
 
 def _parse_inline_bold(text: str) -> str:
     return re.sub(r"\*\*(.+?)\*\*", r"<b>\1</b>", text)
 
 
-def _make_page_decorator(letterhead_number: str):
-    def _decorate(canvas_obj, doc):
-        watermark_page(canvas_obj, doc)
-        canvas_obj.saveState()
-        canvas_obj.setFont("Helvetica", 8)
-        canvas_obj.setFillColor(colors.grey)
-        canvas_obj.drawCentredString(doc.pagesize[0] / 2, 12 * mm, f"{letterhead_number}  |  The Financial Doctor  |  thefinancialdoctor.in")
-        canvas_obj.drawRightString(doc.pagesize[0] - 22 * mm, 12 * mm, f"Page {canvas_obj.getPageNumber()}")
-        canvas_obj.restoreState()
-    return _decorate
-
-
 def build_letterhead_pdf(letterhead_number: str, content: str, signature_type: str = "ceo", title: str = "") -> bytes:
     buf = io.BytesIO()
-    doc = SimpleDocTemplate(buf, pagesize=A4, topMargin=20 * mm, bottomMargin=22 * mm, leftMargin=22 * mm, rightMargin=22 * mm)
+    doc = SimpleDocTemplate(buf, pagesize=A4, topMargin=50 * mm, bottomMargin=48 * mm, leftMargin=22 * mm, rightMargin=26 * mm)
     styles = _letter_styles()
     elements = []
-    _letterhead(elements, styles, title or "")
 
     for block in content.split("\n\n"):
         lines = [ln for ln in block.split("\n") if ln.strip()]
@@ -59,6 +45,6 @@ def build_letterhead_pdf(letterhead_number: str, content: str, signature_type: s
             elements.append(Paragraph(_parse_inline_bold(" ".join(lines)), styles["TFDBody"]))
 
     _signature_block(elements, styles, signature_type=signature_type)
-    decorator = _make_page_decorator(letterhead_number)
+    decorator = make_formal_letter_decorator(title or "", extra_footer_line=letterhead_number)
     doc.build(elements, onFirstPage=decorator, onLaterPages=decorator)
     return buf.getvalue()

@@ -3,7 +3,10 @@ import { useSearchParams } from "react-router-dom";
 import { Search, CheckCircle2, XCircle, ShieldCheck } from "lucide-react";
 
 const API_BASE = process.env.REACT_APP_BACKEND_URL || "";
-const LOGO_URL = "/tfd-workspace-logo.png";
+const LOGO_URL = "/assets/logos/TFD-MAIN-LOGO.png";
+const INTERNSHIP_LOGO_URL = "/assets/logos/TFD-INTERNSHIP-LOGO.png";
+const PARTNER_LOGO_URL = "/assets/logos/TFD-PARTNERHUB-LOGO.png";
+const WORKSPACE_LOGO_URL = "/assets/logos/TFD-WORKSPACE-LOGO.png";
 
 const TYPE_LABELS = {
   internship: "Internship Certificate",
@@ -112,8 +115,15 @@ export default function PublicVerify() {
           )}
         </div>
 
-        <p className="text-center text-[10px] text-[#9AA5B4] mt-6">
-          The Financial Doctor · AMFI Registered · ARN-290298 · <a href="https://www.thefinancialdoctor.in" className="text-[#024396]">thefinancialdoctor.in</a>
+        <div className="flex items-center justify-center gap-4 mt-8">
+          <img src={INTERNSHIP_LOGO_URL} alt="TFD Internship" className="h-7 object-contain opacity-80" />
+          <img src={PARTNER_LOGO_URL} alt="TFD Partner Hub" className="h-7 object-contain opacity-80" />
+          <img src={WORKSPACE_LOGO_URL} alt="TFD Workspace" className="h-7 object-contain opacity-80" />
+        </div>
+        <p className="text-center text-[10px] text-[#9AA5B4] mt-2.5">Powered by The Financial Doctor</p>
+
+        <p className="text-center text-[10px] text-[#9AA5B4] mt-3">
+          AMFI Registered · ARN-290298 · <a href="https://www.thefinancialdoctor.in" className="text-[#024396]">thefinancialdoctor.in</a>
         </p>
       </div>
     </div>
