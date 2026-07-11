@@ -4,6 +4,7 @@ import { timeAgo } from "../../lib/utils";
 import EmptyState from "./EmptyState";
 import PortalModal from "./PortalModal";
 import CallFlowPopup from "../CallFlowPopup";
+import { useCallReturnContext } from "../../context/CallReturnContext";
 
 const API_BASE = process.env.REACT_APP_BACKEND_URL || "";
 
@@ -156,6 +157,7 @@ function NameEditor({ lead, token, onSaved }) {
 export default function RecentActivity({ leads = [], limit = 6, token, onUpdated }) {
   const [historyLead, setHistoryLead] = useState(null);
   const [updateLead, setUpdateLead] = useState(null);
+  const { startCall } = useCallReturnContext();
 
   const activityAt = (l) => {
     const times = [l.updated_at, l.last_call_attempted_at].filter(Boolean).map((t) => new Date(t).getTime());
@@ -210,6 +212,7 @@ export default function RecentActivity({ leads = [], limit = 6, token, onUpdated
                 {lead.phone && (
                   <a
                     href={`tel:+91${lead.phone.replace(/\D/g, "")}`}
+                    onClick={() => startCall(lead)}
                     className="w-8 h-8 rounded-full bg-[#024396]/10 dark:bg-white/10 text-[#024396] dark:text-[#7CB0FF] flex items-center justify-center hover:bg-[#024396]/20 dark:hover:bg-white/20 transition-colors"
                     title={`Call ${lead.name || lead.phone}`}
                   >
@@ -263,20 +266,30 @@ export default function RecentActivity({ leads = [], limit = 6, token, onUpdated
         maxWidth="max-w-md"
       >
         {historyLead && (
-          <div className="space-y-3 max-h-[55vh] overflow-y-auto -mr-1 pr-1">
-            {historyRows(historyLead).length === 0 ? (
-              <p className="text-sm text-[#2A364B]/50 dark:text-[#8E99AC]">No history recorded yet for this lead.</p>
-            ) : (
-              historyRows(historyLead).map((row, i) => (
-                <div key={i} className="border-l-2 border-[#024396]/20 dark:border-[#7CB0FF]/30 pl-3">
-                  <p className="text-sm font-medium text-[#0E1B2C] dark:text-[#F1EDE3]">{row.label}</p>
-                  {row.note && <p className="text-xs text-[#2A364B]/60 dark:text-[#8E99AC] mt-0.5">{row.note}</p>}
-                  <p className="text-[11px] text-[#2A364B]/40 dark:text-[#8E99AC]/70 mt-0.5">
-                    {row.by ? `${row.by} · ` : ""}{timeAgo(row.at)}
-                  </p>
-                </div>
-              ))
+          <div className="space-y-4">
+            {token && (
+              <button
+                onClick={() => { const l = historyLead; setHistoryLead(null); setUpdateLead(l); }}
+                className="w-full flex items-center justify-center gap-1.5 text-sm font-medium text-white bg-[#024396] hover:bg-[#023580] rounded-xl py-2.5 transition-colors"
+              >
+                <PencilLine size={14} /> Add Update
+              </button>
             )}
+            <div className="space-y-3 max-h-[45vh] overflow-y-auto -mr-1 pr-1">
+              {historyRows(historyLead).length === 0 ? (
+                <p className="text-sm text-[#2A364B]/50 dark:text-[#8E99AC]">No history recorded yet for this lead.</p>
+              ) : (
+                historyRows(historyLead).map((row, i) => (
+                  <div key={i} className="border-l-2 border-[#024396]/20 dark:border-[#7CB0FF]/30 pl-3">
+                    <p className="text-sm font-medium text-[#0E1B2C] dark:text-[#F1EDE3]">{row.label}</p>
+                    {row.note && <p className="text-xs text-[#2A364B]/60 dark:text-[#8E99AC] mt-0.5">{row.note}</p>}
+                    <p className="text-[11px] text-[#2A364B]/40 dark:text-[#8E99AC]/70 mt-0.5">
+                      {row.by ? `${row.by} · ` : ""}{timeAgo(row.at)}
+                    </p>
+                  </div>
+                ))
+              )}
+            </div>
           </div>
         )}
       </PortalModal>

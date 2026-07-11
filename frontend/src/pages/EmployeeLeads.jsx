@@ -2,10 +2,9 @@ import React, { useState, useEffect, useCallback } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import PortalLayout from "../components/PortalLayout";
-import CallFlowPopup from "../components/CallFlowPopup";
 import TransferLeadModal from "../components/TransferLeadModal";
 import WhatsAppTemplateModal from "../components/WhatsAppTemplateModal";
-import useCallReturn from "../hooks/useCallReturn";
+import { useCallReturnContext } from "../context/CallReturnContext";
 import { Phone, MessageCircle, ArrowRightLeft, Search, Plus, ChevronLeft } from "lucide-react";
 import PageHeader from "../components/portal/PageHeader";
 import StatCard from "../components/portal/StatCard";
@@ -38,7 +37,6 @@ export default function EmployeeLeads() {
   const [services, setServices] = useState([]);
   const [selfAddedOnly, setSelfAddedOnly] = useState(false);
 
-  const [outcomeLead, setOutcomeLead] = useState(null);
   const [transferLead, setTransferLead] = useState(null);
   const [waLead, setWaLead] = useState(null);
   const [addingLead, setAddingLead] = useState(false);
@@ -98,15 +96,15 @@ export default function EmployeeLeads() {
 
   useEffect(() => { load(); loadServices(); loadSummary(); loadDates(); }, [load, loadServices, loadSummary, loadDates]);
 
-  const { startCall } = useCallReturn((lead) => setOutcomeLead(lead));
-
-  // Records the call attempt on the backend (before any outcome is known)
-  // so a missed/dismissed outcome popup can still be recovered later from
-  // the dashboard's Recent Calls widget.
-  const handleStartCall = (lead) => {
-    startCall(lead);
-    fetch(`${API_BASE}/api/leads/${lead.id}/call-started`, { method: "POST", headers }).catch(() => {});
-  };
+  // Portal-wide call-return tracker (lives in PortalLayout) — shows the
+  // connected/not-connected popup no matter which page/component the call
+  // was placed from, and refreshes this list once an outcome is saved.
+  const { startCall } = useCallReturnContext();
+  useEffect(() => {
+    const onLeadUpdated = () => { load(); loadSummary(); loadDates(); };
+    window.addEventListener("tfd:lead-updated", onLeadUpdated);
+    return () => window.removeEventListener("tfd:lead-updated", onLeadUpdated);
+  }, [load, loadSummary, loadDates]);
 
   const runGlobalSearch = async (q) => {
     setGlobalSearch(q);
@@ -248,7 +246,7 @@ export default function EmployeeLeads() {
         )}
       </div>
       <div className="flex items-center gap-1.5 shrink-0 ml-3" onClick={(e) => e.stopPropagation()}>
-        <a href={`tel:+91${lead.phone.replace(/\D/g, "")}`} onClick={() => handleStartCall(lead)}
+        <a href={`tel:+91${lead.phone.replace(/\D/g, "")}`} onClick={() => startCall(lead)}
           className="w-8 h-8 rounded-lg bg-[#024396] flex items-center justify-center text-white">
           <Phone size={14} />
         </a>
@@ -605,7 +603,6 @@ export default function EmployeeLeads() {
           )}
         </PortalModal>
 
-        {outcomeLead && <CallFlowPopup lead={outcomeLead} token={token} onClose={() => setOutcomeLead(null)} onSaved={() => { load(); loadSummary(); loadDates(); }} />}
         {transferLead && <TransferLeadModal lead={transferLead} token={token} onClose={() => setTransferLead(null)} onSaved={load} />}
         {waLead && <WhatsAppTemplateModal lead={waLead} token={token} onClose={() => setWaLead(null)} />}
 

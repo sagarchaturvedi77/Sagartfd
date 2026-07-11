@@ -9,6 +9,7 @@ import PageHeader from "../components/portal/PageHeader";
 import StatCard from "../components/portal/StatCard";
 import PortalModal from "../components/portal/PortalModal";
 import RecentActivity from "../components/portal/RecentActivity";
+import { useCallReturnContext } from "../context/CallReturnContext";
 
 const API_BASE = process.env.REACT_APP_BACKEND_URL || "";
 
@@ -17,6 +18,7 @@ export default function EmployeeDashboard() {
   const navigate = useNavigate();
   const now = new Date();
   const { activeWidgets } = useWidgets(user?.id, "employee");
+  const { startCall } = useCallReturnContext();
 
   const [today, setToday] = useState(null);
   const [leads, setLeads] = useState([]);
@@ -85,6 +87,14 @@ export default function EmployeeDashboard() {
     fetchServices();
     fetchMyTarget();
   }, [fetchProfileStatus, fetchToday, fetchLeads, fetchServices, fetchMyTarget]);
+
+  // The portal-wide call-outcome popup (rendered from PortalLayout) fires
+  // this once an outcome is saved, regardless of which page/widget started
+  // the call — refresh this page's lead list so counts/tabs stay current.
+  useEffect(() => {
+    window.addEventListener("tfd:lead-updated", fetchLeads);
+    return () => window.removeEventListener("tfd:lead-updated", fetchLeads);
+  }, [fetchLeads]);
 
   const punch = async (action) => {
     setActionLoading(true);
@@ -205,7 +215,7 @@ export default function EmployeeDashboard() {
                 <p className="font-medium text-sm text-[#0E1B2C] dark:text-[#F1EDE3]">{lead.name}</p>
                 <p className="text-xs text-[#2A364B]/60 dark:text-[#C7CEDA]/60">{lead.phone} {lead.service_interest && `· ${lead.service_interest}`}</p>
                 {lead.follow_up_note && <p className="text-xs text-[#2A364B]/50 dark:text-[#C7CEDA]/50 mt-1">{lead.follow_up_note}</p>}
-                <a href={`tel:+91${lead.phone.replace(/\D/g, "")}`} className="inline-block mt-2 px-3 py-1 rounded-lg text-xs font-medium text-white bg-[#024396]">Call Now</a>
+                <a href={`tel:+91${lead.phone.replace(/\D/g, "")}`} onClick={() => startCall(lead)} className="inline-block mt-2 px-3 py-1 rounded-lg text-xs font-medium text-white bg-[#024396]">Call Now</a>
               </div>
             ))}
           </div>

@@ -16,6 +16,7 @@ import EducationPortal from './pages/EducationPortal';
 import EmployeeTasks from "./pages/EmployeeTasks";
 // Staff Portal (Admin + Employee)
 import { AuthProvider } from "./context/AuthContext";
+import { CallReturnProvider } from "./context/CallReturnContext";
 import { ThemeProvider } from "./context/ThemeContext";
 import ProtectedRoute from "./components/ProtectedRoute";
 import PortalLogin from "./pages/PortalLogin";
@@ -79,6 +80,7 @@ function App() {
         <ModalProvider>
           <ThemeProvider>
           <AuthProvider>
+          <CallReturnProvider>
             <BrowserRouter>
               <AnalyticsTracker />
               <WebsiteNotificationPrompt />
@@ -475,6 +477,7 @@ element={
                 },
               }}
             />
+          </CallReturnProvider>
           </AuthProvider>
           </ThemeProvider>
         </ModalProvider>
