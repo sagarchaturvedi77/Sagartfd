@@ -169,6 +169,9 @@ class InternApplicationIn(BaseModel):
     contact_email: str
     father_name: str
     address: str
+    city: str
+    state: str
+    pincode: str
     aadhar_number: str
     pan_number: Optional[str] = None
 
@@ -195,6 +198,10 @@ async def submit_intern_application(data: InternApplicationIn):
         raise HTTPException(status_code=400, detail="College name and subject/course are required for students")
     if not data.father_name.strip() or not data.address.strip() or not data.aadhar_number.strip():
         raise HTTPException(status_code=400, detail="Father's name, address, and Aadhaar number are required")
+    if not data.city.strip() or not data.state.strip() or not data.pincode.strip():
+        raise HTTPException(status_code=400, detail="City, state, and pincode are required")
+    if not data.pincode.strip().isdigit() or len(data.pincode.strip()) != 6:
+        raise HTTPException(status_code=400, detail="Pincode must be a 6-digit number")
     if not data.contact_email.strip() or "@" not in data.contact_email:
         raise HTTPException(status_code=400, detail="A valid email address is required — your Certificate and Completion Letter will be sent there")
 
@@ -213,6 +220,7 @@ async def submit_intern_application(data: InternApplicationIn):
         "start_date": data.start_date, "end_date": end.isoformat(), "duration_days": data.duration_days,
         "contact_phone": data.contact_phone.strip(), "contact_email": data.contact_email.strip(),
         "father_name": data.father_name.strip(), "address": data.address.strip(),
+        "city": data.city.strip(), "state": data.state.strip(), "pincode": data.pincode.strip(),
         "aadhar_number": data.aadhar_number.strip(), "pan_number": (data.pan_number or "").strip() or None,
     }
 
@@ -304,6 +312,9 @@ class ApproveInternIn(BaseModel):
     end_date: Optional[str] = None
     father_name: Optional[str] = None
     address: Optional[str] = None
+    city: Optional[str] = None
+    state: Optional[str] = None
+    pincode: Optional[str] = None
     aadhar_number: Optional[str] = None
     pan_number: Optional[str] = None
     contact_email: Optional[str] = None
@@ -320,7 +331,8 @@ async def approve_intern(intern_id: str, data: ApproveInternIn, admin: dict = De
 
     editable_fields = [
         "name", "is_student", "college", "subject", "department", "start_date", "end_date",
-        "father_name", "address", "aadhar_number", "pan_number", "contact_email", "contact_phone",
+        "father_name", "address", "city", "state", "pincode", "aadhar_number", "pan_number",
+        "contact_email", "contact_phone",
     ]
     updates = {k: getattr(data, k) for k in editable_fields if getattr(data, k) is not None}
     updates.update({
@@ -355,6 +367,9 @@ class InternUpdateIn(BaseModel):
     end_date: Optional[str] = None
     father_name: Optional[str] = None
     address: Optional[str] = None
+    city: Optional[str] = None
+    state: Optional[str] = None
+    pincode: Optional[str] = None
     aadhar_number: Optional[str] = None
     pan_number: Optional[str] = None
     contact_email: Optional[str] = None
