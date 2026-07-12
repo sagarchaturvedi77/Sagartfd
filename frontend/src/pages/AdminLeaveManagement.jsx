@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from "react";
+import { useSearchParams } from "react-router-dom";
 import PortalLayout from "../components/PortalLayout";
 import { useAuth } from "../context/AuthContext";
 import PageHeader from "../components/portal/PageHeader";
@@ -10,10 +11,12 @@ const LEAVE_LABEL = { casual: "Casual Leave", sick: "Sick Leave", earned: "Earne
 
 export default function AdminLeaveManagement() {
   const { token } = useAuth();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [leaves, setLeaves] = useState([]);
   const [filter, setFilter] = useState("pending");
   const [loading, setLoading] = useState(true);
   const [actionNote, setActionNote] = useState({});
+  const [highlightId, setHighlightId] = useState(null);
   const headers = { Authorization: `Bearer ${token}`, "Content-Type": "application/json" };
 
   const load = useCallback(async () => {
@@ -24,6 +27,20 @@ export default function AdminLeaveManagement() {
   }, [token, filter]); // eslint-disable-line
 
   useEffect(() => { load(); }, [load]);
+
+  // Deep-link from a notification: ?leaveId=... scrolls to and highlights that leave.
+  useEffect(() => {
+    const leaveId = searchParams.get("leaveId");
+    if (!leaveId || !leaves.length) return;
+    if (leaves.some((l) => l.id === leaveId)) {
+      setHighlightId(leaveId);
+      setTimeout(() => {
+        document.getElementById(`leave-${leaveId}`)?.scrollIntoView({ behavior: "smooth", block: "center" });
+      }, 100);
+      setSearchParams((prev) => { const next = new URLSearchParams(prev); next.delete("leaveId"); return next; }, { replace: true });
+      setTimeout(() => setHighlightId(null), 4000);
+    }
+  }, [searchParams, leaves, setSearchParams]);
 
   const updateStatus = async (id, status) => {
     await fetch(`${API_BASE}/api/leaves/${id}`, {
@@ -70,7 +87,11 @@ export default function AdminLeaveManagement() {
         ) : (
           <div className="grid gap-4">
             {leaves.map((lv) => (
-              <div key={lv.id} className="bg-white dark:bg-[#101D2E] rounded-2xl border border-[#E2D8C2] dark:border-white/10 p-5 shadow-sm">
+              <div
+                key={lv.id}
+                id={`leave-${lv.id}`}
+                className={`bg-white dark:bg-[#101D2E] rounded-2xl border p-5 shadow-sm transition-colors ${highlightId === lv.id ? "border-[#024396] ring-2 ring-[#024396]" : "border-[#E2D8C2] dark:border-white/10"}`}
+              >
                 <div className="flex items-start justify-between gap-4 flex-wrap">
                   <div className="space-y-1">
                     <div className="flex items-center gap-2">

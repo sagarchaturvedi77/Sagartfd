@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useState } from "react";
 import { useAuth } from "../context/AuthContext";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import PortalLayout from "../components/PortalLayout";
 import { getCurrentLocation } from "../portal/api";
 import { Search } from "lucide-react";
@@ -13,9 +13,17 @@ import { useCallReturnContext } from "../context/CallReturnContext";
 
 const API_BASE = process.env.REACT_APP_BACKEND_URL || "";
 
+// Mirrors backend/lead_routes.py's REASON_LABELS — the "not connected" call
+// outcomes that get auto-rescheduled for a next-day retry.
+const NOT_CONNECTED_REASONS = {
+  npc: "No response", switchoff: "Switched off",
+  network_issue: "Network issue", busy: "Busy",
+};
+
 export default function EmployeeDashboard() {
   const { user, token } = useAuth();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const now = new Date();
   const { activeWidgets } = useWidgets(user?.id, "employee");
   const { startCall } = useCallReturnContext();
@@ -29,6 +37,8 @@ export default function EmployeeDashboard() {
   const [filterStatus, setFilterStatus] = useState("");
   const [filterService, setFilterService] = useState("");
   const [showFollowUps, setShowFollowUps] = useState(false);
+  const [showReschedule, setShowReschedule] = useState(false);
+  const [highlightLeadId, setHighlightLeadId] = useState(null);
   const [myTarget, setMyTarget] = useState(null);
 
   const fetchProfileStatus = useCallback(async () => {
@@ -123,6 +133,36 @@ export default function EmployeeDashboard() {
   const totalClients = leads.filter(l => l.status === "converted").length;
   const todayFollowUps = leads.filter(l => l.follow_up_date && l.follow_up_date.startsWith(todayStr));
 
+  // Reschedule Call: leads that couldn't be reached last time (no response,
+  // switched off, busy, network issue) and got auto-bumped to "follow_up"
+  // for a retry — the reason comes from the most recent status_history
+  // entry that carries a sub_stage (see lead_routes.py's not_connected
+  // branch, REASON_LABELS).
+  const rescheduleLeads = leads
+    .filter(l => l.status === "follow_up")
+    .map(l => {
+      const lastReasoned = [...(l.status_history || [])].reverse().find(h => h.sub_stage);
+      const reason = lastReasoned && NOT_CONNECTED_REASONS[lastReasoned.sub_stage];
+      return reason ? { ...l, _reason: reason } : null;
+    })
+    .filter(Boolean);
+
+  // Deep-link from a notification: ?reschedule=1 opens this widget,
+  // optionally with &leadId=... to highlight one specific lead in it.
+  useEffect(() => {
+    if (searchParams.get("reschedule") === "1") {
+      setShowReschedule(true);
+      const leadId = searchParams.get("leadId");
+      if (leadId) setHighlightLeadId(leadId);
+      setSearchParams((prev) => {
+        const next = new URLSearchParams(prev);
+        next.delete("reschedule");
+        next.delete("leadId");
+        return next;
+      }, { replace: true });
+    }
+  }, [searchParams, setSearchParams]);
+
   // Filter leads for search/filter view
   const filteredLeads = leads.filter(l => {
     if (searchQuery && !l.name.toLowerCase().includes(searchQuery.toLowerCase()) && !l.phone.includes(searchQuery)) return false;
@@ -194,6 +234,11 @@ export default function EmployeeDashboard() {
                 onClick={() => setShowFollowUps(true)} className="flex-1 min-w-[140px] relative"
                 icon={todayFollowUps.length > 0 ? <span className="inline-block w-2 h-2 bg-red-500 rounded-full animate-pulse" /> : null}
               />
+              <StatCard
+                label="Reschedule Call" color="red" value={rescheduleLeads.length}
+                onClick={() => setShowReschedule(true)} className="flex-1 min-w-[140px] relative"
+                icon={rescheduleLeads.length > 0 ? <span className="inline-block w-2 h-2 bg-red-500 rounded-full animate-pulse" /> : null}
+              />
             </>
           )}
         </div>
@@ -216,6 +261,38 @@ export default function EmployeeDashboard() {
                 <p className="text-xs text-[#2A364B]/60 dark:text-[#C7CEDA]/60">{lead.phone} {lead.service_interest && `· ${lead.service_interest}`}</p>
                 {lead.follow_up_note && <p className="text-xs text-[#2A364B]/50 dark:text-[#C7CEDA]/50 mt-1">{lead.follow_up_note}</p>}
                 <a href={`tel:+91${lead.phone.replace(/\D/g, "")}`} onClick={() => startCall(lead)} className="inline-block mt-2 px-3 py-1 rounded-lg text-xs font-medium text-white bg-[#024396]">Call Now</a>
+              </div>
+            ))}
+          </div>
+        )}
+      </PortalModal>
+
+      {/* Reschedule Call Modal — leads that weren't connected (no response,
+          switched off, busy, network issue) and are due for a retry today */}
+      <PortalModal
+        open={showReschedule}
+        onOpenChange={(v) => { setShowReschedule(v); if (!v) setHighlightLeadId(null); }}
+        title={`Reschedule Call (${rescheduleLeads.length})`}
+        maxWidth="max-w-md"
+      >
+        {rescheduleLeads.length === 0 ? (
+          <p className="text-sm text-[#2A364B]/50 dark:text-[#C7CEDA]/50">No calls pending a reschedule right now</p>
+        ) : (
+          <div className="space-y-3">
+            {rescheduleLeads.map(lead => (
+              <div
+                key={lead.id}
+                className={`bg-[#FBF7EE] dark:bg-white/5 rounded-xl p-3 ${lead.id === highlightLeadId ? "ring-2 ring-[#C7102E]" : ""}`}
+              >
+                <div className="flex items-center justify-between gap-2">
+                  <p className="font-medium text-sm text-[#0E1B2C] dark:text-[#F1EDE3]">{lead.name}</p>
+                  <span className="text-[10px] font-semibold uppercase tracking-wide text-red-700 dark:text-red-400 bg-red-50 dark:bg-red-900/30 px-1.5 py-0.5 rounded">{lead._reason}</span>
+                </div>
+                <p className="text-xs text-[#2A364B]/60 dark:text-[#C7CEDA]/60">{lead.phone} {lead.service_interest && `· ${lead.service_interest}`}</p>
+                <div className="flex items-center gap-2 mt-2">
+                  <a href={`tel:+91${lead.phone.replace(/\D/g, "")}`} onClick={() => startCall(lead)} className="inline-block px-3 py-1 rounded-lg text-xs font-medium text-white bg-[#024396]">Call Now</a>
+                  <button onClick={() => navigate(`/portal/employee/leads?leadId=${lead.id}`)} className="inline-block px-3 py-1 rounded-lg text-xs font-medium text-[#024396] dark:text-[#7CB0FF] border border-[#024396]/30 dark:border-[#7CB0FF]/30">Update Status</button>
+                </div>
               </div>
             ))}
           </div>

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import PortalLayout from "../components/PortalLayout";
 import PageHeader from "../components/portal/PageHeader";
@@ -25,6 +25,7 @@ const SOURCES = ["manual", "website", "referral", "calculator", "whatsapp", "exc
 export default function AdminLeads() {
   const { token, user } = useAuth();
   const navigate = useNavigate(); // eslint-disable-line no-unused-vars
+  const [searchParams, setSearchParams] = useSearchParams();
   const [leads, setLeads] = useState([]);
   const [myLeads, setMyLeads] = useState([]);
   const [employees, setEmployees] = useState([]);
@@ -128,6 +129,17 @@ export default function AdminLeads() {
   }, [token]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => { load(); loadMyLeads(); loadBatches(); loadWebLeads(); loadCareerLeads(); loadPipeline(); loadServices(); }, [load, loadMyLeads, loadBatches, loadWebLeads, loadCareerLeads, loadPipeline, loadServices]);
+
+  // Deep-link from a notification: ?leadId=... auto-opens that lead's detail modal.
+  useEffect(() => {
+    const leadId = searchParams.get("leadId");
+    if (!leadId || (!leads.length && !myLeads.length)) return;
+    const found = leads.find((l) => l.id === leadId) || myLeads.find((l) => l.id === leadId);
+    if (found) {
+      setDetailLead(found);
+      setSearchParams((prev) => { const next = new URLSearchParams(prev); next.delete("leadId"); return next; }, { replace: true });
+    }
+  }, [searchParams, leads, myLeads, setSearchParams]);
 
   const addLead = async (e) => {
     e.preventDefault();

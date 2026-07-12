@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from "react";
+import { useSearchParams } from "react-router-dom";
 import PortalLayout from "../components/PortalLayout";
 import { useAuth } from "../context/AuthContext";
 import PageHeader from "../components/portal/PageHeader";
@@ -18,11 +19,13 @@ const LEAVE_TYPES = [
 
 export default function EmployeeLeaveRequest() {
   const { token } = useAuth();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [leaves, setLeaves] = useState([]);
   const [loading, setLoading] = useState(true);
   const [form, setForm] = useState({ leave_type: "casual", from_date: "", to_date: "", reason: "", half_day_session: "" });
   const [submitting, setSubmitting] = useState(false);
   const [showForm, setShowForm] = useState(false);
+  const [highlightId, setHighlightId] = useState(null);
   const headers = { Authorization: `Bearer ${token}`, "Content-Type": "application/json" };
 
   const load = useCallback(async () => {
@@ -33,6 +36,20 @@ export default function EmployeeLeaveRequest() {
   }, [token]); // eslint-disable-line
 
   useEffect(() => { load(); }, [load]);
+
+  // Deep-link from a notification: ?leaveId=... scrolls to and highlights that leave.
+  useEffect(() => {
+    const leaveId = searchParams.get("leaveId");
+    if (!leaveId || !leaves.length) return;
+    if (leaves.some((l) => l.id === leaveId)) {
+      setHighlightId(leaveId);
+      setTimeout(() => {
+        document.getElementById(`leave-${leaveId}`)?.scrollIntoView({ behavior: "smooth", block: "center" });
+      }, 100);
+      setSearchParams((prev) => { const next = new URLSearchParams(prev); next.delete("leaveId"); return next; }, { replace: true });
+      setTimeout(() => setHighlightId(null), 4000);
+    }
+  }, [searchParams, leaves, setSearchParams]);
 
   const submit = async (e) => {
     e.preventDefault();
@@ -118,7 +135,11 @@ export default function EmployeeLeaveRequest() {
         ) : (
           <div className="grid gap-3">
             {leaves.map((lv) => (
-              <div key={lv.id} className="bg-white dark:bg-[#101D2E] rounded-2xl border border-[#E2D8C2] dark:border-white/10 p-4 shadow-sm flex items-center justify-between gap-4 flex-wrap">
+              <div
+                key={lv.id}
+                id={`leave-${lv.id}`}
+                className={`bg-white dark:bg-[#101D2E] rounded-2xl border p-4 shadow-sm flex items-center justify-between gap-4 flex-wrap transition-colors ${highlightId === lv.id ? "border-[#024396] ring-2 ring-[#024396]" : "border-[#E2D8C2] dark:border-white/10"}`}
+              >
                 <div>
                   <div className="flex items-center gap-2 mb-1">
                     <p className="font-medium text-[#0E1B2C] dark:text-[#F1EDE3] text-sm">{LEAVE_TYPES.find((t) => t.value === lv.leave_type)?.label || lv.leave_type}</p>

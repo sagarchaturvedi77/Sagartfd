@@ -150,7 +150,7 @@ async def create_employee(payload: UserCreate, admin=Depends(require_admin)):
                 title="New Employee Created",
                 body=f"{payload.name} ({payload.phone}) has joined TFD Workspace!",
                 n_type="employee",
-                link="/portal/admin",
+                link=f"/portal/admin/employees/{emp_id}",
             )
     except Exception:
         pass

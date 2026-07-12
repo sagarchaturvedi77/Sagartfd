@@ -62,7 +62,7 @@ async def apply_leave(data: LeaveCreate, user=Depends(get_current_user_payload))
             title=f"Leave Request: {leave['employee_name']}",
             body=f"{leave['employee_name']} applied for {LEAVE_TYPE_LABELS.get(data.leave_type, data.leave_type)} ({data.from_date} to {data.to_date}).",
             n_type="leave_request",
-            link="/portal/admin/leaves",
+            link=f"/portal/admin/leaves?leaveId={leave['id']}",
         )
 
     return leave
@@ -112,7 +112,7 @@ async def update_leave_status(leave_id: str, data: LeaveStatusUpdate, admin=Depe
         body=f"Your {LEAVE_TYPE_LABELS.get(result['leave_type'], result['leave_type'])} request ({result['from_date']} to {result['to_date']}) was {data.status}"
              + (f" — {data.admin_note}" if data.admin_note else "."),
         n_type="leave_status",
-        link="/portal/employee/leaves",
+        link=f"/portal/employee/leaves?leaveId={leave_id}",
     )
     return result
 

@@ -142,7 +142,7 @@ async def employee_update_progress(
             body=f"{emp_name} reported {data.achieved_amount:,.0f} achieved"
                  + (f" — {data.note}" if data.note else ""),
             n_type="target",
-            link="/portal/admin/targets",
+            link=f"/portal/admin/targets?targetId={target_id}",
         )
     return to_target_out(target)
 

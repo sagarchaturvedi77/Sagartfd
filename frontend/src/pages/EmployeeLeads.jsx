@@ -27,7 +27,7 @@ export default function EmployeeLeads() {
   const { token } = useAuth();
   const headers = { Authorization: `Bearer ${token}`, "Content-Type": "application/json" };
 
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [leads, setLeads] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState(() => {
@@ -95,6 +95,17 @@ export default function EmployeeLeads() {
   }, [token]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => { load(); loadServices(); loadSummary(); loadDates(); }, [load, loadServices, loadSummary, loadDates]);
+
+  // Deep-link from a notification: ?leadId=... auto-opens that lead's detail modal.
+  useEffect(() => {
+    const leadId = searchParams.get("leadId");
+    if (!leadId || !leads.length) return;
+    const found = leads.find((l) => l.id === leadId);
+    if (found) {
+      setDetailLead(found);
+      setSearchParams((prev) => { const next = new URLSearchParams(prev); next.delete("leadId"); return next; }, { replace: true });
+    }
+  }, [searchParams, leads, setSearchParams]);
 
   // Portal-wide call-return tracker (lives in PortalLayout) — shows the
   // connected/not-connected popup no matter which page/component the call

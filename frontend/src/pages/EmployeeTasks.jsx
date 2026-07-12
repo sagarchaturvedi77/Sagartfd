@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from "react";
+import { useSearchParams } from "react-router-dom";
 import PortalLayout from "../components/PortalLayout";
 import { useAuth } from "../context/AuthContext";
 
@@ -12,8 +13,10 @@ const STATUS_COLOR = {
 
 export default function EmployeeTasks({ wrapInLayout = true }) {
   const { token } = useAuth();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [tasks, setTasks] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [highlightId, setHighlightId] = useState(null);
   const headers = { Authorization: `Bearer ${token}`, "Content-Type": "application/json" };
 
   const load = useCallback(async () => {
@@ -29,6 +32,20 @@ export default function EmployeeTasks({ wrapInLayout = true }) {
   }, [token]); // eslint-disable-line
 
   useEffect(() => { load(); }, [load]);
+
+  // Deep-link from a notification: ?taskId=... scrolls to and highlights that task.
+  useEffect(() => {
+    const taskId = searchParams.get("taskId");
+    if (!taskId || !tasks.length) return;
+    if (tasks.some((t) => t.id === taskId)) {
+      setHighlightId(taskId);
+      setTimeout(() => {
+        document.getElementById(`task-${taskId}`)?.scrollIntoView({ behavior: "smooth", block: "center" });
+      }, 100);
+      setSearchParams((prev) => { const next = new URLSearchParams(prev); next.delete("taskId"); return next; }, { replace: true });
+      setTimeout(() => setHighlightId(null), 4000);
+    }
+  }, [searchParams, tasks, setSearchParams]);
 
   const updateStatus = async (id, status) => {
     // update_task() is PUT, not POST /status (that route never existed either).
@@ -55,7 +72,11 @@ export default function EmployeeTasks({ wrapInLayout = true }) {
       ) : (
         <div className="grid gap-3">
           {tasks.map((task) => (
-            <div key={task.id} className="bg-white dark:bg-[#101D2E] rounded-2xl border border-[#E2D8C2] dark:border-white/10 p-4 shadow-sm">
+            <div
+              key={task.id}
+              id={`task-${task.id}`}
+              className={`bg-white dark:bg-[#101D2E] rounded-2xl border p-4 shadow-sm transition-colors ${highlightId === task.id ? "border-[#024396] ring-2 ring-[#024396]" : "border-[#E2D8C2] dark:border-white/10"}`}
+            >
               <div className="flex items-start justify-between gap-4 flex-wrap">
                 <div className="space-y-1">
                   <div className="flex items-center gap-2">

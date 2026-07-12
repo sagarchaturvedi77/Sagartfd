@@ -45,7 +45,7 @@ async def create_task(data: TaskCreate, payload: dict = Depends(get_current_user
             title="New Task Assigned",
             body=f"{assigned_by_name} assigned you: {task.title}" + (f" (due {task.due_date})" if task.due_date else ""),
             n_type="task_assigned",
-            link="/portal/employee/tasks",
+            link=f"/portal/employee/tasks?taskId={task.id}",
         )
 
     if payload.get("role") == "admin":

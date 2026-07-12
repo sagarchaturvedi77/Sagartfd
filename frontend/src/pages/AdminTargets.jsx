@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import PortalLayout from "../components/PortalLayout";
 import AdminTasks from "./AdminTasks";
@@ -27,6 +28,7 @@ function formatAchievedValue(t) {
 
 export default function AdminTargets() {
   const { token } = useAuth();
+  const [searchParams, setSearchParams] = useSearchParams();
   const now = new Date();
   const [tab, setTab] = useState("targets"); // targets | tasks
   const [month, setMonth] = useState(now.getMonth() + 1);
@@ -60,6 +62,17 @@ export default function AdminTargets() {
 
   useEffect(() => { fetchTargets(); }, [fetchTargets]);
   useEffect(() => { fetchEmployees(); }, [fetchEmployees]);
+
+  // Deep-link from a notification: ?targetId=... expands that target's row.
+  useEffect(() => {
+    const targetId = searchParams.get("targetId");
+    if (!targetId || !targets.length) return;
+    if (targets.some((t) => t.id === targetId)) {
+      setTab("targets");
+      setViewId(targetId);
+      setSearchParams((prev) => { const next = new URLSearchParams(prev); next.delete("targetId"); return next; }, { replace: true });
+    }
+  }, [searchParams, targets, setSearchParams]);
 
   const handleSetTarget = async (e) => {
     e.preventDefault();

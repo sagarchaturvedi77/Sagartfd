@@ -115,7 +115,7 @@ async def create_lead(data: LeadCreate, admin: dict = Depends(require_admin)):
         title="New Lead Assigned",
         body=f"{lead.name} ({lead.phone}) — {lead.service_interest or 'General'}",
         n_type="lead",
-        link="/portal/employee/leads",
+        link=f"/portal/employee/leads?leadId={lead.id}",
     )
     await log_activity(
         admin["sub"], "lead_added",
@@ -496,7 +496,7 @@ async def update_lead(lead_id: str, data: LeadUpdate, admin: dict = Depends(requ
                 title="Lead Assigned to You",
                 body=f"{lead_name} — check your leads dashboard",
                 n_type="lead",
-                link="/portal/employee/leads",
+                link=f"/portal/employee/leads?leadId={lead_id}",
             )
 
     result = await leads_collection.find_one_and_update(
@@ -543,7 +543,7 @@ async def assign_lead(lead_id: str, assigned_to: str = Query(...), admin: dict =
         title="New Lead Assigned",
         body=f"{result['name']} ({result['phone']}) — {result.get('service_interest') or 'General'}",
         n_type="lead",
-        link="/portal/employee/leads",
+        link=f"/portal/employee/leads?leadId={lead_id}",
     )
     return {"status": "assigned", "assigned_to_name": emp.get("name")}
 
@@ -629,7 +629,7 @@ async def update_lead_status(
                 title=f"Lead Updated: {doc['name']}",
                 body=f"{emp_name} changed status to '{data.status}'",
                 n_type="lead",
-                link="/portal/admin/leads",
+                link=f"/portal/admin/leads?leadId={lead_id}",
             )
 
     return {"status": "updated", "new_status": data.status}
@@ -905,7 +905,7 @@ async def submit_call_outcome(
             title="Lead Reassigned to You",
             body=f"{doc['name']} ({doc['phone']}) — {transfer_entry['note'] if transfer_entry else ''}",
             n_type="lead",
-            link="/portal/employee/leads",
+            link=f"/portal/employee/leads?leadId={lead_id}",
         )
 
     # If the lead just hit final auto-lost, flag admin so they know it happened
@@ -917,7 +917,7 @@ async def submit_call_outcome(
                 title=f"Lead marked Lost: {doc['name']}",
                 body=history_entry.get("note") or "No result after repeated attempts.",
                 n_type="lead",
-                link="/portal/admin/leads",
+                link=f"/portal/admin/leads?leadId={lead_id}",
             )
 
     return {"status": "saved", "new_status": updates.get("status"), "call_attempts": updates.get("call_attempts", doc.get("call_attempts", 0))}
@@ -975,7 +975,7 @@ async def transfer_lead(
         title="Lead Transferred to You",
         body=f"{doc['name']} ({doc['phone']}) — {data.reference_note or 'no note'}",
         n_type="lead",
-        link="/portal/employee/leads",
+        link=f"/portal/employee/leads?leadId={lead_id}",
     )
     return {"status": "transferred", "to_name": new_emp.get("name")}
 
@@ -1397,7 +1397,7 @@ async def convert_web_lead(
             title="New Lead Assigned",
             body=f"{lead.name} ({lead.phone}) — {lead.service_interest or 'Website enquiry'}",
             n_type="lead",
-            link="/portal/employee/leads",
+            link=f"/portal/employee/leads?leadId={lead.id}",
         )
     return {"status": "converted", "lead_id": lead.id}
 
@@ -1438,7 +1438,7 @@ async def convert_career_lead(
             title="New Lead Assigned",
             body=f"{lead.name} ({lead.phone}) — Career applicant: {lead.service_interest or 'General'}",
             n_type="lead",
-            link="/portal/employee/leads",
+            link=f"/portal/employee/leads?leadId={lead.id}",
         )
     return {"status": "converted", "lead_id": lead.id}
 

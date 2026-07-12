@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import PortalLayout from "../components/PortalLayout";
 import PageHeader from "../components/portal/PageHeader";
@@ -24,6 +25,7 @@ async function downloadBlob(res, filename) {
 export default function AdminCertificates() {
   const { token, user } = useAuth();
   const headers = { Authorization: `Bearer ${token}`, "Content-Type": "application/json" };
+  const [searchParams, setSearchParams] = useSearchParams();
 
   const [tab, setTab] = useState("interns");
   const [interns, setInterns] = useState([]);
@@ -81,6 +83,23 @@ export default function AdminCertificates() {
   }, [token]);
 
   useEffect(() => { load(); }, [load]);
+
+  // Deep-link from a notification: ?internId=... switches to Applications
+  // (or finds it among approved interns) and opens its review/detail modal.
+  useEffect(() => {
+    const internId = searchParams.get("internId");
+    if (!internId || (!applications.length && !interns.length)) return;
+    const pendingMatch = applications.find((a) => a.id === internId);
+    const internMatch = interns.find((i) => i.id === internId);
+    if (pendingMatch) {
+      setTab("applications");
+      openApprove(pendingMatch);
+      setSearchParams((prev) => { const next = new URLSearchParams(prev); next.delete("internId"); return next; }, { replace: true });
+    } else if (internMatch) {
+      openInternDetail(internMatch);
+      setSearchParams((prev) => { const next = new URLSearchParams(prev); next.delete("internId"); return next; }, { replace: true });
+    }
+  }, [searchParams, applications, interns, setSearchParams]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const field = "w-full border border-[#E2D8C2] dark:border-white/15 dark:bg-white/5 dark:text-[#F1EDE3] rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#024396]/30";
 

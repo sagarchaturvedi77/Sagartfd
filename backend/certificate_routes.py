@@ -207,6 +207,7 @@ async def submit_intern_application(data: InternApplicationIn):
         }
         await interns_collection.insert_one(intern)
 
+    applicant_id = existing["id"] if existing else intern["id"]
     admins = users_collection.find({"role": "admin"})
     async for adm in admins:
         await create_notification(
@@ -214,7 +215,7 @@ async def submit_intern_application(data: InternApplicationIn):
             title="New Intern Application" if not existing else "Intern Application Resubmitted",
             body=f"{data.name} {'applied for' if not existing else 're-submitted their application for'} an internship ({data.department}) — review in Applications",
             n_type="general",
-            link="/portal/admin/certificates",
+            link=f"/portal/admin/certificates?internId={applicant_id}",
         )
     return {"status": "submitted"}
 

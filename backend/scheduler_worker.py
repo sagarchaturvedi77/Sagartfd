@@ -158,7 +158,17 @@ def process_due_reminders():
             # single-shot lead reminders — send once, then deactivate
             title = r.get("title", "Lead Reminder")
             body = r.get("body", "You have a pending lead follow-up.")
-            send_push_to_user(uid, title, body, "/portal/employee/leads", n_type=rtype)
+            lead_id = r.get("lead_id")
+            if rtype == "lead_retry" and lead_id:
+                # not-connected/switched-off/busy retries land on the
+                # employee dashboard's "Reschedule Call" widget, not the
+                # generic leads list, since that's where these are grouped.
+                url = f"/portal/employee?reschedule=1&leadId={lead_id}"
+            elif lead_id:
+                url = f"/portal/employee/leads?leadId={lead_id}"
+            else:
+                url = "/portal/employee/leads"
+            send_push_to_user(uid, title, body, url, n_type=rtype)
             reminders.update_one({"_id": r["_id"]}, {"$set": {"active": False}})
 
         else:
