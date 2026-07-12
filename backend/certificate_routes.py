@@ -274,7 +274,13 @@ async def get_completion_letter(intern_id: str, data: GenerateLetterIn = Generat
     if intern.get("status") != "approved":
         raise HTTPException(status_code=400, detail="This intern application hasn't been approved yet")
 
-    pdf_bytes = generate_completion_letter_pdf(intern, custom_body=data.custom_body)
+    # Reuse the intern's actual internship certificate's QR/number on the
+    # letter (not a separate one) — only if that certificate already exists.
+    cert = await certificates_collection.find_one({"intern_id": intern_id, "type": "internship"})
+    verify_url = _verify_url(cert["certificate_number"]) if cert else None
+    cert_number = cert["certificate_number"] if cert else None
+
+    pdf_bytes = generate_completion_letter_pdf(intern, custom_body=data.custom_body, verify_url=verify_url, certificate_number=cert_number)
     await _persist_letter_record(intern, "completion_letter", pdf_bytes, admin["sub"])
     await interns_collection.update_one({"id": intern_id}, {"$set": {"completion_letter_generated_at": datetime.now(timezone.utc).isoformat()}})
     await log_activity(admin["sub"], "completion_letter_generated", f"Generated completion letter for {intern['name']}", link="/portal/admin/certificates")

@@ -184,11 +184,16 @@ def _draw_letter_header(c, width, height, title: str = "", show_internship_logo:
     c.restoreState()
 
 
-def _draw_letter_footer(c, width, extra_footer_line: str = None):
+def _draw_letter_footer(c, width, extra_footer_line: str = None, verify_url: str = None, doc_number: str = None):
     """Full-width navy box with white contact text, a red rule directly
     above it, and (for the blank letterhead tool) a small reference line
     just above the red rule. Matches the certificate's solid footer-bar
-    treatment for a consistent look across every formal document."""
+    treatment for a consistent look across every formal document.
+
+    verify_url/doc_number (completion letter only) draw the *same* QR and
+    certificate_number as the intern's actual certificate — not a separate
+    one — as a small block in the bottom-left of the content area, above
+    the navy box."""
     c.saveState()
     box_h = 20 * mm
     rule_y = box_h + 1.5 * mm
@@ -197,6 +202,19 @@ def _draw_letter_footer(c, width, extra_footer_line: str = None):
         c.setFont("Helvetica", 7)
         c.setFillColor(colors.grey)
         c.drawCentredString(width / 2, rule_y + 5 * mm, extra_footer_line)
+
+    if verify_url and doc_number:
+        qr_size = 15 * mm
+        qr_x = 22 * mm
+        qr_y = rule_y + 6 * mm
+        qr_buf = _make_qr_image_reader(verify_url)
+        c.drawImage(ImageReader(qr_buf), qr_x, qr_y, width=qr_size, height=qr_size, mask="auto")
+        c.setFont("Helvetica", 6.5)
+        c.setFillColor(colors.grey)
+        c.drawCentredString(qr_x + qr_size / 2, qr_y - 3.5, "Scan to verify")
+        c.setFont("Helvetica-Bold", 8.5)
+        c.setFillColor(TFD_RED)
+        c.drawString(qr_x + qr_size + 3.5 * mm, qr_y + qr_size / 2 - 3, doc_number)
 
     c.setFillColor(TFD_RED)
     c.rect(0, rule_y, width, 1.5 * mm, fill=1, stroke=0)
@@ -211,7 +229,7 @@ def _draw_letter_footer(c, width, extra_footer_line: str = None):
     c.restoreState()
 
 
-def make_formal_letter_decorator(title: str = "", extra_footer_line: str = None, show_internship_logo: bool = False):
+def make_formal_letter_decorator(title: str = "", extra_footer_line: str = None, show_internship_logo: bool = False, verify_url: str = None, doc_number: str = None):
     """Factory for the combined page decorator shared by every formal TFD
     document (offer letter, completion letter, blank letterhead): watermark
     + header (logo/rule/title) + side chevrons + footer (icons/ARN badge),
@@ -221,7 +239,7 @@ def make_formal_letter_decorator(title: str = "", extra_footer_line: str = None,
         watermark_page(canvas_obj, doc)
         _draw_letter_header(canvas_obj, doc.pagesize[0], doc.pagesize[1], title, show_internship_logo)
         _draw_side_chevrons(canvas_obj, doc.pagesize[0], doc.pagesize[1])
-        _draw_letter_footer(canvas_obj, doc.pagesize[0], extra_footer_line)
+        _draw_letter_footer(canvas_obj, doc.pagesize[0], extra_footer_line, verify_url, doc_number)
     return _decorate
 
 
@@ -309,9 +327,14 @@ def build_completion_letter_body(data: dict) -> str:
     return "\n\n".join(paras)
 
 
-def generate_completion_letter_pdf(data: dict, custom_body: Optional[str] = None) -> bytes:
+def generate_completion_letter_pdf(data: dict, custom_body: Optional[str] = None, verify_url: Optional[str] = None, certificate_number: Optional[str] = None) -> bytes:
     """data: name, college, department, start_date, end_date,
-    manager_name, manager_designation"""
+    manager_name, manager_designation.
+
+    verify_url/certificate_number, when given, are the intern's *actual*
+    certificate's own QR/number (looked up by the caller) — reused here
+    as-is, not a separately minted one, so the letter simply points at the
+    same already-public, already-verifiable certificate record."""
     buf = io.BytesIO()
     doc = SimpleDocTemplate(buf, pagesize=A4, topMargin=50 * mm, bottomMargin=48 * mm, leftMargin=22 * mm, rightMargin=26 * mm)
     styles = _letter_styles()
@@ -326,7 +349,10 @@ def generate_completion_letter_pdf(data: dict, custom_body: Optional[str] = None
             elements.append(Paragraph(para.strip(), styles["TFDBody"]))
 
     _signature_block(elements, styles)
-    decorator = make_formal_letter_decorator("INTERNSHIP COMPLETION LETTER", show_internship_logo=True)
+    decorator = make_formal_letter_decorator(
+        "INTERNSHIP COMPLETION LETTER", show_internship_logo=True,
+        verify_url=verify_url, doc_number=certificate_number,
+    )
     doc.build(elements, onFirstPage=decorator, onLaterPages=decorator)
     return buf.getvalue()
 
@@ -433,20 +459,28 @@ def generate_certificate_pdf(cert: dict, verify_url: str) -> bytes:
 
     # Signature + seal sit side-by-side in one band directly above the
     # printed name (previously the seal's y-range overlapped the name text).
+    # Sized up from the original 28x10.7mm signature / 16x16mm seal, which
+    # printed too small to read clearly.
     sig_cx = width - 60 * mm
+    SIG_W, SIG_H = 44 * mm, 16.8 * mm
+    SEAL_SIZE = 23 * mm
+    sig_left = sig_cx - 46 * mm
+    seal_left = sig_cx
+    line_y = footer_h + 17 * mm
+    text_cx = (sig_left + seal_left + SEAL_SIZE) / 2
     if os.path.exists(SIGNATURE_PATH):
-        c.drawImage(SIGNATURE_PATH, sig_cx - 32 * mm, footer_h + 21 * mm, width=28 * mm, height=10.7 * mm, mask="auto", preserveAspectRatio=True, anchor="s")
+        c.drawImage(SIGNATURE_PATH, sig_left, line_y + 2 * mm, width=SIG_W, height=SIG_H, mask="auto", preserveAspectRatio=True, anchor="s")
     if os.path.exists(SEAL_PATH):
-        c.drawImage(SEAL_PATH, sig_cx + 2 * mm, footer_h + 20 * mm, width=16 * mm, height=16 * mm, mask="auto", preserveAspectRatio=True)
+        c.drawImage(SEAL_PATH, seal_left, line_y + 2 * mm, width=SEAL_SIZE, height=SEAL_SIZE, mask="auto", preserveAspectRatio=True, anchor="s")
     c.setStrokeColor(colors.HexColor("#999999"))
     c.setLineWidth(0.6)
-    c.line(sig_cx - 32 * mm, footer_h + 19 * mm, sig_cx + 18 * mm, footer_h + 19 * mm)
+    c.line(sig_left, line_y, seal_left + SEAL_SIZE, line_y)
     c.setFont("Helvetica-Bold", 10)
     c.setFillColor(colors.HexColor("#0E1B2C"))
-    c.drawCentredString(sig_cx - 7 * mm, footer_h + 13 * mm, "Sagar Chaturvedi")
+    c.drawCentredString(text_cx, footer_h + 13 * mm, "Sagar Chaturvedi")
     c.setFont("Helvetica", 8)
     c.setFillColor(colors.grey)
-    c.drawCentredString(sig_cx - 7 * mm, footer_h + 9 * mm, "Founder & CEO, The Financial Doctor")
+    c.drawCentredString(text_cx, footer_h + 9 * mm, "Founder & CEO, The Financial Doctor")
 
     c.showPage()
     c.save()
