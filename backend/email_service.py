@@ -8,6 +8,7 @@ involved).
 import logging
 import os
 import smtplib
+import socket
 from email.mime.application import MIMEApplication
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
@@ -18,6 +19,22 @@ SMTP_HOST = os.environ.get("SMTP_HOST", "smtp.hostinger.com")
 SMTP_PORT = int(os.environ.get("SMTP_PORT", "465"))
 SMTP_USERNAME = os.environ.get("SMTP_USERNAME", "team@thefinancialdoctor.in")
 SMTP_PASSWORD = os.environ.get("SMTP_PASSWORD", "")
+
+
+class _IPv4SMTP_SSL(smtplib.SMTP_SSL):
+    """Some hosts (Render's outbound network, notably) can't route IPv6, but
+    Python's default connection logic still picks an IPv6 (AAAA) address for
+    the SMTP host when the DNS record has one available, which fails with
+    "[Errno 101] Network is unreachable" even though IPv4 connectivity works
+    fine. socket.gethostbyname() only ever does an A-record (IPv4) lookup,
+    so resolving through it and connecting to that address sidesteps the
+    IPv6 auto-selection entirely. TLS verification is unaffected — the
+    certificate is still checked against the real hostname via
+    server_hostname, only the underlying TCP connection target changes."""
+    def _get_socket(self, host, port, timeout):
+        ipv4_addr = socket.gethostbyname(host)
+        new_socket = socket.create_connection((ipv4_addr, port), timeout, self.source_address)
+        return self.context.wrap_socket(new_socket, server_hostname=self._host)
 
 TFD_LOGO_URL = "https://thefinancialdoctor.in/assets/logos/TFD-MAIN-LOGO.png"
 WORKSPACE_LOGO_URL = "https://thefinancialdoctor.in/tfd-workspace-logo.png"
@@ -70,7 +87,7 @@ def send_welcome_email(to_email: str, name: str, phone: str, password: str) -> t
     msg.attach(MIMEText(_welcome_html(name, phone, password), "html"))
 
     try:
-        with smtplib.SMTP_SSL(SMTP_HOST, SMTP_PORT, timeout=15) as server:
+        with _IPv4SMTP_SSL(SMTP_HOST, SMTP_PORT, timeout=15) as server:
             server.login(SMTP_USERNAME, SMTP_PASSWORD)
             server.sendmail(SMTP_USERNAME, [to_email], msg.as_string())
         return True, "sent"
@@ -117,7 +134,7 @@ def send_password_reset_email(to_email: str, name: str, reset_url: str) -> tuple
     msg.attach(MIMEText(_password_reset_html(name, reset_url), "html"))
 
     try:
-        with smtplib.SMTP_SSL(SMTP_HOST, SMTP_PORT, timeout=15) as server:
+        with _IPv4SMTP_SSL(SMTP_HOST, SMTP_PORT, timeout=15) as server:
             server.login(SMTP_USERNAME, SMTP_PASSWORD)
             server.sendmail(SMTP_USERNAME, [to_email], msg.as_string())
         return True, "sent"
@@ -157,7 +174,7 @@ def send_email_with_pdfs(to_email: str, subject: str, body_html: str, attachment
         msg.attach(attachment)
 
     try:
-        with smtplib.SMTP_SSL(SMTP_HOST, SMTP_PORT, timeout=20) as server:
+        with _IPv4SMTP_SSL(SMTP_HOST, SMTP_PORT, timeout=20) as server:
             server.login(SMTP_USERNAME, SMTP_PASSWORD)
             server.sendmail(SMTP_USERNAME, [to_email] + cc_emails, msg.as_string())
         return True, "sent"
