@@ -291,6 +291,38 @@ async def get_offer_letter(intern_id: str, data: GenerateLetterIn = GenerateLett
     return StreamingResponse(io.BytesIO(pdf_bytes), media_type="application/pdf", headers={"Content-Disposition": f'attachment; filename="{filename}"'})
 
 
+@router.get("/interns/{intern_id}/offer-letter/download")
+async def download_offer_letter(intern_id: str, admin: dict = Depends(require_admin)):
+    """Serves the intern's already-generated offer letter (e.g. right after
+    adding an intern auto-generates it) without minting a new numbered
+    record — reads the persisted PDF from R2, or regenerates it on the fly
+    from the intern's own fields if R2 is unavailable, same resilience
+    pattern as invoices' download endpoint."""
+    from fastapi.responses import StreamingResponse
+    import io
+
+    intern = await interns_collection.find_one({"id": intern_id})
+    if not intern:
+        raise HTTPException(status_code=404, detail="Intern not found")
+    rec = await certificates_collection.find_one({"intern_id": intern_id, "type": "offer_letter"}, sort=[("created_at", -1)])
+    if not rec:
+        raise HTTPException(status_code=404, detail="Offer letter hasn't been generated for this intern yet")
+
+    pdf_bytes = None
+    if rec.get("r2_key"):
+        try:
+            from storage_r2 import get_client, R2_BUCKET_NAME
+            obj = get_client().get_object(Bucket=R2_BUCKET_NAME, Key=rec["r2_key"])
+            pdf_bytes = obj["Body"].read()
+        except Exception:
+            pdf_bytes = None
+    if pdf_bytes is None:
+        pdf_bytes = generate_offer_letter_pdf(intern)
+
+    filename = f"Offer_Letter_{intern['name'].replace(' ', '_')}.pdf"
+    return StreamingResponse(io.BytesIO(pdf_bytes), media_type="application/pdf", headers={"Content-Disposition": f'inline; filename="{filename}"'})
+
+
 async def _ensure_intern_certificate(intern_id: str, intern: dict, admin_id: str) -> dict:
     """Returns the intern's internship certificate record, creating it
     (silently, with the default auto-built detail text) if it doesn't exist
@@ -552,6 +584,42 @@ async def get_certificate(cert_id: str, payload: dict = Depends(get_current_user
     if payload["role"] != "admin" and doc.get("linked_employee_id") != payload["sub"]:
         raise HTTPException(status_code=403, detail="Not allowed")
     return _cert_to_out(doc)
+
+
+@router.get("/certificates/{cert_id}/download")
+async def download_certificate(cert_id: str, payload: dict = Depends(get_current_user_payload)):
+    """Serves the certificate PDF directly (not a presigned R2 link, which
+    is silently missing whenever R2 is unconfigured) — reads from R2 if
+    available, else regenerates on the fly from the stored fields, same
+    resilience pattern as invoices/offer-letter downloads."""
+    from fastapi.responses import StreamingResponse
+    import io
+
+    doc = await certificates_collection.find_one({"id": cert_id})
+    if not doc:
+        raise HTTPException(status_code=404, detail="Certificate not found")
+    if payload["role"] != "admin" and doc.get("linked_employee_id") != payload["sub"]:
+        raise HTTPException(status_code=403, detail="Not allowed")
+
+    pdf_bytes = None
+    if doc.get("r2_key"):
+        try:
+            from storage_r2 import get_client, R2_BUCKET_NAME
+            obj = get_client().get_object(Bucket=R2_BUCKET_NAME, Key=doc["r2_key"])
+            pdf_bytes = obj["Body"].read()
+        except Exception:
+            pdf_bytes = None
+    if pdf_bytes is None:
+        cert_data = {
+            "certificate_number": doc["certificate_number"], "person_name": doc["person_name"],
+            "cert_type": doc.get("type", "employee"), "department": doc.get("department"),
+            "issue_date": doc["issue_date"], "duration_label": doc.get("duration_label"),
+            "designation": doc.get("designation"), "start_date": doc.get("start_date"), "ongoing": doc.get("ongoing"),
+        }
+        pdf_bytes = generate_certificate_pdf(cert_data, _verify_url(doc["certificate_number"]))
+
+    filename = f"Certificate_{doc['certificate_number'].replace('/', '_')}.pdf"
+    return StreamingResponse(io.BytesIO(pdf_bytes), media_type="application/pdf", headers={"Content-Disposition": f'inline; filename="{filename}"'})
 
 
 class EmailCertificateIn(BaseModel):

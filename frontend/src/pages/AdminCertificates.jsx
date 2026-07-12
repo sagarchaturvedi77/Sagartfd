@@ -37,6 +37,8 @@ export default function AdminCertificates() {
 
   const [showAddIntern, setShowAddIntern] = useState(false);
   const [internForm, setInternForm] = useState({ name: "", college: "", department: "Sales", start_date: "", end_date: "", stipend: "", manager_name: "", manager_designation: "" });
+  const [addingIntern, setAddingIntern] = useState(false);
+  const [generatingBoth, setGeneratingBoth] = useState(null); // intern id currently generating cert+completion letter
 
   const [emailTarget, setEmailTarget] = useState(null);
   const [emailAddress, setEmailAddress] = useState("");
@@ -81,12 +83,48 @@ export default function AdminCertificates() {
 
   const submitIntern = async (e) => {
     e.preventDefault();
-    const payload = { ...internForm, stipend: internForm.stipend ? Number(internForm.stipend) : null };
-    const res = await fetch(`${API_BASE}/api/interns`, { method: "POST", headers, body: JSON.stringify(payload) });
-    if (res.ok) {
-      setShowAddIntern(false);
-      setInternForm({ name: "", college: "", department: "Sales", start_date: "", end_date: "", stipend: "", manager_name: "", manager_designation: "" });
-      load();
+    if (addingIntern) return;
+    setAddingIntern(true);
+    try {
+      const payload = { ...internForm, stipend: internForm.stipend ? Number(internForm.stipend) : null };
+      const res = await fetch(`${API_BASE}/api/interns`, { method: "POST", headers, body: JSON.stringify(payload) });
+      if (res.ok) {
+        const intern = await res.json();
+        setShowAddIntern(false);
+        setInternForm({ name: "", college: "", department: "Sales", start_date: "", end_date: "", stipend: "", manager_name: "", manager_designation: "" });
+        load();
+        // Offer letter auto-generates server-side on add — open it right
+        // away so the admin sees it without a separate click.
+        if (intern.offer_letter_generated_at) {
+          try {
+            const olRes = await fetch(`${API_BASE}/api/interns/${intern.id}/offer-letter/download`, { headers });
+            if (olRes.ok) {
+              const blob = await olRes.blob();
+              window.open(URL.createObjectURL(blob), "_blank");
+            }
+          } catch { /* non-fatal — offer letter can still be opened from the list */ }
+        }
+      }
+    } finally {
+      setAddingIntern(false);
+    }
+  };
+
+  const generateCertAndCompletionLetter = async (intern) => {
+    if (generatingBoth) return;
+    setGeneratingBoth(intern.id);
+    try {
+      const clRes = await fetch(`${API_BASE}/api/interns/${intern.id}/completion-letter`, { method: "POST", headers, body: JSON.stringify({}) });
+      if (clRes.ok) await downloadBlob(clRes, `Completion_Letter_${intern.name.replace(/\s+/g, "_")}.pdf`);
+      await load();
+      const fresh = await (await fetch(`${API_BASE}/api/interns`, { headers })).json();
+      const updated = fresh.find((i) => i.id === intern.id);
+      if (updated?.certificate_id) {
+        const certRes = await fetch(`${API_BASE}/api/certificates/${updated.certificate_id}/download`, { headers });
+        if (certRes.ok) await downloadBlob(certRes, `Certificate_${intern.name.replace(/\s+/g, "_")}.pdf`);
+      }
+    } finally {
+      setGeneratingBoth(null);
     }
   };
 
@@ -260,11 +298,12 @@ export default function AdminCertificates() {
                     </button>
                     <div className="flex gap-2 flex-wrap">
                       <Button size="sm" variant="outline" onClick={() => openTemplateEdit(intern, "offer_letter")}><Download size={12} className="mr-1" /> Offer Letter</Button>
-                      <Button size="sm" variant="outline" onClick={() => openTemplateEdit(intern, "completion_letter")}><Download size={12} className="mr-1" /> Completion Letter</Button>
                       {intern.certificate_id ? (
-                        <span className="text-xs text-emerald-600 dark:text-emerald-400 font-medium px-3 py-1.5">Certificate issued ✓</span>
+                        <span className="text-xs text-emerald-600 dark:text-emerald-400 font-medium px-3 py-1.5">Certificate + Completion Letter issued ✓</span>
                       ) : (
-                        <Button size="sm" onClick={() => openTemplateEdit(intern, "certificate")} className="bg-[#024396] hover:bg-[#023580]"><Award size={12} className="mr-1" /> Generate Certificate</Button>
+                        <Button size="sm" disabled={generatingBoth === intern.id} onClick={() => generateCertAndCompletionLetter(intern)} className="bg-[#024396] hover:bg-[#023580]">
+                          <Award size={12} className="mr-1" /> {generatingBoth === intern.id ? "Generating..." : "Certificate + Completion Letter"}
+                        </Button>
                       )}
                       <Button size="sm" variant="outline" onClick={() => { setEmailInternTarget(intern); setEmailInternAddress(intern.contact_email || ""); setEmailInternDocs([]); }}>
                         <Send size={12} className="mr-1" /> Email Documents
@@ -417,11 +456,15 @@ export default function AdminCertificates() {
                   <DetailRow label="Created At" value={new Date(personDetail.cert.created_at).toLocaleString("en-IN")} />
                 </div>
                 <div className="flex items-center gap-3 mt-2">
-                  {personDetail.cert.pdf_url && (
-                    <a href={personDetail.cert.pdf_url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 text-xs font-medium text-[#024396] dark:text-[#7CB0FF]">
-                      <Download size={12} /> Download Certificate PDF
-                    </a>
-                  )}
+                  <button
+                    onClick={async () => {
+                      const res = await fetch(`${API_BASE}/api/certificates/${personDetail.cert.id}/download`, { headers });
+                      if (res.ok) await downloadBlob(res, `Certificate_${personDetail.cert.certificate_number.replace(/\//g, "_")}.pdf`);
+                    }}
+                    className="inline-flex items-center gap-1.5 text-xs font-medium text-[#024396] dark:text-[#7CB0FF]"
+                  >
+                    <Download size={12} /> Download Certificate PDF
+                  </button>
                   <button
                     onClick={() => { setEmailTarget(personDetail.cert); setEmailAddress(personDetail.intern?.contact_email || ""); }}
                     className="inline-flex items-center gap-1.5 text-xs font-medium text-[#024396] dark:text-[#7CB0FF]"
