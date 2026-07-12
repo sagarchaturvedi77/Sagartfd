@@ -5,6 +5,8 @@ from passlib.context import CryptContext
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 
+from database import users_collection
+
 # 🔐 Set a strong random value for JWT_SECRET in your .env — never hardcode in production.
 # Refuses to start rather than silently signing tokens with a known-weak
 # default: a missing/placeholder secret would let anyone forge admin logins.
@@ -46,8 +48,19 @@ def decode_token(token: str) -> dict:
 
 
 async def get_current_user_payload(token: str = Depends(oauth2_scheme)) -> dict:
-    """Decodes JWT and returns {sub: user_id, role: role}. Use in protected routes."""
-    return decode_token(token)
+    """Decodes JWT and returns {sub: user_id, role: role}. Use in protected routes.
+
+    Also re-checks is_active against the DB on every call (not just at
+    login) — JWTs are otherwise stateless and valid for their full 90-day
+    life regardless of what happens to the account afterward, so an admin
+    disabling someone's login wouldn't actually end their already-open
+    session without this. The extra query is deliberately kept to a single
+    indexed field so it doesn't meaningfully add latency."""
+    payload = decode_token(token)
+    user = await users_collection.find_one({"id": payload["sub"]}, {"is_active": 1})
+    if not user or not user.get("is_active", True):
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Session expired")
+    return payload
 
 
 def require_admin(payload: dict = Depends(get_current_user_payload)) -> dict:

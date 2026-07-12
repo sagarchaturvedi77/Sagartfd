@@ -67,7 +67,12 @@ async def login(payload: UserLogin):
     if not user or not verify_password(payload.password, user["password_hash"]):
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid User ID or password")
     if not user.get("is_active", True):
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="This account has been deactivated")
+        # Deliberately not surfaced as an explicit "your account was
+        # disabled" message — the frontend recognizes this exact sentinel
+        # and stays on a perpetual "signing in" state instead of showing an
+        # error, so a disabled employee isn't tipped off that this was a
+        # deliberate block rather than e.g. a network hiccup.
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="account_disabled")
 
     token = create_access_token(user["id"], user["role"])
 

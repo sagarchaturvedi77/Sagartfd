@@ -194,6 +194,23 @@ export default function AdminEmployeeList() {
     }
   };
 
+  const toggleLoginAccess = async (emp) => {
+    const disabling = emp.is_active !== false;
+    const msg = disabling
+      ? `Disable login for ${emp.name}? They'll be signed out and won't be able to log back in until you re-enable it.`
+      : `Re-enable login for ${emp.name}?`;
+    if (!window.confirm(msg)) return;
+    const action = disabling ? "deactivate" : "activate";
+    const res = await fetch(`${API_BASE}/api/auth/employees/${emp.id}/${action}`, {
+      method: "PATCH",
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (res.ok) {
+      fetchEmployees();
+      if (viewEmp?.id === emp.id) viewEmployee({ ...emp, is_active: !disabling });
+    }
+  };
+
   const viewEmployee = async (emp) => {
     setViewEmp(emp);
     setEditingEmp(false);
@@ -506,6 +523,23 @@ export default function AdminEmployeeList() {
                 <img src={empDetail.uploads.photo.data} alt="Employee" className="w-20 h-20 rounded-full mx-auto object-cover border-4 border-[#024396]/20" />
               </div>
             )}
+
+            <div className="flex items-center justify-between bg-[#F5F1EB] dark:bg-white/5 rounded-xl px-4 py-3">
+              <div>
+                <p className="text-xs font-medium text-[#0E1B2C] dark:text-[#F1EDE3]">Portal Login</p>
+                <p className={`text-[11px] ${empDetail.user?.is_active === false ? "text-red-600 dark:text-red-400" : "text-emerald-600 dark:text-emerald-400"}`}>
+                  {empDetail.user?.is_active === false ? "Disabled — cannot log in" : "Active"}
+                </p>
+              </div>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => toggleLoginAccess({ id: viewEmp.id, name: viewEmp.name, is_active: empDetail.user?.is_active })}
+                className={empDetail.user?.is_active === false ? "text-emerald-600 border-emerald-200 hover:bg-emerald-50" : "text-red-600 border-red-200 hover:bg-red-50"}
+              >
+                {empDetail.user?.is_active === false ? "Enable Login" : "Disable Login"}
+              </Button>
+            </div>
 
             <div className="flex items-center justify-between">
               <p className="text-[11px] text-[#2A364B]/40 dark:text-[#C7CEDA]/40">Name and Employee ID ({viewEmp?.id}) can't be edited here.</p>

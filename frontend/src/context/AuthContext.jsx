@@ -54,28 +54,40 @@ export function AuthProvider({ children }) {
     setUser((prev) => prev || { id: payload.sub, role: payload.role, _provisional: true });
     setLoading(false);
 
-    fetch(`${API_BASE}/api/auth/me`, {
-      headers: { Authorization: `Bearer ${token}` },
-    })
-      .then((r) => {
-        if (r.status === 401 || r.status === 403) {
-          // The backend itself rejected this token — it really is invalid
-          // server-side (revoked, tampered, etc.), not just unreachable.
-          localStorage.removeItem("tfd_token");
-          setToken(null);
-          setUser(null);
-          return null;
-        }
-        return r.ok ? r.json() : null;
+    const checkSession = () =>
+      fetch(`${API_BASE}/api/auth/me`, {
+        headers: { Authorization: `Bearer ${token}` },
       })
-      .then((data) => {
-        if (data) setUser(data);
-        // Anything else — network error, timeout, 5xx, a cold-starting
-        // backend — is a "couldn't check right now", not a logout. Keep
-        // the optimistic session; real API calls elsewhere still carry
-        // this same bearer token and are unaffected either way.
-      })
-      .catch(() => { /* network error — keep the optimistic session */ });
+        .then((r) => {
+          if (r.status === 401 || r.status === 403) {
+            // The backend itself rejected this token — it really is invalid
+            // server-side (revoked, tampered, or the account was disabled —
+            // get_current_user_payload re-checks is_active on every call),
+            // not just unreachable.
+            localStorage.removeItem("tfd_token");
+            setToken(null);
+            setUser(null);
+            return null;
+          }
+          return r.ok ? r.json() : null;
+        })
+        .then((data) => {
+          if (data) setUser(data);
+          // Anything else — network error, timeout, 5xx, a cold-starting
+          // backend — is a "couldn't check right now", not a logout. Keep
+          // the optimistic session; real API calls elsewhere still carry
+          // this same bearer token and are unaffected either way.
+        })
+        .catch(() => { /* network error — keep the optimistic session */ });
+
+    checkSession();
+    // Re-check periodically so an admin disabling this employee's login
+    // takes effect on their already-open tab within a couple of minutes,
+    // not only the next time they happen to reload — API calls made
+    // in-between would eventually 401 too, but most portal pages don't
+    // fail loudly on a background fetch error, so this is the reliable path.
+    const interval = setInterval(checkSession, 2 * 60 * 1000);
+    return () => clearInterval(interval);
   }, [token]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const login = async (phone, password) => {
@@ -86,6 +98,13 @@ export function AuthProvider({ children }) {
     });
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
+      if (err.detail === "account_disabled") {
+        // A disabled account shouldn't be told it's been disabled — this
+        // promise deliberately never resolves or rejects, so the caller's
+        // "signing in..." state just stays put forever instead of showing
+        // an error.
+        return new Promise(() => {});
+      }
       throw new Error(err.detail || "Login failed");
     }
     const data = await res.json();
