@@ -10,6 +10,7 @@ pydantic[email]
 httpx
 aiofiles
 qrcode[pil]>=7.4.2
+Pillow
 openpyxl
 pywebpush
 pytz

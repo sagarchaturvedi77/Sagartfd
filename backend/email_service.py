@@ -117,27 +117,57 @@ def _send_email(to_email: str, subject: str, html: str, attachments: list[tuple[
 
 def _welcome_html(name: str, phone: str, password: str) -> str:
     return f"""
-    <div style="font-family:'Segoe UI',Arial,sans-serif;max-width:520px;margin:0 auto;background:#F5F1EB;padding:24px;">
+    <div style="font-family:'Segoe UI',Arial,sans-serif;max-width:540px;margin:0 auto;background:#F5F1EB;padding:24px;">
       <div style="text-align:center;margin-bottom:20px;">
         <img src="{TFD_LOGO_URL}" alt="The Financial Doctor" style="height:56px;object-fit:contain;background:#fff;border-radius:8px;padding:6px;" />
       </div>
       <div style="background:#fff;border-radius:16px;padding:28px;border:1px solid #E2D8C2;">
-        <h2 style="color:#0E1B2C;margin:0 0 4px;font-size:20px;">Welcome to TFD Workspace, {name}! 🎉</h2>
-        <p style="color:#5C677D;font-size:13px;margin:0 0 20px;">Aapka employee account ban gaya hai. Neeche apni login details dekhein:</p>
-        <div style="background:#FBF7EE;border:1px solid #E2D8C2;border-radius:10px;padding:16px;margin-bottom:20px;">
-          <p style="margin:0 0 8px;font-size:13px;color:#2A364B;"><strong>User ID (Mobile):</strong> {phone}</p>
-          <p style="margin:0;font-size:13px;color:#2A364B;"><strong>Password:</strong> <span style="font-family:monospace;color:#024396;font-weight:700;">{password}</span></p>
+        <h2 style="color:#0E1B2C;margin:0 0 4px;font-size:21px;">Welcome to TFD Workspace, {name}! 🎉</h2>
+        <p style="color:#5C677D;font-size:13.5px;line-height:1.6;margin:10px 0 22px;">
+          We're delighted to have you on board at <strong>The Financial Doctor</strong>. Your employee account has
+          been created on <strong>TFD Workspace</strong> — our staff portal for attendance, leads, targets, salary,
+          and everything else you'll need as part of the team. Please find your login credentials below.
+        </p>
+
+        <table role="presentation" width="100%" style="border-collapse:collapse;margin-bottom:22px;">
+          <tr>
+            <td style="background:#FBF7EE;border:1px solid #E2D8C2;border-radius:10px 0 0 10px;padding:14px 16px;width:50%;">
+              <p style="margin:0 0 4px;font-size:10.5px;text-transform:uppercase;letter-spacing:0.05em;color:#8A93A6;font-weight:600;">User ID</p>
+              <p style="margin:0;font-size:15px;font-family:'Courier New',monospace;color:#0E1B2C;font-weight:700;">{phone}</p>
+            </td>
+            <td style="width:6px;"></td>
+            <td style="background:#FBF7EE;border:1px solid #E2D8C2;border-radius:0 10px 10px 0;padding:14px 16px;width:50%;">
+              <p style="margin:0 0 4px;font-size:10.5px;text-transform:uppercase;letter-spacing:0.05em;color:#8A93A6;font-weight:600;">Password</p>
+              <p style="margin:0;font-size:15px;font-family:'Courier New',monospace;color:#024396;font-weight:700;">{password}</p>
+            </td>
+          </tr>
+        </table>
+
+        <div style="text-align:center;margin-bottom:24px;">
+          <a href="{LOGIN_URL}" style="display:inline-block;background:#024396;color:#fff;text-decoration:none;padding:13px 32px;border-radius:10px;font-weight:600;font-size:14.5px;">Log In to TFD Workspace →</a>
         </div>
-        <div style="text-align:center;margin-bottom:20px;">
-          <a href="{LOGIN_URL}" style="display:inline-block;background:#024396;color:#fff;text-decoration:none;padding:12px 28px;border-radius:10px;font-weight:600;font-size:14px;">Login Now →</a>
+
+        <hr style="border:none;border-top:1px solid #E2D8C2;margin:4px 0 20px;" />
+
+        <p style="font-size:12px;text-transform:uppercase;letter-spacing:0.05em;color:#8A93A6;font-weight:600;margin:0 0 12px;">Install TFD Workspace on your phone</p>
+
+        <div style="background:#F5F1EB;border-radius:10px;padding:14px 16px;margin-bottom:10px;">
+          <p style="font-size:13px;color:#2A364B;margin:0;line-height:1.55;">
+            <strong>🤖 Android users:</strong> <a href="{ANDROID_APK_URL}" style="color:#024396;font-weight:600;">Tap here to download the TFD Workspace app</a>
+            and install it directly on your device.
+          </p>
         </div>
-        <hr style="border:none;border-top:1px solid #E2D8C2;margin:20px 0;" />
-        <p style="font-size:12.5px;color:#2A364B;margin:0 0 6px;"><strong>📱 iPhone/iOS users:</strong> Upar wale "Login Now" link ko Safari mein kholein, phir Share button → "Add to Home Screen" — TFD Workspace app ki tarah install ho jayega.</p>
-        <p style="font-size:12.5px;color:#2A364B;margin:0;"><strong>🤖 Android users:</strong> App install karne ke liye <a href="{ANDROID_APK_URL}" style="color:#024396;">yahan click karein</a> aur APK download karein.</p>
+        <div style="background:#F5F1EB;border-radius:10px;padding:14px 16px;">
+          <p style="font-size:13px;color:#2A364B;margin:0;line-height:1.55;">
+            <strong>📱 iPhone / iOS users:</strong> Open the "Log In to TFD Workspace" link above in Safari, tap the
+            Share icon, then choose <strong>"Add to Home Screen."</strong> TFD Workspace will install automatically
+            like a regular app, right on your home screen.
+          </p>
+        </div>
       </div>
       <div style="text-align:center;margin-top:18px;">
         <img src="{WORKSPACE_LOGO_URL}" alt="TFD Workspace" style="height:32px;object-fit:contain;" />
-        <p style="font-size:10.5px;color:#9AA5B4;margin-top:8px;">The Financial Doctor · TFD Workspace · thefinancialdoctor.in</p>
+        <p style="font-size:10.5px;color:#9AA5B4;margin-top:8px;">The Financial Doctor &middot; TFD Workspace &middot; thefinancialdoctor.in</p>
       </div>
     </div>
     """

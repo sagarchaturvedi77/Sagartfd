@@ -1,12 +1,13 @@
 """Employee onboarding, profile, file uploads, ID card, agreement PDF, and
 admin website content management routes."""
 
+import io
 import uuid
 import base64
 from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form, Request
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, StreamingResponse
 
 from auth_utils import get_current_user_payload, require_admin
 from database import db, users_collection
@@ -137,6 +138,71 @@ async def profile_status(payload: dict = Depends(get_current_user_payload)):
         "training_start_date": user.get("training_start_date") if user else None,
         "join_date": user.get("join_date") if user else None,
     }
+
+
+# ── Employment Agreement — server-generated PDF on the letterhead ─────────
+
+def _upload_bytes_sync(doc: dict):
+    """Raw bytes for a stored upload, whichever backend it lives in (R2 vs.
+    the base64-in-Mongo fallback for local dev without R2 credentials) —
+    _upload_doc_to_out returns a URL/data-URI for the browser, but PDF
+    generation needs the actual bytes to embed."""
+    if not doc:
+        return None
+    if doc.get("r2_key"):
+        try:
+            from storage_r2 import get_client, R2_BUCKET_NAME
+            obj = get_client().get_object(Bucket=R2_BUCKET_NAME, Key=doc["r2_key"])
+            return obj["Body"].read()
+        except Exception:
+            return None
+    if doc.get("data"):
+        try:
+            return base64.b64decode(doc["data"].split(",", 1)[1])
+        except Exception:
+            return None
+    return None
+
+
+@router.get("/employees/{employee_id}/agreement/download")
+async def download_employee_agreement(employee_id: str, payload: dict = Depends(get_current_user_payload)):
+    if payload["role"] != "admin" and payload["sub"] != employee_id:
+        raise HTTPException(status_code=403, detail="Forbidden")
+    user = await users_collection.find_one({"id": employee_id})
+    if not user:
+        raise HTTPException(status_code=404, detail="Employee not found")
+    profile = await profiles_collection.find_one({"user_id": employee_id}, {"_id": 0}) or {}
+
+    uploads = {}
+    async for doc in db.uploads.find({"user_id": employee_id}):
+        uploads[doc["field"]] = doc
+    photo_bytes = _upload_bytes_sync(uploads.get("photo"))
+    signature_bytes = _upload_bytes_sync(uploads.get("signature"))
+
+    aadhar_number = profile.get("aadhar_number")
+    aadhar_masked = f"XXXX-XXXX-{aadhar_number[-4:]}" if aadhar_number else None
+    now = datetime.now(timezone.utc)
+
+    from certificate_pdf import generate_employee_agreement_pdf
+    agreement_data = {
+        "name": profile.get("full_name") or user.get("name"),
+        "father_name": profile.get("father_name"),
+        "designation": user.get("designation") or "Employee",
+        "dob": profile.get("dob"),
+        "contact_no": profile.get("contact_no") or user.get("phone"),
+        "address": profile.get("address"),
+        "aadhar_masked": aadhar_masked,
+        "pan_number": profile.get("pan_number"),
+        "employee_id": employee_id,
+        "join_date": user.get("join_date"),
+        "signed_date": now.strftime("%d %B %Y"),
+        "signed_time": now.strftime("%I:%M %p UTC"),
+    }
+    pdf_bytes = generate_employee_agreement_pdf(agreement_data, photo_bytes=photo_bytes, signature_bytes=signature_bytes)
+
+    safe_name = (agreement_data["name"] or employee_id).replace(" ", "_")
+    filename = f"Employment_Agreement_{safe_name}.pdf"
+    return StreamingResponse(io.BytesIO(pdf_bytes), media_type="application/pdf", headers={"Content-Disposition": f'inline; filename="{filename}"'})
 
 
 # ── Admin: edit an employee's core + profile details ───────────────────────

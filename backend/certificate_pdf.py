@@ -40,6 +40,7 @@ _FONTS_DIR = os.path.join(ASSETS_DIR, "fonts")
 FONT_SCRIPT = "Helvetica-Oblique"
 FONT_SERIF = "Times-Bold"
 FONT_SERIF_ITALIC = "Times-Italic"
+FONT_HINDI = "Helvetica"  # falls back to no Devanagari rendering if NotoSans is missing
 try:
     pdfmetrics.registerFont(TTFont("DancingScript", os.path.join(_FONTS_DIR, "dancingscript.ttf")))
     pdfmetrics.registerFont(TTFont("PlayfairDisplay", os.path.join(_FONTS_DIR, "playfair.ttf")))
@@ -49,6 +50,11 @@ try:
     FONT_SERIF_ITALIC = "PlayfairDisplay-Italic"
 except Exception:
     pass  # falls back to built-in Times/Helvetica if font files are missing
+try:
+    pdfmetrics.registerFont(TTFont("NotoSans", os.path.join(_FONTS_DIR, "notosans.ttf")))
+    FONT_HINDI = "NotoSans"
+except Exception:
+    pass
 
 COMPANY_ADDRESS = "1st Floor, New Bus Stand, Sekdakhedi Road, Sehore, MP - 466001"
 COMPANY_FOOTER = "The Financial Doctor | AMFI Registered | ARN-290298 | www.thefinancialdoctor.in"
@@ -97,6 +103,11 @@ def _letter_styles():
     styles.add(ParagraphStyle("TFDBody", parent=styles["Normal"], alignment=TA_JUSTIFY, fontSize=11, leading=16, spaceAfter=10))
     styles.add(ParagraphStyle("TFDMeta", parent=styles["Normal"], fontSize=10, textColor=colors.grey))
     styles.add(ParagraphStyle("TFDDisclaimer", parent=styles["Normal"], alignment=TA_JUSTIFY, fontSize=7, leading=9.5, textColor=colors.grey, fontName="Helvetica-Oblique"))
+    styles.add(ParagraphStyle("TFDClauseTitle", parent=styles["Normal"], fontSize=10.5, leading=13, textColor=TFD_NAVY, fontName=FONT_HINDI, spaceBefore=8, spaceAfter=2))
+    styles.add(ParagraphStyle("TFDClauseBody", parent=styles["Normal"], alignment=TA_JUSTIFY, fontSize=9, leading=12.5, fontName="Helvetica", spaceAfter=1))
+    styles.add(ParagraphStyle("TFDClauseHindi", parent=styles["Normal"], alignment=TA_JUSTIFY, fontSize=9, leading=13.5, textColor=colors.HexColor("#444444"), fontName=FONT_HINDI, spaceAfter=6))
+    styles.add(ParagraphStyle("TFDHindiBody", parent=styles["Normal"], alignment=TA_JUSTIFY, fontSize=10, leading=15, fontName=FONT_HINDI, spaceAfter=8))
+    styles.add(ParagraphStyle("TFDDetailLabel", parent=styles["Normal"], fontSize=8.5, fontName=FONT_HINDI, textColor=colors.HexColor("#333333")))
     return styles
 
 
@@ -216,7 +227,7 @@ def _draw_letter_header(c, width, height, title: str = "", show_internship_logo:
     c.restoreState()
 
 
-def _draw_letter_footer(c, width, extra_footer_line: str = None, verify_url: str = None, doc_number: str = None, show_internship_logo: bool = False):
+def _draw_letter_footer(c, width, extra_footer_line: str = None, verify_url: str = None, doc_number: str = None, show_internship_logo: bool = False, show_workspace_logo: bool = False):
     """The template's own footer bar (contact info, dashed rule, right-edge
     ribbon) is part of the background image now — this only draws the
     optional extras that sit *above* it, in the blank space between body
@@ -248,10 +259,15 @@ def _draw_letter_footer(c, width, extra_footer_line: str = None, verify_url: str
 
     if show_internship_logo and os.path.exists(INTERNSHIP_LOGO_PATH):
         c.drawImage(INTERNSHIP_LOGO_PATH, width - 22 * mm - 32 * mm, baseline_y, width=32 * mm, height=15.8 * mm, mask="auto", preserveAspectRatio=True, anchor="s")
+    elif show_workspace_logo and os.path.exists(WORKSPACE_LOGO_PATH):
+        # tfd-workspace-logo.png is taller than wide (~1.45:1 portrait), unlike
+        # the internship logo it shares this footer slot with — width-driven
+        # sizing here would make it huge, so this one is height-driven instead.
+        c.drawImage(WORKSPACE_LOGO_PATH, width - 22 * mm - 19 * mm, baseline_y, width=19 * mm, height=15.8 * mm, mask="auto", preserveAspectRatio=True, anchor="s")
     c.restoreState()
 
 
-def make_formal_letter_decorator(title: str = "", extra_footer_line: str = None, show_internship_logo: bool = False, verify_url: str = None, doc_number: str = None):
+def make_formal_letter_decorator(title: str = "", extra_footer_line: str = None, show_internship_logo: bool = False, verify_url: str = None, doc_number: str = None, show_workspace_logo: bool = False):
     """Factory for the combined page decorator shared by every formal TFD
     document (offer letter, completion letter, blank letterhead): the real
     letterhead template as a full-page background + title + any extras
@@ -261,7 +277,7 @@ def make_formal_letter_decorator(title: str = "", extra_footer_line: str = None,
     def _decorate(canvas_obj, doc):
         _draw_letterhead_background(canvas_obj, doc.pagesize[0], doc.pagesize[1])
         _draw_letter_header(canvas_obj, doc.pagesize[0], doc.pagesize[1], title)
-        _draw_letter_footer(canvas_obj, doc.pagesize[0], extra_footer_line, verify_url, doc_number, show_internship_logo)
+        _draw_letter_footer(canvas_obj, doc.pagesize[0], extra_footer_line, verify_url, doc_number, show_internship_logo, show_workspace_logo)
     return _decorate
 
 
@@ -439,6 +455,184 @@ def generate_experience_letter_pdf(data: dict, verify_url: Optional[str] = None,
         "EXPERIENCE LETTER", show_internship_logo=False,
         verify_url=verify_url, doc_number=certificate_number,
     )
+    doc.build(elements, onFirstPage=decorator, onLaterPages=decorator)
+    return buf.getvalue()
+
+
+# ── Employee Agreement ──────────────────────────────────────────────────
+# The 10 bilingual clauses, verbatim from the terms every employee has
+# always been shown (previously only as a client-side print page) — moving
+# to a server-generated PDF must not silently change what they agreed to.
+AGREEMENT_CLAUSES = [
+    ("1. Confidentiality &amp; Data Protection / गोपनीयता एवं डेटा सुरक्षा",
+     "Employee shall maintain strict confidentiality of all company data, client information, financial records, and proprietary methods. Any breach shall attract legal action under IT Act 2000.",
+     "कर्मचारी कंपनी के सभी डेटा, क्लाइंट जानकारी, वित्तीय रिकॉर्ड और मालिकाना तरीकों की सख्त गोपनीयता बनाए रखेगा।"),
+    ("2. Legal Action for Data Theft &amp; Fraud / डेटा चोरी या धोखाधड़ी पर कानूनी कार्रवाई",
+     "Any data theft, client poaching, or financial fraud will result in immediate termination and legal prosecution under BNS (Bharatiya Nyaya Sanhita) and IT Act.",
+     "किसी भी डेटा चोरी, क्लाइंट पोचिंग या वित्तीय धोखाधड़ी पर तत्काल बर्खास्तगी और BNS तथा IT Act के तहत कानूनी कार्रवाई होगी।"),
+    ("3. SEBI &amp; AMFI Guidelines Compliance / SEBI एवं AMFI नियमों का पालन",
+     "Employee must comply with all SEBI/AMFI regulations. No guaranteed return promises to clients. Misrepresentation will lead to termination and regulatory complaint.",
+     "कर्मचारी को SEBI/AMFI के सभी नियमों का पालन करना अनिवार्य है। ग्राहकों को गारंटीड रिटर्न का वादा नहीं किया जाएगा।"),
+    ("4. Company Assets / कंपनी की संपत्ति",
+     "All company-provided devices (phone, SIM, laptop) remain company property. Must be returned on separation in working condition. Loss/damage will be deducted from final settlement.",
+     "कंपनी द्वारा दिए गए सभी उपकरण कंपनी की संपत्ति रहेंगे। नौकरी छोड़ने पर वापस करने होंगे।"),
+    ("5. Workplace Discipline &amp; Dress Code / अनुशासन एवं ड्रेस कोड",
+     "Professional dress code mandatory. Punctuality expected. Three consecutive unauthorized absences will be treated as voluntary resignation.",
+     "प्रोफेशनल ड्रेस कोड अनिवार्य है। समय पर आना अपेक्षित है। तीन लगातार अनधिकृत अनुपस्थिति को स्वैच्छिक इस्तीफा माना जाएगा।"),
+    ("6. Salary &amp; Payroll Rules / वेतन से जुड़े नियम",
+     "Salary credited to bank account only. No cash advances. Salary date: 7th of every month. Deductions for unauthorized leaves apply as per policy.",
+     "वेतन केवल बैंक खाते में जमा होगा। कोई नकद अग्रिम नहीं। वेतन तिथि: हर महीने की 7 तारीख।"),
+    ("7. Probation &amp; Performance / प्रोबेशन एवं प्रदर्शन",
+     "First 3 months are probation period. Monthly targets must be met. Failure to meet targets for 2 consecutive months may result in termination.",
+     "पहले 3 महीने प्रोबेशन पीरियड हैं। मासिक लक्ष्य पूरे करने होंगे।"),
+    ("8. Notice Period &amp; Exit / नोटिस पीरियड",
+     "30 days written notice required for resignation. Sudden exit without notice will forfeit pending salary and attract recovery of training costs if within 6 months.",
+     "इस्तीफे के लिए 30 दिन का लिखित नोटिस आवश्यक है। बिना नोटिस छोड़ने पर बकाया वेतन जब्त होगा।"),
+    ("9. Non-Compete &amp; Non-Solicitation / प्रतिस्पर्धा निषेध",
+     "For 1 year after leaving, employee shall not join/start a competing financial advisory business within 50km of Sehore or solicit existing clients.",
+     "छोड़ने के 1 साल तक कर्मचारी सहोर के 50 किमी के भीतर प्रतिस्पर्धी व्यवसाय नहीं करेगा।"),
+    ("10. POSH Act Compliance / यौन उत्पीड़न रोकथाम",
+     "Company follows Prevention of Sexual Harassment (POSH) Act 2013. Any misconduct will be dealt with strictly as per law.",
+     "कंपनी POSH Act 2013 का पालन करती है। किसी भी दुर्व्यवहार पर कानून के अनुसार सख्त कार्रवाई होगी।"),
+]
+
+
+def _remove_signature_background(img_bytes: bytes) -> bytes:
+    """Employee-uploaded signature photos are ordinary photos/scans of ink
+    on paper, not pre-cleaned static assets like the CEO/authorized-signatory
+    PNGs — so unlike those, background removal happens here, dynamically,
+    at generation time. Converts to grayscale and fades brightness above
+    ~150 down to fully transparent by 220, keeping dark ink opaque; a linear
+    ramp (not a hard cutoff) avoids a jagged cutout edge around the strokes."""
+    from PIL import Image as PILImage, ImageOps
+
+    img = PILImage.open(io.BytesIO(img_bytes)).convert("RGBA")
+    gray = ImageOps.grayscale(img)
+    lo, hi = 150, 220
+
+    def _alpha(p):
+        if p <= lo:
+            return 255
+        if p >= hi:
+            return 0
+        return int(255 * (hi - p) / (hi - lo))
+
+    mask = gray.point(_alpha)
+    img.putalpha(mask)
+    buf = io.BytesIO()
+    img.save(buf, format="PNG")
+    return buf.getvalue()
+
+
+def _fitted_image(img_bytes: bytes, max_width: float, max_height: float, hAlign: str = "LEFT"):
+    """An Image flowable sized to fit inside max_width x max_height while
+    preserving the source image's own aspect ratio — needed for employee
+    photo/signature uploads, which (unlike the fixed static assets elsewhere
+    in this file) can be any resolution or orientation."""
+    from PIL import Image as PILImage
+
+    src_w, src_h = PILImage.open(io.BytesIO(img_bytes)).size
+    ratio = min(max_width / src_w, max_height / src_h)
+    w, h = src_w * ratio, src_h * ratio
+    img = Image(io.BytesIO(img_bytes), width=w, height=h)
+    img.hAlign = hAlign
+    return img
+
+
+def generate_employee_agreement_pdf(data: dict, photo_bytes: Optional[bytes] = None, signature_bytes: Optional[bytes] = None) -> bytes:
+    """data: name, father_name, designation, dob, contact_no, address,
+    aadhar_masked, pan_number, employee_id, join_date, signed_at (GPS string),
+    signed_date, signed_time.
+
+    signature_bytes is the employee's own uploaded signature image — passed
+    through _remove_signature_background before being placed above their
+    printed name, mirroring how _signature_block already places the CEO's
+    signature above his."""
+    buf = io.BytesIO()
+    doc = SimpleDocTemplate(buf, pagesize=A4, topMargin=50 * mm, bottomMargin=48 * mm, leftMargin=20 * mm, rightMargin=20 * mm)
+    styles = _letter_styles()
+    elements = []
+
+    name = _title_case_name(data["name"])
+
+    header_cells = [Paragraph(
+        f"<b>Name / नाम:</b> {name}<br/><b>Father's Name / पिता का नाम:</b> {data.get('father_name') or '-'}<br/>"
+        f"<b>Designation / पद:</b> {data.get('designation') or 'Employee'}<br/><b>Date of Birth / जन्मतिथि:</b> {data.get('dob') or '-'}<br/>"
+        f"<b>Contact / संपर्क:</b> {data.get('contact_no') or '-'}<br/><b>Employee ID:</b> {data['employee_id']}<br/>"
+        f"<b>Aadhar / आधार:</b> {data.get('aadhar_masked') or '-'}<br/><b>PAN / पैन:</b> {data.get('pan_number') or '-'}<br/>"
+        f"<b>Joining Date / कार्यारंभ तिथि:</b> {data.get('join_date') or '-'}",
+        styles["TFDDetailLabel"],
+    )]
+    if photo_bytes:
+        header_cells.append(_fitted_image(photo_bytes, 28 * mm, 34 * mm, hAlign="RIGHT"))
+    else:
+        header_cells.append(Paragraph("", styles["TFDDetailLabel"]))
+
+    header_table = Table([header_cells], colWidths=[122 * mm, 34 * mm])
+    header_table.setStyle(TableStyle([
+        ("VALIGN", (0, 0), (-1, -1), "TOP"),
+        ("ALIGN", (1, 0), (1, 0), "RIGHT"),
+        ("BOX", (1, 0), (1, 0), 1, colors.HexColor("#024396")) if photo_bytes else ("BOX", (1, 0), (1, 0), 0, colors.white),
+    ]))
+    elements.append(header_table)
+    elements.append(Spacer(1, 4))
+    elements.append(Paragraph(f"<b>Address / पता:</b> {data.get('address') or '-'}", styles["TFDDetailLabel"]))
+    elements.append(Spacer(1, 14))
+
+    elements.append(Paragraph("TERMS AND CONDITIONS / नियम एवं शर्तें", ParagraphStyle(
+        "AgreementSectionHead", parent=styles["Heading3"], textColor=TFD_NAVY, fontSize=11.5, spaceAfter=6,
+    )))
+    for title, body_en, body_hi in AGREEMENT_CLAUSES:
+        elements.append(Paragraph(title, styles["TFDClauseTitle"]))
+        elements.append(Paragraph(body_en, styles["TFDClauseBody"]))
+        elements.append(Paragraph(body_hi, styles["TFDClauseHindi"]))
+
+    elements.append(Spacer(1, 6))
+    elements.append(Paragraph("DECLARATION / घोषणा", ParagraphStyle(
+        "AgreementSectionHead2", parent=styles["Heading3"], textColor=TFD_NAVY, fontSize=11.5, spaceAfter=6,
+    )))
+    father = data.get("father_name") or "-"
+    elements.append(Paragraph(
+        f"I, <b>{name}</b>, S/o D/o <b>{father}</b>, hereby declare that I have read, understood, and agree to all "
+        "the terms and conditions mentioned above. I accept this employment offer voluntarily and commit to abide "
+        "by company policies.", styles["TFDBody"],
+    ))
+    elements.append(Paragraph(
+        f"मैं, <b>{name}</b>, पुत्र/पुत्री <b>{father}</b>, घोषणा करता/करती हूँ कि मैंने उपरोक्त सभी नियम एवं शर्तें पढ़ ली हैं, "
+        "समझ ली हैं और मैं इनसे सहमत हूँ।", styles["TFDHindiBody"],
+    ))
+    if data.get("signed_at") or data.get("signed_date"):
+        elements.append(Paragraph(
+            f"<b>Signed at / हस्ताक्षर स्थान:</b> {data.get('signed_at') or 'N/A'}<br/>"
+            f"<b>Date &amp; Time / दिनांक एवं समय:</b> {data.get('signed_date') or ''} {data.get('signed_time') or ''}",
+            styles["TFDMeta"],
+        ))
+
+    elements.append(Spacer(1, 24))
+    elements.append(Paragraph("Employee Signature / कर्मचारी हस्ताक्षर", styles["TFDMeta"]))
+    if signature_bytes:
+        try:
+            cleaned = _remove_signature_background(signature_bytes)
+            elements.append(Spacer(1, 4))
+            sig_row = Table([[_fitted_image(cleaned, 46 * mm, 18 * mm, hAlign="LEFT")]], colWidths=[52 * mm], hAlign="LEFT")
+            sig_row.setStyle(TableStyle([("ALIGN", (0, 0), (-1, -1), "LEFT"), ("LEFTPADDING", (0, 0), (-1, -1), 0)]))
+            elements.append(sig_row)
+        except Exception:
+            elements.append(Spacer(1, 22))
+    else:
+        elements.append(Spacer(1, 22))
+    elements.append(Paragraph(f"<b>{name}</b>", styles["TFDBody"]))
+    elements.append(Paragraph("Employee / कर्मचारी", styles["TFDMeta"]))
+
+    _signature_block(elements, styles, "ceo")
+
+    elements.append(Spacer(1, 10))
+    elements.append(Paragraph(
+        "This is a computer-generated agreement, valid without a physical stamp when digitally issued.",
+        ParagraphStyle("AgreementFooterNote", parent=styles["Normal"], alignment=TA_CENTER, fontSize=7.5, textColor=colors.grey),
+    ))
+
+    decorator = make_formal_letter_decorator("EMPLOYMENT AGREEMENT", show_workspace_logo=True)
     doc.build(elements, onFirstPage=decorator, onLaterPages=decorator)
     return buf.getvalue()
 

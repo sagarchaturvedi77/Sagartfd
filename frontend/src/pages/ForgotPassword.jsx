@@ -7,7 +7,7 @@ import { Button } from "../components/ui/button";
 const API_BASE = process.env.REACT_APP_BACKEND_URL || "";
 
 export default function ForgotPassword() {
-  const [userId, setUserId] = useState("");
+  const [email, setEmail] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [sent, setSent] = useState(false);
   const [error, setError] = useState("");
@@ -17,18 +17,18 @@ export default function ForgotPassword() {
     setError("");
     setSubmitting(true);
     try {
-      await fetch(`${API_BASE}/api/auth/forgot-password`, {
+      const res = await fetch(`${API_BASE}/api/auth/forgot-password`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ user_id: userId.trim() }),
+        body: JSON.stringify({ email: email.trim() }),
       });
-      // Always shows the same success state, regardless of whether the
-      // account/email actually exists — matches the backend's deliberately
-      // generic response so this screen can't be used to check who has an
-      // account.
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.detail || "Something went wrong. Please try again.");
+      }
       setSent(true);
-    } catch {
-      setError("Something went wrong. Please try again.");
+    } catch (err) {
+      setError(err.message || "Something went wrong. Please try again.");
     } finally {
       setSubmitting(false);
     }
@@ -66,8 +66,7 @@ export default function ForgotPassword() {
               </div>
               <h2 className="font-serif text-2xl text-[#0E1B2C] dark:text-[#F1EDE3] mb-2">Check your email</h2>
               <p className="text-sm text-[#2A364B]/60 dark:text-[#8E99AC] mb-8">
-                If an account exists for <strong>{userId}</strong>, we've sent a password reset link to the registered
-                email address. It's valid for 20 minutes.
+                We've sent a password reset link to <strong>{email}</strong>. It's valid for 20 minutes.
               </p>
               <a href="/portal/login" className="text-sm font-medium text-[#024396] dark:text-[#7CB0FF] hover:underline">← Back to Sign In</a>
             </div>
@@ -75,17 +74,17 @@ export default function ForgotPassword() {
             <>
               <div className="mb-8">
                 <h2 className="font-serif text-2xl text-[#0E1B2C] dark:text-[#F1EDE3]">Reset your password</h2>
-                <p className="text-sm text-[#2A364B]/50 dark:text-[#8E99AC] mt-1">Enter your User ID (mobile number or email) to receive a reset link.</p>
+                <p className="text-sm text-[#2A364B]/50 dark:text-[#8E99AC] mt-1">Enter your registered email ID to receive a reset link.</p>
               </div>
 
               <form onSubmit={handleSubmit} className="space-y-5">
                 <div>
-                  <Label htmlFor="userId" className="text-xs font-medium text-[#2A364B]/80 dark:text-[#C7CEDA] uppercase tracking-wider mb-2 block">
-                    User ID (Mobile Number or Email)
+                  <Label htmlFor="email" className="text-xs font-medium text-[#2A364B]/80 dark:text-[#C7CEDA] uppercase tracking-wider mb-2 block">
+                    Registered Email ID
                   </Label>
                   <Input
-                    id="userId" required value={userId} onChange={(e) => setUserId(e.target.value)}
-                    placeholder="Enter your mobile number or email"
+                    id="email" type="email" required value={email} onChange={(e) => setEmail(e.target.value)}
+                    placeholder="Enter your registered email ID"
                     className="h-12 px-4 rounded-xl border-[#E2D8C2] dark:border-white/10 bg-[#FBF7EE]/50 dark:bg-white/5 dark:text-[#F1EDE3] focus-visible:bg-white dark:focus-visible:bg-white/10 focus-visible:ring-2 focus-visible:ring-[#024396]/20 focus-visible:border-[#024396]"
                   />
                 </div>
@@ -95,7 +94,7 @@ export default function ForgotPassword() {
                 )}
 
                 <Button
-                  type="submit" disabled={submitting || !userId.trim()}
+                  type="submit" disabled={submitting || !email.trim()}
                   className="w-full h-12 bg-gradient-to-r from-[#024396] to-[#0356c4] hover:from-[#023580] hover:to-[#024396] rounded-xl font-semibold text-sm tracking-wide shadow-lg shadow-[#024396]/25"
                 >
                   {submitting ? "Sending..." : "Send Reset Link"}

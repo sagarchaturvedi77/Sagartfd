@@ -15,9 +15,15 @@ export default function NotificationGate() {
       // Browser doesn't support notifications
       return;
     }
-    if (Notification.permission !== "granted") {
-      setBlocked(true);
-    }
+    const check = () => setBlocked(Notification.permission !== "granted");
+    check();
+    // Notifications are mandatory for the whole session, not just at
+    // launch — an employee can revoke the permission from browser/OS
+    // settings at any time without reloading the tab, so this re-checks
+    // every 5s and re-blocks the moment that happens, instead of only
+    // catching it on the next page load.
+    const interval = setInterval(check, 5000);
+    return () => clearInterval(interval);
   }, []);
 
   const requestPermission = async () => {

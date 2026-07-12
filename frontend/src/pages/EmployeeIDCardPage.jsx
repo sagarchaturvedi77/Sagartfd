@@ -11,7 +11,9 @@ const API_BASE = process.env.REACT_APP_BACKEND_URL || "";
 // Same-origin asset — the external CDN URL previously here sends no CORS
 // headers, so the crossOrigin="anonymous" the <img> tags need for
 // html2canvas PDF capture caused the browser to silently refuse to load it.
-const LOGO_URL = "/tfd-workspace-logo.png";
+// The main TFD logo (not the "TFD Workspace" staff-portal branding) is what
+// belongs on an ID/visiting card that clients and the public will see.
+const LOGO_URL = "/assets/logos/TFD-MAIN-LOGO.png";
 const QR_BASE = "https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=";
 
 export default function EmployeeIDCardPage() {
@@ -192,7 +194,7 @@ export default function EmployeeIDCardPage() {
                 <div style={{ background: "#024396", height: 12, flexShrink: 0 }} />
 
                 <div style={{ padding: "16px", background: "#fff", position: "relative", flexShrink: 0, boxSizing: "border-box" }}>
-                  <img src={LOGO_URL} alt="TFD" style={{ height: 48, margin: "0 auto", display: "block" }} crossOrigin="anonymous" />
+                  <img src={LOGO_URL} alt="TFD" style={{ height: 68, margin: "0 auto", display: "block" }} crossOrigin="anonymous" />
                   <div style={{ position: "absolute", right: 12, top: 12, opacity: 0.08, fontSize: 48, color: "#024396", lineHeight: 1 }}>⬡</div>
                 </div>
 
@@ -277,7 +279,7 @@ export default function EmployeeIDCardPage() {
 
                 <div style={{ padding: "16px 32px", display: "flex", flex: 1, boxSizing: "border-box" }}>
                   <div style={{ flex: 1, zIndex: 10 }}>
-                    <img src={LOGO_URL} alt="TFD" style={{ height: 42, marginBottom: 12 }} crossOrigin="anonymous" />
+                    <img src={LOGO_URL} alt="TFD" style={{ height: 60, marginBottom: 12 }} crossOrigin="anonymous" />
 
                     <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-start", gap: "6px", marginBottom: 16 }}>
                       {/* FIX: Removed flexbox, used exact line-height so text stays centered in PDF */}
