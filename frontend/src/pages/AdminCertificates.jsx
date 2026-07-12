@@ -4,7 +4,7 @@ import PortalLayout from "../components/PortalLayout";
 import PageHeader from "../components/portal/PageHeader";
 import PortalModal from "../components/portal/PortalModal";
 import { Button } from "../components/ui/button";
-import { Download, Mail, Award, Send, Link2, Check, X } from "lucide-react";
+import { Download, Mail, Award, Send, Check, X, Share2, Copy, History } from "lucide-react";
 
 const API_BASE = process.env.REACT_APP_BACKEND_URL || "";
 const DEPARTMENTS = ["HR", "Sales", "Marketing", "Accounts"];
@@ -145,14 +145,28 @@ export default function AdminCertificates() {
     }
   };
 
+  const applicationLink = `${window.location.origin}/intern-application`;
+  const applicationShareText = `You're invited to apply for an internship at The Financial Doctor! 🎓\n\nFill out the quick application form here:\n${applicationLink}\n\nMake sure to enter accurate details — they'll be used on your official certificate.`;
+
   const copyApplicationLink = async () => {
-    const link = `${window.location.origin}/intern-application`;
     try {
-      await navigator.clipboard.writeText(link);
-      alert(`Link copied!\n${link}`);
+      await navigator.clipboard.writeText(applicationShareText);
+      alert("Copied! (message + link, ready to paste)");
     } catch {
-      window.prompt("Copy this link:", link);
+      window.prompt("Copy this message:", applicationShareText);
     }
+  };
+
+  const shareApplicationLink = async () => {
+    if (navigator.share) {
+      try {
+        await navigator.share({ title: "TFD Internship Application", text: applicationShareText, url: applicationLink });
+        return;
+      } catch (e) {
+        if (e?.name === "AbortError") return;
+      }
+    }
+    copyApplicationLink();
   };
 
   const openApprove = (application) => {
@@ -373,7 +387,10 @@ export default function AdminCertificates() {
           <div className="space-y-4">
             <div className="flex items-center justify-between flex-wrap gap-2">
               <h3 className="text-sm font-semibold text-[#0E1B2C] dark:text-[#F1EDE3]">{applications.length} application{applications.length === 1 ? "" : "s"} received</h3>
-              <Button onClick={copyApplicationLink} variant="outline"><Link2 size={14} className="mr-1.5" /> Generate Intern Form Link</Button>
+              <div className="flex gap-2">
+                <Button onClick={shareApplicationLink} className="bg-[#024396] hover:bg-[#023580]"><Share2 size={14} className="mr-1.5" /> Share</Button>
+                <Button onClick={copyApplicationLink} variant="outline"><Copy size={14} className="mr-1.5" /> Copy</Button>
+              </div>
             </div>
             <div className="space-y-2">
               {applications.map((a) => (
@@ -386,8 +403,18 @@ export default function AdminCertificates() {
                       ) : (
                         <span className="text-[9px] font-semibold uppercase tracking-wide text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/30 px-1.5 py-0.5 rounded">Approved</span>
                       )}
+                      {a.submission_count > 1 && (
+                        <span title={(a.submission_history || []).map((t) => new Date(t).toLocaleString("en-IN")).join("\n")} className="text-[9px] font-semibold uppercase tracking-wide text-violet-700 dark:text-violet-400 bg-violet-50 dark:bg-violet-900/30 px-1.5 py-0.5 rounded flex items-center gap-1 cursor-help">
+                          <History size={9} /> Submitted {a.submission_count}×
+                        </span>
+                      )}
                     </p>
                     <p className="text-xs text-[#2A364B]/50 dark:text-[#8E99AC]">{a.department} · {a.start_date} to {a.end_date}{a.college && ` · ${a.college}`} · {a.contact_phone}</p>
+                    {a.submission_count > 1 && (
+                      <p className="text-[10px] text-[#2A364B]/40 dark:text-[#8E99AC]/60 mt-0.5">
+                        Submissions: {(a.submission_history || []).map((t) => new Date(t).toLocaleDateString("en-IN")).join(", ")}
+                      </p>
+                    )}
                   </div>
                   {a.status === "pending" && (
                     <div className="flex gap-2">

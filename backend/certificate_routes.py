@@ -197,31 +197,62 @@ async def submit_intern_application(data: InternApplicationIn):
         raise HTTPException(status_code=400, detail="Father's name, address, and Aadhaar number are required")
 
     end = start + timedelta(days=data.duration_days - 1)
+    now = datetime.now(timezone.utc).isoformat()
 
-    intern = {
-        "id": str(uuid.uuid4()),
+    from lead_routes import normalize_phone
+    phone_key = normalize_phone(data.contact_phone)
+    aadhar_key = "".join(ch for ch in data.aadhar_number if ch.isdigit())
+
+    field_updates = {
         "name": data.name.strip(), "is_student": data.is_student,
         "college": data.college.strip() if data.is_student and data.college else None,
         "subject": data.subject.strip() if data.is_student and data.subject else None,
         "department": data.department,
         "start_date": data.start_date, "end_date": end.isoformat(), "duration_days": data.duration_days,
-        "stipend": None, "stipend_type": "fixed",
-        "manager_name": None, "manager_designation": None,
         "contact_phone": data.contact_phone.strip(), "contact_email": (data.contact_email or "").strip() or None,
         "father_name": data.father_name.strip(), "address": data.address.strip(),
         "aadhar_number": data.aadhar_number.strip(), "pan_number": (data.pan_number or "").strip() or None,
-        "status": "pending", "source": "link",
-        "offer_letter_generated_at": None, "completion_letter_generated_at": None, "certificate_id": None,
-        "created_by": None, "created_at": datetime.now(timezone.utc).isoformat(),
     }
-    await interns_collection.insert_one(intern)
+
+    # Someone re-submitting the same application (accidental double-click,
+    # or resubmitting with corrected details) merges into their existing
+    # record instead of creating a new one each time — matched by phone or
+    # Aadhaar number, whichever's already on file. last_submitted_at (not
+    # created_at, which stays as their first-ever submission) drives the
+    # Applications list sort, so a resubmission bumps them back to the top.
+    existing = await interns_collection.find_one({
+        "source": "link",
+        "$or": [{"contact_phone": {"$regex": f"{phone_key}$"}}, {"aadhar_number": aadhar_key}],
+    })
+
+    if existing:
+        await interns_collection.update_one(
+            {"id": existing["id"]},
+            {
+                "$set": {**field_updates, "last_submitted_at": now},
+                "$push": {"submission_history": now},
+                "$inc": {"submission_count": 1},
+            },
+        )
+    else:
+        intern = {
+            "id": str(uuid.uuid4()),
+            **field_updates,
+            "stipend": None, "stipend_type": "fixed",
+            "manager_name": None, "manager_designation": None,
+            "status": "pending", "source": "link",
+            "offer_letter_generated_at": None, "completion_letter_generated_at": None, "certificate_id": None,
+            "created_by": None, "created_at": now, "last_submitted_at": now,
+            "submission_count": 1, "submission_history": [now],
+        }
+        await interns_collection.insert_one(intern)
 
     admins = users_collection.find({"role": "admin"})
     async for adm in admins:
         await create_notification(
             user_id=adm["id"],
-            title="New Intern Application",
-            body=f"{data.name} applied for an internship ({data.department}) — review in Pending Approval",
+            title="New Intern Application" if not existing else "Intern Application Resubmitted",
+            body=f"{data.name} {'applied for' if not existing else 're-submitted their application for'} an internship ({data.department}) — review in Applications",
             n_type="general",
             link="/portal/admin/certificates",
         )
@@ -242,9 +273,10 @@ async def list_intern_applications(admin: dict = Depends(require_admin)):
     """Every application that came in via the public link, regardless of
     status (pending/approved) — the dedicated Applications section, as
     opposed to /interns/pending (pending only) or /interns (approved,
-    includes admin-added too)."""
+    includes admin-added too). Sorted by last_submitted_at (not
+    created_at) so a resubmission bumps the application back to the top."""
     docs = []
-    async for doc in interns_collection.find({"source": "link"}).sort("created_at", -1):
+    async for doc in interns_collection.find({"source": "link"}).sort([("last_submitted_at", -1), ("created_at", -1)]):
         doc.pop("_id", None)
         docs.append(doc)
     return docs
