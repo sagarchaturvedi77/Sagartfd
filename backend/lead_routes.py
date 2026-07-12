@@ -349,7 +349,7 @@ REASON_LABELS = {
 }
 SUB_STAGE_LABELS = {
     **REASON_LABELS,
-    "interested": "Interested", "not_interested": "Not Interested",
+    "interested": "Interested", "follow_up": "Follow Up", "not_interested": "Not Interested",
     "converted": "Converted", "lost": "Lost (on call)",
 }
 
@@ -794,6 +794,19 @@ async def submit_call_outcome(
                 due_dt = _combine_date_time(data.follow_up_date, data.follow_up_time)
                 reminder_to_create = ("lead_follow_up", due_dt, "Follow-up Due", f"Time to follow up with {doc['name']} ({doc['phone']})")
 
+        elif data.sub_stage == "follow_up":
+            # A direct "schedule a follow-up call" outcome, distinct from
+            # "Interested" — the call connected but the employee just wants
+            # to check back later without committing to an interest level yet.
+            updates["status"] = "follow_up"
+            updates["call_attempts"] = 0
+            if data.notes:
+                updates["notes"] = data.notes
+            if data.follow_up_date:
+                updates["follow_up_date"] = data.follow_up_date
+                due_dt = _combine_date_time(data.follow_up_date, data.follow_up_time)
+                reminder_to_create = ("lead_follow_up", due_dt, "Follow-up Due", f"Time to follow up with {doc['name']} ({doc['phone']})")
+
         elif data.sub_stage == "not_interested":
             if data.reassign_to:
                 new_emp = await users_collection.find_one({"id": data.reassign_to})
@@ -850,7 +863,16 @@ async def submit_call_outcome(
         else:
             new_attempts = int(doc.get("call_attempts", 0)) + 1
             updates["call_attempts"] = new_attempts
-            if new_attempts == 1:
+            # Once real contact has ever happened on this lead (a prior
+            # "connected" outcome, at any point in its history), the
+            # auto-reassign-after-2-misses safety net no longer applies —
+            # that net exists only to rescue leads that were NEVER reached
+            # by the current employee. If the employee already has an
+            # ongoing conversation with this client, missing a follow-up
+            # call any number of times should just keep retrying with the
+            # same employee, never silently hand the client to someone else.
+            ever_connected = any(h.get("connection_status") == "connected" for h in doc.get("status_history", []))
+            if new_attempts == 1 or ever_connected:
                 updates["status"] = "follow_up"
                 due_dt = now + timedelta(days=1)
                 reminder_to_create = ("lead_retry", due_dt, "Retry Call", f"Couldn't reach {doc['name']} ({reason_label}) — try again today")

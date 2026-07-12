@@ -37,7 +37,7 @@ class CallOutcomeIn(BaseModel):
     connected/not-connected decision tree."""
     connection_status: str  # "connected" | "not_connected"
     sub_stage: str
-    # connected branch: "interested" | "not_interested" | "converted" | "lost"
+    # connected branch: "interested" | "follow_up" | "not_interested" | "converted" | "lost"
     # not_connected branch: "npc" | "switchoff" | "invalid" | "network_issue"
     notes: Optional[str] = None
     service_interest: Optional[str] = None

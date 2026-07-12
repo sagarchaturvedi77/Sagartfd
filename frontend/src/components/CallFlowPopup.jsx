@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { PhoneCall, PhoneOff, X, CheckCircle2, XCircle, Trophy, Clock, PhoneMissed, PhoneOff as SwitchOffIcon, Ban, WifiOff, Voicemail, ArrowRightLeft } from "lucide-react";
 import { codeFieldLabel } from "../lib/utils";
+import ProtectedText from "./portal/ProtectedText";
 
 const API_BASE = process.env.REACT_APP_BACKEND_URL || "";
 
@@ -10,6 +11,7 @@ const SERVICE_OPTIONS = ["Mutual Fund", "Insurance - Term", "Insurance - Health"
 
 const CONNECTED_OPTIONS = [
   { key: "interested", label: "Interested", icon: CheckCircle2, color: "#16a34a", bg: "#EAF6EE" },
+  { key: "follow_up", label: "Follow Up", icon: Clock, color: "#0891b2", bg: "#E3F4F7" },
   { key: "not_interested", label: "Not Interested", icon: XCircle, color: "#B8862B", bg: "#FBF1DD" },
   { key: "converted", label: "Converted", icon: Trophy, color: "#024396", bg: "#EAF1FB" },
   { key: "lost", label: "Lost", icon: XCircle, color: "#C7102E", bg: "#FBE4E4" },
@@ -24,7 +26,7 @@ const NOT_CONNECTED_OPTIONS = [
 ];
 
 const ICON_BY_OUTCOME = {
-  interested: CheckCircle2, not_interested: XCircle, converted: Trophy, lost: XCircle,
+  interested: CheckCircle2, follow_up: Clock, not_interested: XCircle, converted: Trophy, lost: XCircle,
   npc: PhoneMissed, switchoff: SwitchOffIcon, invalid: Ban, network_issue: WifiOff, busy: Voicemail,
 };
 
@@ -131,7 +133,7 @@ export default function CallFlowPopup({ lead, token, onClose, onSaved }) {
         <div className="sticky top-0 bg-white border-b border-[#E2D8C2] px-5 py-4 flex items-center justify-between z-10">
           <div>
             <h3 className="font-serif text-[16px] text-[#0E1B2C]">Call Outcome</h3>
-            <p className="text-[11.5px] text-[#2A364B]/50">{lead.name} · {lead.phone}</p>
+            <p className="text-[11.5px] text-[#2A364B]/50">{lead.name} · <ProtectedText>{lead.phone}</ProtectedText></p>
           </div>
           <button onClick={onClose} className="p-1.5 hover:bg-[#2A364B]/5 rounded-lg text-[#2A364B]/60"><X size={18} /></button>
         </div>
@@ -236,6 +238,27 @@ function SubStageForm({ subStage, form, setForm, saving, onSubmit, employees = [
     );
   }
 
+  if (subStage === "follow_up") {
+    return (
+      <form onSubmit={(e) => { e.preventDefault(); onSubmit(); }} className="space-y-3">
+        <p className="text-[12.5px] font-medium text-[#0E1B2C]">Schedule a follow-up call</p>
+        <textarea rows={3} placeholder="What did you discuss? (notes)" value={form.notes} onChange={(e) => set("notes", e.target.value)} className={`${field} resize-none`} />
+        <div className="grid grid-cols-2 gap-2.5">
+          <div>
+            <label className="text-[11px] text-[#2A364B]/50 mb-1 block">Follow-up date</label>
+            <input type="date" required value={form.follow_up_date} onChange={(e) => set("follow_up_date", e.target.value)} className={field} />
+          </div>
+          <div>
+            <label className="text-[11px] text-[#2A364B]/50 mb-1 block">Time</label>
+            <input type="time" value={form.follow_up_time} onChange={(e) => set("follow_up_time", e.target.value)} className={field} />
+          </div>
+        </div>
+        <p className="text-[11px] text-[#2A364B]/40 flex items-center gap-1"><Clock size={11} /> A reminder will be sent automatically on that date/time.</p>
+        <SubmitBtn saving={saving} label="Save Follow-up" />
+      </form>
+    );
+  }
+
   if (subStage === "converted") {
     return (
       <form onSubmit={(e) => { e.preventDefault(); onSubmit(); }} className="space-y-3">
@@ -333,7 +356,7 @@ function SubmitBtn({ saving, label = "Save" }) {
 function ResultScreen({ result, onDone }) {
   const statusMessages = {
     interested: "Marked as Interested — follow-up reminder set.",
-    follow_up: "Reminder set to retry tomorrow (or handed to another employee).",
+    follow_up: "Follow-up saved — a reminder will be sent.",
     converted: "🎉 Marked as Converted!",
     lost: "This lead has been marked Lost.",
     new: "Lead reassigned to the selected employee.",
