@@ -378,6 +378,7 @@ export default function AdminCertificates() {
               <div className="flex items-center justify-between flex-wrap gap-2">
                 <h3 className="text-sm font-semibold text-[#0E1B2C] dark:text-[#F1EDE3]">{pendingApplicationsCount} pending application{pendingApplicationsCount === 1 ? "" : "s"}</h3>
                 <div className="flex gap-2">
+                  <Button onClick={() => { window.location.href = applicationLink; }} className="bg-emerald-600 hover:bg-emerald-700 text-white">+ Add Intern</Button>
                   <Button onClick={shareApplicationLink} className="bg-[#024396] hover:bg-[#023580]"><Share2 size={14} className="mr-1.5" /> Share</Button>
                   <Button onClick={copyApplicationLink} variant="outline"><Copy size={14} className="mr-1.5" /> Copy</Button>
                 </div>
