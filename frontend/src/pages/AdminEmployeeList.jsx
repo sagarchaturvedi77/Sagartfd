@@ -19,6 +19,9 @@ export default function AdminEmployeeList() {
   const [loading, setLoading] = useState(true);
   const [viewEmp, setViewEmp] = useState(null); // employee detail modal
   const [empDetail, setEmpDetail] = useState(null);
+  const [editingEmp, setEditingEmp] = useState(false);
+  const [empEditForm, setEmpEditForm] = useState({});
+  const [savingEmp, setSavingEmp] = useState(false);
   const [createdCreds, setCreatedCreds] = useState(null); // show credentials after creation
   const [emailState, setEmailState] = useState("idle"); // idle | sending | sent | error
 
@@ -193,12 +196,54 @@ export default function AdminEmployeeList() {
 
   const viewEmployee = async (emp) => {
     setViewEmp(emp);
+    setEditingEmp(false);
     try {
       const res = await fetch(`${API_BASE}/api/employees/${emp.id}/full`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (res.ok) setEmpDetail(await res.json());
     } catch { /* silent */ }
+  };
+
+  const startEditEmployee = () => {
+    if (!empDetail) return;
+    const u = empDetail.user || {};
+    const p = empDetail.profile || {};
+    setEmpEditForm({
+      email: u.email || "", phone: u.phone || "", designation: u.designation || "",
+      join_date: u.join_date || "", base_salary: u.base_salary ?? "", training_days: u.training_days ?? "",
+      training_salary: !!u.training_salary, training_start_date: u.training_start_date || "",
+      dob: p.dob || "", gender: p.gender || "", marital_status: p.marital_status || "",
+      contact_no: p.contact_no || "", address: p.address || "", father_name: p.father_name || "",
+      mother_name: p.mother_name || "", aadhar_number: p.aadhar_number || "", pan_number: p.pan_number || "",
+      bank_name: p.bank_name || "", bank_account_number: p.bank_account_number || "",
+      bank_ifsc: p.bank_ifsc || "", bank_branch: p.bank_branch || "",
+      emergency_contact_name: p.emergency_contact_name || "", emergency_contact_number: p.emergency_contact_number || "",
+    });
+    setEditingEmp(true);
+  };
+
+  const saveEmployeeEdit = async () => {
+    if (!viewEmp || savingEmp) return;
+    setSavingEmp(true);
+    try {
+      const res = await fetch(`${API_BASE}/api/employees/${viewEmp.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify(empEditForm),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setEmpDetail((prev) => ({ ...prev, user: data.user, profile: data.profile }));
+        setEditingEmp(false);
+        fetchEmployees();
+      } else {
+        const err = await res.json().catch(() => ({}));
+        alert(err.detail || "Failed to save changes");
+      }
+    } finally {
+      setSavingEmp(false);
+    }
   };
 
   const formatCurrency = (v) => v ? new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR", maximumFractionDigits: 0 }).format(v) : "-";
@@ -462,41 +507,61 @@ export default function AdminEmployeeList() {
               </div>
             )}
 
-            <div className="grid grid-cols-2 gap-3 text-xs">
-              <InfoRow label="Email" value={empDetail.user?.email} />
-              <InfoRow label="Phone" value={empDetail.user?.phone} />
-              <InfoRow label="Designation" value={empDetail.user?.designation} />
-              <InfoRow label="Join Date" value={empDetail.user?.join_date} />
-              <InfoRow label="Base Salary" value={formatCurrency(empDetail.user?.base_salary)} />
-              <InfoRow label="Training" value={empDetail.user?.training_days ? `${empDetail.user.training_days} days` : "None"} />
-              <InfoRow label="Training Salary" value={empDetail.user?.training_salary ? "Yes" : "No"} />
-              <InfoRow label="Profile" value={empDetail.user?.profile_completed ? "Completed" : "Pending"} />
+            <div className="flex items-center justify-between">
+              <p className="text-[11px] text-[#2A364B]/40 dark:text-[#C7CEDA]/40">Name and Employee ID ({viewEmp?.id}) can't be edited here.</p>
+              {!editingEmp ? (
+                <Button size="sm" variant="outline" onClick={startEditEmployee}>Edit Details</Button>
+              ) : (
+                <div className="flex gap-2">
+                  <Button size="sm" variant="outline" onClick={() => setEditingEmp(false)} disabled={savingEmp}>Cancel</Button>
+                  <Button size="sm" onClick={saveEmployeeEdit} disabled={savingEmp} className="bg-[#024396] hover:bg-[#023580]">{savingEmp ? "Saving..." : "Save"}</Button>
+                </div>
+              )}
             </div>
 
-            {empDetail.profile?.full_name && (
+            {!editingEmp ? (
               <>
-                <h4 className="text-sm font-semibold text-[#0E1B2C] dark:text-[#F1EDE3] pt-2 border-t border-[#E2D8C2] dark:border-white/10">Personal Details</h4>
                 <div className="grid grid-cols-2 gap-3 text-xs">
-                  <InfoRow label="Full Name" value={empDetail.profile.full_name} />
-                  <InfoRow label="DOB" value={empDetail.profile.dob} />
-                  <InfoRow label="Gender" value={empDetail.profile.gender} />
-                  <InfoRow label="Marital Status" value={empDetail.profile.marital_status} />
-                  <InfoRow label="Contact" value={empDetail.profile.contact_no} />
-                  <InfoRow label="Father" value={empDetail.profile.father_name} />
-                  <InfoRow label="Mother" value={empDetail.profile.mother_name} />
-                  <InfoRow label="PAN" value={empDetail.profile.pan_number || "-"} />
-                  <InfoRow label="Aadhar" value={empDetail.profile.aadhar_number ? `****${empDetail.profile.aadhar_number.slice(-4)}` : "-"} />
+                  <InfoRow label="Email" value={empDetail.user?.email} />
+                  <InfoRow label="Phone" value={empDetail.user?.phone} />
+                  <InfoRow label="Designation" value={empDetail.user?.designation} />
+                  <InfoRow label="Join Date" value={empDetail.user?.join_date} />
+                  <InfoRow label="Base Salary" value={formatCurrency(empDetail.user?.base_salary)} />
+                  <InfoRow label="Training" value={empDetail.user?.training_days ? `${empDetail.user.training_days} days` : "None"} />
+                  <InfoRow label="Training Salary" value={empDetail.user?.training_salary ? "Yes" : "No"} />
+                  <InfoRow label="Profile" value={empDetail.user?.profile_completed ? "Completed" : "Pending"} />
                 </div>
-                <InfoRow label="Address" value={empDetail.profile.address} />
 
-                <h4 className="text-sm font-semibold text-[#0E1B2C] dark:text-[#F1EDE3] pt-2 border-t border-[#E2D8C2] dark:border-white/10">Bank Details</h4>
-                <div className="grid grid-cols-2 gap-3 text-xs">
-                  <InfoRow label="Bank" value={empDetail.profile.bank_name} />
-                  <InfoRow label="A/C No." value={empDetail.profile.bank_account_number} />
-                  <InfoRow label="IFSC" value={empDetail.profile.bank_ifsc} />
-                  <InfoRow label="Branch" value={empDetail.profile.bank_branch} />
-                </div>
+                {empDetail.profile?.full_name && (
+                  <>
+                    <h4 className="text-sm font-semibold text-[#0E1B2C] dark:text-[#F1EDE3] pt-2 border-t border-[#E2D8C2] dark:border-white/10">Personal Details</h4>
+                    <div className="grid grid-cols-2 gap-3 text-xs">
+                      <InfoRow label="Full Name" value={empDetail.profile.full_name} />
+                      <InfoRow label="DOB" value={empDetail.profile.dob} />
+                      <InfoRow label="Gender" value={empDetail.profile.gender} />
+                      <InfoRow label="Marital Status" value={empDetail.profile.marital_status} />
+                      <InfoRow label="Contact" value={empDetail.profile.contact_no} />
+                      <InfoRow label="Father" value={empDetail.profile.father_name} />
+                      <InfoRow label="Mother" value={empDetail.profile.mother_name} />
+                      <InfoRow label="PAN" value={empDetail.profile.pan_number || "-"} />
+                      <InfoRow label="Aadhar" value={empDetail.profile.aadhar_number ? `****${empDetail.profile.aadhar_number.slice(-4)}` : "-"} />
+                      <InfoRow label="Emergency Contact" value={empDetail.profile.emergency_contact_name} />
+                      <InfoRow label="Emergency No." value={empDetail.profile.emergency_contact_number} />
+                    </div>
+                    <InfoRow label="Address" value={empDetail.profile.address} />
+
+                    <h4 className="text-sm font-semibold text-[#0E1B2C] dark:text-[#F1EDE3] pt-2 border-t border-[#E2D8C2] dark:border-white/10">Bank Details</h4>
+                    <div className="grid grid-cols-2 gap-3 text-xs">
+                      <InfoRow label="Bank" value={empDetail.profile.bank_name} />
+                      <InfoRow label="A/C No." value={empDetail.profile.bank_account_number} />
+                      <InfoRow label="IFSC" value={empDetail.profile.bank_ifsc} />
+                      <InfoRow label="Branch" value={empDetail.profile.bank_branch} />
+                    </div>
+                  </>
+                )}
               </>
+            ) : (
+              <EmployeeEditForm form={empEditForm} setForm={setEmpEditForm} field={field} />
             )}
 
             {Object.keys(empDetail.uploads || {}).length > 0 && (
@@ -539,5 +604,61 @@ function FormInput({ className = "", onChange, ...props }) {
       onChange={(e) => onChange(e.target.value)}
       className={`border border-[#E2D8C2] dark:border-white/10 rounded-xl px-4 py-2.5 bg-white focus:border-[#024396] focus:ring-2 focus:ring-[#024396]/20 outline-none transition-all text-sm ${className}`}
     />
+  );
+}
+
+// Everything an admin can edit on an employee — name and employee ID are
+// deliberately absent (shown read-only above this form instead), matching
+// the backend's PUT /employees/{id}, which silently ignores those two even
+// if sent.
+function EmployeeEditForm({ form, setForm, field }) {
+  const set = (k, v) => setForm((f) => ({ ...f, [k]: v }));
+  const labelCls = "text-[10px] text-[#2A364B]/50 dark:text-[#8E99AC] uppercase tracking-wide mb-1 block";
+  return (
+    <div className="space-y-4">
+      <div>
+        <h4 className="text-sm font-semibold text-[#0E1B2C] dark:text-[#F1EDE3] mb-2">Employment</h4>
+        <div className="grid grid-cols-2 gap-3">
+          <div><label className={labelCls}>Email</label><input type="email" value={form.email} onChange={(e) => set("email", e.target.value)} className={field} /></div>
+          <div><label className={labelCls}>Phone</label><input value={form.phone} onChange={(e) => set("phone", e.target.value)} className={field} /></div>
+          <div><label className={labelCls}>Designation</label><input value={form.designation} onChange={(e) => set("designation", e.target.value)} className={field} /></div>
+          <div><label className={labelCls}>Join Date</label><input type="date" value={form.join_date} onChange={(e) => set("join_date", e.target.value)} className={field} /></div>
+          <div><label className={labelCls}>Base Salary</label><input type="number" value={form.base_salary} onChange={(e) => set("base_salary", e.target.value)} className={field} /></div>
+          <div><label className={labelCls}>Training Days</label><input type="number" value={form.training_days} onChange={(e) => set("training_days", e.target.value)} className={field} /></div>
+          <div><label className={labelCls}>Training Start Date</label><input type="date" value={form.training_start_date} onChange={(e) => set("training_start_date", e.target.value)} className={field} /></div>
+          <label className="flex items-center gap-2 mt-5">
+            <input type="checkbox" checked={form.training_salary} onChange={(e) => set("training_salary", e.target.checked)} className="rounded border-[#E2D8C2]" />
+            <span className="text-sm text-[#2A364B]/70 dark:text-[#C7CEDA]/70">Paid during training</span>
+          </label>
+        </div>
+      </div>
+
+      <div>
+        <h4 className="text-sm font-semibold text-[#0E1B2C] dark:text-[#F1EDE3] mb-2 pt-2 border-t border-[#E2D8C2] dark:border-white/10">Personal Details</h4>
+        <div className="grid grid-cols-2 gap-3">
+          <div><label className={labelCls}>DOB</label><input type="date" value={form.dob} onChange={(e) => set("dob", e.target.value)} className={field} /></div>
+          <div><label className={labelCls}>Gender</label><input value={form.gender} onChange={(e) => set("gender", e.target.value)} className={field} /></div>
+          <div><label className={labelCls}>Marital Status</label><input value={form.marital_status} onChange={(e) => set("marital_status", e.target.value)} className={field} /></div>
+          <div><label className={labelCls}>Contact No.</label><input value={form.contact_no} onChange={(e) => set("contact_no", e.target.value)} className={field} /></div>
+          <div><label className={labelCls}>Father's Name</label><input value={form.father_name} onChange={(e) => set("father_name", e.target.value)} className={field} /></div>
+          <div><label className={labelCls}>Mother's Name</label><input value={form.mother_name} onChange={(e) => set("mother_name", e.target.value)} className={field} /></div>
+          <div><label className={labelCls}>Aadhar No.</label><input value={form.aadhar_number} onChange={(e) => set("aadhar_number", e.target.value)} className={field} /></div>
+          <div><label className={labelCls}>PAN No.</label><input value={form.pan_number} onChange={(e) => set("pan_number", e.target.value)} className={field} /></div>
+          <div><label className={labelCls}>Emergency Contact Name</label><input value={form.emergency_contact_name} onChange={(e) => set("emergency_contact_name", e.target.value)} className={field} /></div>
+          <div><label className={labelCls}>Emergency Contact No.</label><input value={form.emergency_contact_number} onChange={(e) => set("emergency_contact_number", e.target.value)} className={field} /></div>
+        </div>
+        <div className="mt-3"><label className={labelCls}>Address</label><textarea rows={2} value={form.address} onChange={(e) => set("address", e.target.value)} className={`${field} resize-none`} /></div>
+      </div>
+
+      <div>
+        <h4 className="text-sm font-semibold text-[#0E1B2C] dark:text-[#F1EDE3] mb-2 pt-2 border-t border-[#E2D8C2] dark:border-white/10">Bank Details</h4>
+        <div className="grid grid-cols-2 gap-3">
+          <div><label className={labelCls}>Bank Name</label><input value={form.bank_name} onChange={(e) => set("bank_name", e.target.value)} className={field} /></div>
+          <div><label className={labelCls}>Account No.</label><input value={form.bank_account_number} onChange={(e) => set("bank_account_number", e.target.value)} className={field} /></div>
+          <div><label className={labelCls}>IFSC</label><input value={form.bank_ifsc} onChange={(e) => set("bank_ifsc", e.target.value.toUpperCase())} className={field} /></div>
+          <div><label className={labelCls}>Branch</label><input value={form.bank_branch} onChange={(e) => set("bank_branch", e.target.value)} className={field} /></div>
+        </div>
+      </div>
+    </div>
   );
 }

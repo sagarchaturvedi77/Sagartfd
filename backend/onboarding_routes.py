@@ -11,6 +11,7 @@ from fastapi.responses import JSONResponse
 from auth_utils import get_current_user_payload, require_admin
 from database import db, users_collection
 from storage_r2 import r2_enabled, upload_bytes, presigned_url
+from activity_service import log_activity
 
 router = APIRouter(prefix="/api", tags=["onboarding"])
 
@@ -138,28 +139,59 @@ async def profile_status(payload: dict = Depends(get_current_user_payload)):
     }
 
 
-# ── Admin: update employee creation with training + salary ────────────────
+# ── Admin: edit an employee's core + profile details ───────────────────────
+# Name (users.name / profile.full_name) and the employee ID (users.id, the
+# primary key every other collection references — leads, salary,
+# attendance, targets, certificates, notifications) are deliberately never
+# accepted here, so they can never be touched via this endpoint regardless
+# of what a caller sends.
 
-@router.patch("/employees/{employee_id}/training")
-async def set_training(employee_id: str, request: Request, _admin: dict = Depends(require_admin)):
+USER_EDITABLE_FIELDS = {
+    "phone", "email", "designation", "join_date", "base_salary",
+    "training_days", "training_salary", "training_start_date",
+}
+_USER_NUMERIC_FIELDS = {"base_salary": float, "training_days": int}
+PROFILE_EDITABLE_FIELDS = [f for f in PROFILE_FIELDS if f != "full_name"]
+
+
+@router.put("/employees/{employee_id}")
+async def admin_update_employee(employee_id: str, request: Request, admin: dict = Depends(require_admin)):
     data = await request.json()
     if not data:
-        raise HTTPException(status_code=400, detail="No data")
-    updates = {}
-    if "training_days" in data:
-        updates["training_days"] = int(data["training_days"])
-    if "training_salary" in data:
-        updates["training_salary"] = bool(data["training_salary"])
-    if "training_start_date" in data:
-        updates["training_start_date"] = data["training_start_date"]
-    if "join_date" in data:
-        updates["join_date"] = data["join_date"]
-    if "base_salary" in data:
-        updates["base_salary"] = float(data["base_salary"])
-    if not updates:
-        raise HTTPException(status_code=400, detail="No valid fields")
-    await users_collection.update_one({"id": employee_id}, {"$set": updates})
-    return {"status": "updated"}
+        raise HTTPException(status_code=400, detail="No data provided")
+    user = await users_collection.find_one({"id": employee_id})
+    if not user:
+        raise HTTPException(status_code=404, detail="Employee not found")
+
+    user_updates = {}
+    for key in USER_EDITABLE_FIELDS:
+        if key not in data:
+            continue
+        value = data[key]
+        if key in _USER_NUMERIC_FIELDS:
+            user_updates[key] = _USER_NUMERIC_FIELDS[key](value) if value not in (None, "") else None
+        elif key == "training_salary":
+            user_updates[key] = bool(value)
+        else:
+            user_updates[key] = value
+    if user_updates:
+        await users_collection.update_one({"id": employee_id}, {"$set": user_updates})
+
+    profile_updates = {k: v for k, v in data.items() if k in PROFILE_EDITABLE_FIELDS}
+    if profile_updates:
+        profile_updates["updated_at"] = datetime.now(timezone.utc).isoformat()
+        await profiles_collection.update_one(
+            {"user_id": employee_id},
+            {"$set": profile_updates, "$setOnInsert": {"created_at": datetime.now(timezone.utc).isoformat()}},
+            upsert=True,
+        )
+
+    if user_updates or profile_updates:
+        await log_activity(admin["sub"], "employee_updated", f"Updated employee details: {user['name']}", link="/portal/admin/employees")
+
+    updated_user = await users_collection.find_one({"id": employee_id}, {"_id": 0, "password_hash": 0})
+    updated_profile = await profiles_collection.find_one({"user_id": employee_id}, {"_id": 0})
+    return {"user": updated_user, "profile": updated_profile or {}}
 
 
 @router.get("/employees/{employee_id}/full")

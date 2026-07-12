@@ -89,21 +89,21 @@ export default function PortalLogin() {
 
             <div className="mb-8">
               <h2 className="font-serif text-2xl text-[#0E1B2C] dark:text-[#F1EDE3]">Sign in to your workspace</h2>
-              <p className="text-sm text-[#2A364B]/50 dark:text-[#8E99AC] mt-1">Use your mobile number and password.</p>
+              <p className="text-sm text-[#2A364B]/50 dark:text-[#8E99AC] mt-1">Use your mobile number or email, and password.</p>
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-5">
               <div>
                 <Label htmlFor="phone" className="text-xs font-medium text-[#2A364B]/80 dark:text-[#C7CEDA] uppercase tracking-wider mb-2 block">
-                  User ID (Mobile Number)
+                  User ID
                 </Label>
                 <div className="relative">
                   <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#2A364B]/40 dark:text-[#8E99AC] pointer-events-none">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg>
                   </span>
                   <Input
-                    id="phone" type="tel" required value={phone} onChange={(e) => setPhone(e.target.value)}
-                    placeholder="Enter your mobile number"
+                    id="phone" type="text" autoCapitalize="none" autoCorrect="off" required value={phone} onChange={(e) => setPhone(e.target.value)}
+                    placeholder="Enter your User ID"
                     className="h-12 pl-11 pr-4 rounded-xl border-[#E2D8C2] dark:border-white/10 bg-[#FBF7EE]/50 dark:bg-white/5 dark:text-[#F1EDE3] focus-visible:bg-white dark:focus-visible:bg-white/10 focus-visible:ring-2 focus-visible:ring-[#024396]/20 focus-visible:border-[#024396]"
                   />
                 </div>
