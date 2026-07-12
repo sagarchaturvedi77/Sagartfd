@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from "react";
-import { CheckCircle2, AlertTriangle, ChevronLeft, Star } from "lucide-react";
+import { CheckCircle2, AlertTriangle, ChevronLeft, Star, User, GraduationCap, FileCheck2, Check } from "lucide-react";
 import LINKS from "../lib/links";
 
 const API_BASE = process.env.REACT_APP_BACKEND_URL || "";
@@ -14,11 +14,68 @@ const emptyForm = {
   father_name: "", address: "", aadhar_number: "", pan_number: "",
 };
 
+const STEPS = [
+  { key: "form", label: "Your Details" },
+  { key: "review", label: "Review & Confirm" },
+  { key: "done", label: "Submitted" },
+];
+
 function addDays(dateStr, days) {
   if (!dateStr) return "";
   const d = new Date(dateStr + "T00:00:00");
   d.setDate(d.getDate() + days - 1);
   return d.toISOString().split("T")[0];
+}
+
+function StepIndicator({ step }) {
+  const activeIndex = STEPS.findIndex((s) => s.key === step);
+  return (
+    <div className="flex items-center justify-center mb-8">
+      {STEPS.map((s, i) => (
+        <React.Fragment key={s.key}>
+          <div className="flex flex-col items-center gap-1.5">
+            <div
+              className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold border-2 transition-colors ${
+                i < activeIndex
+                  ? "bg-[#024396] border-[#024396] text-white"
+                  : i === activeIndex
+                  ? "bg-white border-[#024396] text-[#024396]"
+                  : "bg-white border-[#E2D8C2] text-[#9AA5B4]"
+              }`}
+            >
+              {i < activeIndex ? <Check size={14} /> : i + 1}
+            </div>
+            <span className={`text-[10px] font-medium tracking-wide ${i <= activeIndex ? "text-[#0E1B2C]" : "text-[#9AA5B4]"}`}>{s.label}</span>
+          </div>
+          {i < STEPS.length - 1 && (
+            <div className={`w-10 sm:w-16 h-[2px] mb-4 mx-1.5 transition-colors ${i < activeIndex ? "bg-[#024396]" : "bg-[#E2D8C2]"}`} />
+          )}
+        </React.Fragment>
+      ))}
+    </div>
+  );
+}
+
+function FieldLabel({ children, required }) {
+  return (
+    <label className="text-[11px] font-semibold text-[#2A364B]/70 uppercase tracking-wide mb-1.5 block">
+      {children} {required && <span className="text-[#C7102E]">*</span>}
+    </label>
+  );
+}
+
+function SectionHeader({ icon: Icon, title, subtitle }) {
+  return (
+    <div className="flex items-center gap-2.5 pb-3 mb-1">
+      <div className="w-8 h-8 rounded-lg bg-[#024396]/8 flex items-center justify-center text-[#024396] shrink-0">
+        <Icon size={15} />
+      </div>
+      <div>
+        <p className="text-sm font-semibold text-[#0E1B2C]">{title}</p>
+        {subtitle && <p className="text-[11px] text-[#5C677D]">{subtitle}</p>}
+      </div>
+    </div>
+  );
 }
 
 export default function InternApplicationPage() {
@@ -33,7 +90,7 @@ export default function InternApplicationPage() {
   const todayStr = new Date().toISOString().split("T")[0];
   const endDate = useMemo(() => addDays(form.start_date, form.duration_days), [form.start_date, form.duration_days]);
 
-  const field = "w-full border border-[#E2D8C2] rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#024396]/30 bg-white";
+  const field = "w-full border border-[#E2D8C2] rounded-xl px-4 py-2.5 text-sm text-[#0E1B2C] focus:outline-none focus:ring-2 focus:ring-[#024396]/25 focus:border-[#024396] bg-white transition-shadow placeholder:text-[#9AA5B4]";
 
   const goToReview = (e) => {
     e.preventDefault();
@@ -46,10 +103,15 @@ export default function InternApplicationPage() {
       setError("Father's name, address, and Aadhaar number are required.");
       return;
     }
+    if (!form.contact_email.trim() || !form.contact_email.includes("@")) {
+      setError("A valid email address is required.");
+      return;
+    }
     setStep("review");
     setDeclared(false);
     setRated(false);
     setRatingClicked(false);
+    window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
   const submit = async () => {
@@ -60,7 +122,7 @@ export default function InternApplicationPage() {
       const res = await fetch(`${API_BASE}/api/interns/public/apply`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...form, pan_number: form.pan_number || null, contact_email: form.contact_email || null }),
+        body: JSON.stringify({ ...form, pan_number: form.pan_number || null }),
       });
       if (res.ok) {
         setStep("done");
@@ -78,13 +140,15 @@ export default function InternApplicationPage() {
 
   if (step === "done") {
     return (
-      <div className="min-h-screen bg-[#F5F1EB] flex items-center justify-center px-4 py-10">
-        <div className="w-full max-w-md bg-white rounded-2xl shadow-lg border border-[#E2D8C2] p-8 text-center">
-          <CheckCircle2 size={48} className="text-emerald-500 mx-auto mb-4" />
-          <h1 className="text-lg font-serif font-semibold text-[#0E1B2C] mb-2">Aapka form submit ho gaya hai!</h1>
-          <p className="text-sm text-[#5C677D]">
-            Thank you, {form.name}. Your internship application has been received and is pending admin review.
-            You'll be contacted once it's approved.
+      <div className="min-h-screen bg-gradient-to-b from-[#F5F1EB] to-[#EFE7D6] flex items-center justify-center px-4 py-10">
+        <div className="w-full max-w-md bg-white rounded-3xl shadow-xl border border-[#E2D8C2] p-8 text-center">
+          <div className="w-16 h-16 rounded-full bg-emerald-50 flex items-center justify-center mx-auto mb-5">
+            <CheckCircle2 size={32} className="text-emerald-500" />
+          </div>
+          <h1 className="font-display text-2xl font-medium text-[#0E1B2C] mb-2">Application Received</h1>
+          <p className="text-sm text-[#5C677D] leading-relaxed">
+            Thank you, <b>{form.name}</b>. Your internship application has been received and is pending admin review.
+            You'll be contacted on <b>{form.contact_email}</b> once it's approved.
           </p>
         </div>
       </div>
@@ -92,92 +156,143 @@ export default function InternApplicationPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#F5F1EB] flex flex-col items-center px-4 py-10">
-      <div className="w-full max-w-md">
+    <div className="min-h-screen bg-gradient-to-b from-[#F5F1EB] to-[#EFE7D6] flex flex-col items-center px-4 py-10">
+      <div className="w-full max-w-xl">
         <div className="text-center mb-6">
-          <div className="flex items-center justify-center gap-3 mb-3">
+          <div className="flex items-center justify-center gap-3 mb-4">
             <img src={LOGO_URL} alt="The Financial Doctor" className="h-14 rounded-xl object-contain" />
+            <div className="w-px h-9 bg-[#D8CDB0]" />
             <img src={INTERNSHIP_LOGO_URL} alt="TFD Internship" className="h-10 object-contain" />
           </div>
-          <h1 className="text-lg font-serif font-semibold text-[#0E1B2C]">Internship Application</h1>
-          <p className="text-xs text-[#5C677D] mt-1">Fill in your details below to apply for an internship at The Financial Doctor</p>
+          <h1 className="font-display text-2xl sm:text-3xl font-medium text-[#0E1B2C]">Internship Application</h1>
+          <p className="text-sm text-[#5C677D] mt-1.5">Apply for an internship at The Financial Doctor</p>
         </div>
 
-        <div className="bg-amber-50 border border-amber-200 rounded-xl p-3.5 mb-4 flex gap-2.5">
+        <StepIndicator step={step} />
+
+        <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 mb-5 flex gap-3">
           <AlertTriangle size={16} className="text-amber-600 shrink-0 mt-0.5" />
           <p className="text-xs text-amber-800 leading-relaxed">
-            <b>Please read before filling:</b> The details you enter here will appear directly on your official Internship Certificate and Completion Letter. Fill everything accurately and in English. These details will be verified — if anything is found incorrect, your internship will not be considered valid.
+            <b>Please read before filling:</b> the details you enter here will appear directly on your official Internship Certificate and Completion Letter. Fill everything accurately and in English — these details will be verified, and any incorrect information means your internship will not be considered valid.
           </p>
         </div>
 
         {step === "form" && (
-          <form onSubmit={goToReview} className="bg-white rounded-2xl shadow-lg border border-[#E2D8C2] p-6 space-y-3">
-            <input required placeholder="Full Name *" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} className={field} />
-
+          <form onSubmit={goToReview} className="bg-white rounded-3xl shadow-lg border border-[#E2D8C2] p-6 sm:p-8 space-y-6">
             <div>
-              <label className="text-xs text-[#5C677D] mb-1 block">Are you currently a student? *</label>
-              <div className="flex gap-2">
-                <button type="button" onClick={() => setForm({ ...form, is_student: true })} className={`flex-1 py-2.5 rounded-xl text-sm font-medium border ${form.is_student ? "bg-[#024396] text-white border-[#024396]" : "border-[#E2D8C2] text-[#5C677D]"}`}>Yes, I'm a student</button>
-                <button type="button" onClick={() => setForm({ ...form, is_student: false, college: "", subject: "" })} className={`flex-1 py-2.5 rounded-xl text-sm font-medium border ${!form.is_student ? "bg-[#024396] text-white border-[#024396]" : "border-[#E2D8C2] text-[#5C677D]"}`}>No</button>
-              </div>
-            </div>
-
-            {form.is_student && (
-              <>
-                <input required placeholder="College / Institute Name *" value={form.college} onChange={(e) => setForm({ ...form, college: e.target.value })} className={field} />
-                <input required placeholder="Subject / Course you're studying *" value={form.subject} onChange={(e) => setForm({ ...form, subject: e.target.value })} className={field} />
-              </>
-            )}
-
-            <select required value={form.department} onChange={(e) => setForm({ ...form, department: e.target.value })} className={field}>
-              {DEPARTMENTS.map((d) => <option key={d} value={d}>{d}</option>)}
-            </select>
-
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="text-xs text-[#5C677D] mb-1 block">Duration *</label>
-                <select value={form.duration_days} onChange={(e) => setForm({ ...form, duration_days: Number(e.target.value) })} className={field}>
-                  {DURATIONS.map((d) => <option key={d} value={d}>{d} days</option>)}
-                </select>
-              </div>
-              <div>
-                <label className="text-xs text-[#5C677D] mb-1 block">Start Date *</label>
-                <input required type="date" min={todayStr} value={form.start_date} onChange={(e) => setForm({ ...form, start_date: e.target.value })} className={field} />
-              </div>
-            </div>
-            {form.start_date && (
-              <p className="text-xs text-[#5C677D] -mt-1.5 px-1">Your internship will run until <b>{endDate}</b> ({form.duration_days} days).</p>
-            )}
-
-            <div className="border-t border-[#E2D8C2] pt-3">
-              <p className="text-xs font-semibold text-[#5C677D] mb-2 uppercase tracking-wide">Personal Details</p>
-              <div className="space-y-3">
-                <input required placeholder="Father's Name *" value={form.father_name} onChange={(e) => setForm({ ...form, father_name: e.target.value })} className={field} />
-                <textarea required placeholder="Address *" rows={2} value={form.address} onChange={(e) => setForm({ ...form, address: e.target.value })} className={`${field} resize-none`} />
-                <div className="grid grid-cols-2 gap-3">
-                  <input required placeholder="Aadhaar No. *" value={form.aadhar_number} onChange={(e) => setForm({ ...form, aadhar_number: e.target.value })} className={field} />
-                  <input placeholder="PAN No. (optional)" value={form.pan_number} onChange={(e) => setForm({ ...form, pan_number: e.target.value })} className={field} />
+              <SectionHeader icon={User} title="Basic Information" />
+              <div className="space-y-3.5">
+                <div>
+                  <FieldLabel required>Full Name</FieldLabel>
+                  <input required placeholder="As it should appear on your certificate" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} className={field} />
                 </div>
-                <input required type="tel" placeholder="Contact Phone *" value={form.contact_phone} onChange={(e) => setForm({ ...form, contact_phone: e.target.value })} className={field} />
-                <input type="email" placeholder="Email (optional)" value={form.contact_email} onChange={(e) => setForm({ ...form, contact_email: e.target.value })} className={field} />
+
+                <div>
+                  <FieldLabel required>Are you currently a student?</FieldLabel>
+                  <div className="flex gap-2">
+                    <button type="button" onClick={() => setForm({ ...form, is_student: true })} className={`flex-1 py-2.5 rounded-xl text-sm font-medium border transition-colors ${form.is_student ? "bg-[#024396] text-white border-[#024396]" : "border-[#E2D8C2] text-[#5C677D] hover:border-[#024396]/40"}`}>Yes, I'm a student</button>
+                    <button type="button" onClick={() => setForm({ ...form, is_student: false, college: "", subject: "" })} className={`flex-1 py-2.5 rounded-xl text-sm font-medium border transition-colors ${!form.is_student ? "bg-[#024396] text-white border-[#024396]" : "border-[#E2D8C2] text-[#5C677D] hover:border-[#024396]/40"}`}>No</button>
+                  </div>
+                </div>
+
+                {form.is_student && (
+                  <div className="grid sm:grid-cols-2 gap-3.5">
+                    <div>
+                      <FieldLabel required>College / Institute</FieldLabel>
+                      <input required placeholder="Full college name" value={form.college} onChange={(e) => setForm({ ...form, college: e.target.value })} className={field} />
+                    </div>
+                    <div>
+                      <FieldLabel required>Subject / Course</FieldLabel>
+                      <input required placeholder="e.g. B.Com, BBA" value={form.subject} onChange={(e) => setForm({ ...form, subject: e.target.value })} className={field} />
+                    </div>
+                  </div>
+                )}
+
+                <div className="grid sm:grid-cols-2 gap-3.5">
+                  <div>
+                    <FieldLabel required>Email</FieldLabel>
+                    <input required type="email" placeholder="you@example.com" value={form.contact_email} onChange={(e) => setForm({ ...form, contact_email: e.target.value })} className={field} />
+                  </div>
+                  <div>
+                    <FieldLabel required>Contact Phone</FieldLabel>
+                    <input required type="tel" placeholder="10-digit mobile number" value={form.contact_phone} onChange={(e) => setForm({ ...form, contact_phone: e.target.value })} className={field} />
+                  </div>
+                </div>
+                <p className="text-[11px] text-[#5C677D] -mt-2.5 flex items-center gap-1">
+                  <FileCheck2 size={11} className="shrink-0" /> Your Certificate and Completion Letter will be sent to this email address — please double-check it's correct.
+                </p>
               </div>
             </div>
 
-            {error && <p className="text-sm text-red-600">{error}</p>}
+            <div className="border-t border-[#F0EADD] pt-5">
+              <SectionHeader icon={GraduationCap} title="Internship Details" />
+              <div className="space-y-3.5">
+                <div>
+                  <FieldLabel required>Department</FieldLabel>
+                  <select required value={form.department} onChange={(e) => setForm({ ...form, department: e.target.value })} className={field}>
+                    {DEPARTMENTS.map((d) => <option key={d} value={d}>{d}</option>)}
+                  </select>
+                </div>
+                <div className="grid sm:grid-cols-2 gap-3.5">
+                  <div>
+                    <FieldLabel required>Duration</FieldLabel>
+                    <select value={form.duration_days} onChange={(e) => setForm({ ...form, duration_days: Number(e.target.value) })} className={field}>
+                      {DURATIONS.map((d) => <option key={d} value={d}>{d} days</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <FieldLabel required>Start Date</FieldLabel>
+                    <input required type="date" min={todayStr} value={form.start_date} onChange={(e) => setForm({ ...form, start_date: e.target.value })} className={field} />
+                  </div>
+                </div>
+                {form.start_date && (
+                  <p className="text-xs text-[#024396] bg-[#024396]/5 rounded-lg px-3 py-2">Your internship will run until <b>{endDate}</b> — {form.duration_days} days total.</p>
+                )}
+              </div>
+            </div>
 
-            <button type="submit" className="w-full py-3 rounded-xl bg-[#024396] text-white text-sm font-semibold hover:bg-[#023580] transition-colors">
+            <div className="border-t border-[#F0EADD] pt-5">
+              <SectionHeader icon={FileCheck2} title="Personal / KYC Details" subtitle="Required for certificate verification" />
+              <div className="space-y-3.5">
+                <div>
+                  <FieldLabel required>Father's Name</FieldLabel>
+                  <input required value={form.father_name} onChange={(e) => setForm({ ...form, father_name: e.target.value })} className={field} />
+                </div>
+                <div>
+                  <FieldLabel required>Address</FieldLabel>
+                  <textarea required rows={2} value={form.address} onChange={(e) => setForm({ ...form, address: e.target.value })} className={`${field} resize-none`} />
+                </div>
+                <div className="grid sm:grid-cols-2 gap-3.5">
+                  <div>
+                    <FieldLabel required>Aadhaar No.</FieldLabel>
+                    <input required value={form.aadhar_number} onChange={(e) => setForm({ ...form, aadhar_number: e.target.value })} className={field} />
+                  </div>
+                  <div>
+                    <FieldLabel>PAN No. (optional)</FieldLabel>
+                    <input value={form.pan_number} onChange={(e) => setForm({ ...form, pan_number: e.target.value })} className={field} />
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {error && <p className="text-sm text-[#C7102E] bg-[#C7102E]/5 rounded-lg px-3.5 py-2.5">{error}</p>}
+
+            <button type="submit" className="w-full py-3.5 rounded-xl bg-[#024396] text-white text-sm font-semibold hover:bg-[#023580] shadow-md shadow-[#024396]/20 transition-colors">
               Review & Continue
             </button>
           </form>
         )}
 
         {step === "review" && (
-          <div className="bg-white rounded-2xl shadow-lg border border-[#E2D8C2] p-6 space-y-4">
-            <button onClick={() => setStep("form")} className="flex items-center gap-1 text-xs text-[#024396] font-medium">
+          <div className="bg-white rounded-3xl shadow-lg border border-[#E2D8C2] p-6 sm:p-8 space-y-5">
+            <button onClick={() => setStep("form")} className="flex items-center gap-1 text-xs text-[#024396] font-semibold hover:underline">
               <ChevronLeft size={14} /> Back to edit
             </button>
-            <h2 className="text-sm font-semibold text-[#0E1B2C]">Please review your details</h2>
-            <div className="bg-[#F5F1EB] rounded-xl p-3.5 text-xs space-y-1.5">
+            <div>
+              <h2 className="font-display text-lg font-medium text-[#0E1B2C]">Please review your details</h2>
+              <p className="text-xs text-[#5C677D] mt-0.5">Take a moment to check everything is correct before submitting.</p>
+            </div>
+            <div className="bg-[#F5F1EB] rounded-2xl p-4 text-xs space-y-2">
               <Row label="Name" value={form.name} />
               <Row label="Student?" value={form.is_student ? "Yes" : "No"} />
               {form.is_student && <Row label="College" value={form.college} />}
@@ -189,7 +304,7 @@ export default function InternApplicationPage() {
               <Row label="Aadhaar No." value={form.aadhar_number} />
               {form.pan_number && <Row label="PAN No." value={form.pan_number} />}
               <Row label="Phone" value={form.contact_phone} />
-              {form.contact_email && <Row label="Email" value={form.contact_email} />}
+              <Row label="Email" value={form.contact_email} />
             </div>
 
             <label className="flex items-start gap-2.5 cursor-pointer select-none">
@@ -199,8 +314,8 @@ export default function InternApplicationPage() {
               </span>
             </label>
 
-            <div className="bg-amber-50 border border-amber-200 rounded-xl p-3.5 space-y-2.5">
-              <p className="text-xs text-amber-900 font-medium flex items-center gap-1.5"><Star size={14} className="text-amber-500 fill-amber-500" /> One last thing before you submit</p>
+            <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 space-y-2.5">
+              <p className="text-xs text-amber-900 font-semibold flex items-center gap-1.5"><Star size={14} className="text-amber-500 fill-amber-500" /> One last thing before you submit</p>
               <p className="text-xs text-amber-800 leading-relaxed">
                 Please take a moment to rate us and share a short review on Google — it genuinely helps us reach more students like you.
               </p>
@@ -221,12 +336,12 @@ export default function InternApplicationPage() {
               </label>
             </div>
 
-            {error && <p className="text-sm text-red-600">{error}</p>}
+            {error && <p className="text-sm text-[#C7102E] bg-[#C7102E]/5 rounded-lg px-3.5 py-2.5">{error}</p>}
 
             <button
               onClick={submit}
               disabled={!declared || !rated || submitting}
-              className="w-full py-3 rounded-xl bg-[#024396] text-white text-sm font-semibold hover:bg-[#023580] transition-colors disabled:opacity-50"
+              className="w-full py-3.5 rounded-xl bg-[#024396] text-white text-sm font-semibold hover:bg-[#023580] shadow-md shadow-[#024396]/20 transition-colors disabled:opacity-50 disabled:shadow-none"
             >
               {submitting ? "Submitting..." : "Confirm & Submit Application"}
             </button>

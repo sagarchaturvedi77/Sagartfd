@@ -166,7 +166,7 @@ class InternApplicationIn(BaseModel):
     duration_days: int
     start_date: str
     contact_phone: str
-    contact_email: Optional[str] = None
+    contact_email: str
     father_name: str
     address: str
     aadhar_number: str
@@ -195,6 +195,8 @@ async def submit_intern_application(data: InternApplicationIn):
         raise HTTPException(status_code=400, detail="College name and subject/course are required for students")
     if not data.father_name.strip() or not data.address.strip() or not data.aadhar_number.strip():
         raise HTTPException(status_code=400, detail="Father's name, address, and Aadhaar number are required")
+    if not data.contact_email.strip() or "@" not in data.contact_email:
+        raise HTTPException(status_code=400, detail="A valid email address is required — your Certificate and Completion Letter will be sent there")
 
     end = start + timedelta(days=data.duration_days - 1)
     now = datetime.now(timezone.utc).isoformat()
@@ -209,7 +211,7 @@ async def submit_intern_application(data: InternApplicationIn):
         "subject": data.subject.strip() if data.is_student and data.subject else None,
         "department": data.department,
         "start_date": data.start_date, "end_date": end.isoformat(), "duration_days": data.duration_days,
-        "contact_phone": data.contact_phone.strip(), "contact_email": (data.contact_email or "").strip() or None,
+        "contact_phone": data.contact_phone.strip(), "contact_email": data.contact_email.strip(),
         "father_name": data.father_name.strip(), "address": data.address.strip(),
         "aadhar_number": data.aadhar_number.strip(), "pan_number": (data.pan_number or "").strip() or None,
     }
