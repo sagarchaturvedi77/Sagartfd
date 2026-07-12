@@ -116,6 +116,13 @@ async def create_intern(data: InternCreate, admin: dict = Depends(require_admin)
     await interns_collection.insert_one(intern)
     intern.pop("_id", None)
     await log_activity(admin["sub"], "intern_added", f"Added intern record: {data.name} ({data.department})", link="/portal/admin/certificates")
+
+    try:
+        await _auto_generate_offer_letter(intern["id"], intern, admin["sub"])
+        intern["offer_letter_generated_at"] = datetime.now(timezone.utc).isoformat()
+    except Exception:
+        pass  # offer letter can still be generated manually from the list if this fails
+
     return intern
 
 
@@ -205,6 +212,13 @@ async def approve_intern(intern_id: str, data: ApproveInternIn, admin: dict = De
         }},
     )
     await log_activity(admin["sub"], "intern_approved", f"Approved intern application: {intern['name']}", link="/portal/admin/certificates")
+
+    try:
+        approved_intern = await interns_collection.find_one({"id": intern_id})
+        await _auto_generate_offer_letter(intern_id, approved_intern, admin["sub"])
+    except Exception:
+        pass  # offer letter can still be generated manually from the list if this fails
+
     return {"status": "approved"}
 
 
@@ -244,6 +258,17 @@ class GenerateLetterIn(BaseModel):
     custom_body: Optional[str] = None
 
 
+async def _auto_generate_offer_letter(intern_id: str, intern: dict, admin_id: str) -> bytes:
+    """Shared by the explicit "Generate Offer Letter" button and the
+    auto-generate-on-add/approve hooks below — same PDF, same persisted
+    record, same activity log either way."""
+    pdf_bytes = generate_offer_letter_pdf(intern)
+    await _persist_letter_record(intern, "offer_letter", pdf_bytes, admin_id)
+    await interns_collection.update_one({"id": intern_id}, {"$set": {"offer_letter_generated_at": datetime.now(timezone.utc).isoformat()}})
+    await log_activity(admin_id, "offer_letter_generated", f"Generated offer letter for {intern['name']}", link="/portal/admin/certificates")
+    return pdf_bytes
+
+
 @router.post("/interns/{intern_id}/offer-letter")
 async def get_offer_letter(intern_id: str, data: GenerateLetterIn = GenerateLetterIn(), admin: dict = Depends(require_admin)):
     from fastapi.responses import StreamingResponse
@@ -255,12 +280,56 @@ async def get_offer_letter(intern_id: str, data: GenerateLetterIn = GenerateLett
     if intern.get("status") != "approved":
         raise HTTPException(status_code=400, detail="This intern application hasn't been approved yet")
 
-    pdf_bytes = generate_offer_letter_pdf(intern, custom_body=data.custom_body)
-    await _persist_letter_record(intern, "offer_letter", pdf_bytes, admin["sub"])
-    await interns_collection.update_one({"id": intern_id}, {"$set": {"offer_letter_generated_at": datetime.now(timezone.utc).isoformat()}})
-    await log_activity(admin["sub"], "offer_letter_generated", f"Generated offer letter for {intern['name']}", link="/portal/admin/certificates")
+    if data.custom_body is not None:
+        pdf_bytes = generate_offer_letter_pdf(intern, custom_body=data.custom_body)
+        await _persist_letter_record(intern, "offer_letter", pdf_bytes, admin["sub"])
+        await interns_collection.update_one({"id": intern_id}, {"$set": {"offer_letter_generated_at": datetime.now(timezone.utc).isoformat()}})
+        await log_activity(admin["sub"], "offer_letter_generated", f"Generated offer letter for {intern['name']}", link="/portal/admin/certificates")
+    else:
+        pdf_bytes = await _auto_generate_offer_letter(intern_id, intern, admin["sub"])
     filename = f"Offer_Letter_{intern['name'].replace(' ', '_')}.pdf"
     return StreamingResponse(io.BytesIO(pdf_bytes), media_type="application/pdf", headers={"Content-Disposition": f'attachment; filename="{filename}"'})
+
+
+async def _ensure_intern_certificate(intern_id: str, intern: dict, admin_id: str) -> dict:
+    """Returns the intern's internship certificate record, creating it
+    (silently, with the default auto-built detail text) if it doesn't exist
+    yet — so the completion letter always has a real certificate to point
+    its QR/number at, regardless of whether the admin generated the
+    certificate first or not."""
+    cert = await certificates_collection.find_one({"intern_id": intern_id, "type": "internship"})
+    if cert:
+        return cert
+
+    year = date.fromisoformat(intern["end_date"]).year
+    seq = await _next_sequence("internship", year)
+    cert_number = next_certificate_number("internship", year, seq)
+    duration_label = _duration_label(intern["start_date"], intern["end_date"])
+    issue_date = intern["end_date"]
+
+    cert_data = {
+        "certificate_number": cert_number, "person_name": intern["name"], "cert_type": "internship",
+        "department": intern["department"], "issue_date": issue_date, "duration_label": duration_label,
+        "custom_detail": None,
+    }
+    pdf_bytes = generate_certificate_pdf(cert_data, _verify_url(cert_number))
+
+    cert_id = str(uuid.uuid4())
+    r2_key = None
+    if r2_enabled():
+        r2_key = f"certificates/{cert_id}.pdf"
+        upload_bytes(r2_key, pdf_bytes, "application/pdf")
+
+    cert_doc = {
+        "id": cert_id, "certificate_number": cert_number, "person_name": intern["name"], "type": "internship",
+        "department": intern["department"], "issue_date": issue_date, "duration_label": duration_label,
+        "college": intern.get("college"), "linked_employee_id": None, "intern_id": intern_id,
+        "r2_key": r2_key, "created_by": admin_id, "created_at": datetime.now(timezone.utc).isoformat(),
+    }
+    await certificates_collection.insert_one(cert_doc)
+    await interns_collection.update_one({"id": intern_id}, {"$set": {"certificate_id": cert_id}})
+    await log_activity(admin_id, "certificate_generated", f"Auto-generated internship certificate {cert_number} for {intern['name']} (via completion letter)", link="/portal/admin/certificates")
+    return cert_doc
 
 
 @router.post("/interns/{intern_id}/completion-letter")
@@ -275,10 +344,12 @@ async def get_completion_letter(intern_id: str, data: GenerateLetterIn = Generat
         raise HTTPException(status_code=400, detail="This intern application hasn't been approved yet")
 
     # Reuse the intern's actual internship certificate's QR/number on the
-    # letter (not a separate one) — only if that certificate already exists.
-    cert = await certificates_collection.find_one({"intern_id": intern_id, "type": "internship"})
-    verify_url = _verify_url(cert["certificate_number"]) if cert else None
-    cert_number = cert["certificate_number"] if cert else None
+    # letter (not a separate one) — auto-creating the certificate record
+    # first if the admin hasn't generated it yet, so the letter is never
+    # missing its QR/number just because of generation order.
+    cert = await _ensure_intern_certificate(intern_id, intern, admin["sub"])
+    verify_url = _verify_url(cert["certificate_number"])
+    cert_number = cert["certificate_number"]
 
     pdf_bytes = generate_completion_letter_pdf(intern, custom_body=data.custom_body, verify_url=verify_url, certificate_number=cert_number)
     await _persist_letter_record(intern, "completion_letter", pdf_bytes, admin["sub"])
