@@ -27,19 +27,27 @@ export default function AdminCertificates() {
 
   const [tab, setTab] = useState("interns");
   const [interns, setInterns] = useState([]);
-  const [pendingInterns, setPendingInterns] = useState([]);
+  const [applications, setApplications] = useState([]);
   const [certificates, setCertificates] = useState([]);
   const [employees, setEmployees] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState("");
 
+  const emptyApproveForm = {
+    manager_name: "", manager_designation: "", stipend: "", stipend_type: "fixed",
+    name: "", is_student: true, college: "", subject: "", department: "Sales",
+    start_date: "", end_date: "", father_name: "", address: "", aadhar_number: "",
+    pan_number: "", contact_email: "", contact_phone: "",
+  };
   const [approveTarget, setApproveTarget] = useState(null);
-  const [approveForm, setApproveForm] = useState({ manager_name: "", manager_designation: "", stipend: "" });
+  const [approveForm, setApproveForm] = useState(emptyApproveForm);
+  const [approving, setApproving] = useState(false);
 
   const [showAddIntern, setShowAddIntern] = useState(false);
   const emptyInternForm = {
     name: "", college: "", department: "Sales", start_date: "", end_date: "",
     stipend: "", stipend_type: "fixed", manager_name: "", manager_designation: "",
-    father_name: "", address: "", aadhar_number: "", pan_number: "", contact_email: "", contact_phone: "",
+    contact_email: "", contact_phone: "",
   };
   const [internForm, setInternForm] = useState(emptyInternForm);
   const [addingIntern, setAddingIntern] = useState(false);
@@ -67,14 +75,14 @@ export default function AdminCertificates() {
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const [i, p, c, e] = await Promise.all([
+      const [i, a, c, e] = await Promise.all([
         fetch(`${API_BASE}/api/interns`, { headers }),
-        fetch(`${API_BASE}/api/interns/pending`, { headers }),
+        fetch(`${API_BASE}/api/interns/applications`, { headers }),
         fetch(`${API_BASE}/api/certificates`, { headers }),
         fetch(`${API_BASE}/api/auth/employees`, { headers }),
       ]);
       if (i.ok) setInterns(await i.json());
-      if (p.ok) setPendingInterns(await p.json());
+      if (a.ok) setApplications(await a.json());
       if (c.ok) setCertificates(await c.json());
       if (e.ok) setEmployees(await e.json());
     } catch { /* silent */ }
@@ -147,23 +155,43 @@ export default function AdminCertificates() {
     }
   };
 
+  const openApprove = (application) => {
+    setApproveTarget(application);
+    setApproveForm({
+      manager_name: "", manager_designation: "", stipend: "", stipend_type: "fixed",
+      name: application.name || "", is_student: application.is_student ?? true,
+      college: application.college || "", subject: application.subject || "",
+      department: application.department || "Sales",
+      start_date: application.start_date || "", end_date: application.end_date || "",
+      father_name: application.father_name || "", address: application.address || "",
+      aadhar_number: application.aadhar_number || "", pan_number: application.pan_number || "",
+      contact_email: application.contact_email || "", contact_phone: application.contact_phone || "",
+    });
+  };
+
   const submitApproval = async (e) => {
     e.preventDefault();
-    if (!approveTarget) return;
-    const res = await fetch(`${API_BASE}/api/interns/${approveTarget.id}/approve`, {
-      method: "POST", headers,
-      body: JSON.stringify({
-        manager_name: approveForm.manager_name, manager_designation: approveForm.manager_designation,
-        stipend: approveForm.stipend ? Number(approveForm.stipend) : null,
-      }),
-    });
-    if (res.ok) {
-      setApproveTarget(null);
-      setApproveForm({ manager_name: "", manager_designation: "", stipend: "" });
-      load();
-    } else {
-      const err = await res.json().catch(() => ({}));
-      alert(err.detail || "Failed to approve");
+    if (!approveTarget || approving) return;
+    setApproving(true);
+    try {
+      const res = await fetch(`${API_BASE}/api/interns/${approveTarget.id}/approve`, {
+        method: "POST", headers,
+        body: JSON.stringify({
+          ...approveForm,
+          stipend: approveForm.stipend_type === "fixed" && approveForm.stipend ? Number(approveForm.stipend) : null,
+          manager_designation: approveForm.manager_designation || null,
+        }),
+      });
+      if (res.ok) {
+        setApproveTarget(null);
+        setApproveForm(emptyApproveForm);
+        load();
+      } else {
+        const err = await res.json().catch(() => ({}));
+        alert(err.detail || "Failed to approve");
+      }
+    } finally {
+      setApproving(false);
     }
   };
 
@@ -260,72 +288,124 @@ export default function AdminCertificates() {
     }
   };
 
+  const filteredInterns = (() => {
+    const q = searchQuery.trim().toLowerCase();
+    if (!q) return interns;
+    const certNumbersByIntern = {};
+    certificates.forEach((c) => { if (c.intern_id) certNumbersByIntern[c.intern_id] = (certNumbersByIntern[c.intern_id] || []).concat(c.certificate_number || ""); });
+    return interns.filter((i) => {
+      const haystacks = [
+        i.name, i.college, i.aadhar_number, i.pan_number,
+        ...(certNumbersByIntern[i.id] || []),
+      ];
+      return haystacks.some((v) => v && String(v).toLowerCase().includes(q));
+    });
+  })();
+
   return (
     <PortalLayout>
       <PageHeader icon="🎓" title="Certificates &amp; Letters" subtitle="Offer letters, completion letters, and verifiable certificates" />
 
-      {(
-        <div className="space-y-4">
-          <div className="flex gap-2 flex-wrap">
-            <Button onClick={() => setShowAddIntern(true)} className="bg-[#024396] hover:bg-[#023580]">+ Add Intern</Button>
-            <Button onClick={copyApplicationLink} variant="outline"><Link2 size={14} className="mr-1.5" /> Generate Intern Form Link</Button>
-          </div>
-          <p className="text-xs text-[#2A364B]/50 dark:text-[#8E99AC]">Looking for Employee Certificates or Achievements? Those moved to <a href="/portal/admin/employees" className="text-[#024396] dark:text-[#7CB0FF] underline">Total Employees</a>.</p>
+      <div className="space-y-4">
+        <div className="flex gap-1 border-b border-[#E2D8C2] dark:border-white/10">
+          <button
+            onClick={() => setTab("interns")}
+            className={`px-4 py-2.5 text-sm font-medium border-b-2 transition-colors ${tab === "interns" ? "border-[#024396] text-[#024396] dark:text-[#7CB0FF] dark:border-[#7CB0FF]" : "border-transparent text-[#2A364B]/50 dark:text-[#8E99AC]"}`}
+          >
+            Interns
+          </button>
+          <button
+            onClick={() => setTab("applications")}
+            className={`px-4 py-2.5 text-sm font-medium border-b-2 transition-colors flex items-center gap-1.5 ${tab === "applications" ? "border-[#024396] text-[#024396] dark:text-[#7CB0FF] dark:border-[#7CB0FF]" : "border-transparent text-[#2A364B]/50 dark:text-[#8E99AC]"}`}
+          >
+            Applications
+            {applications.length > 0 && (
+              <span className="text-[10px] font-bold bg-[#024396]/10 dark:bg-white/10 text-[#024396] dark:text-[#7CB0FF] rounded-full px-1.5 py-0.5">{applications.length}</span>
+            )}
+          </button>
+        </div>
 
-          {pendingInterns.length > 0 && (
-            <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-2xl p-4">
-              <h4 className="text-sm font-semibold text-amber-800 dark:text-amber-300 mb-3">Pending Approval ({pendingInterns.length})</h4>
-              <div className="space-y-2">
-                {pendingInterns.map((p) => (
-                  <div key={p.id} className="bg-white dark:bg-[#101D2E] rounded-xl border border-amber-200 dark:border-amber-800 p-3 flex items-center justify-between flex-wrap gap-2">
-                    <div>
-                      <p className="text-sm font-medium text-[#0E1B2C] dark:text-[#F1EDE3]">{p.name}</p>
-                      <p className="text-xs text-[#2A364B]/50 dark:text-[#8E99AC]">{p.department} · {p.start_date} to {p.end_date}{p.college && ` · ${p.college}`} · {p.contact_phone}</p>
-                    </div>
-                    <div className="flex gap-2">
-                      <Button size="sm" onClick={() => { setApproveTarget(p); setApproveForm({ manager_name: "", manager_designation: "", stipend: "" }); }} className="bg-emerald-600 hover:bg-emerald-700 text-white">
-                        <Check size={12} className="mr-1" /> Approve
-                      </Button>
-                      <Button size="sm" variant="outline" onClick={() => rejectIntern(p)} className="text-red-600 dark:text-red-400 border-red-200 dark:border-red-800">
-                        <X size={12} className="mr-1" /> Reject
-                      </Button>
+        {tab === "interns" && (
+          <div className="space-y-4">
+            <div className="flex gap-2 flex-wrap items-center justify-between">
+              <Button onClick={() => setShowAddIntern(true)} className="bg-[#024396] hover:bg-[#023580]">+ Add Intern</Button>
+              <input
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search by name, college, Aadhaar No., PAN No., or certificate No."
+                className={`${field} max-w-sm`}
+              />
+            </div>
+            <p className="text-xs text-[#2A364B]/50 dark:text-[#8E99AC]">Looking for Employee Certificates or Achievements? Those moved to <a href="/portal/admin/employees" className="text-[#024396] dark:text-[#7CB0FF] underline">Total Employees</a>.</p>
+
+            {loading ? <div className="py-10 text-center"><div className="w-6 h-6 border-2 border-[#024396] border-t-transparent rounded-full animate-spin mx-auto" /></div> : (
+              <div className="space-y-3">
+                {filteredInterns.map((intern) => (
+                  <div key={intern.id} className="bg-white dark:bg-[#101D2E] rounded-2xl border border-[#E2D8C2] dark:border-white/10 p-4">
+                    <div className="flex items-center justify-between flex-wrap gap-2">
+                      <button onClick={() => openInternDetail(intern)} className="text-left">
+                        <p className="font-medium text-[#0E1B2C] dark:text-[#F1EDE3] hover:underline">{intern.name}</p>
+                        <p className="text-xs text-[#2A364B]/50 dark:text-[#8E99AC]">{intern.department} · {intern.start_date} to {intern.end_date}{intern.college && ` · ${intern.college}`}</p>
+                      </button>
+                      <div className="flex gap-2 flex-wrap">
+                        <Button size="sm" variant="outline" onClick={() => openTemplateEdit(intern, "offer_letter")}><Download size={12} className="mr-1" /> Offer Letter</Button>
+                        {intern.certificate_id ? (
+                          <span className="text-xs text-emerald-600 dark:text-emerald-400 font-medium px-3 py-1.5">Certificate + Completion Letter issued ✓</span>
+                        ) : (
+                          <Button size="sm" disabled={generatingBoth === intern.id} onClick={() => generateCertAndCompletionLetter(intern)} className="bg-[#024396] hover:bg-[#023580]">
+                            <Award size={12} className="mr-1" /> {generatingBoth === intern.id ? "Generating..." : "Certificate + Completion Letter"}
+                          </Button>
+                        )}
+                        <Button size="sm" variant="outline" onClick={() => { setEmailInternTarget(intern); setEmailInternAddress(intern.contact_email || ""); setEmailInternDocs([]); }}>
+                          <Send size={12} className="mr-1" /> Email Documents
+                        </Button>
+                      </div>
                     </div>
                   </div>
                 ))}
+                {filteredInterns.length === 0 && <p className="text-sm text-[#2A364B]/50 dark:text-[#8E99AC] text-center py-8">{searchQuery ? "No matches found." : "No interns added yet."}</p>}
               </div>
-            </div>
-          )}
+            )}
+          </div>
+        )}
 
-          {loading ? <div className="py-10 text-center"><div className="w-6 h-6 border-2 border-[#024396] border-t-transparent rounded-full animate-spin mx-auto" /></div> : (
-            <div className="space-y-3">
-              {interns.map((intern) => (
-                <div key={intern.id} className="bg-white dark:bg-[#101D2E] rounded-2xl border border-[#E2D8C2] dark:border-white/10 p-4">
-                  <div className="flex items-center justify-between flex-wrap gap-2">
-                    <button onClick={() => openInternDetail(intern)} className="text-left">
-                      <p className="font-medium text-[#0E1B2C] dark:text-[#F1EDE3] hover:underline">{intern.name}</p>
-                      <p className="text-xs text-[#2A364B]/50 dark:text-[#8E99AC]">{intern.department} · {intern.start_date} to {intern.end_date}{intern.college && ` · ${intern.college}`}</p>
-                    </button>
-                    <div className="flex gap-2 flex-wrap">
-                      <Button size="sm" variant="outline" onClick={() => openTemplateEdit(intern, "offer_letter")}><Download size={12} className="mr-1" /> Offer Letter</Button>
-                      {intern.certificate_id ? (
-                        <span className="text-xs text-emerald-600 dark:text-emerald-400 font-medium px-3 py-1.5">Certificate + Completion Letter issued ✓</span>
+        {tab === "applications" && (
+          <div className="space-y-4">
+            <div className="flex items-center justify-between flex-wrap gap-2">
+              <h3 className="text-sm font-semibold text-[#0E1B2C] dark:text-[#F1EDE3]">{applications.length} application{applications.length === 1 ? "" : "s"} received</h3>
+              <Button onClick={copyApplicationLink} variant="outline"><Link2 size={14} className="mr-1.5" /> Generate Intern Form Link</Button>
+            </div>
+            <div className="space-y-2">
+              {applications.map((a) => (
+                <div key={a.id} className="bg-white dark:bg-[#101D2E] rounded-xl border border-[#E2D8C2] dark:border-white/10 p-3 flex items-center justify-between flex-wrap gap-2">
+                  <div>
+                    <p className="text-sm font-medium text-[#0E1B2C] dark:text-[#F1EDE3] flex items-center gap-2">
+                      {a.name}
+                      {a.status === "pending" ? (
+                        <span className="text-[9px] font-semibold uppercase tracking-wide text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/30 px-1.5 py-0.5 rounded">Pending</span>
                       ) : (
-                        <Button size="sm" disabled={generatingBoth === intern.id} onClick={() => generateCertAndCompletionLetter(intern)} className="bg-[#024396] hover:bg-[#023580]">
-                          <Award size={12} className="mr-1" /> {generatingBoth === intern.id ? "Generating..." : "Certificate + Completion Letter"}
-                        </Button>
+                        <span className="text-[9px] font-semibold uppercase tracking-wide text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/30 px-1.5 py-0.5 rounded">Approved</span>
                       )}
-                      <Button size="sm" variant="outline" onClick={() => { setEmailInternTarget(intern); setEmailInternAddress(intern.contact_email || ""); setEmailInternDocs([]); }}>
-                        <Send size={12} className="mr-1" /> Email Documents
+                    </p>
+                    <p className="text-xs text-[#2A364B]/50 dark:text-[#8E99AC]">{a.department} · {a.start_date} to {a.end_date}{a.college && ` · ${a.college}`} · {a.contact_phone}</p>
+                  </div>
+                  {a.status === "pending" && (
+                    <div className="flex gap-2">
+                      <Button size="sm" onClick={() => openApprove(a)} className="bg-emerald-600 hover:bg-emerald-700 text-white">
+                        <Check size={12} className="mr-1" /> Approve
+                      </Button>
+                      <Button size="sm" variant="outline" onClick={() => rejectIntern(a)} className="text-red-600 dark:text-red-400 border-red-200 dark:border-red-800">
+                        <X size={12} className="mr-1" /> Reject
                       </Button>
                     </div>
-                  </div>
+                  )}
                 </div>
               ))}
-              {interns.length === 0 && <p className="text-sm text-[#2A364B]/50 dark:text-[#8E99AC] text-center py-8">No interns added yet.</p>}
+              {applications.length === 0 && <p className="text-sm text-[#2A364B]/50 dark:text-[#8E99AC] text-center py-8">No applications received yet.</p>}
             </div>
-          )}
-        </div>
-      )}
+          </div>
+        )}
+      </div>
 
       <PortalModal open={showAddIntern} onOpenChange={setShowAddIntern} title="Add Intern" maxWidth="max-w-md">
         <form onSubmit={submitIntern} className="space-y-3">
@@ -339,21 +419,13 @@ export default function AdminCertificates() {
             <div><label className="text-xs text-[#2A364B]/60 dark:text-[#8E99AC] mb-1 block">End Date</label><input required type="date" value={internForm.end_date} onChange={(e) => setInternForm({ ...internForm, end_date: e.target.value })} className={field} /></div>
           </div>
 
-          <div className="border-t border-[#E2D8C2] dark:border-white/10 pt-3">
-            <p className="text-xs font-semibold text-[#2A364B]/60 dark:text-[#8E99AC] mb-2 uppercase tracking-wide">Personal Details (optional)</p>
-            <div className="space-y-3">
-              <input placeholder="Father's Name" value={internForm.father_name} onChange={(e) => setInternForm({ ...internForm, father_name: e.target.value })} className={field} />
-              <textarea placeholder="Address" rows={2} value={internForm.address} onChange={(e) => setInternForm({ ...internForm, address: e.target.value })} className={`${field} resize-none`} />
-              <div className="grid grid-cols-2 gap-3">
-                <input placeholder="Aadhaar No." value={internForm.aadhar_number} onChange={(e) => setInternForm({ ...internForm, aadhar_number: e.target.value })} className={field} />
-                <input placeholder="PAN No." value={internForm.pan_number} onChange={(e) => setInternForm({ ...internForm, pan_number: e.target.value })} className={field} />
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <input type="email" placeholder="Email ID" value={internForm.contact_email} onChange={(e) => setInternForm({ ...internForm, contact_email: e.target.value })} className={field} />
-                <input placeholder="Contact No." value={internForm.contact_phone} onChange={(e) => setInternForm({ ...internForm, contact_phone: e.target.value })} className={field} />
-              </div>
-            </div>
+          <div className="grid grid-cols-2 gap-3">
+            <input type="email" placeholder="Email ID (optional)" value={internForm.contact_email} onChange={(e) => setInternForm({ ...internForm, contact_email: e.target.value })} className={field} />
+            <input placeholder="Contact No. (optional)" value={internForm.contact_phone} onChange={(e) => setInternForm({ ...internForm, contact_phone: e.target.value })} className={field} />
           </div>
+          <p className="text-[11px] text-[#2A364B]/40 dark:text-[#8E99AC]/60 -mt-1">
+            Personal/KYC details (father's name, address, Aadhaar, PAN) are collected via the Applications link instead — see the Applications tab.
+          </p>
 
           <div className="border-t border-[#E2D8C2] dark:border-white/10 pt-3 space-y-2">
             <label className="text-xs text-[#2A364B]/60 dark:text-[#8E99AC] block">Monthly Stipend</label>
@@ -375,16 +447,67 @@ export default function AdminCertificates() {
         </form>
       </PortalModal>
 
-      <PortalModal open={!!approveTarget} onOpenChange={(v) => !v && setApproveTarget(null)} title="Approve Intern Application" maxWidth="max-w-md">
+      <PortalModal open={!!approveTarget} onOpenChange={(v) => !v && setApproveTarget(null)} title="Review & Approve Application" maxWidth="max-w-lg">
         {approveTarget && (
           <form onSubmit={submitApproval} className="space-y-3">
             <p className="text-xs text-[#2A364B]/60 dark:text-[#8E99AC] -mt-2">
-              {approveTarget.name} · {approveTarget.department} · {approveTarget.start_date} to {approveTarget.end_date}
+              Applied via link on {new Date(approveTarget.created_at).toLocaleDateString("en-IN")}. Everything below is editable before you approve.
             </p>
+
+            <input required placeholder="Name *" value={approveForm.name} onChange={(e) => setApproveForm({ ...approveForm, name: e.target.value })} className={field} />
+
+            <div className="flex gap-2">
+              <button type="button" onClick={() => setApproveForm({ ...approveForm, is_student: true })} className={`flex-1 py-2 rounded-xl text-xs font-medium border ${approveForm.is_student ? "bg-[#024396] text-white border-[#024396]" : "border-[#E2D8C2] dark:border-white/15 text-[#2A364B]/60 dark:text-[#8E99AC]"}`}>Student</button>
+              <button type="button" onClick={() => setApproveForm({ ...approveForm, is_student: false })} className={`flex-1 py-2 rounded-xl text-xs font-medium border ${!approveForm.is_student ? "bg-[#024396] text-white border-[#024396]" : "border-[#E2D8C2] dark:border-white/15 text-[#2A364B]/60 dark:text-[#8E99AC]"}`}>Not a student</button>
+            </div>
+            {approveForm.is_student && (
+              <div className="grid grid-cols-2 gap-3">
+                <input placeholder="College" value={approveForm.college} onChange={(e) => setApproveForm({ ...approveForm, college: e.target.value })} className={field} />
+                <input placeholder="Subject / Course" value={approveForm.subject} onChange={(e) => setApproveForm({ ...approveForm, subject: e.target.value })} className={field} />
+              </div>
+            )}
+
+            <select value={approveForm.department} onChange={(e) => setApproveForm({ ...approveForm, department: e.target.value })} className={field}>
+              {DEPARTMENTS.map((d) => <option key={d} value={d}>{d}</option>)}
+            </select>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div><label className="text-xs text-[#2A364B]/60 dark:text-[#8E99AC] mb-1 block">Start Date</label><input type="date" value={approveForm.start_date} onChange={(e) => setApproveForm({ ...approveForm, start_date: e.target.value })} className={field} /></div>
+              <div><label className="text-xs text-[#2A364B]/60 dark:text-[#8E99AC] mb-1 block">End Date</label><input type="date" value={approveForm.end_date} onChange={(e) => setApproveForm({ ...approveForm, end_date: e.target.value })} className={field} /></div>
+            </div>
+            <p className="text-[11px] text-[#2A364B]/40 dark:text-[#8E99AC]/60 -mt-1">You can set any date here, including backdating — unlike the public application form.</p>
+
+            <div className="border-t border-[#E2D8C2] dark:border-white/10 pt-3 space-y-3">
+              <p className="text-xs font-semibold text-[#2A364B]/60 dark:text-[#8E99AC] uppercase tracking-wide">Personal Details</p>
+              <input placeholder="Father's Name" value={approveForm.father_name} onChange={(e) => setApproveForm({ ...approveForm, father_name: e.target.value })} className={field} />
+              <textarea placeholder="Address" rows={2} value={approveForm.address} onChange={(e) => setApproveForm({ ...approveForm, address: e.target.value })} className={`${field} resize-none`} />
+              <div className="grid grid-cols-2 gap-3">
+                <input placeholder="Aadhaar No." value={approveForm.aadhar_number} onChange={(e) => setApproveForm({ ...approveForm, aadhar_number: e.target.value })} className={field} />
+                <input placeholder="PAN No." value={approveForm.pan_number} onChange={(e) => setApproveForm({ ...approveForm, pan_number: e.target.value })} className={field} />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <input type="email" placeholder="Email" value={approveForm.contact_email} onChange={(e) => setApproveForm({ ...approveForm, contact_email: e.target.value })} className={field} />
+                <input placeholder="Contact No." value={approveForm.contact_phone} onChange={(e) => setApproveForm({ ...approveForm, contact_phone: e.target.value })} className={field} />
+              </div>
+            </div>
+
+            <div className="border-t border-[#E2D8C2] dark:border-white/10 pt-3 space-y-2">
+              <label className="text-xs text-[#2A364B]/60 dark:text-[#8E99AC] block">Monthly Stipend</label>
+              <div className="flex gap-2">
+                <select value={approveForm.stipend_type} onChange={(e) => setApproveForm({ ...approveForm, stipend_type: e.target.value })} className={field}>
+                  <option value="fixed">Fixed amount</option>
+                  <option value="performance_based">Performance based</option>
+                  <option value="unpaid">Unpaid</option>
+                </select>
+                {approveForm.stipend_type === "fixed" && (
+                  <input type="number" placeholder="₹ / month (optional)" value={approveForm.stipend} onChange={(e) => setApproveForm({ ...approveForm, stipend: e.target.value })} className={field} />
+                )}
+              </div>
+            </div>
+
             <input required placeholder="Reporting Manager Name *" value={approveForm.manager_name} onChange={(e) => setApproveForm({ ...approveForm, manager_name: e.target.value })} className={field} />
-            <input required placeholder="Manager Designation *" value={approveForm.manager_designation} onChange={(e) => setApproveForm({ ...approveForm, manager_designation: e.target.value })} className={field} />
-            <input type="number" placeholder="Monthly Stipend (optional)" value={approveForm.stipend} onChange={(e) => setApproveForm({ ...approveForm, stipend: e.target.value })} className={field} />
-            <Button type="submit" className="w-full bg-emerald-600 hover:bg-emerald-700 text-white">Approve</Button>
+            <input placeholder="Manager Designation (optional)" value={approveForm.manager_designation} onChange={(e) => setApproveForm({ ...approveForm, manager_designation: e.target.value })} className={field} />
+            <Button type="submit" disabled={approving} className="w-full bg-emerald-600 hover:bg-emerald-700 text-white">{approving ? "Approving..." : "Approve"}</Button>
           </form>
         )}
       </PortalModal>

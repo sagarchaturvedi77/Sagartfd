@@ -5,7 +5,7 @@ against — every certificate created here gets a unique, verifiable
 certificate_number and a QR code pointing at the public /verify page.
 """
 import uuid
-from datetime import date, datetime, timezone
+from datetime import date, datetime, timedelta, timezone
 from typing import List, Literal, Optional
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -81,6 +81,11 @@ async def _persist_letter_record(intern: dict, letter_type: str, pdf_bytes: byte
 # ── Interns: one record created up front, offer letter then completion+certificate later ──
 
 class InternCreate(BaseModel):
+    """Admin's own quick-add — no personal-detail (KYC) fields here; those
+    are collected through the public application link instead (see
+    InternApplicationIn below), where they're validated and the applicant
+    is warned they'll appear on the certificate. Admin has no date/duration
+    restrictions here or when approving an application."""
     name: str
     college: Optional[str] = None
     department: str
@@ -90,10 +95,6 @@ class InternCreate(BaseModel):
     stipend_type: Literal["fixed", "performance_based", "unpaid"] = "fixed"
     manager_name: str
     manager_designation: Optional[str] = None
-    father_name: Optional[str] = None
-    address: Optional[str] = None
-    aadhar_number: Optional[str] = None
-    pan_number: Optional[str] = None
     contact_email: Optional[str] = None
     contact_phone: Optional[str] = None
 
@@ -112,7 +113,9 @@ async def create_intern(data: InternCreate, admin: dict = Depends(require_admin)
     intern = {
         "id": str(uuid.uuid4()),
         **data.model_dump(),
-        "status": "approved",
+        "is_student": bool(data.college), "subject": None,
+        "father_name": None, "address": None, "aadhar_number": None, "pan_number": None,
+        "status": "approved", "source": "admin",
         "offer_letter_generated_at": None,
         "completion_letter_generated_at": None,
         "certificate_id": None,
@@ -144,32 +147,70 @@ async def list_interns(admin: dict = Depends(require_admin)):
 
 
 # ── Self-service intern application (public, no auth) ──────────────────
+# This is the authoritative KYC intake now — every personal-detail field
+# that ends up on the certificate is collected and validated here, not in
+# the admin's quick-add form. No backdating, minimum 45-day duration off a
+# fixed 45/60/90 picker (end_date is computed server-side, never trusted
+# from the client), and college/subject are required together whenever the
+# applicant says they're a student.
+
+_ALLOWED_DURATIONS = {45, 60, 90}
+
 
 class InternApplicationIn(BaseModel):
     name: str
+    is_student: bool = True
     college: Optional[str] = None
+    subject: Optional[str] = None
     department: str
+    duration_days: int
     start_date: str
-    end_date: str
     contact_phone: str
     contact_email: Optional[str] = None
+    father_name: str
+    address: str
+    aadhar_number: str
+    pan_number: Optional[str] = None
 
 
 @router.post("/interns/public/apply")
 async def submit_intern_application(data: InternApplicationIn):
     """Public, unauthenticated — the self-service form intern fills out
     from the link admin shares. Lands in /interns/pending for admin review;
-    manager_name/manager_designation get filled in at approval time, since
-    an intern applying wouldn't know who they're assigned to yet."""
+    manager_name/manager_designation/stipend get filled in at approval
+    time, since an intern applying wouldn't know who they're assigned to
+    yet — but everything else here (including personal/KYC details) is
+    exactly what will print on their certificate, hence the validation."""
     if data.department not in DEPARTMENTS:
         raise HTTPException(status_code=400, detail=f"Department must be one of {DEPARTMENTS}")
+    if data.duration_days not in _ALLOWED_DURATIONS:
+        raise HTTPException(status_code=400, detail="Duration must be 45, 60, or 90 days")
+    try:
+        start = date.fromisoformat(data.start_date)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid start date")
+    if start < date.today():
+        raise HTTPException(status_code=400, detail="Start date cannot be in the past")
+    if data.is_student and not (data.college and data.college.strip() and data.subject and data.subject.strip()):
+        raise HTTPException(status_code=400, detail="College name and subject/course are required for students")
+    if not data.father_name.strip() or not data.address.strip() or not data.aadhar_number.strip():
+        raise HTTPException(status_code=400, detail="Father's name, address, and Aadhaar number are required")
+
+    end = start + timedelta(days=data.duration_days - 1)
+
     intern = {
         "id": str(uuid.uuid4()),
-        "name": data.name, "college": data.college, "department": data.department,
-        "start_date": data.start_date, "end_date": data.end_date, "stipend": None,
+        "name": data.name.strip(), "is_student": data.is_student,
+        "college": data.college.strip() if data.is_student and data.college else None,
+        "subject": data.subject.strip() if data.is_student and data.subject else None,
+        "department": data.department,
+        "start_date": data.start_date, "end_date": end.isoformat(), "duration_days": data.duration_days,
+        "stipend": None, "stipend_type": "fixed",
         "manager_name": None, "manager_designation": None,
-        "contact_phone": data.contact_phone, "contact_email": data.contact_email,
-        "status": "pending",
+        "contact_phone": data.contact_phone.strip(), "contact_email": (data.contact_email or "").strip() or None,
+        "father_name": data.father_name.strip(), "address": data.address.strip(),
+        "aadhar_number": data.aadhar_number.strip(), "pan_number": (data.pan_number or "").strip() or None,
+        "status": "pending", "source": "link",
         "offer_letter_generated_at": None, "completion_letter_generated_at": None, "certificate_id": None,
         "created_by": None, "created_at": datetime.now(timezone.utc).isoformat(),
     }
@@ -196,11 +237,43 @@ async def list_pending_interns(admin: dict = Depends(require_admin)):
     return docs
 
 
+@router.get("/interns/applications")
+async def list_intern_applications(admin: dict = Depends(require_admin)):
+    """Every application that came in via the public link, regardless of
+    status (pending/approved) — the dedicated Applications section, as
+    opposed to /interns/pending (pending only) or /interns (approved,
+    includes admin-added too)."""
+    docs = []
+    async for doc in interns_collection.find({"source": "link"}).sort("created_at", -1):
+        doc.pop("_id", None)
+        docs.append(doc)
+    return docs
+
+
 class ApproveInternIn(BaseModel):
+    """Admin approves an application and can correct/fill in anything on
+    it in the same step — no restrictions on dates (unlike the public
+    application form) since this is a trusted admin action. Every field
+    besides manager_name is optional so the admin only has to touch what
+    actually needs fixing; anything left as None keeps the applicant's
+    original value."""
     manager_name: str
     manager_designation: Optional[str] = None
     stipend: Optional[float] = None
     stipend_type: Literal["fixed", "performance_based", "unpaid"] = "fixed"
+    name: Optional[str] = None
+    is_student: Optional[bool] = None
+    college: Optional[str] = None
+    subject: Optional[str] = None
+    department: Optional[str] = None
+    start_date: Optional[str] = None
+    end_date: Optional[str] = None
+    father_name: Optional[str] = None
+    address: Optional[str] = None
+    aadhar_number: Optional[str] = None
+    pan_number: Optional[str] = None
+    contact_email: Optional[str] = None
+    contact_phone: Optional[str] = None
 
 
 @router.post("/interns/{intern_id}/approve")
@@ -210,15 +283,19 @@ async def approve_intern(intern_id: str, data: ApproveInternIn, admin: dict = De
         raise HTTPException(status_code=404, detail="Intern not found")
     if intern.get("status") != "pending":
         raise HTTPException(status_code=400, detail="This intern is not pending approval")
-    await interns_collection.update_one(
-        {"id": intern_id},
-        {"$set": {
-            "status": "approved", "manager_name": data.manager_name,
-            "manager_designation": data.manager_designation, "stipend": data.stipend,
-            "stipend_type": data.stipend_type,
-            "created_by": admin["sub"],
-        }},
-    )
+
+    editable_fields = [
+        "name", "is_student", "college", "subject", "department", "start_date", "end_date",
+        "father_name", "address", "aadhar_number", "pan_number", "contact_email", "contact_phone",
+    ]
+    updates = {k: getattr(data, k) for k in editable_fields if getattr(data, k) is not None}
+    updates.update({
+        "status": "approved", "manager_name": data.manager_name,
+        "manager_designation": data.manager_designation, "stipend": data.stipend,
+        "stipend_type": data.stipend_type,
+        "created_by": admin["sub"],
+    })
+    await interns_collection.update_one({"id": intern_id}, {"$set": updates})
     await log_activity(admin["sub"], "intern_approved", f"Approved intern application: {intern['name']}", link="/portal/admin/certificates")
 
     try:
@@ -228,6 +305,45 @@ async def approve_intern(intern_id: str, data: ApproveInternIn, admin: dict = De
         pass  # offer letter can still be generated manually from the list if this fails
 
     return {"status": "approved"}
+
+
+class InternUpdateIn(BaseModel):
+    """Admin editing an already-approved intern's record — same free-form,
+    no-restrictions editing (including backdating) as the approve step,
+    just for after the fact. Every field optional; only what's provided
+    gets changed."""
+    name: Optional[str] = None
+    is_student: Optional[bool] = None
+    college: Optional[str] = None
+    subject: Optional[str] = None
+    department: Optional[str] = None
+    start_date: Optional[str] = None
+    end_date: Optional[str] = None
+    father_name: Optional[str] = None
+    address: Optional[str] = None
+    aadhar_number: Optional[str] = None
+    pan_number: Optional[str] = None
+    contact_email: Optional[str] = None
+    contact_phone: Optional[str] = None
+    manager_name: Optional[str] = None
+    manager_designation: Optional[str] = None
+    stipend: Optional[float] = None
+    stipend_type: Optional[Literal["fixed", "performance_based", "unpaid"]] = None
+
+
+@router.put("/interns/{intern_id}")
+async def update_intern(intern_id: str, data: InternUpdateIn, admin: dict = Depends(require_admin)):
+    intern = await interns_collection.find_one({"id": intern_id})
+    if not intern:
+        raise HTTPException(status_code=404, detail="Intern not found")
+    updates = {k: v for k, v in data.model_dump().items() if v is not None}
+    if not updates:
+        return {"status": "no changes"}
+    await interns_collection.update_one({"id": intern_id}, {"$set": updates})
+    await log_activity(admin["sub"], "intern_edited", f"Edited intern record: {intern['name']}", link="/portal/admin/certificates")
+    updated = await interns_collection.find_one({"id": intern_id})
+    updated.pop("_id", None)
+    return updated
 
 
 @router.delete("/interns/{intern_id}/reject")
