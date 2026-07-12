@@ -11,18 +11,44 @@ Certificate" tab hits GET /api/verify/certificate/{number}.
 Both public lookup endpoints are rate-limited (20/minute per IP) so
 employee codes/certificate numbers can't be bulk-guessed at scale.
 """
+from datetime import datetime, timezone
 from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import StreamingResponse
 from io import BytesIO
+from pydantic import BaseModel
+from typing import Optional
 import qrcode
 import qrcode.image.svg
 from auth_utils import get_current_user_payload
-from database import users_collection, certificates_collection
+from database import users_collection, certificates_collection, interns_collection
+from notification_service import create_notification
 from rate_limit import limiter
 
 router = APIRouter(prefix="/api/verify", tags=["qr"])
 
 SITE_URL = "https://www.thefinancialdoctor.in"  # change if domain differs
+
+
+def _mask_phone(phone: Optional[str]) -> Optional[str]:
+    """First 2 + last 2 digits visible, rest masked — e.g. 9876543210 -> 98XXXXXX10."""
+    if not phone:
+        return None
+    digits = "".join(ch for ch in phone if ch.isdigit())
+    if len(digits) <= 4:
+        return "X" * len(digits)
+    return digits[:2] + "X" * (len(digits) - 4) + digits[-2:]
+
+
+def _mask_email(email: Optional[str]) -> Optional[str]:
+    """First letter + last 2 characters of the local part visible, domain
+    untouched — e.g. sagar.chaturvedi@gmail.com -> s*************di@gmail.com."""
+    if not email or "@" not in email:
+        return None
+    local, domain = email.split("@", 1)
+    if len(local) <= 3:
+        visible = local[:1]
+        return visible + "*" * max(1, len(local) - len(visible)) + "@" + domain
+    return local[0] + "*" * (len(local) - 3) + local[-2:] + "@" + domain
 
 
 @router.get("/qr/{employee_id}")
@@ -89,9 +115,11 @@ async def verify_employee(request: Request, employee_id: str):
 # ── Certificate verification (internship/employee certificates + achievements) ──
 
 # Fields deliberately never returned here, even though they exist on the
-# certificate record: college (privacy), linked_employee_id (internal),
-# any contact/financial info — this endpoint is public and unauthenticated.
-_CERT_PUBLIC_FIELDS = {"certificate_number", "person_name", "type", "department", "issue_date", "duration_label"}
+# certificate/intern record: address (privacy), linked_employee_id/intern_id
+# (internal), Aadhaar/PAN (sensitive KYC), raw contact_email/contact_phone
+# (masked versions are added separately) — this endpoint is public and
+# unauthenticated.
+_CERT_PUBLIC_FIELDS = {"certificate_number", "person_name", "type", "department", "issue_date", "duration_label", "college"}
 
 
 @router.get("/certificate/{certificate_number}")
@@ -110,4 +138,55 @@ async def verify_certificate(request: Request, certificate_number: str):
 
     out = {k: v for k, v in cert.items() if k in _CERT_PUBLIC_FIELDS}
     out["valid"] = True
+
+    # Internship certs carry extra personal details on the linked intern
+    # record, not the certificate itself — father's name shown as-is,
+    # contact details masked, address never exposed.
+    if cert.get("type") == "internship" and cert.get("intern_id"):
+        intern = await interns_collection.find_one({"id": cert["intern_id"]})
+        if intern:
+            out["father_name"] = intern.get("father_name")
+            out["start_date"] = intern.get("start_date")
+            out["end_date"] = intern.get("end_date")
+            out["contact_email_masked"] = _mask_email(intern.get("contact_email"))
+            out["contact_phone_masked"] = _mask_phone(intern.get("contact_phone"))
+
     return out
+
+
+class RegenerationRequestIn(BaseModel):
+    contact: Optional[str] = None  # phone or email the requester wants to be reached at
+
+
+@router.post("/certificate/{certificate_number}/request-regeneration")
+@limiter.limit("5/minute")
+async def request_certificate_regeneration(request: Request, certificate_number: str, data: RegenerationRequestIn = RegenerationRequestIn()):
+    """Public endpoint — no auth. Someone who's lost their certificate/
+    completion letter taps "Regenerate" on the verify page. There's no
+    payment gateway wired up yet, so this doesn't charge anything or send
+    documents automatically — it notifies every admin so they can follow up
+    manually (collect the Rs. 499 fee, then resend via the existing
+    Email Documents flow). The automatic pay-then-email flow is a planned
+    follow-up once a payment gateway is integrated."""
+    normalized = certificate_number.replace("-", "/")
+    cert = await certificates_collection.find_one(
+        {"certificate_number": normalized, "type": {"$in": ["internship", "employee", "achievement", "letterhead"]}},
+    )
+    if not cert:
+        raise HTTPException(status_code=404, detail="Certificate not found")
+
+    contact_note = f" (reach them at: {data.contact.strip()})" if data.contact and data.contact.strip() else ""
+    admins = users_collection.find({"role": "admin"})
+    async for adm in admins:
+        await create_notification(
+            user_id=adm["id"],
+            title="Certificate Regeneration Requested",
+            body=f"{cert.get('person_name')} requested regeneration of {cert['certificate_number']} (Rs. 499 pending){contact_note}",
+            n_type="general",
+            link="/portal/admin/document-search",
+        )
+
+    return {
+        "status": "requested",
+        "message": "Request received. Our team will contact you shortly to arrange the Rs. 499 payment and resend your Certificate and Completion Letter.",
+    }

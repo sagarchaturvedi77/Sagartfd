@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useCallback } from "react";
 import { useSearchParams } from "react-router-dom";
-import { Search, CheckCircle2, XCircle, ShieldCheck } from "lucide-react";
+import { Search, CheckCircle2, XCircle, ShieldCheck, RefreshCw } from "lucide-react";
 
 const API_BASE = process.env.REACT_APP_BACKEND_URL || "";
 const LOGO_URL = "/assets/logos/TFD-MAIN-LOGO.png";
@@ -179,9 +179,82 @@ function CertificateResult({ data }) {
       <div className="bg-[#F5F1EB] rounded-xl p-3 text-xs space-y-1.5">
         <div className="flex justify-between"><span className="text-[#5C677D]">Type</span><span className="font-semibold text-[#0E1B2C]">{TYPE_LABELS[data.type] || data.type}</span></div>
         {data.department && <div className="flex justify-between"><span className="text-[#5C677D]">Department</span><span className="font-semibold text-[#0E1B2C]">{data.department}</span></div>}
-        {data.duration_label && <div className="flex justify-between"><span className="text-[#5C677D]">Duration</span><span className="font-semibold text-[#0E1B2C]">{data.duration_label}</span></div>}
+        {data.college && <div className="flex justify-between"><span className="text-[#5C677D]">College</span><span className="font-semibold text-[#0E1B2C]">{data.college}</span></div>}
+        {data.father_name && <div className="flex justify-between"><span className="text-[#5C677D]">Father's Name</span><span className="font-semibold text-[#0E1B2C]">{data.father_name}</span></div>}
+        {data.start_date && data.end_date ? (
+          <div className="flex justify-between"><span className="text-[#5C677D]">Duration</span><span className="font-semibold text-[#0E1B2C]">{data.start_date} to {data.end_date}</span></div>
+        ) : data.duration_label && (
+          <div className="flex justify-between"><span className="text-[#5C677D]">Duration</span><span className="font-semibold text-[#0E1B2C]">{data.duration_label}</span></div>
+        )}
+        {data.contact_email_masked && <div className="flex justify-between"><span className="text-[#5C677D]">Email</span><span className="font-semibold text-[#0E1B2C]">{data.contact_email_masked}</span></div>}
+        {data.contact_phone_masked && <div className="flex justify-between"><span className="text-[#5C677D]">Phone</span><span className="font-semibold text-[#0E1B2C]">{data.contact_phone_masked}</span></div>}
         <div className="flex justify-between"><span className="text-[#5C677D]">Issued on</span><span className="font-semibold text-[#0E1B2C]">{data.issue_date}</span></div>
       </div>
+
+      <RegenerateSection certificateNumber={data.certificate_number} />
+    </div>
+  );
+}
+
+function RegenerateSection({ certificateNumber }) {
+  const [expanded, setExpanded] = useState(false);
+  const [contact, setContact] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const [resultMessage, setResultMessage] = useState(null);
+
+  const submit = async () => {
+    if (submitting) return;
+    setSubmitting(true);
+    try {
+      const res = await fetch(`${API_BASE}/api/verify/certificate/${encodeURIComponent(certificateNumber.replace(/\//g, "-"))}/request-regeneration`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ contact: contact.trim() || null }),
+      });
+      const data = await res.json().catch(() => ({}));
+      setResultMessage(res.ok ? data.message : (data.detail || "Something went wrong. Please try again."));
+    } catch {
+      setResultMessage("Something went wrong. Please try again.");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  if (resultMessage) {
+    return (
+      <div className="mt-4 bg-emerald-50 border border-emerald-200 rounded-xl p-3.5 text-xs text-emerald-800">
+        {resultMessage}
+      </div>
+    );
+  }
+
+  return (
+    <div className="mt-4 border-t border-dashed border-[#E2D8C2] pt-3.5">
+      {!expanded ? (
+        <button onClick={() => setExpanded(true)} className="w-full flex items-center justify-center gap-1.5 text-xs font-medium text-[#5C677D] hover:text-[#024396] transition-colors">
+          <RefreshCw size={12} /> Lost your certificate or completion letter? Regenerate it
+        </button>
+      ) : (
+        <div className="bg-[#F5F1EB] rounded-xl p-3.5 space-y-2.5">
+          <p className="text-xs text-[#2A364B]">
+            We'll regenerate and email you a fresh copy of both your <b>Certificate</b> and <b>Completion Letter</b> for a nominal reissue fee of <b>₹499</b>.
+          </p>
+          <input
+            value={contact}
+            onChange={(e) => setContact(e.target.value)}
+            placeholder="Best number/email to reach you (optional)"
+            className="w-full px-3 py-2 rounded-lg border border-[#E2D8C2] text-xs focus:outline-none focus:ring-2 focus:ring-[#024396]/30 bg-white"
+          />
+          <button
+            onClick={submit}
+            disabled={submitting}
+            className="w-full py-2.5 rounded-lg bg-[#024396] text-white text-xs font-semibold hover:bg-[#023580] transition-colors disabled:opacity-50"
+          >
+            {submitting ? "Sending request..." : "Request Regeneration — ₹499"}
+          </button>
+          <p className="text-[10px] text-[#5C677D] text-center">Our team will reach out to arrange payment before sending your documents.</p>
+        </div>
+      )}
     </div>
   );
 }
