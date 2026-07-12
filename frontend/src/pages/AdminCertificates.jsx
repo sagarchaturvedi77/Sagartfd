@@ -346,8 +346,12 @@ export default function AdminCertificates() {
               {applications.map((a) => (
                 <div key={a.id} className="bg-white dark:bg-[#101D2E] rounded-xl border border-[#E2D8C2] dark:border-white/10 p-3 flex items-center justify-between flex-wrap gap-2">
                   <div>
+                    <button
+                      onClick={() => (a.status === "pending" ? openApprove(a) : openInternDetail(a))}
+                      className="text-left"
+                    >
                     <p className="text-sm font-medium text-[#0E1B2C] dark:text-[#F1EDE3] flex items-center gap-2">
-                      {a.name}
+                      <span className="hover:underline">{a.name}</span>
                       {a.status === "pending" ? (
                         <span className="text-[9px] font-semibold uppercase tracking-wide text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/30 px-1.5 py-0.5 rounded">Pending</span>
                       ) : (
@@ -365,6 +369,7 @@ export default function AdminCertificates() {
                         Submissions: {(a.submission_history || []).map((t) => new Date(t).toLocaleDateString("en-IN")).join(", ")}
                       </p>
                     )}
+                    </button>
                   </div>
                   {a.status === "pending" && (
                     <div className="flex gap-2">
