@@ -108,6 +108,7 @@ def _letter_styles():
     styles.add(ParagraphStyle("TFDClauseHindi", parent=styles["Normal"], alignment=TA_JUSTIFY, fontSize=9, leading=13.5, textColor=colors.HexColor("#444444"), fontName=FONT_HINDI, spaceAfter=6))
     styles.add(ParagraphStyle("TFDHindiBody", parent=styles["Normal"], alignment=TA_JUSTIFY, fontSize=10, leading=15, fontName=FONT_HINDI, spaceAfter=8))
     styles.add(ParagraphStyle("TFDDetailLabel", parent=styles["Normal"], fontSize=8.5, fontName=FONT_HINDI, textColor=colors.HexColor("#333333")))
+    styles.add(ParagraphStyle("TFDMetaHindi", parent=styles["TFDMeta"], fontName=FONT_HINDI))
     return styles
 
 
@@ -580,7 +581,7 @@ def generate_employee_agreement_pdf(data: dict, photo_bytes: Optional[bytes] = N
     elements.append(Spacer(1, 14))
 
     elements.append(Paragraph("TERMS AND CONDITIONS / नियम एवं शर्तें", ParagraphStyle(
-        "AgreementSectionHead", parent=styles["Heading3"], textColor=TFD_NAVY, fontSize=11.5, spaceAfter=6,
+        "AgreementSectionHead", parent=styles["Heading3"], textColor=TFD_NAVY, fontSize=11.5, spaceAfter=6, fontName=FONT_HINDI,
     )))
     for title, body_en, body_hi in AGREEMENT_CLAUSES:
         elements.append(Paragraph(title, styles["TFDClauseTitle"]))
@@ -589,7 +590,7 @@ def generate_employee_agreement_pdf(data: dict, photo_bytes: Optional[bytes] = N
 
     elements.append(Spacer(1, 6))
     elements.append(Paragraph("DECLARATION / घोषणा", ParagraphStyle(
-        "AgreementSectionHead2", parent=styles["Heading3"], textColor=TFD_NAVY, fontSize=11.5, spaceAfter=6,
+        "AgreementSectionHead2", parent=styles["Heading3"], textColor=TFD_NAVY, fontSize=11.5, spaceAfter=6, fontName=FONT_HINDI,
     )))
     father = data.get("father_name") or "-"
     elements.append(Paragraph(
@@ -605,11 +606,11 @@ def generate_employee_agreement_pdf(data: dict, photo_bytes: Optional[bytes] = N
         elements.append(Paragraph(
             f"<b>Signed at / हस्ताक्षर स्थान:</b> {data.get('signed_at') or 'N/A'}<br/>"
             f"<b>Date &amp; Time / दिनांक एवं समय:</b> {data.get('signed_date') or ''} {data.get('signed_time') or ''}",
-            styles["TFDMeta"],
+            styles["TFDMetaHindi"],
         ))
 
     elements.append(Spacer(1, 24))
-    elements.append(Paragraph("Employee Signature / कर्मचारी हस्ताक्षर", styles["TFDMeta"]))
+    elements.append(Paragraph("Employee Signature / कर्मचारी हस्ताक्षर", styles["TFDMetaHindi"]))
     if signature_bytes:
         try:
             cleaned = _remove_signature_background(signature_bytes)
@@ -622,7 +623,7 @@ def generate_employee_agreement_pdf(data: dict, photo_bytes: Optional[bytes] = N
     else:
         elements.append(Spacer(1, 22))
     elements.append(Paragraph(f"<b>{name}</b>", styles["TFDBody"]))
-    elements.append(Paragraph("Employee / कर्मचारी", styles["TFDMeta"]))
+    elements.append(Paragraph("Employee / कर्मचारी", styles["TFDMetaHindi"]))
 
     _signature_block(elements, styles, "ceo")
 
