@@ -4,9 +4,12 @@ const ThemeContext = createContext(null);
 const STORAGE_KEY = "tfd_theme"; // "light" | "dark"
 
 function getInitialTheme() {
+  // Always defaults to light unless the user has explicitly chosen dark via
+  // the in-portal toggle — deliberately ignores the OS/browser's
+  // prefers-color-scheme so a visitor's system-wide dark mode setting
+  // doesn't silently flip the portal to dark on first load.
   const saved = typeof window !== "undefined" ? localStorage.getItem(STORAGE_KEY) : null;
   if (saved === "light" || saved === "dark") return saved;
-  if (typeof window !== "undefined" && window.matchMedia?.("(prefers-color-scheme: dark)").matches) return "dark";
   return "light";
 }
 

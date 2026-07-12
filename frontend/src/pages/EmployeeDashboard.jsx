@@ -9,6 +9,7 @@ import PageHeader from "../components/portal/PageHeader";
 import StatCard from "../components/portal/StatCard";
 import PortalModal from "../components/portal/PortalModal";
 import RecentActivity from "../components/portal/RecentActivity";
+import ProtectedText from "../components/portal/ProtectedText";
 import { useCallReturnContext } from "../context/CallReturnContext";
 
 const API_BASE = process.env.REACT_APP_BACKEND_URL || "";
@@ -261,7 +262,7 @@ export default function EmployeeDashboard() {
             {todayFollowUps.map(lead => (
               <div key={lead.id} className="bg-[#FBF7EE] dark:bg-white/5 rounded-xl p-3">
                 <p className="font-medium text-sm text-[#0E1B2C] dark:text-[#F1EDE3]">{lead.name}</p>
-                <p className="text-xs text-[#2A364B]/60 dark:text-[#C7CEDA]/60">{lead.phone} {lead.service_interest && `· ${lead.service_interest}`}</p>
+                <p className="text-xs text-[#2A364B]/60 dark:text-[#C7CEDA]/60"><ProtectedText>{lead.phone}</ProtectedText> {lead.service_interest && `· ${lead.service_interest}`}</p>
                 {lead.follow_up_note && <p className="text-xs text-[#2A364B]/50 dark:text-[#C7CEDA]/50 mt-1">{lead.follow_up_note}</p>}
                 <a href={`tel:+91${lead.phone.replace(/\D/g, "")}`} onClick={() => startCall(lead)} className="inline-block mt-2 px-3 py-1 rounded-lg text-xs font-medium text-white bg-[#024396]">Call Now</a>
               </div>
@@ -291,7 +292,7 @@ export default function EmployeeDashboard() {
                   <p className="font-medium text-sm text-[#0E1B2C] dark:text-[#F1EDE3]">{lead.name}</p>
                   <span className="text-[10px] font-semibold uppercase tracking-wide text-red-700 dark:text-red-400 bg-red-50 dark:bg-red-900/30 px-1.5 py-0.5 rounded">{lead._reason}</span>
                 </div>
-                <p className="text-xs text-[#2A364B]/60 dark:text-[#C7CEDA]/60">{lead.phone} {lead.service_interest && `· ${lead.service_interest}`}</p>
+                <p className="text-xs text-[#2A364B]/60 dark:text-[#C7CEDA]/60"><ProtectedText>{lead.phone}</ProtectedText> {lead.service_interest && `· ${lead.service_interest}`}</p>
                 <div className="flex items-center gap-2 mt-2">
                   <a href={`tel:+91${lead.phone.replace(/\D/g, "")}`} onClick={() => startCall(lead)} className="inline-block px-3 py-1 rounded-lg text-xs font-medium text-white bg-[#024396]">Call Now</a>
                   <button onClick={() => navigate(`/portal/employee/leads?leadId=${lead.id}`)} className="inline-block px-3 py-1 rounded-lg text-xs font-medium text-[#024396] dark:text-[#7CB0FF] border border-[#024396]/30 dark:border-[#7CB0FF]/30">Update Status</button>
@@ -335,9 +336,9 @@ export default function EmployeeDashboard() {
             <p className="text-xs text-[#2A364B]/50 dark:text-[#C7CEDA]/50 mb-2">{filteredLeads.length} results</p>
             <div className="space-y-2 max-h-60 overflow-y-auto">
               {filteredLeads.slice(0, 20).map(lead => (
-                <div key={lead.id} className="flex items-center justify-between bg-[#FBF7EE] dark:bg-white/5 rounded-lg p-2.5 cursor-pointer hover:bg-[#F5F1EB] dark:bg-white/5" onClick={() => navigate("/portal/employee/leads")}>
+                <div key={lead.id} className="flex items-center justify-between bg-[#FBF7EE] dark:bg-white/5 rounded-lg p-2.5 cursor-pointer hover:bg-[#F5F1EB] dark:bg-white/5" onClick={() => navigate(`/portal/employee/leads?leadId=${lead.id}`)}>
                   <div>
-                    <p className="font-medium text-xs text-[#0E1B2C] dark:text-[#F1EDE3]">{lead.name} — {lead.phone}</p>
+                    <p className="font-medium text-xs text-[#0E1B2C] dark:text-[#F1EDE3]">{lead.name} — <ProtectedText>{lead.phone}</ProtectedText></p>
                     <p className="text-[10px] text-[#2A364B]/50 dark:text-[#C7CEDA]/50">{lead.service_interest || "No service"} · {lead.status}</p>
                   </div>
                   {lead.follow_up_date && <span className="text-[10px] text-orange-500">{lead.follow_up_date}</span>}
