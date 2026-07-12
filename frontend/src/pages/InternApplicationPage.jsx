@@ -1,8 +1,10 @@
 import React, { useMemo, useState } from "react";
-import { CheckCircle2, AlertTriangle, ChevronLeft } from "lucide-react";
+import { CheckCircle2, AlertTriangle, ChevronLeft, Star } from "lucide-react";
+import LINKS from "../lib/links";
 
 const API_BASE = process.env.REACT_APP_BACKEND_URL || "";
-const LOGO_URL = "/tfd-workspace-logo.png";
+const LOGO_URL = "/assets/logos/TFD-MAIN-LOGO.png";
+const INTERNSHIP_LOGO_URL = "/assets/logos/TFD-INTERNSHIP-LOGO.png";
 const DEPARTMENTS = ["HR", "Sales", "Marketing", "Accounts"];
 const DURATIONS = [45, 60, 90];
 
@@ -23,6 +25,8 @@ export default function InternApplicationPage() {
   const [form, setForm] = useState(emptyForm);
   const [step, setStep] = useState("form"); // "form" | "review" | "done"
   const [declared, setDeclared] = useState(false);
+  const [rated, setRated] = useState(false);
+  const [ratingClicked, setRatingClicked] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
 
@@ -44,10 +48,12 @@ export default function InternApplicationPage() {
     }
     setStep("review");
     setDeclared(false);
+    setRated(false);
+    setRatingClicked(false);
   };
 
   const submit = async () => {
-    if (!declared || submitting) return;
+    if (!declared || !rated || submitting) return;
     setSubmitting(true);
     setError("");
     try {
@@ -89,7 +95,10 @@ export default function InternApplicationPage() {
     <div className="min-h-screen bg-[#F5F1EB] flex flex-col items-center px-4 py-10">
       <div className="w-full max-w-md">
         <div className="text-center mb-6">
-          <img src={LOGO_URL} alt="The Financial Doctor" className="h-16 mx-auto rounded-xl object-contain mb-3" />
+          <div className="flex items-center justify-center gap-3 mb-3">
+            <img src={LOGO_URL} alt="The Financial Doctor" className="h-14 rounded-xl object-contain" />
+            <img src={INTERNSHIP_LOGO_URL} alt="TFD Internship" className="h-10 object-contain" />
+          </div>
           <h1 className="text-lg font-serif font-semibold text-[#0E1B2C]">Internship Application</h1>
           <p className="text-xs text-[#5C677D] mt-1">Fill in your details below to apply for an internship at The Financial Doctor</p>
         </div>
@@ -190,11 +199,33 @@ export default function InternApplicationPage() {
               </span>
             </label>
 
+            <div className="bg-amber-50 border border-amber-200 rounded-xl p-3.5 space-y-2.5">
+              <p className="text-xs text-amber-900 font-medium flex items-center gap-1.5"><Star size={14} className="text-amber-500 fill-amber-500" /> One last thing before you submit</p>
+              <p className="text-xs text-amber-800 leading-relaxed">
+                Please take a moment to rate us and share a short review on Google — it genuinely helps us reach more students like you.
+              </p>
+              <a
+                href={LINKS.googleReviews}
+                target="_blank"
+                rel="noreferrer"
+                onClick={() => setRatingClicked(true)}
+                className="inline-flex items-center gap-1.5 text-xs font-semibold text-white bg-amber-500 hover:bg-amber-600 rounded-lg px-3.5 py-2 transition-colors"
+              >
+                <Star size={12} className="fill-white" /> Rate us on Google
+              </a>
+              <label className="flex items-start gap-2.5 cursor-pointer select-none pt-1">
+                <input type="checkbox" checked={rated} onChange={(e) => setRated(e.target.checked)} className="w-4 h-4 mt-0.5 rounded accent-amber-500" />
+                <span className="text-xs text-amber-900 leading-relaxed">
+                  {ratingClicked ? "I've rated and written a short review on Google." : "I've already rated The Financial Doctor on Google, or I will right now before submitting."}
+                </span>
+              </label>
+            </div>
+
             {error && <p className="text-sm text-red-600">{error}</p>}
 
             <button
               onClick={submit}
-              disabled={!declared || submitting}
+              disabled={!declared || !rated || submitting}
               className="w-full py-3 rounded-xl bg-[#024396] text-white text-sm font-semibold hover:bg-[#023580] transition-colors disabled:opacity-50"
             >
               {submitting ? "Submitting..." : "Confirm & Submit Application"}
@@ -202,7 +233,10 @@ export default function InternApplicationPage() {
           </div>
         )}
 
-        <p className="text-center text-[10px] text-[#9AA5B4] mt-6">The Financial Doctor · AMFI Registered · ARN-290298</p>
+        <p className="text-center text-[10px] text-[#9AA5B4] mt-6">Powered by The Financial Doctor</p>
+        <p className="text-center text-[10px] text-[#9AA5B4] mt-1">
+          AMFI Registered · ARN-290298 · <a href="https://www.thefinancialdoctor.in" className="text-[#024396]">thefinancialdoctor.in</a>
+        </p>
       </div>
     </div>
   );
