@@ -6,6 +6,7 @@ import PageHeader from "../components/portal/PageHeader";
 import PortalModal from "../components/portal/PortalModal";
 import { Button } from "../components/ui/button";
 import { Download, Mail, Award, Send, Check, X, Share2, Copy, History } from "lucide-react";
+import { LINKS } from "../lib/links";
 
 const API_BASE = process.env.REACT_APP_BACKEND_URL || "";
 const DEPARTMENTS = ["HR", "Sales", "Marketing", "Accounts"];
@@ -20,6 +21,22 @@ async function downloadBlob(res, filename) {
   a.click();
   a.remove();
   window.URL.revokeObjectURL(url);
+}
+
+// Downloads the PDF (so it's ready to attach) then opens WhatsApp — straight
+// to the client's own number when we already have it on file, otherwise
+// prompts for one so the message still lands on the right chat.
+async function shareInternDocViaWhatsApp(res, filename, docLabel, phone, refNumber) {
+  if (res.ok) await downloadBlob(res, filename);
+  let target = (phone || "").replace(/\D/g, "");
+  if (!target) {
+    const entered = window.prompt("No phone number on file — enter the recipient's WhatsApp number (10-digit mobile):");
+    if (!entered || !entered.trim()) return;
+    target = entered.replace(/\D/g, "");
+  }
+  if (target.length === 10) target = `91${target}`;
+  const text = `Hello, please find your ${docLabel} from The Financial Doctor${refNumber ? ` (Ref: ${refNumber})` : ""} — attaching the PDF just downloaded.`;
+  window.open(`https://wa.me/${target}?text=${encodeURIComponent(text)}`, "_blank");
 }
 
 export default function AdminCertificates() {
@@ -114,7 +131,12 @@ export default function AdminCertificates() {
     }
   };
 
-  const applicationLink = `${window.location.origin}/intern-application`;
+  // Always the real production domain, never window.location.origin — this
+  // link is meant to be shared publicly with intern applicants, so it must
+  // stay correct even if an admin happens to be browsing a preview/staging
+  // deployment URL instead of the live site. Falls back to the current
+  // origin only for local development.
+  const applicationLink = `${window.location.hostname === "localhost" ? window.location.origin : LINKS.siteUrl}/intern-application`;
   const applicationShareText = `You're invited to apply for an internship at The Financial Doctor! 🎓\n\nFill out the quick application form here:\n${applicationLink}\n\nMake sure to enter accurate details — they'll be used on your official certificate.`;
 
   const copyApplicationLink = async () => {
@@ -573,26 +595,48 @@ export default function AdminCertificates() {
                 </div>
                 <div className="flex items-center gap-3 mt-2">
                   {personDetail.intern.offer_letter_generated_at && (
-                    <button
-                      onClick={async () => {
-                        const res = await fetch(`${API_BASE}/api/interns/${personDetail.intern.id}/offer-letter/download`, { headers });
-                        if (res.ok) await downloadBlob(res, `Offer_Letter_${personDetail.intern.name.replace(/\s+/g, "_")}.pdf`);
-                      }}
-                      className="inline-flex items-center gap-1.5 text-xs font-medium text-[#024396] dark:text-[#7CB0FF]"
-                    >
-                      <Download size={12} /> Download Offer Letter
-                    </button>
+                    <>
+                      <button
+                        onClick={async () => {
+                          const res = await fetch(`${API_BASE}/api/interns/${personDetail.intern.id}/offer-letter/download`, { headers });
+                          if (res.ok) await downloadBlob(res, `Offer_Letter_${personDetail.intern.name.replace(/\s+/g, "_")}.pdf`);
+                        }}
+                        className="inline-flex items-center gap-1.5 text-xs font-medium text-[#024396] dark:text-[#7CB0FF]"
+                      >
+                        <Download size={12} /> Download Offer Letter
+                      </button>
+                      <button
+                        onClick={async () => {
+                          const res = await fetch(`${API_BASE}/api/interns/${personDetail.intern.id}/offer-letter/download`, { headers });
+                          await shareInternDocViaWhatsApp(res, `Offer_Letter_${personDetail.intern.name.replace(/\s+/g, "_")}.pdf`, "Offer Letter", personDetail.intern.contact_phone, null);
+                        }}
+                        className="inline-flex items-center gap-1.5 text-xs font-medium text-emerald-600 dark:text-emerald-400"
+                      >
+                        <Share2 size={12} /> WhatsApp
+                      </button>
+                    </>
                   )}
                   {personDetail.intern.completion_letter_generated_at && (
-                    <button
-                      onClick={async () => {
-                        const res = await fetch(`${API_BASE}/api/interns/${personDetail.intern.id}/completion-letter/download`, { headers });
-                        if (res.ok) await downloadBlob(res, `Completion_Letter_${personDetail.intern.name.replace(/\s+/g, "_")}.pdf`);
-                      }}
-                      className="inline-flex items-center gap-1.5 text-xs font-medium text-[#024396] dark:text-[#7CB0FF]"
-                    >
-                      <Download size={12} /> Download Completion Letter
-                    </button>
+                    <>
+                      <button
+                        onClick={async () => {
+                          const res = await fetch(`${API_BASE}/api/interns/${personDetail.intern.id}/completion-letter/download`, { headers });
+                          if (res.ok) await downloadBlob(res, `Completion_Letter_${personDetail.intern.name.replace(/\s+/g, "_")}.pdf`);
+                        }}
+                        className="inline-flex items-center gap-1.5 text-xs font-medium text-[#024396] dark:text-[#7CB0FF]"
+                      >
+                        <Download size={12} /> Download Completion Letter
+                      </button>
+                      <button
+                        onClick={async () => {
+                          const res = await fetch(`${API_BASE}/api/interns/${personDetail.intern.id}/completion-letter/download`, { headers });
+                          await shareInternDocViaWhatsApp(res, `Completion_Letter_${personDetail.intern.name.replace(/\s+/g, "_")}.pdf`, "Completion Letter", personDetail.intern.contact_phone, null);
+                        }}
+                        className="inline-flex items-center gap-1.5 text-xs font-medium text-emerald-600 dark:text-emerald-400"
+                      >
+                        <Share2 size={12} /> WhatsApp
+                      </button>
+                    </>
                   )}
                 </div>
               </div>
@@ -610,7 +654,7 @@ export default function AdminCertificates() {
                   <DetailRow label="Created By" value={personDetail.cert.created_by === user?.id ? "You" : personDetail.cert.created_by} />
                   <DetailRow label="Created At" value={new Date(personDetail.cert.created_at).toLocaleString("en-IN")} />
                 </div>
-                <div className="flex items-center gap-3 mt-2">
+                <div className="flex items-center gap-3 mt-2 flex-wrap">
                   <button
                     onClick={async () => {
                       const res = await fetch(`${API_BASE}/api/certificates/${personDetail.cert.id}/download`, { headers });
@@ -625,6 +669,15 @@ export default function AdminCertificates() {
                     className="inline-flex items-center gap-1.5 text-xs font-medium text-[#024396] dark:text-[#7CB0FF]"
                   >
                     <Mail size={12} /> Email Certificate
+                  </button>
+                  <button
+                    onClick={async () => {
+                      const res = await fetch(`${API_BASE}/api/certificates/${personDetail.cert.id}/download`, { headers });
+                      await shareInternDocViaWhatsApp(res, `Certificate_${personDetail.cert.certificate_number.replace(/\//g, "_")}.pdf`, "Certificate", personDetail.intern?.contact_phone, personDetail.cert.certificate_number);
+                    }}
+                    className="inline-flex items-center gap-1.5 text-xs font-medium text-emerald-600 dark:text-emerald-400"
+                  >
+                    <Share2 size={12} /> WhatsApp
                   </button>
                 </div>
               </div>

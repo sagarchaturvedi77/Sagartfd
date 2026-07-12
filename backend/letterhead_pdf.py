@@ -44,7 +44,8 @@ def build_letterhead_pdf(letterhead_number: str, content: str, signature_type: s
         else:
             elements.append(Paragraph(_parse_inline_bold(" ".join(lines)), styles["TFDBody"]))
 
-    _signature_block(elements, styles, signature_type=signature_type)
+    if signature_type and signature_type != "none":
+        _signature_block(elements, styles, signature_type=signature_type)
 
     if include_disclaimer:
         elements.append(Spacer(1, 20))

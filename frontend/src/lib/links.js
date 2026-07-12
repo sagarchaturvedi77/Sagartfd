@@ -1,5 +1,10 @@
 // Central place for all external brand links — update once, reflects everywhere.
 export const LINKS = {
+    // The canonical production domain — used (instead of window.location.origin)
+    // wherever a link is generated for SHARING outside the app (e.g. the public
+    // internship application link), so it always points at the real site even
+    // if an admin happens to be browsing a preview/staging deployment URL.
+    siteUrl: "https://www.thefinancialdoctor.in",
     assetPlus: "https://www.assetplus.in/mfd/ARN-290298",
     whatsappDM:
         "https://wa.me/917773805794?text=Hi%20Sagar%20ji%2C%20I%20want%20to%20know%20more%20about%20mutual%20fund%20investments.",
