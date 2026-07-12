@@ -102,9 +102,12 @@ def _signature_block(elements, styles, signature_type: str = "ceo"):
 
     if os.path.exists(SIGNATURE_PATH):
         elements.append(Spacer(1, 4))
+        # ceo-signature.png's own aspect ratio is ~3.09:1 (straightened/
+        # cropped asset) — width/height here match it directly instead of
+        # reportlab's Image() stretching it to an unrelated box.
         sig_row = Table(
-            [[Image(SIGNATURE_PATH, width=38 * mm, height=13.3 * mm), Image(SEAL_PATH, width=18 * mm, height=18 * mm)] if os.path.exists(SEAL_PATH) else [Image(SIGNATURE_PATH, width=38 * mm, height=13.3 * mm)]],
-            colWidths=[45 * mm, 22 * mm] if os.path.exists(SEAL_PATH) else [45 * mm],
+            [[Image(SIGNATURE_PATH, width=46 * mm, height=14.9 * mm), Image(SEAL_PATH, width=18 * mm, height=18 * mm)] if os.path.exists(SEAL_PATH) else [Image(SIGNATURE_PATH, width=46 * mm, height=14.9 * mm)]],
+            colWidths=[52 * mm, 22 * mm] if os.path.exists(SEAL_PATH) else [52 * mm],
             hAlign="LEFT",
         )
         sig_row.setStyle(TableStyle([("ALIGN", (0, 0), (-1, -1), "LEFT"), ("VALIGN", (0, 0), (-1, -1), "BOTTOM"), ("LEFTPADDING", (0, 0), (-1, -1), 0)]))
@@ -457,24 +460,25 @@ def generate_certificate_pdf(cert: dict, verify_url: str) -> bytes:
     if os.path.exists(accent_logo):
         c.drawImage(accent_logo, width / 2 - 16 * mm, footer_h + 12 * mm, width=32 * mm, height=22 * mm, mask="auto", preserveAspectRatio=True, anchor="s")
 
-    # Signature + seal sit side-by-side in one band directly above the
-    # printed name (previously the seal's y-range overlapped the name text).
-    # Sized up from the original 28x10.7mm signature / 16x16mm seal, which
-    # printed too small to read clearly.
-    sig_cx = width - 60 * mm
-    SIG_W, SIG_H = 44 * mm, 16.8 * mm
+    # Signature sits directly above the printed name/title (centered on the
+    # same x as the text below it, not the sig+seal midpoint); the seal
+    # floats to its right as a separate stamp, not sharing the signature's
+    # centering. ceo-signature.png was re-processed (straightened, bolded,
+    # cropped) so its own aspect ratio now drives SIG_W/SIG_H here.
+    sig_cx = width - 75 * mm
+    SIG_W, SIG_H = 56 * mm, 18.2 * mm
     SEAL_SIZE = 23 * mm
-    sig_left = sig_cx - 46 * mm
-    seal_left = sig_cx
+    sig_left = sig_cx - SIG_W / 2
+    seal_left = sig_left + SIG_W + 8 * mm
     line_y = footer_h + 17 * mm
-    text_cx = (sig_left + seal_left + SEAL_SIZE) / 2
+    text_cx = sig_cx
     if os.path.exists(SIGNATURE_PATH):
         c.drawImage(SIGNATURE_PATH, sig_left, line_y + 2 * mm, width=SIG_W, height=SIG_H, mask="auto", preserveAspectRatio=True, anchor="s")
     if os.path.exists(SEAL_PATH):
         c.drawImage(SEAL_PATH, seal_left, line_y + 2 * mm, width=SEAL_SIZE, height=SEAL_SIZE, mask="auto", preserveAspectRatio=True, anchor="s")
     c.setStrokeColor(colors.HexColor("#999999"))
     c.setLineWidth(0.6)
-    c.line(sig_left, line_y, seal_left + SEAL_SIZE, line_y)
+    c.line(sig_left, line_y, sig_left + SIG_W, line_y)
     c.setFont("Helvetica-Bold", 10)
     c.setFillColor(colors.HexColor("#0E1B2C"))
     c.drawCentredString(text_cx, footer_h + 13 * mm, "Sagar Chaturvedi")
