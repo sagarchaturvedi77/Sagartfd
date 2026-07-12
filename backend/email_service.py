@@ -84,16 +84,23 @@ def send_email_with_pdf(to_email: str, subject: str, body_html: str, pdf_bytes: 
     return send_email_with_pdfs(to_email, subject, body_html, [(pdf_filename, pdf_bytes)])
 
 
-def send_email_with_pdfs(to_email: str, subject: str, body_html: str, attachments: list[tuple[str, bytes]]) -> tuple[bool, str]:
+def send_email_with_pdfs(to_email: str, subject: str, body_html: str, attachments: list[tuple[str, bytes]], cc_emails: list[str] | None = None) -> tuple[bool, str]:
     """attachments: [(filename, pdf_bytes), ...] — used for bundled sends
-    (e.g. a certificate emailed together with its completion letter)."""
+    (e.g. a certificate emailed together with its completion letter).
+    cc_emails: optional addresses to CC — added to both the visible Cc
+    header and the actual SMTP envelope recipients (a header alone doesn't
+    deliver anything)."""
     if not email_configured():
         return False, "Email sending not configured — set SMTP_USERNAME and SMTP_PASSWORD in backend/.env"
+
+    cc_emails = [e.strip() for e in (cc_emails or []) if e and e.strip()]
 
     msg = MIMEMultipart("mixed")
     msg["Subject"] = subject
     msg["From"] = f"Team - The Financial Doctor <{SMTP_USERNAME}>"
     msg["To"] = to_email
+    if cc_emails:
+        msg["Cc"] = ", ".join(cc_emails)
     msg.attach(MIMEText(body_html, "html"))
 
     for filename, pdf_bytes in attachments:
@@ -104,7 +111,7 @@ def send_email_with_pdfs(to_email: str, subject: str, body_html: str, attachment
     try:
         with smtplib.SMTP_SSL(SMTP_HOST, SMTP_PORT, timeout=20) as server:
             server.login(SMTP_USERNAME, SMTP_PASSWORD)
-            server.sendmail(SMTP_USERNAME, [to_email], msg.as_string())
+            server.sendmail(SMTP_USERNAME, [to_email] + cc_emails, msg.as_string())
         return True, "sent"
     except Exception as exc:
         logger.exception("Failed to send %s document(s) to %s", len(attachments), to_email)

@@ -556,6 +556,14 @@ async def get_certificate(cert_id: str, payload: dict = Depends(get_current_user
 
 class EmailCertificateIn(BaseModel):
     to_email: str
+    cc_emails: List[str] = []
+
+
+def _validate_cc(cc_emails: List[str]) -> List[str]:
+    cc_emails = [e.strip() for e in cc_emails if e and e.strip()]
+    if len(cc_emails) > 10:
+        raise HTTPException(status_code=400, detail="Up to 10 CC addresses only")
+    return cc_emails
 
 
 @router.post("/certificates/{cert_id}/email")
@@ -566,6 +574,7 @@ async def email_certificate(cert_id: str, data: EmailCertificateIn, admin: dict 
     happened, is an incomplete document for the recipient's purposes."""
     if not email_configured():
         raise HTTPException(status_code=503, detail="Email sending not configured")
+    cc_emails = _validate_cc(data.cc_emails)
     doc = await certificates_collection.find_one({"id": cert_id})
     if not doc:
         raise HTTPException(status_code=404, detail="Certificate not found")
@@ -581,7 +590,7 @@ async def email_certificate(cert_id: str, data: EmailCertificateIn, admin: dict 
     if is_internship:
         intern = await interns_collection.find_one({"id": doc["intern_id"]})
         if intern:
-            completion_pdf = generate_completion_letter_pdf(intern)
+            completion_pdf = generate_completion_letter_pdf(intern, verify_url=_verify_url(doc["certificate_number"]), certificate_number=doc["certificate_number"])
             attachments.append((f"Completion_Letter_{intern['name'].replace(' ', '_')}.pdf", completion_pdf))
             doc_labels.append("Internship Completion Letter")
 
@@ -591,10 +600,10 @@ async def email_certificate(cert_id: str, data: EmailCertificateIn, admin: dict 
     else:
         subject = f"Your Documents from The Financial Doctor — {doc['certificate_number']}"
         body_html = document_email_html(doc["person_name"], doc_labels)
-    ok, message = send_email_with_pdfs(data.to_email, subject, body_html, attachments)
+    ok, message = send_email_with_pdfs(data.to_email, subject, body_html, attachments, cc_emails=cc_emails)
     if not ok:
         raise HTTPException(status_code=503, detail=message)
-    await log_activity(admin["sub"], "certificate_emailed", f"Emailed {', '.join(doc_labels)} to {data.to_email}", link="/portal/admin/certificates")
+    await log_activity(admin["sub"], "certificate_emailed", f"Emailed {', '.join(doc_labels)} to {data.to_email}" + (f" (cc: {', '.join(cc_emails)})" if cc_emails else ""), link="/portal/admin/certificates")
     return {"status": "sent", "documents": doc_labels}
 
 
@@ -603,12 +612,14 @@ async def email_certificate(cert_id: str, data: EmailCertificateIn, admin: dict 
 class InternEmailIn(BaseModel):
     to_email: str
     documents: List[str]  # any of: "offer_letter", "completion_letter", "certificate"
+    cc_emails: List[str] = []
 
 
 @router.post("/interns/{intern_id}/email")
 async def email_intern_documents(intern_id: str, data: InternEmailIn, admin: dict = Depends(require_admin)):
     if not email_configured():
         raise HTTPException(status_code=503, detail="Email sending not configured")
+    cc_emails = _validate_cc(data.cc_emails)
     intern = await interns_collection.find_one({"id": intern_id})
     if not intern:
         raise HTTPException(status_code=404, detail="Intern not found")
@@ -626,14 +637,14 @@ async def email_intern_documents(intern_id: str, data: InternEmailIn, admin: dic
     if "offer_letter" in wanted:
         attachments.append((f"Offer_Letter_{name_safe}.pdf", generate_offer_letter_pdf(intern)))
         doc_labels.append("Internship Offer Letter")
-    if "completion_letter" in wanted:
-        attachments.append((f"Completion_Letter_{name_safe}.pdf", generate_completion_letter_pdf(intern)))
-        doc_labels.append("Internship Completion Letter")
+    if "completion_letter" in wanted or "certificate" in wanted:
+        cert = await _ensure_intern_certificate(intern_id, intern, admin["sub"])
+        if "completion_letter" in wanted:
+            completion_pdf = generate_completion_letter_pdf(intern, verify_url=_verify_url(cert["certificate_number"]), certificate_number=cert["certificate_number"])
+            attachments.append((f"Completion_Letter_{name_safe}.pdf", completion_pdf))
+            doc_labels.append("Internship Completion Letter")
     if "certificate" in wanted:
-        if not intern.get("certificate_id"):
-            raise HTTPException(status_code=400, detail="Certificate hasn't been generated for this intern yet")
-        cert = await certificates_collection.find_one({"id": intern["certificate_id"]})
-        if not cert or not cert.get("r2_key"):
+        if not cert.get("r2_key"):
             raise HTTPException(status_code=400, detail="Certificate PDF not found")
         from storage_r2 import get_client, R2_BUCKET_NAME
         obj = get_client().get_object(Bucket=R2_BUCKET_NAME, Key=cert["r2_key"])
@@ -649,8 +660,8 @@ async def email_intern_documents(intern_id: str, data: InternEmailIn, admin: dic
     else:
         subject = f"Your Documents from The Financial Doctor — {intern['name']}"
         body_html = document_email_html(intern["name"], doc_labels)
-    ok, message = send_email_with_pdfs(data.to_email, subject, body_html, attachments)
+    ok, message = send_email_with_pdfs(data.to_email, subject, body_html, attachments, cc_emails=cc_emails)
     if not ok:
         raise HTTPException(status_code=503, detail=message)
-    await log_activity(admin["sub"], "documents_emailed", f"Emailed {', '.join(doc_labels)} to {data.to_email} for {intern['name']}", link="/portal/admin/certificates")
+    await log_activity(admin["sub"], "documents_emailed", f"Emailed {', '.join(doc_labels)} to {data.to_email} for {intern['name']}" + (f" (cc: {', '.join(cc_emails)})" if cc_emails else ""), link="/portal/admin/certificates")
     return {"status": "sent", "documents": doc_labels}

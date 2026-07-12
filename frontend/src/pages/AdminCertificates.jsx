@@ -40,12 +40,16 @@ export default function AdminCertificates() {
 
   const [emailTarget, setEmailTarget] = useState(null);
   const [emailAddress, setEmailAddress] = useState("");
+  const [emailCc, setEmailCc] = useState("");
   const [sendingEmail, setSendingEmail] = useState(false);
 
   const [emailInternTarget, setEmailInternTarget] = useState(null);
   const [emailInternAddress, setEmailInternAddress] = useState("");
+  const [emailInternCc, setEmailInternCc] = useState("");
   const [emailInternDocs, setEmailInternDocs] = useState([]);
   const [sendingInternEmail, setSendingInternEmail] = useState(false);
+
+  const parseCc = (raw) => raw.split(",").map((s) => s.trim()).filter(Boolean).slice(0, 10);
 
   const [templateEdit, setTemplateEdit] = useState(null); // { intern, kind: "offer_letter"|"completion_letter"|"certificate" }
   const [templateText, setTemplateText] = useState("");
@@ -175,9 +179,9 @@ export default function AdminCertificates() {
     setSendingEmail(true);
     try {
       const res = await fetch(`${API_BASE}/api/certificates/${emailTarget.id}/email`, {
-        method: "POST", headers, body: JSON.stringify({ to_email: emailAddress.trim() }),
+        method: "POST", headers, body: JSON.stringify({ to_email: emailAddress.trim(), cc_emails: parseCc(emailCc) }),
       });
-      if (res.ok) { alert("Emailed!"); setEmailTarget(null); setEmailAddress(""); } else { const err = await res.json().catch(() => ({})); alert(err.detail || "Failed to send"); }
+      if (res.ok) { alert("Emailed!"); setEmailTarget(null); setEmailAddress(""); setEmailCc(""); } else { const err = await res.json().catch(() => ({})); alert(err.detail || "Failed to send"); }
     } finally {
       setSendingEmail(false);
     }
@@ -194,12 +198,12 @@ export default function AdminCertificates() {
     try {
       const res = await fetch(`${API_BASE}/api/interns/${emailInternTarget.id}/email`, {
         method: "POST", headers,
-        body: JSON.stringify({ to_email: emailInternAddress.trim(), documents: emailInternDocs }),
+        body: JSON.stringify({ to_email: emailInternAddress.trim(), documents: emailInternDocs, cc_emails: parseCc(emailInternCc) }),
       });
       if (res.ok) {
         const result = await res.json();
         alert(`Sent: ${result.documents.join(", ")}`);
-        setEmailInternTarget(null); setEmailInternAddress(""); setEmailInternDocs([]);
+        setEmailInternTarget(null); setEmailInternAddress(""); setEmailInternCc(""); setEmailInternDocs([]);
       } else {
         const err = await res.json().catch(() => ({}));
         alert(err.detail || "Failed to send");
@@ -308,18 +312,26 @@ export default function AdminCertificates() {
       </PortalModal>
 
 
-      <PortalModal open={!!emailTarget} onOpenChange={(v) => !v && setEmailTarget(null)} title="Email Certificate" maxWidth="max-w-sm">
+      <PortalModal open={!!emailTarget} onOpenChange={(v) => { if (!v) { setEmailTarget(null); setEmailCc(""); } }} title="Email Certificate" maxWidth="max-w-sm">
         <div className="space-y-3">
           <input type="email" placeholder="recipient@email.com" value={emailAddress} onChange={(e) => setEmailAddress(e.target.value)} className={field} />
+          <div>
+            <input placeholder="CC (comma-separated, optional)" value={emailCc} onChange={(e) => setEmailCc(e.target.value)} className={field} />
+            <p className="text-[11px] text-[#2A364B]/40 dark:text-[#8E99AC]/60 mt-1">Up to 10 addresses, separated by commas</p>
+          </div>
           <Button onClick={sendEmail} disabled={sendingEmail || !emailAddress.trim()} className="w-full bg-[#024396] hover:bg-[#023580]">{sendingEmail ? "Sending..." : "Send"}</Button>
         </div>
       </PortalModal>
 
-      <PortalModal open={!!emailInternTarget} onOpenChange={(v) => { if (!v) { setEmailInternTarget(null); setEmailInternAddress(""); setEmailInternDocs([]); } }} title="Email Documents" maxWidth="max-w-sm">
+      <PortalModal open={!!emailInternTarget} onOpenChange={(v) => { if (!v) { setEmailInternTarget(null); setEmailInternAddress(""); setEmailInternCc(""); setEmailInternDocs([]); } }} title="Email Documents" maxWidth="max-w-sm">
         {emailInternTarget && (
           <div className="space-y-3">
             <p className="text-xs text-[#2A364B]/60 dark:text-[#8E99AC] -mt-2">{emailInternTarget.name}</p>
             <input type="email" placeholder="recipient@email.com" value={emailInternAddress} onChange={(e) => setEmailInternAddress(e.target.value)} className={field} />
+            <div>
+              <input placeholder="CC (comma-separated, optional)" value={emailInternCc} onChange={(e) => setEmailInternCc(e.target.value)} className={field} />
+              <p className="text-[11px] text-[#2A364B]/40 dark:text-[#8E99AC]/60 mt-1">Up to 10 addresses, separated by commas</p>
+            </div>
 
             <div className="space-y-2">
               <label className="flex items-center gap-2 text-sm text-[#0E1B2C] dark:text-[#F1EDE3] cursor-pointer">
