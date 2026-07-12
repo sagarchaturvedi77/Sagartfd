@@ -13,11 +13,14 @@ import { useCallReturnContext } from "../context/CallReturnContext";
 
 const API_BASE = process.env.REACT_APP_BACKEND_URL || "";
 
-// Mirrors backend/lead_routes.py's REASON_LABELS — the "not connected" call
-// outcomes that get auto-rescheduled for a next-day retry.
-const NOT_CONNECTED_REASONS = {
+// Every call outcome that gets auto-rescheduled for a next-day retry (mirrors
+// backend/lead_routes.py's REASON_LABELS plus the "not interested, try again"
+// retry path) — all of these fire a "Retry Call" reminder, so all of them
+// belong in the Reschedule Call widget.
+const RETRY_REASONS = {
   npc: "No response", switchoff: "Switched off",
   network_issue: "Network issue", busy: "Busy",
+  not_interested: "Not interested last time",
 };
 
 export default function EmployeeDashboard() {
@@ -142,7 +145,7 @@ export default function EmployeeDashboard() {
     .filter(l => l.status === "follow_up")
     .map(l => {
       const lastReasoned = [...(l.status_history || [])].reverse().find(h => h.sub_stage);
-      const reason = lastReasoned && NOT_CONNECTED_REASONS[lastReasoned.sub_stage];
+      const reason = lastReasoned && RETRY_REASONS[lastReasoned.sub_stage];
       return reason ? { ...l, _reason: reason } : null;
     })
     .filter(Boolean);
