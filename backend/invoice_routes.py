@@ -30,6 +30,7 @@ class InvoiceCreate(BaseModel):
     gst_percent: Optional[float] = 0
     gst_type: Literal["inclusive", "exclusive"] = "exclusive"
     gst_number: Optional[str] = None
+    save_gst_number: bool = False
     payment_method: Optional[Literal["cash", "upi", "bank_transfer"]] = None
     invoice_date: Optional[str] = None  # defaults to today
 
@@ -77,8 +78,9 @@ async def create_invoice(data: InvoiceCreate, admin: dict = Depends(require_admi
     }
     await invoices_collection.insert_one(doc)
 
-    # Remember this GST number for next time, so the admin doesn't retype it.
-    if data.gst_number:
+    # Remember this GST number for next time, only if the admin explicitly
+    # opted in — not automatically on every invoice with a GST number typed in.
+    if data.save_gst_number and data.gst_number:
         await business_settings_collection.update_one(
             {"_id": "gst_template"}, {"$set": {"gst_number": data.gst_number}}, upsert=True,
         )
@@ -104,13 +106,26 @@ async def list_invoices(admin: dict = Depends(require_admin)):
 
 @router.get("/{invoice_id}/download")
 async def download_invoice(invoice_id: str, admin: dict = Depends(require_admin)):
+    """Serves the PDF directly through our own backend (not a presigned R2
+    link) so a plain authenticated fetch always works — and regenerates the
+    PDF on the fly from the stored invoice fields whenever R2 is
+    unconfigured or a stored file can't be fetched, instead of failing.
+    Every field generate_invoice_pdf needs is already saved on the invoice
+    doc, so regeneration is cheap and always available."""
     doc = await invoices_collection.find_one({"id": invoice_id})
     if not doc:
         raise HTTPException(status_code=404, detail="Invoice not found")
-    if not doc.get("r2_key"):
-        raise HTTPException(status_code=400, detail="No PDF stored for this invoice")
-    from storage_r2 import get_client, R2_BUCKET_NAME
-    obj = get_client().get_object(Bucket=R2_BUCKET_NAME, Key=doc["r2_key"])
-    pdf_bytes = obj["Body"].read()
+
+    pdf_bytes = None
+    if doc.get("r2_key"):
+        try:
+            from storage_r2 import get_client, R2_BUCKET_NAME
+            obj = get_client().get_object(Bucket=R2_BUCKET_NAME, Key=doc["r2_key"])
+            pdf_bytes = obj["Body"].read()
+        except Exception:
+            pdf_bytes = None
+    if pdf_bytes is None:
+        pdf_bytes, *_ = generate_invoice_pdf(doc)
+
     filename = f"Invoice_{doc['invoice_number'].replace('/', '_')}.pdf"
     return StreamingResponse(io.BytesIO(pdf_bytes), media_type="application/pdf", headers={"Content-Disposition": f'attachment; filename="{filename}"'})
