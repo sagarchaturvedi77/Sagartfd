@@ -27,6 +27,20 @@ export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [token, setToken] = useState(localStorage.getItem("tfd_token"));
   const [loading, setLoading] = useState(true);
+  // Employee onboarding is mandatory — checked once per session here (not
+  // per-page in ProtectedRoute) so navigating between already-unlocked pages
+  // doesn't re-fetch/flash a loading state every time.
+  const [profileCompleted, setProfileCompleted] = useState(true);
+  const [profileChecked, setProfileChecked] = useState(false);
+
+  const refreshProfileStatus = React.useCallback(() => {
+    if (!token) return Promise.resolve();
+    return fetch(`${API_BASE}/api/profile-status`, { headers: { Authorization: `Bearer ${token}` } })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data) => { if (data) setProfileCompleted(!!data.profile_completed); })
+      .catch(() => {})
+      .finally(() => setProfileChecked(true));
+  }, [token]);
 
   useEffect(() => {
     if (!token) {
@@ -81,6 +95,7 @@ export function AuthProvider({ children }) {
         .catch(() => { /* network error — keep the optimistic session */ });
 
     checkSession();
+    if (payload.role === "employee") refreshProfileStatus();
     // Re-check periodically so an admin disabling this employee's login
     // takes effect on their already-open tab within a couple of minutes,
     // not only the next time they happen to reload — API calls made
@@ -129,7 +144,7 @@ export function AuthProvider({ children }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, token, loading, login, logout }}>
+    <AuthContext.Provider value={{ user, token, loading, login, logout, profileCompleted, profileChecked, refreshProfileStatus }}>
       {children}
     </AuthContext.Provider>
   );

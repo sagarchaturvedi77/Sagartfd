@@ -91,7 +91,10 @@ async def generate_experience_letter_for_employee(employee_id: str, emp: dict, a
         "start_date": join_date, "end_date": resign_date, "tenure_months": months,
     }
     employee_verify_url = f"{SITE_URL}/verify/{employee_id}"
-    pdf_bytes = generate_experience_letter_pdf(letter_data, verify_url=employee_verify_url, certificate_number=cert_number)
+    # The number printed next to the QR is deliberately the employee's own
+    # Employee ID, not a separately-minted document number — one identity,
+    # one number, matching the ID/visiting card the employee already has.
+    pdf_bytes = generate_experience_letter_pdf(letter_data, verify_url=employee_verify_url, certificate_number=employee_id)
 
     doc_id = str(uuid.uuid4())
     r2_key = await _store_pdf(pdf_bytes, f"experience-letters/{doc_id}.pdf")
@@ -800,7 +803,7 @@ async def download_certificate(cert_id: str, payload: dict = Depends(get_current
             }
             pdf_bytes = generate_experience_letter_pdf(
                 letter_data, verify_url=f"{SITE_URL}/verify/{doc.get('linked_employee_id')}",
-                certificate_number=doc["certificate_number"],
+                certificate_number=doc.get("linked_employee_id"),
             )
         else:
             cert_data = {

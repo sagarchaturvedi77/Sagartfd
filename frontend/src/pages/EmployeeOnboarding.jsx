@@ -173,7 +173,6 @@ export default function EmployeeOnboarding() {
             </div>
             <div className="grid sm:grid-cols-2 gap-4">
               <FileUploadBox label="Passport Size Photo *" fieldName="photo" />
-              <FileUploadBox label="Resume / CV" fieldName="resume" />
               <FileUploadBox label="Aadhar Card (Front)" fieldName="aadhar_front" />
               <FileUploadBox label="Aadhar Card (Back)" fieldName="aadhar_back" />
             </div>
