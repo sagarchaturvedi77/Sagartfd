@@ -22,6 +22,7 @@ SMTP_PASSWORD = os.environ.get("SMTP_PASSWORD", "")
 TFD_LOGO_URL = "https://thefinancialdoctor.in/assets/logos/TFD-MAIN-LOGO.png"
 WORKSPACE_LOGO_URL = "https://thefinancialdoctor.in/tfd-workspace-logo.png"
 LOGIN_URL = "https://thefinancialdoctor.in/portal/login"
+RESET_PASSWORD_URL = "https://thefinancialdoctor.in/portal/reset-password"
 ANDROID_APK_URL = "https://thefinancialdoctor.in/TFD-Workspace.apk"
 
 
@@ -75,6 +76,53 @@ def send_welcome_email(to_email: str, name: str, phone: str, password: str) -> t
         return True, "sent"
     except Exception as exc:
         logger.exception("Failed to send welcome email to %s", to_email)
+        return False, str(exc)
+
+
+def _password_reset_html(name: str, reset_url: str) -> str:
+    return f"""
+    <div style="font-family:'Segoe UI',Arial,sans-serif;max-width:520px;margin:0 auto;background:#F5F1EB;padding:24px;">
+      <div style="text-align:center;margin-bottom:20px;">
+        <img src="{TFD_LOGO_URL}" alt="The Financial Doctor" style="height:56px;object-fit:contain;background:#fff;border-radius:8px;padding:6px;" />
+      </div>
+      <div style="background:#fff;border-radius:16px;padding:28px;border:1px solid #E2D8C2;">
+        <h2 style="color:#0E1B2C;margin:0 0 4px;font-size:20px;">Reset your password</h2>
+        <p style="color:#5C677D;font-size:13px;margin:12px 0;">
+          Hi {name}, we received a request to reset your TFD Workspace password. Click the button below to choose a
+          new one.
+        </p>
+        <div style="text-align:center;margin:24px 0;">
+          <a href="{reset_url}" style="display:inline-block;background:#024396;color:#fff;text-decoration:none;padding:12px 28px;border-radius:10px;font-weight:600;font-size:14px;">Reset Password →</a>
+        </div>
+        <p style="color:#5C677D;font-size:12.5px;margin:0;">
+          This link expires in <strong>20 minutes</strong>, or as soon as it's used once — whichever comes first.
+          If you didn't request this, you can safely ignore this email; your password won't change.
+        </p>
+      </div>
+      <div style="text-align:center;margin-top:18px;">
+        <p style="font-size:11px;color:#9AA5B4;">The Financial Doctor &middot; TFD Workspace &middot; thefinancialdoctor.in</p>
+      </div>
+    </div>
+    """
+
+
+def send_password_reset_email(to_email: str, name: str, reset_url: str) -> tuple[bool, str]:
+    if not email_configured():
+        return False, "Email sending not configured — set SMTP_USERNAME and SMTP_PASSWORD in backend/.env"
+
+    msg = MIMEMultipart("alternative")
+    msg["Subject"] = "Reset your TFD Workspace password"
+    msg["From"] = f"The Financial Doctor <{SMTP_USERNAME}>"
+    msg["To"] = to_email
+    msg.attach(MIMEText(_password_reset_html(name, reset_url), "html"))
+
+    try:
+        with smtplib.SMTP_SSL(SMTP_HOST, SMTP_PORT, timeout=15) as server:
+            server.login(SMTP_USERNAME, SMTP_PASSWORD)
+            server.sendmail(SMTP_USERNAME, [to_email], msg.as_string())
+        return True, "sent"
+    except Exception as exc:
+        logger.exception("Failed to send password reset email to %s", to_email)
         return False, str(exc)
 
 

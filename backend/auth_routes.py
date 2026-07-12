@@ -1,16 +1,19 @@
 from fastapi import APIRouter, HTTPException, Depends, status
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 import random
+import secrets
 import string
 
 from pydantic import BaseModel
 
 from auth_models import UserCreate, UserLogin, UserOut, UserInDB, TokenResponse, PasswordChange
 from auth_utils import hash_password, verify_password, create_access_token, require_admin, get_current_user_payload
-from database import users_collection, db
+from database import users_collection, password_resets_collection, db
 from utils.employee import gen_employee_id_from_phone
 from utils.audit import write_audit
-from email_service import send_welcome_email, email_configured
+from email_service import send_welcome_email, send_password_reset_email, email_configured, RESET_PASSWORD_URL
+
+PASSWORD_RESET_TTL_MINUTES = 20
 
 router = APIRouter(prefix="/api/auth", tags=["auth"])
 
@@ -183,6 +186,70 @@ async def change_password(
         raise HTTPException(status_code=400, detail="New password must be at least 6 characters")
     await users_collection.update_one({"id": payload["sub"]}, {"$set": {"password_hash": hash_password(data.new_password)}})
     return {"status": "password_changed"}
+
+
+class ForgotPasswordIn(BaseModel):
+    user_id: str  # phone (primary) or email — same "User ID" the login screen uses
+
+
+class ResetPasswordIn(BaseModel):
+    token: str
+    new_password: str
+
+
+@router.post("/forgot-password")
+async def forgot_password(data: ForgotPasswordIn):
+    """Public, unauthenticated. Always returns the same generic response
+    regardless of whether the account/email exists, so this endpoint can't
+    be used to enumerate valid User IDs — the reset email (if any) is the
+    only signal of whether an account was found."""
+    generic_response = {"status": "if_account_exists_email_sent"}
+
+    user = await users_collection.find_one({"phone": data.user_id})
+    if not user:
+        user = await users_collection.find_one({"email": data.user_id})
+    if not user or not user.get("email") or not email_configured():
+        return generic_response
+
+    # Invalidate any earlier unused reset links for this user before issuing
+    # a new one — only the most recent request should ever be valid.
+    await password_resets_collection.delete_many({"user_id": user["id"], "used": False})
+
+    token = secrets.token_urlsafe(32)
+    now = datetime.now(timezone.utc)
+    await password_resets_collection.insert_one({
+        "token": token,
+        "user_id": user["id"],
+        "created_at": now,
+        "expires_at": now + timedelta(minutes=PASSWORD_RESET_TTL_MINUTES),
+        "used": False,
+    })
+
+    reset_url = f"{RESET_PASSWORD_URL}?token={token}"
+    send_password_reset_email(user["email"], user.get("name", "there"), reset_url)
+    return generic_response
+
+
+@router.post("/reset-password")
+async def reset_password(data: ResetPasswordIn):
+    """Public, unauthenticated — the link from the forgot-password email
+    lands here. One-time use, 20-minute expiry, whichever comes first."""
+    record = await password_resets_collection.find_one({"token": data.token})
+    if not record or record.get("used"):
+        raise HTTPException(status_code=400, detail="This reset link is invalid or has already been used. Please request a new one.")
+
+    expires_at = record["expires_at"]
+    if expires_at.tzinfo is None:
+        expires_at = expires_at.replace(tzinfo=timezone.utc)
+    if expires_at < datetime.now(timezone.utc):
+        raise HTTPException(status_code=400, detail="This reset link has expired. Please request a new one.")
+
+    if len(data.new_password) < 6:
+        raise HTTPException(status_code=400, detail="New password must be at least 6 characters")
+
+    await users_collection.update_one({"id": record["user_id"]}, {"$set": {"password_hash": hash_password(data.new_password)}})
+    await password_resets_collection.update_one({"token": data.token}, {"$set": {"used": True}})
+    return {"status": "password_reset"}
 
 
 @router.get("/employees", response_model=list[UserOut])

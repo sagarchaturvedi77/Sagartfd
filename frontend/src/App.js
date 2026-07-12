@@ -20,6 +20,8 @@ import { CallReturnProvider } from "./context/CallReturnContext";
 import { ThemeProvider } from "./context/ThemeContext";
 import ProtectedRoute from "./components/ProtectedRoute";
 import PortalLogin from "./pages/PortalLogin";
+import ForgotPassword from "./pages/ForgotPassword";
+import ResetPassword from "./pages/ResetPassword";
 import AdminDashboard from "./pages/AdminDashboard";
 import AdminEmployeeList from "./pages/AdminEmployeeList";
 import AdminStorageStatus from "./pages/AdminStorageStatus";
@@ -123,6 +125,8 @@ function App() {
 
                 {/* 🔐 STAFF PORTAL — Admin + Employee */}
                 <Route path="/portal/login" element={<PortalLogin />} />
+                <Route path="/portal/forgot-password" element={<ForgotPassword />} />
+                <Route path="/portal/reset-password" element={<ResetPassword />} />
                 <Route
                   path="/portal/admin"
                   element={
