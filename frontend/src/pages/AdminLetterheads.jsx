@@ -141,7 +141,8 @@ export default function AdminLetterheads() {
               {includeSignature && (
                 <select value={signatureType} onChange={(e) => setSignatureType(e.target.value)} className={`${field} mt-2`}>
                   <option value="ceo">CEO Signature (Sagar Chaturvedi)</option>
-                  <option value="authorized">Authorized Signature (generic)</option>
+                  <option value="authorized_palak">Authorised Signature — Palak Mehta</option>
+                  <option value="authorized">Authorized Signature (blank/generic)</option>
                 </select>
               )}
             </div>

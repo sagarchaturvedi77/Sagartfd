@@ -31,6 +31,7 @@ LOGO_PATH = os.path.join(ASSETS_DIR, "tfd-main-logo.png")
 INTERNSHIP_LOGO_PATH = os.path.join(ASSETS_DIR, "tfd-internship-logo.png")
 WORKSPACE_LOGO_PATH = os.path.join(ASSETS_DIR, "tfd-workspace-logo.png")
 SIGNATURE_PATH = os.path.join(ASSETS_DIR, "ceo-signature.png")
+AUTHORIZED_SIGNATURE_PALAK_PATH = os.path.join(ASSETS_DIR, "authorized-signature-palak.png")
 SEAL_PATH = os.path.join(ASSETS_DIR, "tfd-seal.png")
 TEMPLATE_PATH = os.path.join(ASSETS_DIR, "certificate-template.png")
 LETTERHEAD_TEMPLATE_PATH = os.path.join(ASSETS_DIR, "tfd-letterhead.png")
@@ -117,15 +118,32 @@ def _letterhead(elements, styles, title: str):
 
 
 def _signature_block(elements, styles, signature_type: str = "ceo"):
-    """signature_type: "ceo" (Sagar Chaturvedi, named — embeds the actual
-    signature + seal images) or "authorized" (generic, unnamed, text-only)
-    — used by the blank letterhead tool's signature selector."""
+    """signature_type:
+      "ceo"              — Sagar Chaturvedi, named, embeds the actual
+                            signature + seal images.
+      "authorized_palak"  — Palak Mehta's actual signature, named as
+                            Authorized Signatory.
+      "authorized"        — generic, unnamed, text-only, no image (this is
+                            the one that must stay blank — e.g. invoices).
+    Used by the blank letterhead tool's signature selector."""
     elements.append(Spacer(1, 22))
     elements.append(Paragraph("For The Financial Doctor,", styles["TFDBody"]))
+
     if signature_type == "authorized":
         elements.append(Spacer(1, 24))
         elements.append(Paragraph("<b>Authorized Signatory</b>", styles["TFDBody"]))
         elements.append(Paragraph("The Financial Doctor", styles["TFDMeta"]))
+        return
+
+    if signature_type == "authorized_palak":
+        if os.path.exists(AUTHORIZED_SIGNATURE_PALAK_PATH):
+            elements.append(Spacer(1, 4))
+            # authorized-signature-palak.png's own aspect ratio is ~1.4:1
+            elements.append(Image(AUTHORIZED_SIGNATURE_PALAK_PATH, width=25 * mm, height=18 * mm))
+        else:
+            elements.append(Spacer(1, 24))
+        elements.append(Paragraph("<b>Palak Mehta</b>", styles["TFDBody"]))
+        elements.append(Paragraph("(Authorized Signatory, The Financial Doctor)", styles["TFDMeta"]))
         return
 
     if os.path.exists(SIGNATURE_PATH):

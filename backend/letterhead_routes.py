@@ -33,7 +33,7 @@ async def _next_letterhead_number(year: int) -> str:
 class LetterheadCreate(BaseModel):
     title: Optional[str] = None
     content: str
-    signature_type: Literal["ceo", "authorized", "none"] = "ceo"
+    signature_type: Literal["ceo", "authorized_palak", "authorized", "none"] = "ceo"
     include_disclaimer: bool = False
 
 
