@@ -3,6 +3,7 @@ import { Phone, MessageCircle, PencilLine, UserPlus, Check } from "lucide-react"
 import { timeAgo } from "../../lib/utils";
 import EmptyState from "./EmptyState";
 import PortalModal from "./PortalModal";
+import ProtectedText from "./ProtectedText";
 import CallFlowPopup from "../CallFlowPopup";
 import { useCallReturnContext } from "../../context/CallReturnContext";
 
@@ -203,7 +204,7 @@ export default function RecentActivity({ leads = [], limit = 6, token, onUpdated
                 <NameEditor lead={lead} token={token} onSaved={onUpdated} />
               ) : (
                 <div className="min-w-0 flex-1">
-                  <p className="text-sm font-medium text-[#0E1B2C] dark:text-[#F1EDE3] truncate">{lead.phone}</p>
+                  <p className="text-sm font-medium text-[#0E1B2C] dark:text-[#F1EDE3] truncate"><ProtectedText>{lead.phone}</ProtectedText></p>
                   <p className="text-xs text-[#2A364B]/50 dark:text-[#8E99AC] truncate">{text} · {timeAgo(at || lead.updated_at)}</p>
                 </div>
               )}
@@ -262,7 +263,7 @@ export default function RecentActivity({ leads = [], limit = 6, token, onUpdated
         open={!!historyLead}
         onOpenChange={(v) => !v && setHistoryLead(null)}
         title={historyLead?.name}
-        description={historyLead ? `${historyLead.phone}${historyLead.service_interest ? ` · ${historyLead.service_interest}` : ""}` : ""}
+        description={historyLead ? <><ProtectedText>{historyLead.phone}</ProtectedText>{historyLead.service_interest ? ` · ${historyLead.service_interest}` : ""}</> : ""}
         maxWidth="max-w-md"
       >
         {historyLead && (

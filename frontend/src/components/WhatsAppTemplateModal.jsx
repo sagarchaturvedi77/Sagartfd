@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { X, MessageCircle, Plus, Trash2 } from "lucide-react";
+import ProtectedText from "./portal/ProtectedText";
 
 const API_BASE = process.env.REACT_APP_BACKEND_URL || "";
 const field = "w-full border border-[#E2D8C2] rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#024396]/30";
@@ -65,7 +66,7 @@ export default function WhatsAppTemplateModal({ lead, token, onClose }) {
           </h3>
           <button onClick={onClose} className="p-1.5 hover:bg-[#2A364B]/5 rounded-lg text-[#2A364B]/60"><X size={16} /></button>
         </div>
-        <p className="text-[12px] text-[#2A364B]/50 mb-4">{lead.name} · {lead.phone}</p>
+        <p className="text-[12px] text-[#2A364B]/50 mb-4">{lead.name} · <ProtectedText>{lead.phone}</ProtectedText></p>
 
         {loading ? (
           <p className="text-xs text-[#2A364B]/40 text-center py-6">Loading templates…</p>

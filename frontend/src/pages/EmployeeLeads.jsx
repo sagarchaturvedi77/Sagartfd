@@ -8,6 +8,7 @@ import { useCallReturnContext } from "../context/CallReturnContext";
 import { Phone, MessageCircle, ArrowRightLeft, Search, Plus, ChevronLeft } from "lucide-react";
 import PageHeader from "../components/portal/PageHeader";
 import StatCard from "../components/portal/StatCard";
+import ProtectedText from "../components/portal/ProtectedText";
 import StatusBadge from "../components/portal/StatusBadge";
 import EmptyState from "../components/portal/EmptyState";
 import PortalModal from "../components/portal/PortalModal";
@@ -249,7 +250,7 @@ export default function EmployeeLeads() {
             <span className="text-[9px] font-semibold uppercase tracking-wide text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/30 px-1.5 py-0.5 rounded shrink-0">Missed</span>
           )}
         </p>
-        <p className="text-xs text-[#2A364B]/50 dark:text-[#8E99AC]">{lead.phone} {lead.service_interest && `· ${lead.service_interest}`}</p>
+        <p className="text-xs text-[#2A364B]/50 dark:text-[#8E99AC]"><ProtectedText>{lead.phone}</ProtectedText> {lead.service_interest && `· ${lead.service_interest}`}</p>
         {lead.follow_up_date && (
           <p className={`text-[10px] mt-0.5 ${missed ? "text-red-600 dark:text-red-400 font-semibold" : "text-orange-500 dark:text-orange-400"}`}>
             Follow-up: {lead.follow_up_date}
@@ -308,7 +309,7 @@ export default function EmployeeLeads() {
               ) : (
                 globalResults.map((r) => (
                   <div key={r.id} className="px-4 py-2.5 border-b border-[#E2D8C2] dark:border-white/10 last:border-0 text-xs">
-                    <p className="font-medium text-[#0E1B2C] dark:text-[#F1EDE3]">{r.name} — {r.phone}</p>
+                    <p className="font-medium text-[#0E1B2C] dark:text-[#F1EDE3]">{r.name} — <ProtectedText>{r.phone}</ProtectedText></p>
                     <p className="text-[#2A364B]/50 dark:text-[#8E99AC]">Status: {STATUS_LABELS[r.status] || r.status} · {r.assigned_to_name || "Unassigned"}</p>
                   </div>
                 ))
@@ -410,7 +411,7 @@ export default function EmployeeLeads() {
               <p className="text-sm text-[#2A364B] dark:text-[#C7CEDA]">{duplicateLead.message}</p>
               <div className="bg-[#F5F1EB] dark:bg-white/5 rounded-xl px-4 py-3 text-xs space-y-1">
                 <p className="font-semibold text-[#0E1B2C] dark:text-[#F1EDE3]">{duplicateLead.existing_lead.name}</p>
-                <p className="text-[#2A364B]/70 dark:text-[#8E99AC]">{duplicateLead.existing_lead.phone}</p>
+                <p className="text-[#2A364B]/70 dark:text-[#8E99AC]"><ProtectedText>{duplicateLead.existing_lead.phone}</ProtectedText></p>
                 <p className="text-[#2A364B]/70 dark:text-[#8E99AC]">Status: {STATUS_LABELS[duplicateLead.existing_lead.status] || duplicateLead.existing_lead.status}</p>
                 {duplicateLead.existing_lead.service_interest && (
                   <p className="text-[#2A364B]/70 dark:text-[#8E99AC]">Service: {duplicateLead.existing_lead.service_interest}</p>
@@ -462,7 +463,7 @@ export default function EmployeeLeads() {
         <PortalModal open={!!statusLead} onOpenChange={(v) => !v && setStatusLead(null)} title="Update Status" maxWidth="max-w-sm">
           {statusLead && (
             <div className="space-y-3">
-              <p className="text-xs text-[#2A364B]/60 dark:text-[#8E99AC] -mt-2">{statusLead.name} · {statusLead.phone}</p>
+              <p className="text-xs text-[#2A364B]/60 dark:text-[#8E99AC] -mt-2">{statusLead.name} · <ProtectedText>{statusLead.phone}</ProtectedText></p>
               <div className="grid grid-cols-3 gap-2">
                 {["follow_up", "converted", "lost"].map((s) => (
                   <button
@@ -541,7 +542,7 @@ export default function EmployeeLeads() {
                   <span className="text-[9px] font-semibold uppercase tracking-wide text-violet-600 dark:text-violet-400 bg-violet-50 dark:bg-violet-900/30 px-1.5 py-0.5 rounded">Self-added</span>
                 )}
               </h3>
-              <p className="text-xs text-[#2A364B]/60 dark:text-[#8E99AC]">{detailLead.phone} {detailLead.email && `| ${detailLead.email}`} {detailLead.city && `| ${detailLead.city}`}</p>
+              <p className="text-xs text-[#2A364B]/60 dark:text-[#8E99AC]"><ProtectedText>{detailLead.phone}</ProtectedText> {detailLead.email && `| ${detailLead.email}`} {detailLead.city && `| ${detailLead.city}`}</p>
               {detailLead.service_interest && <p className="text-xs text-[#024396] dark:text-[#7CB0FF] mt-1">Services: {detailLead.service_interest}</p>}
               {detailLead.follow_up_date && <p className="text-xs text-orange-600 dark:text-orange-400 mt-1">Follow-up: {detailLead.follow_up_date}</p>}
               {(detailLead.code_name || detailLead.service_price || detailLead.service_expires_at) && (
@@ -585,7 +586,7 @@ export default function EmployeeLeads() {
                   <div className="space-y-1.5">
                     {leads.filter((l) => l.referred_by_lead_id === detailLead.id).map((r) => (
                       <div key={r.id} className="bg-violet-50 dark:bg-violet-900/20 rounded-lg p-2 text-xs flex items-center justify-between">
-                        <span className="text-[#0E1B2C] dark:text-[#F1EDE3]">{r.name} — {r.phone}</span>
+                        <span className="text-[#0E1B2C] dark:text-[#F1EDE3]">{r.name} — <ProtectedText>{r.phone}</ProtectedText></span>
                         <StatusBadge status={r.status} label={STATUS_LABELS[r.status]} />
                       </div>
                     ))}
