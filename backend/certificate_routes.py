@@ -331,6 +331,40 @@ async def download_offer_letter(intern_id: str, admin: dict = Depends(require_ad
     return StreamingResponse(io.BytesIO(pdf_bytes), media_type="application/pdf", headers={"Content-Disposition": f'inline; filename="{filename}"'})
 
 
+@router.get("/interns/{intern_id}/completion-letter/download")
+async def download_completion_letter(intern_id: str, admin: dict = Depends(require_admin)):
+    """Same resilience pattern as the offer letter's download endpoint —
+    serves the already-generated completion letter without minting a new
+    numbered record. This is what was missing from the intern profile
+    view (only Certificate had a real download button there)."""
+    from fastapi.responses import StreamingResponse
+    import io
+
+    intern = await interns_collection.find_one({"id": intern_id})
+    if not intern:
+        raise HTTPException(status_code=404, detail="Intern not found")
+    rec = await certificates_collection.find_one({"intern_id": intern_id, "type": "completion_letter"}, sort=[("created_at", -1)])
+    if not rec:
+        raise HTTPException(status_code=404, detail="Completion letter hasn't been generated for this intern yet")
+
+    pdf_bytes = None
+    if rec.get("r2_key"):
+        try:
+            from storage_r2 import get_client, R2_BUCKET_NAME
+            obj = get_client().get_object(Bucket=R2_BUCKET_NAME, Key=rec["r2_key"])
+            pdf_bytes = obj["Body"].read()
+        except Exception:
+            pdf_bytes = None
+    if pdf_bytes is None:
+        cert = await certificates_collection.find_one({"intern_id": intern_id, "type": "internship"})
+        verify_url = _verify_url(cert["certificate_number"]) if cert else None
+        cert_number = cert["certificate_number"] if cert else None
+        pdf_bytes = generate_completion_letter_pdf(intern, verify_url=verify_url, certificate_number=cert_number)
+
+    filename = f"Completion_Letter_{intern['name'].replace(' ', '_')}.pdf"
+    return StreamingResponse(io.BytesIO(pdf_bytes), media_type="application/pdf", headers={"Content-Disposition": f'inline; filename="{filename}"'})
+
+
 async def _ensure_intern_certificate(intern_id: str, intern: dict, admin_id: str) -> dict:
     """Returns the intern's internship certificate record, creating it
     (silently, with the default auto-built detail text) if it doesn't exist

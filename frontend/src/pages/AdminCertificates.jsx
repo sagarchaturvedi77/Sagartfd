@@ -479,6 +479,30 @@ export default function AdminCertificates() {
                   <DetailRow label="Offer Letter" value={personDetail.intern.offer_letter_generated_at ? `Generated ${new Date(personDetail.intern.offer_letter_generated_at).toLocaleDateString("en-IN")}` : "Not generated yet"} />
                   <DetailRow label="Completion Letter" value={personDetail.intern.completion_letter_generated_at ? `Generated ${new Date(personDetail.intern.completion_letter_generated_at).toLocaleDateString("en-IN")}` : "Not generated yet"} />
                 </div>
+                <div className="flex items-center gap-3 mt-2">
+                  {personDetail.intern.offer_letter_generated_at && (
+                    <button
+                      onClick={async () => {
+                        const res = await fetch(`${API_BASE}/api/interns/${personDetail.intern.id}/offer-letter/download`, { headers });
+                        if (res.ok) await downloadBlob(res, `Offer_Letter_${personDetail.intern.name.replace(/\s+/g, "_")}.pdf`);
+                      }}
+                      className="inline-flex items-center gap-1.5 text-xs font-medium text-[#024396] dark:text-[#7CB0FF]"
+                    >
+                      <Download size={12} /> Download Offer Letter
+                    </button>
+                  )}
+                  {personDetail.intern.completion_letter_generated_at && (
+                    <button
+                      onClick={async () => {
+                        const res = await fetch(`${API_BASE}/api/interns/${personDetail.intern.id}/completion-letter/download`, { headers });
+                        if (res.ok) await downloadBlob(res, `Completion_Letter_${personDetail.intern.name.replace(/\s+/g, "_")}.pdf`);
+                      }}
+                      className="inline-flex items-center gap-1.5 text-xs font-medium text-[#024396] dark:text-[#7CB0FF]"
+                    >
+                      <Download size={12} /> Download Completion Letter
+                    </button>
+                  )}
+                </div>
               </div>
             )}
 
