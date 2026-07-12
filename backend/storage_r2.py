@@ -44,10 +44,21 @@ def delete_object(key: str) -> None:
     get_client().delete_object(Bucket=R2_BUCKET_NAME, Key=key)
 
 
-def presigned_url(key: str, expires_in: int = 3600) -> str:
+def presigned_url(key: str, expires_in: int = 3600) -> str | None:
     """A time-limited URL (default 1 hour) for reading one object — generated
     fresh on every request rather than stored, so nothing is servable forever
-    from a leaked/bookmarked link."""
-    return get_client().generate_presigned_url(
-        "get_object", Params={"Bucket": R2_BUCKET_NAME, "Key": key}, ExpiresIn=expires_in,
-    )
+    from a leaked/bookmarked link.
+
+    Every list endpoint that shows documents (certificates, invoices,
+    letterheads, KYC docs) calls this unconditionally for any record that
+    has an r2_key, with no guard of its own — so if R2 isn't configured (or
+    briefly errors), returning None here instead of raising keeps the whole
+    list from 500ing over a single broken download link."""
+    if not r2_enabled():
+        return None
+    try:
+        return get_client().generate_presigned_url(
+            "get_object", Params={"Bucket": R2_BUCKET_NAME, "Key": key}, ExpiresIn=expires_in,
+        )
+    except Exception:
+        return None

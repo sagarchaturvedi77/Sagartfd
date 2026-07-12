@@ -38,7 +38,10 @@ async def to_user_out(doc: dict) -> UserOut:
     return UserOut(
         id=doc["id"], name=doc["name"], email=doc.get("email", ""), role=doc["role"],
         phone=doc.get("phone"), designation=doc.get("designation"),
-        created_at=doc["created_at"],
+        # A handful of legacy/seed accounts (e.g. the bootstrapped admin from
+        # seed_admin.py) predate created_at being set on every user doc — fall
+        # back instead of hard-crashing the whole employees list over it.
+        created_at=doc.get("created_at") or datetime(2024, 1, 1, tzinfo=timezone.utc),
         training_days=doc.get("training_days"),
         training_salary=doc.get("training_salary"),
         training_start_date=doc.get("training_start_date"),

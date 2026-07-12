@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useCallback } from "react";
-import { UserPlus, FileSpreadsheet, Download, CheckSquare, Activity } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { UserPlus, FileSpreadsheet, Download, CheckSquare, Activity, ChevronRight } from "lucide-react";
 import { timeAgo } from "../../lib/utils";
 import EmptyState from "./EmptyState";
 
@@ -16,6 +17,7 @@ const ACTION_ICON = {
  * tasks added, ...) — replaces a raw list of lead phone numbers with what
  * the admin actually *did*. */
 export default function AdminActivityLog({ token, limit = 8 }) {
+  const navigate = useNavigate();
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -42,8 +44,15 @@ export default function AdminActivityLog({ token, limit = 8 }) {
     <div className="divide-y divide-[#E2D8C2]/60 dark:divide-white/10">
       {items.slice(0, limit).map((item) => {
         const Icon = ACTION_ICON[item.action] || Activity;
+        const clickable = !!item.link;
         return (
-          <div key={item.id} className="flex items-center gap-3 py-2.5">
+          <button
+            key={item.id}
+            type="button"
+            disabled={!clickable}
+            onClick={() => clickable && navigate(item.link)}
+            className={`w-full flex items-center gap-3 py-2.5 text-left ${clickable ? "hover:bg-[#FBF7EE] dark:hover:bg-white/5 -mx-2 px-2 rounded-lg transition-colors cursor-pointer" : "cursor-default"}`}
+          >
             <div className="w-8 h-8 rounded-full bg-blue-50 dark:bg-blue-900/30 text-[#024396] dark:text-[#7CB0FF] flex items-center justify-center shrink-0">
               <Icon size={14} />
             </div>
@@ -51,7 +60,8 @@ export default function AdminActivityLog({ token, limit = 8 }) {
               <p className="text-sm font-medium text-[#0E1B2C] dark:text-[#F1EDE3] truncate">{item.description}</p>
               <p className="text-xs text-[#2A364B]/50 dark:text-[#8E99AC] truncate">{item.actor_name} · {timeAgo(item.created_at)}</p>
             </div>
-          </div>
+            {clickable && <ChevronRight size={16} className="text-[#2A364B]/30 dark:text-[#8E99AC]/40 shrink-0" />}
+          </button>
         );
       })}
     </div>
