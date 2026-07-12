@@ -244,8 +244,18 @@ def build_offer_letter_body(data: dict) -> str:
     from certificate_content import offer_duties_for
 
     duration_days = _duration_days(data["start_date"], data["end_date"])
-    stipend_clause = f" with a stipend of Rs. {data['stipend']:,.0f}/month" if data.get("stipend") else ""
-    paid_word = "a paid" if data.get("stipend") else "an unpaid"
+    if data.get("stipend_type") == "performance_based":
+        stipend_clause = " with a performance-based stipend"
+        paid_word = "a paid"
+    elif data.get("stipend_type") == "unpaid":
+        stipend_clause = ""
+        paid_word = "an unpaid"
+    elif data.get("stipend"):
+        stipend_clause = f" with a stipend of Rs. {data['stipend']:,.0f}/month"
+        paid_word = "a paid"
+    else:
+        stipend_clause = ""
+        paid_word = "an unpaid"
 
     para1 = (
         f"We are pleased to offer you an internship position at <b>The Financial Doctor</b>, "
@@ -254,7 +264,8 @@ def build_offer_letter_body(data: dict) -> str:
         f"During this internship, you will {offer_duties_for(data['department'])}."
     )
     para2 = f"This is {paid_word} internship{stipend_clause}."
-    para3 = f"You will be reporting to <b>{data['manager_name']}</b>, {data['manager_designation']}."
+    designation_clause = f", {data['manager_designation']}" if data.get("manager_designation") else ""
+    para3 = f"You will be reporting to <b>{data['manager_name']}</b>{designation_clause}."
     para4 = (
         "We look forward to a productive and enriching internship experience for you at The Financial Doctor. "
         "Please confirm your acceptance of this offer by replying to this letter or contacting us."
@@ -290,11 +301,12 @@ def build_completion_letter_body(data: dict) -> str:
     duration = _duration_days(data["start_date"], data["end_date"])
     first_name = data["name"].split()[0]
     college_clause = f", a student at <b>{data['college']}</b>," if data.get("college") else ""
+    designation_clause = f", {data['manager_designation']}" if data.get("manager_designation") else ""
     para1 = (
         f"This is to certify that <b>{data['name']}</b>{college_clause} has successfully completed an internship "
         f"at <b>The Financial Doctor</b> from <b>{_fmt_date(data['start_date'])}</b> to <b>{_fmt_date(data['end_date'])}</b>, "
         f"a duration of <b>{duration} days</b>, in the <b>{data['department']}</b> department, "
-        f"under the guidance of <b>{data['manager_name']}</b>, {data['manager_designation']}."
+        f"under the guidance of <b>{data['manager_name']}</b>{designation_clause}."
     )
     para2 = f"During this period, {first_name} {responsibilities_for(data['department'])}."
     para3 = (

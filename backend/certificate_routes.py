@@ -6,7 +6,7 @@ certificate_number and a QR code pointing at the public /verify page.
 """
 import uuid
 from datetime import date, datetime, timezone
-from typing import List, Optional
+from typing import List, Literal, Optional
 
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
@@ -87,8 +87,15 @@ class InternCreate(BaseModel):
     start_date: str
     end_date: str
     stipend: Optional[float] = None
+    stipend_type: Literal["fixed", "performance_based", "unpaid"] = "fixed"
     manager_name: str
-    manager_designation: str
+    manager_designation: Optional[str] = None
+    father_name: Optional[str] = None
+    address: Optional[str] = None
+    aadhar_number: Optional[str] = None
+    pan_number: Optional[str] = None
+    contact_email: Optional[str] = None
+    contact_phone: Optional[str] = None
 
 
 @router.get("/interns/departments")
@@ -106,7 +113,6 @@ async def create_intern(data: InternCreate, admin: dict = Depends(require_admin)
         "id": str(uuid.uuid4()),
         **data.model_dump(),
         "status": "approved",
-        "contact_phone": None, "contact_email": None,
         "offer_letter_generated_at": None,
         "completion_letter_generated_at": None,
         "certificate_id": None,
@@ -192,8 +198,9 @@ async def list_pending_interns(admin: dict = Depends(require_admin)):
 
 class ApproveInternIn(BaseModel):
     manager_name: str
-    manager_designation: str
+    manager_designation: Optional[str] = None
     stipend: Optional[float] = None
+    stipend_type: Literal["fixed", "performance_based", "unpaid"] = "fixed"
 
 
 @router.post("/interns/{intern_id}/approve")
@@ -208,6 +215,7 @@ async def approve_intern(intern_id: str, data: ApproveInternIn, admin: dict = De
         {"$set": {
             "status": "approved", "manager_name": data.manager_name,
             "manager_designation": data.manager_designation, "stipend": data.stipend,
+            "stipend_type": data.stipend_type,
             "created_by": admin["sub"],
         }},
     )

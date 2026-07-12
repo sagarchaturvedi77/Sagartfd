@@ -36,7 +36,12 @@ export default function AdminCertificates() {
   const [approveForm, setApproveForm] = useState({ manager_name: "", manager_designation: "", stipend: "" });
 
   const [showAddIntern, setShowAddIntern] = useState(false);
-  const [internForm, setInternForm] = useState({ name: "", college: "", department: "Sales", start_date: "", end_date: "", stipend: "", manager_name: "", manager_designation: "" });
+  const emptyInternForm = {
+    name: "", college: "", department: "Sales", start_date: "", end_date: "",
+    stipend: "", stipend_type: "fixed", manager_name: "", manager_designation: "",
+    father_name: "", address: "", aadhar_number: "", pan_number: "", contact_email: "", contact_phone: "",
+  };
+  const [internForm, setInternForm] = useState(emptyInternForm);
   const [addingIntern, setAddingIntern] = useState(false);
   const [generatingBoth, setGeneratingBoth] = useState(null); // intern id currently generating cert+completion letter
 
@@ -86,12 +91,16 @@ export default function AdminCertificates() {
     if (addingIntern) return;
     setAddingIntern(true);
     try {
-      const payload = { ...internForm, stipend: internForm.stipend ? Number(internForm.stipend) : null };
+      const payload = {
+        ...internForm,
+        stipend: internForm.stipend_type === "fixed" && internForm.stipend ? Number(internForm.stipend) : null,
+        manager_designation: internForm.manager_designation || null,
+      };
       const res = await fetch(`${API_BASE}/api/interns`, { method: "POST", headers, body: JSON.stringify(payload) });
       if (res.ok) {
         const intern = await res.json();
         setShowAddIntern(false);
-        setInternForm({ name: "", college: "", department: "Sales", start_date: "", end_date: "", stipend: "", manager_name: "", manager_designation: "" });
+        setInternForm(emptyInternForm);
         load();
         // Offer letter auto-generates server-side on add — open it right
         // away so the admin sees it without a separate click.
@@ -329,10 +338,40 @@ export default function AdminCertificates() {
             <div><label className="text-xs text-[#2A364B]/60 dark:text-[#8E99AC] mb-1 block">Start Date</label><input required type="date" value={internForm.start_date} onChange={(e) => setInternForm({ ...internForm, start_date: e.target.value })} className={field} /></div>
             <div><label className="text-xs text-[#2A364B]/60 dark:text-[#8E99AC] mb-1 block">End Date</label><input required type="date" value={internForm.end_date} onChange={(e) => setInternForm({ ...internForm, end_date: e.target.value })} className={field} /></div>
           </div>
-          <input type="number" placeholder="Monthly Stipend (optional)" value={internForm.stipend} onChange={(e) => setInternForm({ ...internForm, stipend: e.target.value })} className={field} />
+
+          <div className="border-t border-[#E2D8C2] dark:border-white/10 pt-3">
+            <p className="text-xs font-semibold text-[#2A364B]/60 dark:text-[#8E99AC] mb-2 uppercase tracking-wide">Personal Details (optional)</p>
+            <div className="space-y-3">
+              <input placeholder="Father's Name" value={internForm.father_name} onChange={(e) => setInternForm({ ...internForm, father_name: e.target.value })} className={field} />
+              <textarea placeholder="Address" rows={2} value={internForm.address} onChange={(e) => setInternForm({ ...internForm, address: e.target.value })} className={`${field} resize-none`} />
+              <div className="grid grid-cols-2 gap-3">
+                <input placeholder="Aadhaar No." value={internForm.aadhar_number} onChange={(e) => setInternForm({ ...internForm, aadhar_number: e.target.value })} className={field} />
+                <input placeholder="PAN No." value={internForm.pan_number} onChange={(e) => setInternForm({ ...internForm, pan_number: e.target.value })} className={field} />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <input type="email" placeholder="Email ID" value={internForm.contact_email} onChange={(e) => setInternForm({ ...internForm, contact_email: e.target.value })} className={field} />
+                <input placeholder="Contact No." value={internForm.contact_phone} onChange={(e) => setInternForm({ ...internForm, contact_phone: e.target.value })} className={field} />
+              </div>
+            </div>
+          </div>
+
+          <div className="border-t border-[#E2D8C2] dark:border-white/10 pt-3 space-y-2">
+            <label className="text-xs text-[#2A364B]/60 dark:text-[#8E99AC] block">Monthly Stipend</label>
+            <div className="flex gap-2">
+              <select value={internForm.stipend_type} onChange={(e) => setInternForm({ ...internForm, stipend_type: e.target.value })} className={field}>
+                <option value="fixed">Fixed amount</option>
+                <option value="performance_based">Performance based</option>
+                <option value="unpaid">Unpaid</option>
+              </select>
+              {internForm.stipend_type === "fixed" && (
+                <input type="number" placeholder="₹ / month (optional)" value={internForm.stipend} onChange={(e) => setInternForm({ ...internForm, stipend: e.target.value })} className={field} />
+              )}
+            </div>
+          </div>
+
           <input required placeholder="Reporting Manager Name *" value={internForm.manager_name} onChange={(e) => setInternForm({ ...internForm, manager_name: e.target.value })} className={field} />
-          <input required placeholder="Manager Designation *" value={internForm.manager_designation} onChange={(e) => setInternForm({ ...internForm, manager_designation: e.target.value })} className={field} />
-          <Button type="submit" className="w-full bg-[#024396] hover:bg-[#023580]">Add Intern</Button>
+          <input placeholder="Manager Designation (optional)" value={internForm.manager_designation} onChange={(e) => setInternForm({ ...internForm, manager_designation: e.target.value })} className={field} />
+          <Button type="submit" disabled={addingIntern} className="w-full bg-[#024396] hover:bg-[#023580]">{addingIntern ? "Adding..." : "Add Intern"}</Button>
         </form>
       </PortalModal>
 
