@@ -235,9 +235,13 @@ export default function EmployeeIDCardPage() {
                       ["Phone", displayPhone],
                       ["Email", "wecare@thefinancialdoctor.in"],
                     ].map(([label, val]) => (
-                      <div key={label} style={{ fontSize: 13, color: "#0E1B2C", display: "flex" }}>
-                        <strong style={{ width: "95px", flexShrink: 0 }}>{label}</strong>
-                        <span style={{ flex: 1, wordBreak: "break-word" }}>{val}</span>
+                      // Flexbox rows render with baseline shifts in html2canvas's exported
+                      // canvas vs. the live DOM (same issue the name/designation badges above
+                      // were already fixed for) — inline-block + an explicit line-height instead
+                      // of flex keeps every row pinned to the same baseline in the download too.
+                      <div key={label} style={{ fontSize: 13, color: "#0E1B2C", lineHeight: "18px" }}>
+                        <strong style={{ display: "inline-block", width: "95px", verticalAlign: "top" }}>{label}</strong>
+                        <span style={{ display: "inline-block", width: "calc(100% - 95px)", wordBreak: "break-word", verticalAlign: "top" }}>{val}</span>
                       </div>
                     ))}
                   </div>
@@ -298,9 +302,9 @@ export default function EmployeeIDCardPage() {
                         ["Phone", displayPhone],
                         ["Email", "wecare@thefinancialdoctor.in"],
                       ].map(([label, val]) => (
-                        <div key={label} style={{ fontSize: 13, color: "#0E1B2C", display: "flex" }}>
-                          <strong style={{ width: "95px", flexShrink: 0 }}>{label}</strong>
-                          <span>{val}</span>
+                        <div key={label} style={{ fontSize: 13, color: "#0E1B2C", lineHeight: "18px" }}>
+                          <strong style={{ display: "inline-block", width: "95px", verticalAlign: "top" }}>{label}</strong>
+                          <span style={{ display: "inline-block", verticalAlign: "top" }}>{val}</span>
                         </div>
                       ))}
                     </div>
