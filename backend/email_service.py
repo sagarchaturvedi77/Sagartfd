@@ -138,19 +138,26 @@ def _branded_wrapper(heading: str, body_paragraphs: list[str]) -> str:
     """
 
 
-def certificate_completion_email_html(intern_name: str, department: str) -> str:
+def certificate_completion_email_html(intern_name: str, department: str, certificate_number: str = None, verify_url: str = None) -> str:
     """Sent when an internship Certificate (+ auto-bundled Completion
     Letter) goes out to a completed intern."""
-    return _branded_wrapper(
-        f"Dear {intern_name},",
-        [
-            "Congratulations on successfully completing your internship with The Financial Doctor! "
-            f"Please find attached your Internship Certificate and Completion Letter, recognising your contribution "
-            f"during your time with us in the {department} department.",
-            "We truly appreciated your dedication and hard work, and we wish you the very best in your future endeavours. "
-            "Feel free to reach out to us anytime — we'd love to stay in touch.",
-        ],
-    )
+    paragraphs = [
+        "Congratulations on successfully completing your internship with The Financial Doctor! "
+        f"Please find attached your Internship Certificate and Completion Letter, recognising your contribution "
+        f"during your time with us in the {department} department.",
+        "We truly appreciated your dedication and hard work, and we wish you the very best in your future endeavours. "
+        "Feel free to reach out to us anytime — we'd love to stay in touch.",
+    ]
+    if certificate_number and verify_url:
+        paragraphs.append(
+            f"<strong>Verifying your certificate:</strong> Your certificate number is "
+            f"<strong>{certificate_number}</strong>. You (or anyone else, such as a prospective employer) can verify "
+            f"the authenticity of your certificate at any time by visiting our public verification page — "
+            f"<a href='{verify_url}' style='color:#0E1B2C;'>{verify_url}</a> — and entering this certificate number. "
+            "This verification link is also available on our website. Should your certificate or completion letter "
+            "ever be lost or misplaced, you'll be able to request it again through the same public verification page."
+        )
+    return _branded_wrapper(f"Dear {intern_name},", paragraphs)
 
 
 def offer_letter_email_html(intern_name: str) -> str:

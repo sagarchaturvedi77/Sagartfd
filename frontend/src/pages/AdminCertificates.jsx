@@ -34,23 +34,13 @@ export default function AdminCertificates() {
   const [searchQuery, setSearchQuery] = useState("");
 
   const emptyApproveForm = {
-    manager_name: "", manager_designation: "", stipend: "", stipend_type: "fixed",
-    name: "", is_student: true, college: "", subject: "", department: "Sales",
-    start_date: "", end_date: "", father_name: "", address: "", aadhar_number: "",
-    pan_number: "", contact_email: "", contact_phone: "",
+    manager_name: "", manager_designation: "", stipend: "", stipend_type: "unpaid",
+    department: "Sales", start_date: "", end_date: "", contact_email: "", contact_phone: "",
   };
   const [approveTarget, setApproveTarget] = useState(null);
   const [approveForm, setApproveForm] = useState(emptyApproveForm);
   const [approving, setApproving] = useState(false);
 
-  const [showAddIntern, setShowAddIntern] = useState(false);
-  const emptyInternForm = {
-    name: "", college: "", department: "Sales", start_date: "", end_date: "",
-    stipend: "", stipend_type: "fixed", manager_name: "", manager_designation: "",
-    contact_email: "", contact_phone: "",
-  };
-  const [internForm, setInternForm] = useState(emptyInternForm);
-  const [addingIntern, setAddingIntern] = useState(false);
   const [generatingBoth, setGeneratingBoth] = useState(null); // intern id currently generating cert+completion letter
 
   const [emailTarget, setEmailTarget] = useState(null);
@@ -94,52 +84,12 @@ export default function AdminCertificates() {
 
   const field = "w-full border border-[#E2D8C2] dark:border-white/15 dark:bg-white/5 dark:text-[#F1EDE3] rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#024396]/30";
 
-  const submitIntern = async (e) => {
-    e.preventDefault();
-    if (addingIntern) return;
-    setAddingIntern(true);
-    try {
-      const payload = {
-        ...internForm,
-        stipend: internForm.stipend_type === "fixed" && internForm.stipend ? Number(internForm.stipend) : null,
-        manager_designation: internForm.manager_designation || null,
-      };
-      const res = await fetch(`${API_BASE}/api/interns`, { method: "POST", headers, body: JSON.stringify(payload) });
-      if (res.ok) {
-        const intern = await res.json();
-        setShowAddIntern(false);
-        setInternForm(emptyInternForm);
-        load();
-        // Offer letter auto-generates server-side on add — open it right
-        // away so the admin sees it without a separate click.
-        if (intern.offer_letter_generated_at) {
-          try {
-            const olRes = await fetch(`${API_BASE}/api/interns/${intern.id}/offer-letter/download`, { headers });
-            if (olRes.ok) {
-              const blob = await olRes.blob();
-              window.open(URL.createObjectURL(blob), "_blank");
-            }
-          } catch { /* non-fatal — offer letter can still be opened from the list */ }
-        }
-      }
-    } finally {
-      setAddingIntern(false);
-    }
-  };
-
   const generateCertAndCompletionLetter = async (intern) => {
     if (generatingBoth) return;
     setGeneratingBoth(intern.id);
     try {
-      const clRes = await fetch(`${API_BASE}/api/interns/${intern.id}/completion-letter`, { method: "POST", headers, body: JSON.stringify({}) });
-      if (clRes.ok) await downloadBlob(clRes, `Completion_Letter_${intern.name.replace(/\s+/g, "_")}.pdf`);
+      await fetch(`${API_BASE}/api/interns/${intern.id}/completion-letter`, { method: "POST", headers, body: JSON.stringify({}) });
       await load();
-      const fresh = await (await fetch(`${API_BASE}/api/interns`, { headers })).json();
-      const updated = fresh.find((i) => i.id === intern.id);
-      if (updated?.certificate_id) {
-        const certRes = await fetch(`${API_BASE}/api/certificates/${updated.certificate_id}/download`, { headers });
-        if (certRes.ok) await downloadBlob(certRes, `Certificate_${intern.name.replace(/\s+/g, "_")}.pdf`);
-      }
     } finally {
       setGeneratingBoth(null);
     }
@@ -172,13 +122,9 @@ export default function AdminCertificates() {
   const openApprove = (application) => {
     setApproveTarget(application);
     setApproveForm({
-      manager_name: "", manager_designation: "", stipend: "", stipend_type: "fixed",
-      name: application.name || "", is_student: application.is_student ?? true,
-      college: application.college || "", subject: application.subject || "",
+      manager_name: "", manager_designation: "", stipend: "", stipend_type: "unpaid",
       department: application.department || "Sales",
       start_date: application.start_date || "", end_date: application.end_date || "",
-      father_name: application.father_name || "", address: application.address || "",
-      aadhar_number: application.aadhar_number || "", pan_number: application.pan_number || "",
       contact_email: application.contact_email || "", contact_phone: application.contact_phone || "",
     });
   };
@@ -316,6 +262,8 @@ export default function AdminCertificates() {
     });
   })();
 
+  const pendingApplicationsCount = applications.filter((a) => a.status === "pending").length;
+
   return (
     <PortalLayout>
       <PageHeader icon="🎓" title="Certificates &amp; Letters" subtitle="Offer letters, completion letters, and verifiable certificates" />
@@ -333,16 +281,15 @@ export default function AdminCertificates() {
             className={`px-4 py-2.5 text-sm font-medium border-b-2 transition-colors flex items-center gap-1.5 ${tab === "applications" ? "border-[#024396] text-[#024396] dark:text-[#7CB0FF] dark:border-[#7CB0FF]" : "border-transparent text-[#2A364B]/50 dark:text-[#8E99AC]"}`}
           >
             Applications
-            {applications.length > 0 && (
-              <span className="text-[10px] font-bold bg-[#024396]/10 dark:bg-white/10 text-[#024396] dark:text-[#7CB0FF] rounded-full px-1.5 py-0.5">{applications.length}</span>
+            {pendingApplicationsCount > 0 && (
+              <span className="text-[10px] font-bold bg-[#024396]/10 dark:bg-white/10 text-[#024396] dark:text-[#7CB0FF] rounded-full px-1.5 py-0.5">{pendingApplicationsCount}</span>
             )}
           </button>
         </div>
 
         {tab === "interns" && (
           <div className="space-y-4">
-            <div className="flex gap-2 flex-wrap items-center justify-between">
-              <Button onClick={() => setShowAddIntern(true)} className="bg-[#024396] hover:bg-[#023580]">+ Add Intern</Button>
+            <div className="flex gap-2 flex-wrap items-center justify-end">
               <input
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
@@ -385,11 +332,14 @@ export default function AdminCertificates() {
 
         {tab === "applications" && (
           <div className="space-y-4">
-            <div className="flex items-center justify-between flex-wrap gap-2">
-              <h3 className="text-sm font-semibold text-[#0E1B2C] dark:text-[#F1EDE3]">{applications.length} application{applications.length === 1 ? "" : "s"} received</h3>
-              <div className="flex gap-2">
-                <Button onClick={shareApplicationLink} className="bg-[#024396] hover:bg-[#023580]"><Share2 size={14} className="mr-1.5" /> Share</Button>
-                <Button onClick={copyApplicationLink} variant="outline"><Copy size={14} className="mr-1.5" /> Copy</Button>
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-wide text-[#2A364B]/50 dark:text-[#8E99AC] mb-2">Internship Application Form</p>
+              <div className="flex items-center justify-between flex-wrap gap-2">
+                <h3 className="text-sm font-semibold text-[#0E1B2C] dark:text-[#F1EDE3]">{pendingApplicationsCount} pending application{pendingApplicationsCount === 1 ? "" : "s"}</h3>
+                <div className="flex gap-2">
+                  <Button onClick={shareApplicationLink} className="bg-[#024396] hover:bg-[#023580]"><Share2 size={14} className="mr-1.5" /> Share</Button>
+                  <Button onClick={copyApplicationLink} variant="outline"><Copy size={14} className="mr-1.5" /> Copy</Button>
+                </div>
               </div>
             </div>
             <div className="space-y-2">
@@ -434,65 +384,31 @@ export default function AdminCertificates() {
         )}
       </div>
 
-      <PortalModal open={showAddIntern} onOpenChange={setShowAddIntern} title="Add Intern" maxWidth="max-w-md">
-        <form onSubmit={submitIntern} className="space-y-3">
-          <input required placeholder="Intern Name *" value={internForm.name} onChange={(e) => setInternForm({ ...internForm, name: e.target.value })} className={field} />
-          <input placeholder="College / Institute (optional)" value={internForm.college} onChange={(e) => setInternForm({ ...internForm, college: e.target.value })} className={field} />
-          <select value={internForm.department} onChange={(e) => setInternForm({ ...internForm, department: e.target.value })} className={field}>
-            {DEPARTMENTS.map((d) => <option key={d} value={d}>{d}</option>)}
-          </select>
-          <div className="grid grid-cols-2 gap-3">
-            <div><label className="text-xs text-[#2A364B]/60 dark:text-[#8E99AC] mb-1 block">Start Date</label><input required type="date" value={internForm.start_date} onChange={(e) => setInternForm({ ...internForm, start_date: e.target.value })} className={field} /></div>
-            <div><label className="text-xs text-[#2A364B]/60 dark:text-[#8E99AC] mb-1 block">End Date</label><input required type="date" value={internForm.end_date} onChange={(e) => setInternForm({ ...internForm, end_date: e.target.value })} className={field} /></div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-3">
-            <input type="email" placeholder="Email ID (optional)" value={internForm.contact_email} onChange={(e) => setInternForm({ ...internForm, contact_email: e.target.value })} className={field} />
-            <input placeholder="Contact No. (optional)" value={internForm.contact_phone} onChange={(e) => setInternForm({ ...internForm, contact_phone: e.target.value })} className={field} />
-          </div>
-          <p className="text-[11px] text-[#2A364B]/40 dark:text-[#8E99AC]/60 -mt-1">
-            Personal/KYC details (father's name, address, Aadhaar, PAN) are collected via the Applications link instead — see the Applications tab.
-          </p>
-
-          <div className="border-t border-[#E2D8C2] dark:border-white/10 pt-3 space-y-2">
-            <label className="text-xs text-[#2A364B]/60 dark:text-[#8E99AC] block">Monthly Stipend</label>
-            <div className="flex gap-2">
-              <select value={internForm.stipend_type} onChange={(e) => setInternForm({ ...internForm, stipend_type: e.target.value })} className={field}>
-                <option value="fixed">Fixed amount</option>
-                <option value="performance_based">Performance based</option>
-                <option value="unpaid">Unpaid</option>
-              </select>
-              {internForm.stipend_type === "fixed" && (
-                <input type="number" placeholder="₹ / month (optional)" value={internForm.stipend} onChange={(e) => setInternForm({ ...internForm, stipend: e.target.value })} className={field} />
-              )}
-            </div>
-          </div>
-
-          <input required placeholder="Reporting Manager Name *" value={internForm.manager_name} onChange={(e) => setInternForm({ ...internForm, manager_name: e.target.value })} className={field} />
-          <input placeholder="Manager Designation (optional)" value={internForm.manager_designation} onChange={(e) => setInternForm({ ...internForm, manager_designation: e.target.value })} className={field} />
-          <Button type="submit" disabled={addingIntern} className="w-full bg-[#024396] hover:bg-[#023580]">{addingIntern ? "Adding..." : "Add Intern"}</Button>
-        </form>
-      </PortalModal>
-
       <PortalModal open={!!approveTarget} onOpenChange={(v) => !v && setApproveTarget(null)} title="Review & Approve Application" maxWidth="max-w-lg">
         {approveTarget && (
           <form onSubmit={submitApproval} className="space-y-3">
             <p className="text-xs text-[#2A364B]/60 dark:text-[#8E99AC] -mt-2">
-              Applied via link on {new Date(approveTarget.created_at).toLocaleDateString("en-IN")}. Everything below is editable before you approve.
+              Applied via link on {new Date(approveTarget.created_at).toLocaleDateString("en-IN")}.
             </p>
 
-            <input required placeholder="Name *" value={approveForm.name} onChange={(e) => setApproveForm({ ...approveForm, name: e.target.value })} className={field} />
-
-            <div className="flex gap-2">
-              <button type="button" onClick={() => setApproveForm({ ...approveForm, is_student: true })} className={`flex-1 py-2 rounded-xl text-xs font-medium border ${approveForm.is_student ? "bg-[#024396] text-white border-[#024396]" : "border-[#E2D8C2] dark:border-white/15 text-[#2A364B]/60 dark:text-[#8E99AC]"}`}>Student</button>
-              <button type="button" onClick={() => setApproveForm({ ...approveForm, is_student: false })} className={`flex-1 py-2 rounded-xl text-xs font-medium border ${!approveForm.is_student ? "bg-[#024396] text-white border-[#024396]" : "border-[#E2D8C2] dark:border-white/15 text-[#2A364B]/60 dark:text-[#8E99AC]"}`}>Not a student</button>
-            </div>
-            {approveForm.is_student && (
-              <div className="grid grid-cols-2 gap-3">
-                <input placeholder="College" value={approveForm.college} onChange={(e) => setApproveForm({ ...approveForm, college: e.target.value })} className={field} />
-                <input placeholder="Subject / Course" value={approveForm.subject} onChange={(e) => setApproveForm({ ...approveForm, subject: e.target.value })} className={field} />
+            <div className="bg-[#F5F1EB] dark:bg-white/5 rounded-xl border border-[#E2D8C2] dark:border-white/10 p-3 space-y-3">
+              <p className="text-xs font-semibold text-[#2A364B]/60 dark:text-[#8E99AC] uppercase tracking-wide">
+                Declared by applicant &middot; not editable
+              </p>
+              <div className="grid grid-cols-2 gap-x-3 gap-y-2.5">
+                <DetailRow label="Name" value={approveTarget.name} />
+                <DetailRow label="Applicant Type" value={approveTarget.is_student ? "Student" : "Not a student"} />
+                {approveTarget.is_student && <DetailRow label="College" value={approveTarget.college || "—"} />}
+                {approveTarget.is_student && <DetailRow label="Subject / Course" value={approveTarget.subject || "—"} />}
+                <DetailRow label="Father's Name" value={approveTarget.father_name || "—"} />
+                <DetailRow label="Aadhaar No." value={approveTarget.aadhar_number || "—"} />
+                <DetailRow label="PAN No." value={approveTarget.pan_number || "—"} />
+                <DetailRow label="City" value={approveTarget.city || "—"} />
+                <DetailRow label="State" value={approveTarget.state || "—"} />
+                <DetailRow label="Pincode" value={approveTarget.pincode || "—"} />
               </div>
-            )}
+              <DetailRow label="Address" value={approveTarget.address || "—"} />
+            </div>
 
             <select value={approveForm.department} onChange={(e) => setApproveForm({ ...approveForm, department: e.target.value })} className={field}>
               {DEPARTMENTS.map((d) => <option key={d} value={d}>{d}</option>)}
@@ -504,27 +420,18 @@ export default function AdminCertificates() {
             </div>
             <p className="text-[11px] text-[#2A364B]/40 dark:text-[#8E99AC]/60 -mt-1">You can set any date here, including backdating — unlike the public application form.</p>
 
-            <div className="border-t border-[#E2D8C2] dark:border-white/10 pt-3 space-y-3">
-              <p className="text-xs font-semibold text-[#2A364B]/60 dark:text-[#8E99AC] uppercase tracking-wide">Personal Details</p>
-              <input placeholder="Father's Name" value={approveForm.father_name} onChange={(e) => setApproveForm({ ...approveForm, father_name: e.target.value })} className={field} />
-              <textarea placeholder="Address" rows={2} value={approveForm.address} onChange={(e) => setApproveForm({ ...approveForm, address: e.target.value })} className={`${field} resize-none`} />
-              <div className="grid grid-cols-2 gap-3">
-                <input placeholder="Aadhaar No." value={approveForm.aadhar_number} onChange={(e) => setApproveForm({ ...approveForm, aadhar_number: e.target.value })} className={field} />
-                <input placeholder="PAN No." value={approveForm.pan_number} onChange={(e) => setApproveForm({ ...approveForm, pan_number: e.target.value })} className={field} />
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <input type="email" placeholder="Email" value={approveForm.contact_email} onChange={(e) => setApproveForm({ ...approveForm, contact_email: e.target.value })} className={field} />
-                <input placeholder="Contact No." value={approveForm.contact_phone} onChange={(e) => setApproveForm({ ...approveForm, contact_phone: e.target.value })} className={field} />
-              </div>
+            <div className="grid grid-cols-2 gap-3">
+              <input type="email" placeholder="Email" value={approveForm.contact_email} onChange={(e) => setApproveForm({ ...approveForm, contact_email: e.target.value })} className={field} />
+              <input placeholder="Contact No." value={approveForm.contact_phone} onChange={(e) => setApproveForm({ ...approveForm, contact_phone: e.target.value })} className={field} />
             </div>
 
             <div className="border-t border-[#E2D8C2] dark:border-white/10 pt-3 space-y-2">
               <label className="text-xs text-[#2A364B]/60 dark:text-[#8E99AC] block">Monthly Stipend</label>
               <div className="flex gap-2">
                 <select value={approveForm.stipend_type} onChange={(e) => setApproveForm({ ...approveForm, stipend_type: e.target.value })} className={field}>
+                  <option value="unpaid">Unpaid</option>
                   <option value="fixed">Fixed amount</option>
                   <option value="performance_based">Performance based</option>
-                  <option value="unpaid">Unpaid</option>
                 </select>
                 {approveForm.stipend_type === "fixed" && (
                   <input type="number" placeholder="₹ / month (optional)" value={approveForm.stipend} onChange={(e) => setApproveForm({ ...approveForm, stipend: e.target.value })} className={field} />
@@ -621,11 +528,22 @@ export default function AdminCertificates() {
                 <h4 className="text-xs font-semibold uppercase tracking-wide text-[#024396] dark:text-[#7CB0FF] mb-2">Intern Details</h4>
                 <div className="grid grid-cols-2 gap-2 text-xs bg-[#F5F1EB] dark:bg-white/5 rounded-xl p-3">
                   <DetailRow label="Name" value={personDetail.intern.name} />
+                  <DetailRow label="Applicant Type" value={personDetail.intern.is_student ? "Student" : "Not a student"} />
                   <DetailRow label="College" value={personDetail.intern.college || "—"} />
+                  <DetailRow label="Subject / Course" value={personDetail.intern.subject || "—"} />
                   <DetailRow label="Department" value={personDetail.intern.department} />
                   <DetailRow label="Duration" value={`${personDetail.intern.start_date} to ${personDetail.intern.end_date}`} />
                   <DetailRow label="Stipend" value={personDetail.intern.stipend ? `₹${personDetail.intern.stipend}/mo` : "Unpaid"} />
                   <DetailRow label="Reporting Manager" value={`${personDetail.intern.manager_name}, ${personDetail.intern.manager_designation}`} />
+                  <DetailRow label="Email" value={personDetail.intern.contact_email || "—"} />
+                  <DetailRow label="Contact No." value={personDetail.intern.contact_phone || "—"} />
+                  <DetailRow label="Father's Name" value={personDetail.intern.father_name || "—"} />
+                  <DetailRow label="Aadhaar No." value={personDetail.intern.aadhar_number || "—"} />
+                  <DetailRow label="PAN No." value={personDetail.intern.pan_number || "—"} />
+                  <DetailRow label="City" value={personDetail.intern.city || "—"} />
+                  <DetailRow label="State" value={personDetail.intern.state || "—"} />
+                  <DetailRow label="Pincode" value={personDetail.intern.pincode || "—"} />
+                  <DetailRow label="Address" value={personDetail.intern.address || "—"} />
                   <DetailRow label="Offer Letter" value={personDetail.intern.offer_letter_generated_at ? `Generated ${new Date(personDetail.intern.offer_letter_generated_at).toLocaleDateString("en-IN")}` : "Not generated yet"} />
                   <DetailRow label="Completion Letter" value={personDetail.intern.completion_letter_generated_at ? `Generated ${new Date(personDetail.intern.completion_letter_generated_at).toLocaleDateString("en-IN")}` : "Not generated yet"} />
                 </div>

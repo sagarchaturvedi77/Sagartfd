@@ -202,10 +202,11 @@ export default function InternApplicationPage() {
             <div className="w-16 h-16 rounded-full bg-emerald-50 flex items-center justify-center mx-auto mb-5">
               <CheckCircle2 size={32} className="text-emerald-500" />
             </div>
-            <h1 className="font-display text-2xl font-medium text-[#0E1B2C] mb-2">Application Received</h1>
+            <h1 className="font-display text-2xl font-medium text-[#0E1B2C] mb-2">Thank You for Applying!</h1>
             <p className="text-sm text-[#5C677D] leading-relaxed">
-              Thank you, <b>{form.name}</b>. Your internship application has been received and is pending admin review.
-              You'll be contacted on <b>{form.contact_email}</b> once it's approved.
+              Thank you, <b>{form.name}</b>. Your application has been submitted successfully. Our team at The Financial
+              Doctor will carefully review your details, and we'll reach out to you on <b>{form.contact_email}</b> with
+              the next steps once your internship is confirmed.
             </p>
           </div>
         </div>

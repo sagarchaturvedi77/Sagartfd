@@ -53,6 +53,23 @@ COMPANY_ADDRESS = "1st Floor, New Bus Stand, Sekdakhedi Road, Sehore, MP - 46600
 COMPANY_FOOTER = "The Financial Doctor | AMFI Registered | ARN-290298 | www.thefinancialdoctor.in"
 
 
+def _title_case_name(name: Optional[str]) -> Optional[str]:
+    """Auto-capitalizes the first letter of every word in a person's name
+    (e.g. 'sagar CHATURVEDI' -> 'Sagar Chaturvedi'), regardless of how it
+    was typed on the application form or admin panel."""
+    if not name:
+        return name
+    return " ".join(name.split()).title()
+
+
+def _upper_text(text: Optional[str]) -> Optional[str]:
+    """College/institute names print in full caps on letters, regardless
+    of how they were typed."""
+    if not text:
+        return text
+    return " ".join(text.split()).upper()
+
+
 def _duration_days(start: str, end: str) -> int:
     s = date.fromisoformat(start)
     e = date.fromisoformat(end)
@@ -265,7 +282,7 @@ def build_offer_letter_body(data: dict) -> str:
     )
     para2 = f"This is {paid_word} internship{stipend_clause}."
     designation_clause = f", {data['manager_designation']}" if data.get("manager_designation") else ""
-    para3 = f"You will be reporting to <b>{data['manager_name']}</b>{designation_clause}."
+    para3 = f"You will be reporting to <b>{_title_case_name(data['manager_name'])}</b>{designation_clause}."
     para4 = (
         "We look forward to a productive and enriching internship experience for you at The Financial Doctor. "
         "Please confirm your acceptance of this offer by replying to this letter or contacting us."
@@ -282,7 +299,7 @@ def generate_offer_letter_pdf(data: dict, custom_body: Optional[str] = None) -> 
     styles = _letter_styles()
     elements = []
 
-    elements.append(Paragraph(f"Dear <b>{data['name']}</b>,", styles["TFDBody"]))
+    elements.append(Paragraph(f"Dear <b>{_title_case_name(data['name'])}</b>,", styles["TFDBody"]))
 
     body_text = custom_body if custom_body is not None else build_offer_letter_body(data)
     for para in body_text.split("\n\n"):
@@ -299,14 +316,15 @@ def build_completion_letter_body(data: dict) -> str:
     from certificate_content import responsibilities_for
 
     duration = _duration_days(data["start_date"], data["end_date"])
-    first_name = data["name"].split()[0]
-    college_clause = f", a student at <b>{data['college']}</b>," if data.get("college") else ""
+    name = _title_case_name(data["name"])
+    first_name = name.split()[0]
+    college_clause = f", a student at <b>{_upper_text(data['college'])}</b>," if data.get("college") else ""
     designation_clause = f", {data['manager_designation']}" if data.get("manager_designation") else ""
     para1 = (
-        f"This is to certify that <b>{data['name']}</b>{college_clause} has successfully completed an internship "
+        f"This is to certify that <b>{name}</b>{college_clause} has successfully completed an internship "
         f"at <b>The Financial Doctor</b> from <b>{_fmt_date(data['start_date'])}</b> to <b>{_fmt_date(data['end_date'])}</b>, "
         f"a duration of <b>{duration} days</b>, in the <b>{data['department']}</b> department, "
-        f"under the guidance of <b>{data['manager_name']}</b>{designation_clause}."
+        f"under the guidance of <b>{_title_case_name(data['manager_name'])}</b>{designation_clause}."
     )
     para2 = f"During this period, {first_name} {responsibilities_for(data['department'])}."
     para3 = (
@@ -413,7 +431,7 @@ def generate_certificate_pdf(cert: dict, verify_url: str) -> bytes:
 
     c.setFont(FONT_SCRIPT, 38)
     c.setFillColor(TFD_NAVY)
-    c.drawCentredString(content_cx, height - 100 * mm, cert["person_name"])
+    c.drawCentredString(content_cx, height - 100 * mm, _title_case_name(cert["person_name"]))
     c.setStrokeColor(colors.HexColor("#B8B0A0"))
     c.setLineWidth(0.75)
     c.line(content_cx - 55 * mm, height - 104 * mm, content_cx + 55 * mm, height - 104 * mm)

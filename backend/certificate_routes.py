@@ -80,59 +80,9 @@ async def _persist_letter_record(intern: dict, letter_type: str, pdf_bytes: byte
 
 # ── Interns: one record created up front, offer letter then completion+certificate later ──
 
-class InternCreate(BaseModel):
-    """Admin's own quick-add — no personal-detail (KYC) fields here; those
-    are collected through the public application link instead (see
-    InternApplicationIn below), where they're validated and the applicant
-    is warned they'll appear on the certificate. Admin has no date/duration
-    restrictions here or when approving an application."""
-    name: str
-    college: Optional[str] = None
-    department: str
-    start_date: str
-    end_date: str
-    stipend: Optional[float] = None
-    stipend_type: Literal["fixed", "performance_based", "unpaid"] = "fixed"
-    manager_name: str
-    manager_designation: Optional[str] = None
-    contact_email: Optional[str] = None
-    contact_phone: Optional[str] = None
-
-
 @router.get("/interns/departments")
 async def list_departments(admin: dict = Depends(require_admin)):
     return DEPARTMENTS
-
-
-@router.post("/interns")
-async def create_intern(data: InternCreate, admin: dict = Depends(require_admin)):
-    """Admin manually adding an intern — approved immediately, unlike a
-    self-service application (see /interns/public/apply below)."""
-    if data.department not in DEPARTMENTS:
-        raise HTTPException(status_code=400, detail=f"Department must be one of {DEPARTMENTS}")
-    intern = {
-        "id": str(uuid.uuid4()),
-        **data.model_dump(),
-        "is_student": bool(data.college), "subject": None,
-        "father_name": None, "address": None, "aadhar_number": None, "pan_number": None,
-        "status": "approved", "source": "admin",
-        "offer_letter_generated_at": None,
-        "completion_letter_generated_at": None,
-        "certificate_id": None,
-        "created_by": admin["sub"],
-        "created_at": datetime.now(timezone.utc).isoformat(),
-    }
-    await interns_collection.insert_one(intern)
-    intern.pop("_id", None)
-    await log_activity(admin["sub"], "intern_added", f"Added intern record: {data.name} ({data.department})", link="/portal/admin/certificates")
-
-    try:
-        await _auto_generate_offer_letter(intern["id"], intern, admin["sub"])
-        intern["offer_letter_generated_at"] = datetime.now(timezone.utc).isoformat()
-    except Exception:
-        pass  # offer letter can still be generated manually from the list if this fails
-
-    return intern
 
 
 @router.get("/interns")
@@ -248,7 +198,7 @@ async def submit_intern_application(data: InternApplicationIn):
         intern = {
             "id": str(uuid.uuid4()),
             **field_updates,
-            "stipend": None, "stipend_type": "fixed",
+            "stipend": None, "stipend_type": "unpaid",
             "manager_name": None, "manager_designation": None,
             "status": "pending", "source": "link",
             "offer_letter_generated_at": None, "completion_letter_generated_at": None, "certificate_id": None,
@@ -293,30 +243,21 @@ async def list_intern_applications(admin: dict = Depends(require_admin)):
 
 
 class ApproveInternIn(BaseModel):
-    """Admin approves an application and can correct/fill in anything on
-    it in the same step — no restrictions on dates (unlike the public
-    application form) since this is a trusted admin action. Every field
-    besides manager_name is optional so the admin only has to touch what
-    actually needs fixing; anything left as None keeps the applicant's
-    original value."""
+    """Admin approves an application. The applicant's declared identity/KYC
+    details (name, college, subject, father's name, address, city, state,
+    pincode, Aadhaar, PAN) are NOT editable here — they were self-declared
+    and verified on the public form and must stay exactly as submitted so
+    the certificate reflects what the applicant attested to. Admin may only
+    adjust operational fields: department, start/end date (including
+    backdating, unlike the public form), contact email/phone, and the
+    manager/stipend fields which are admin-only inputs to begin with."""
     manager_name: str
     manager_designation: Optional[str] = None
     stipend: Optional[float] = None
-    stipend_type: Literal["fixed", "performance_based", "unpaid"] = "fixed"
-    name: Optional[str] = None
-    is_student: Optional[bool] = None
-    college: Optional[str] = None
-    subject: Optional[str] = None
+    stipend_type: Literal["fixed", "performance_based", "unpaid"] = "unpaid"
     department: Optional[str] = None
     start_date: Optional[str] = None
     end_date: Optional[str] = None
-    father_name: Optional[str] = None
-    address: Optional[str] = None
-    city: Optional[str] = None
-    state: Optional[str] = None
-    pincode: Optional[str] = None
-    aadhar_number: Optional[str] = None
-    pan_number: Optional[str] = None
     contact_email: Optional[str] = None
     contact_phone: Optional[str] = None
 
@@ -329,11 +270,7 @@ async def approve_intern(intern_id: str, data: ApproveInternIn, admin: dict = De
     if intern.get("status") != "pending":
         raise HTTPException(status_code=400, detail="This intern is not pending approval")
 
-    editable_fields = [
-        "name", "is_student", "college", "subject", "department", "start_date", "end_date",
-        "father_name", "address", "city", "state", "pincode", "aadhar_number", "pan_number",
-        "contact_email", "contact_phone",
-    ]
+    editable_fields = ["department", "start_date", "end_date", "contact_email", "contact_phone"]
     updates = {k: getattr(data, k) for k in editable_fields if getattr(data, k) is not None}
     updates.update({
         "status": "approved", "manager_name": data.manager_name,
@@ -354,24 +291,14 @@ async def approve_intern(intern_id: str, data: ApproveInternIn, admin: dict = De
 
 
 class InternUpdateIn(BaseModel):
-    """Admin editing an already-approved intern's record — same free-form,
-    no-restrictions editing (including backdating) as the approve step,
-    just for after the fact. Every field optional; only what's provided
-    gets changed."""
-    name: Optional[str] = None
-    is_student: Optional[bool] = None
-    college: Optional[str] = None
-    subject: Optional[str] = None
+    """Admin editing an already-approved intern's record. Declared identity/
+    KYC fields (name, college, subject, father's name, address, city, state,
+    pincode, Aadhaar, PAN) are intentionally NOT editable here — same reasoning
+    as ApproveInternIn. Admin can only change operational fields, including
+    backdating dates. Every field optional; only what's provided gets changed."""
     department: Optional[str] = None
     start_date: Optional[str] = None
     end_date: Optional[str] = None
-    father_name: Optional[str] = None
-    address: Optional[str] = None
-    city: Optional[str] = None
-    state: Optional[str] = None
-    pincode: Optional[str] = None
-    aadhar_number: Optional[str] = None
-    pan_number: Optional[str] = None
     contact_email: Optional[str] = None
     contact_phone: Optional[str] = None
     manager_name: Optional[str] = None
@@ -871,7 +798,7 @@ async def email_certificate(cert_id: str, data: EmailCertificateIn, admin: dict 
 
     if is_internship:
         subject = "Your Internship Certificate & Completion Letter — The Financial Doctor"
-        body_html = certificate_completion_email_html(doc["person_name"], doc["department"])
+        body_html = certificate_completion_email_html(doc["person_name"], doc["department"], doc["certificate_number"], _verify_url(doc["certificate_number"]))
     else:
         subject = f"Your Documents from The Financial Doctor — {doc['certificate_number']}"
         body_html = document_email_html(doc["person_name"], doc_labels)
@@ -928,7 +855,7 @@ async def email_intern_documents(intern_id: str, data: InternEmailIn, admin: dic
 
     if "certificate" in wanted:
         subject = "Your Internship Certificate & Completion Letter — The Financial Doctor"
-        body_html = certificate_completion_email_html(intern["name"], intern["department"])
+        body_html = certificate_completion_email_html(intern["name"], intern["department"], cert["certificate_number"], _verify_url(cert["certificate_number"]))
     elif wanted == {"offer_letter"}:
         subject = "Your Internship Offer Letter — The Financial Doctor"
         body_html = offer_letter_email_html(intern["name"])

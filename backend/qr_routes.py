@@ -139,13 +139,21 @@ async def verify_certificate(request: Request, certificate_number: str):
     out = {k: v for k, v in cert.items() if k in _CERT_PUBLIC_FIELDS}
     out["valid"] = True
 
+    # Same display normalization as the printed certificate/letters, so the
+    # public verification page matches what's on the actual document.
+    from certificate_pdf import _title_case_name, _upper_text
+    if out.get("person_name"):
+        out["person_name"] = _title_case_name(out["person_name"])
+    if out.get("college"):
+        out["college"] = _upper_text(out["college"])
+
     # Internship certs carry extra personal details on the linked intern
     # record, not the certificate itself — father's name shown as-is,
     # contact details masked, address never exposed.
     if cert.get("type") == "internship" and cert.get("intern_id"):
         intern = await interns_collection.find_one({"id": cert["intern_id"]})
         if intern:
-            out["father_name"] = intern.get("father_name")
+            out["father_name"] = _title_case_name(intern.get("father_name"))
             out["start_date"] = intern.get("start_date")
             out["end_date"] = intern.get("end_date")
             out["contact_email_masked"] = _mask_email(intern.get("contact_email"))
