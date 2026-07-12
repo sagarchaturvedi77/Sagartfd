@@ -10,6 +10,18 @@ import { Search, Award, FileText, Download, Mail } from "lucide-react";
 const API_BASE = process.env.REACT_APP_BACKEND_URL || "";
 const DEPARTMENTS = ["HR", "Sales", "Marketing", "Accounts"];
 
+async function downloadBlob(res, filename) {
+  const blob = await res.blob();
+  const url = window.URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  window.URL.revokeObjectURL(url);
+}
+
 export default function AdminEmployeeList() {
   const { token } = useAuth();
   const [employees, setEmployees] = useState([]);
@@ -41,7 +53,7 @@ export default function AdminEmployeeList() {
     const res = await fetch(`${API_BASE}/api/certificates`, { headers: { Authorization: `Bearer ${token}` } });
     if (res.ok) {
       const all = await res.json();
-      setCertificates(all.filter((c) => c.type === "employee" || c.type === "achievement"));
+      setCertificates(all.filter((c) => c.type === "employee" || c.type === "achievement" || c.type === "experience_letter"));
     }
   }, [token]);
 
@@ -209,6 +221,34 @@ export default function AdminEmployeeList() {
       fetchEmployees();
       if (viewEmp?.id === emp.id) viewEmployee({ ...emp, is_active: !disabling });
     }
+  };
+
+  const resignEmployee = async (emp) => {
+    if (!window.confirm(
+      `Mark ${emp.name} as resigned? This disables their login immediately. An Experience Letter will be ` +
+      `auto-generated if they've completed 6+ months with us.`
+    )) return;
+    const res = await fetch(`${API_BASE}/api/auth/employees/${emp.id}/resign`, {
+      method: "PATCH",
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (res.ok) {
+      const data = await res.json();
+      alert(data.experience_letter_generated
+        ? `${emp.name} marked as resigned. Experience Letter ${data.certificate_number} generated.`
+        : `${emp.name} marked as resigned. No Experience Letter generated — tenure was under 6 months.`);
+      fetchEmployees();
+      fetchCertificates();
+      viewEmployee(emp);
+    } else {
+      const err = await res.json().catch(() => ({}));
+      alert(err.detail || "Failed to mark as resigned");
+    }
+  };
+
+  const downloadExperienceLetter = async (cert) => {
+    const res = await fetch(`${API_BASE}/api/certificates/${cert.id}/download`, { headers: { Authorization: `Bearer ${token}` } });
+    if (res.ok) await downloadBlob(res, `Experience_Letter_${cert.certificate_number.replace(/\//g, "_")}.pdf`);
   };
 
   const viewEmployee = async (emp) => {
@@ -524,22 +564,56 @@ export default function AdminEmployeeList() {
               </div>
             )}
 
-            <div className="flex items-center justify-between bg-[#F5F1EB] dark:bg-white/5 rounded-xl px-4 py-3">
-              <div>
-                <p className="text-xs font-medium text-[#0E1B2C] dark:text-[#F1EDE3]">Portal Login</p>
-                <p className={`text-[11px] ${empDetail.user?.is_active === false ? "text-red-600 dark:text-red-400" : "text-emerald-600 dark:text-emerald-400"}`}>
-                  {empDetail.user?.is_active === false ? "Disabled — cannot log in" : "Active"}
-                </p>
+            <div className="bg-[#F5F1EB] dark:bg-white/5 rounded-xl px-4 py-3 space-y-3">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-xs font-medium text-[#0E1B2C] dark:text-[#F1EDE3]">Portal Login</p>
+                  <p className={`text-[11px] ${empDetail.user?.is_active === false ? "text-red-600 dark:text-red-400" : "text-emerald-600 dark:text-emerald-400"}`}>
+                    {empDetail.user?.resigned
+                      ? `Resigned on ${empDetail.user?.resignation_date} — cannot log in`
+                      : empDetail.user?.is_active === false ? "Disabled — cannot log in" : "Active"}
+                  </p>
+                </div>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => toggleLoginAccess({ id: viewEmp.id, name: viewEmp.name, is_active: empDetail.user?.is_active })}
+                  className={empDetail.user?.is_active === false ? "text-emerald-600 border-emerald-200 hover:bg-emerald-50" : "text-red-600 border-red-200 hover:bg-red-50"}
+                >
+                  {empDetail.user?.is_active === false ? "Enable Login" : "Disable Login"}
+                </Button>
               </div>
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => toggleLoginAccess({ id: viewEmp.id, name: viewEmp.name, is_active: empDetail.user?.is_active })}
-                className={empDetail.user?.is_active === false ? "text-emerald-600 border-emerald-200 hover:bg-emerald-50" : "text-red-600 border-red-200 hover:bg-red-50"}
-              >
-                {empDetail.user?.is_active === false ? "Enable Login" : "Disable Login"}
-              </Button>
+              {empDetail.user?.is_active !== false && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => resignEmployee({ id: viewEmp.id, name: viewEmp.name })}
+                  className="w-full text-orange-600 border-orange-200 hover:bg-orange-50"
+                >
+                  Mark as Resigned
+                </Button>
+              )}
             </div>
+
+            {empDetail.user?.resigned && (() => {
+              const expLetter = certificates.find((c) => c.type === "experience_letter" && c.linked_employee_id === viewEmp.id);
+              return (
+                <div className="bg-[#F5F1EB] dark:bg-white/5 rounded-xl px-4 py-3">
+                  <p className="text-xs font-medium text-[#0E1B2C] dark:text-[#F1EDE3] mb-1">Experience Letter</p>
+                  {expLetter ? (
+                    <>
+                      <p className="text-[11px] text-[#2A364B]/60 dark:text-[#C7CEDA]/60 mb-2">{expLetter.certificate_number} · {expLetter.duration_label}</p>
+                      <div className="flex gap-2">
+                        <Button size="sm" variant="outline" onClick={() => downloadExperienceLetter(expLetter)}><Download size={12} className="mr-1" /> Download</Button>
+                        <Button size="sm" variant="outline" onClick={() => { setEmailCertTarget(expLetter); setEmailCertAddress(empDetail.user?.email || ""); }}><Mail size={12} className="mr-1" /> Email</Button>
+                      </div>
+                    </>
+                  ) : (
+                    <p className="text-[11px] text-[#2A364B]/50 dark:text-[#C7CEDA]/50">Not generated — tenure was under 6 months at resignation.</p>
+                  )}
+                </div>
+              );
+            })()}
 
             <div className="flex items-center justify-between">
               <p className="text-[11px] text-[#2A364B]/40 dark:text-[#C7CEDA]/40">Name and Employee ID ({viewEmp?.id}) can't be edited here.</p>

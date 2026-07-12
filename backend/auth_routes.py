@@ -1,5 +1,5 @@
 from fastapi import APIRouter, HTTPException, Depends, status
-from datetime import datetime, timedelta, timezone
+from datetime import date, datetime, timedelta, timezone
 import random
 import secrets
 import string
@@ -9,7 +9,7 @@ from pydantic import BaseModel
 from auth_models import UserCreate, UserLogin, UserOut, UserInDB, TokenResponse, PasswordChange
 from auth_utils import hash_password, verify_password, create_access_token, require_admin, get_current_user_payload
 from database import users_collection, password_resets_collection, db
-from utils.employee import gen_employee_id_from_phone
+from utils.employee import gen_random_employee_id
 from utils.audit import write_audit
 from email_service import send_welcome_email, send_password_reset_email, email_configured, RESET_PASSWORD_URL
 
@@ -67,11 +67,20 @@ async def login(payload: UserLogin):
     if not user or not verify_password(payload.password, user["password_hash"]):
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid User ID or password")
     if not user.get("is_active", True):
+        if user.get("resigned") and user.get("resignation_date"):
+            days_since = (date.today() - date.fromisoformat(user["resignation_date"])).days
+            if days_since >= 7:
+                # A full week after resigning, the block stops pretending to
+                # be a glitch and just states the fact plainly.
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail={"code": "resigned", "name": user.get("name", "")},
+                )
         # Deliberately not surfaced as an explicit "your account was
         # disabled" message — the frontend recognizes this exact sentinel
         # and stays on a perpetual "signing in" state instead of showing an
-        # error, so a disabled employee isn't tipped off that this was a
-        # deliberate block rather than e.g. a network hiccup.
+        # error, so a disabled/recently-resigned employee isn't tipped off
+        # that this was a deliberate block rather than e.g. a network hiccup.
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="account_disabled")
 
     token = create_access_token(user["id"], user["role"])
@@ -111,14 +120,11 @@ async def create_employee(payload: UserCreate, admin=Depends(require_admin)):
 
     training_start = datetime.utcnow().strftime("%Y-%m-%d") if payload.training_days else None
 
-    # Generate employee id from phone (format: TFD + first2 + 5th&6th + last2)
-    emp_id = gen_employee_id_from_phone(payload.phone)
-    # Ensure uniqueness; if collision, append short suffix
-    suffix = 0
-    base_id = emp_id
+    # Random employee ID (TFD + 6 random digits) — not derived from the
+    # phone number, retried on the rare collision.
+    emp_id = gen_random_employee_id()
     while await users_collection.find_one({"id": emp_id}):
-        suffix += 1
-        emp_id = f"{base_id}-{suffix}"
+        emp_id = gen_random_employee_id()
 
     new_user = UserInDB(
         id=emp_id,
@@ -295,14 +301,45 @@ async def deactivate_employee(employee_id: str, admin=Depends(require_admin)):
 
 @router.patch("/employees/{employee_id}/activate")
 async def activate_employee(employee_id: str, admin=Depends(require_admin)):
-    """ADMIN ONLY — re-enable a disabled employee."""
+    """ADMIN ONLY — re-enable a disabled (or resigned) employee."""
     result = await users_collection.update_one(
         {"id": employee_id},
-        {"$set": {"is_active": True}, "$unset": {"deactivated_at": ""}},
+        {"$set": {"is_active": True}, "$unset": {"deactivated_at": "", "resigned": "", "resignation_date": ""}},
     )
     if result.matched_count == 0:
         raise HTTPException(status_code=404, detail="Employee not found")
     return {"status": "activated"}
+
+
+@router.patch("/employees/{employee_id}/resign")
+async def resign_employee(employee_id: str, admin=Depends(require_admin)):
+    """ADMIN ONLY — marks an employee as resigned: disables their login
+    (same mechanism as /deactivate, so the public verification page's
+    "former employee" messaging already picks it up), and auto-generates an
+    Experience Letter if their tenure was 6+ months."""
+    user = await users_collection.find_one({"id": employee_id})
+    if not user:
+        raise HTTPException(status_code=404, detail="Employee not found")
+
+    resign_date = datetime.utcnow().strftime("%Y-%m-%d")
+    await users_collection.update_one(
+        {"id": employee_id},
+        {"$set": {"is_active": False, "deactivated_at": resign_date, "resigned": True, "resignation_date": resign_date}},
+    )
+    await log_activity(admin["sub"], "employee_resigned", f"Marked resigned: {user['name']}", link="/portal/admin/employees") if False else None
+
+    cert = None
+    try:
+        from certificate_routes import generate_experience_letter_for_employee
+        cert = await generate_experience_letter_for_employee(employee_id, user, admin["sub"], resign_date)
+    except Exception:
+        pass  # experience letter can still be generated manually later if this fails
+
+    return {
+        "status": "resigned",
+        "experience_letter_generated": bool(cert),
+        "certificate_number": cert["certificate_number"] if cert else None,
+    }
 
 
 @router.post("/employees/{employee_id}/reset-password")

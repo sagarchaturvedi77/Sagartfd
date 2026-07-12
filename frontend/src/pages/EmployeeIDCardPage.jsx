@@ -5,6 +5,7 @@ import PortalLayout from "../components/PortalLayout";
 import { useAuth } from "../context/AuthContext";
 import PageHeader from "../components/portal/PageHeader";
 import { Button } from "../components/ui/button";
+import { LINKS } from "../lib/links";
 
 const API_BASE = process.env.REACT_APP_BACKEND_URL || "";
 // Same-origin asset — the external CDN URL previously here sends no CORS
@@ -50,7 +51,10 @@ export default function EmployeeIDCardPage() {
   // The employee's own login number (emp.phone) is the fallback; contact_no is
   // the number they've chosen to display on the ID/visiting card, editable below.
   const displayPhone = emp.contact_no || emp.phone || "—";
-  const verifyUrl = `${window.location.origin}/verify/${emp.id || ""}`;
+  // Always the real production domain, never window.location.origin — this
+  // QR ends up printed on a physical ID/visiting card, so it must stay
+  // correct even if generated while browsing a preview/staging deployment.
+  const verifyUrl = `${window.location.hostname === "localhost" ? window.location.origin : LINKS.siteUrl}/verify/${emp.id || ""}`;
   const qrUrl = `${QR_BASE}${encodeURIComponent(verifyUrl)}`;
   const empId = emp.employee_id || (emp.id || "").slice(0, 8).toUpperCase();
   const photoUrl = uploads.photo?.data || null;

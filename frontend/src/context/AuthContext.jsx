@@ -99,11 +99,19 @@ export function AuthProvider({ children }) {
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
       if (err.detail === "account_disabled") {
-        // A disabled account shouldn't be told it's been disabled — this
-        // promise deliberately never resolves or rejects, so the caller's
-        // "signing in..." state just stays put forever instead of showing
-        // an error.
+        // A disabled (or resigned-less-than-a-week-ago) account shouldn't
+        // be told it's been disabled — this promise deliberately never
+        // resolves or rejects, so the caller's "signing in..." state just
+        // stays put forever instead of showing an error.
         return new Promise(() => {});
+      }
+      if (err.detail?.code === "resigned") {
+        const name = err.detail.name || "there";
+        throw new Error(
+          `Dear ${name}, your association with The Financial Doctor has ended following your resignation. ` +
+          `You are no longer part of our team, and access to this portal has been disabled. We sincerely thank you ` +
+          `for your contributions during your time with us and wish you the very best in your future endeavours.`
+        );
       }
       throw new Error(err.detail || "Login failed");
     }
