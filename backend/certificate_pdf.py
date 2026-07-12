@@ -138,8 +138,17 @@ def _signature_block(elements, styles, signature_type: str = "ceo"):
     if signature_type == "authorized_palak":
         if os.path.exists(AUTHORIZED_SIGNATURE_PALAK_PATH):
             elements.append(Spacer(1, 4))
-            # authorized-signature-palak.png's own aspect ratio is ~1.4:1
-            elements.append(Image(AUTHORIZED_SIGNATURE_PALAK_PATH, width=25 * mm, height=18 * mm))
+            # authorized-signature-palak.png's own aspect ratio is ~1.4:1 —
+            # same left-aligned signature+seal table layout as the CEO
+            # block, so it sits directly above the name instead of
+            # defaulting to reportlab's center alignment for a bare Image.
+            sig_row = Table(
+                [[Image(AUTHORIZED_SIGNATURE_PALAK_PATH, width=25 * mm, height=18 * mm), Image(SEAL_PATH, width=18 * mm, height=18 * mm)] if os.path.exists(SEAL_PATH) else [Image(AUTHORIZED_SIGNATURE_PALAK_PATH, width=25 * mm, height=18 * mm)]],
+                colWidths=[31 * mm, 22 * mm] if os.path.exists(SEAL_PATH) else [31 * mm],
+                hAlign="LEFT",
+            )
+            sig_row.setStyle(TableStyle([("ALIGN", (0, 0), (-1, -1), "LEFT"), ("VALIGN", (0, 0), (-1, -1), "BOTTOM"), ("LEFTPADDING", (0, 0), (-1, -1), 0)]))
+            elements.append(sig_row)
         else:
             elements.append(Spacer(1, 24))
         elements.append(Paragraph("<b>Palak Mehta</b>", styles["TFDBody"]))

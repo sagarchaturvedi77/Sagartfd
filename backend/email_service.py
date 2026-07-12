@@ -1,10 +1,16 @@
 """All automated system email (welcome emails, certificates/letters,
-invoices, and any future automated communication) is sent via SMTP from
-team@thefinancialdoctor.in — a dedicated mailbox for system-generated mail,
-kept separate from the CEO's own inbox. Hosted on Hostinger, not Gmail —
-plain SMTP_SSL with the mailbox's own password (no Google App Password/OAuth
-involved).
+invoices, password resets, and any future automated communication) is sent
+from team@thefinancialdoctor.in — a dedicated mailbox for system-generated
+mail, kept separate from the CEO's own inbox.
+
+Primary transport is Resend's HTTPS API (RESEND_API_KEY) — it sends over
+port 443 like normal web traffic, so it works on hosts that block outbound
+SMTP ports entirely (Render does, silently — connections to 465/587 hang
+until they time out rather than being refused). Falls back to direct SMTP
+via Hostinger (SMTP_USERNAME/SMTP_PASSWORD) when RESEND_API_KEY isn't set,
+which keeps local development working without requiring a Resend account.
 """
+import base64
 import logging
 import os
 import smtplib
@@ -13,7 +19,12 @@ from email.mime.application import MIMEApplication
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 
+import httpx
+
 logger = logging.getLogger(__name__)
+
+RESEND_API_KEY = os.environ.get("RESEND_API_KEY", "")
+RESEND_FROM = os.environ.get("RESEND_FROM", "Team - The Financial Doctor <team@thefinancialdoctor.in>")
 
 SMTP_HOST = os.environ.get("SMTP_HOST", "smtp.hostinger.com")
 SMTP_PORT = int(os.environ.get("SMTP_PORT", "465"))
@@ -44,7 +55,64 @@ ANDROID_APK_URL = "https://thefinancialdoctor.in/TFD-Workspace.apk"
 
 
 def email_configured() -> bool:
-    return bool(SMTP_PASSWORD and SMTP_USERNAME)
+    return bool(RESEND_API_KEY) or bool(SMTP_PASSWORD and SMTP_USERNAME)
+
+
+def _send_via_resend(to_email: str, subject: str, html: str, attachments: list[tuple[str, bytes]] | None = None, cc_emails: list[str] | None = None) -> tuple[bool, str]:
+    payload = {"from": RESEND_FROM, "to": [to_email], "subject": subject, "html": html}
+    if cc_emails:
+        payload["cc"] = cc_emails
+    if attachments:
+        payload["attachments"] = [
+            {"filename": filename, "content": base64.b64encode(content).decode("ascii")}
+            for filename, content in attachments
+        ]
+    try:
+        resp = httpx.post(
+            "https://api.resend.com/emails",
+            headers={"Authorization": f"Bearer {RESEND_API_KEY}", "Content-Type": "application/json"},
+            json=payload, timeout=20,
+        )
+        if resp.is_success:
+            return True, "sent"
+        return False, f"Resend API error {resp.status_code}: {resp.text[:300]}"
+    except Exception as exc:
+        logger.exception("Resend send failed for %s", to_email)
+        return False, str(exc)
+
+
+def _send_via_smtp(to_email: str, subject: str, html: str, attachments: list[tuple[str, bytes]] | None = None, cc_emails: list[str] | None = None) -> tuple[bool, str]:
+    cc_emails = cc_emails or []
+    msg = MIMEMultipart("mixed") if attachments else MIMEMultipart("alternative")
+    msg["Subject"] = subject
+    msg["From"] = f"Team - The Financial Doctor <{SMTP_USERNAME}>"
+    msg["To"] = to_email
+    if cc_emails:
+        msg["Cc"] = ", ".join(cc_emails)
+    msg.attach(MIMEText(html, "html"))
+    for filename, content in (attachments or []):
+        attachment = MIMEApplication(content, _subtype="pdf")
+        attachment.add_header("Content-Disposition", "attachment", filename=filename)
+        msg.attach(attachment)
+
+    try:
+        with _IPv4SMTP_SSL(SMTP_HOST, SMTP_PORT, timeout=20) as server:
+            server.login(SMTP_USERNAME, SMTP_PASSWORD)
+            server.sendmail(SMTP_USERNAME, [to_email] + cc_emails, msg.as_string())
+        return True, "sent"
+    except Exception as exc:
+        logger.exception("SMTP send failed for %s", to_email)
+        return False, str(exc)
+
+
+def _send_email(to_email: str, subject: str, html: str, attachments: list[tuple[str, bytes]] | None = None, cc_emails: list[str] | None = None) -> tuple[bool, str]:
+    """Single entry point every send function below goes through — Resend
+    first when configured, SMTP otherwise. See module docstring for why."""
+    if RESEND_API_KEY:
+        return _send_via_resend(to_email, subject, html, attachments, cc_emails)
+    if SMTP_USERNAME and SMTP_PASSWORD:
+        return _send_via_smtp(to_email, subject, html, attachments, cc_emails)
+    return False, "Email sending not configured — set RESEND_API_KEY (recommended) or SMTP_USERNAME/SMTP_PASSWORD in backend/.env"
 
 
 def _welcome_html(name: str, phone: str, password: str) -> str:
@@ -78,22 +146,8 @@ def _welcome_html(name: str, phone: str, password: str) -> str:
 def send_welcome_email(to_email: str, name: str, phone: str, password: str) -> tuple[bool, str]:
     """Returns (success, message)."""
     if not email_configured():
-        return False, "Email sending not configured — set SMTP_USERNAME and SMTP_PASSWORD in backend/.env"
-
-    msg = MIMEMultipart("alternative")
-    msg["Subject"] = "Welcome to TFD Workspace — Your Login Details"
-    msg["From"] = f"The Financial Doctor <{SMTP_USERNAME}>"
-    msg["To"] = to_email
-    msg.attach(MIMEText(_welcome_html(name, phone, password), "html"))
-
-    try:
-        with _IPv4SMTP_SSL(SMTP_HOST, SMTP_PORT, timeout=15) as server:
-            server.login(SMTP_USERNAME, SMTP_PASSWORD)
-            server.sendmail(SMTP_USERNAME, [to_email], msg.as_string())
-        return True, "sent"
-    except Exception as exc:
-        logger.exception("Failed to send welcome email to %s", to_email)
-        return False, str(exc)
+        return False, "Email sending not configured — set RESEND_API_KEY (recommended) or SMTP_USERNAME/SMTP_PASSWORD in backend/.env"
+    return _send_email(to_email, "Welcome to TFD Workspace — Your Login Details", _welcome_html(name, phone, password))
 
 
 def _password_reset_html(name: str, reset_url: str) -> str:
@@ -125,22 +179,8 @@ def _password_reset_html(name: str, reset_url: str) -> str:
 
 def send_password_reset_email(to_email: str, name: str, reset_url: str) -> tuple[bool, str]:
     if not email_configured():
-        return False, "Email sending not configured — set SMTP_USERNAME and SMTP_PASSWORD in backend/.env"
-
-    msg = MIMEMultipart("alternative")
-    msg["Subject"] = "Reset your TFD Workspace password"
-    msg["From"] = f"The Financial Doctor <{SMTP_USERNAME}>"
-    msg["To"] = to_email
-    msg.attach(MIMEText(_password_reset_html(name, reset_url), "html"))
-
-    try:
-        with _IPv4SMTP_SSL(SMTP_HOST, SMTP_PORT, timeout=15) as server:
-            server.login(SMTP_USERNAME, SMTP_PASSWORD)
-            server.sendmail(SMTP_USERNAME, [to_email], msg.as_string())
-        return True, "sent"
-    except Exception as exc:
-        logger.exception("Failed to send password reset email to %s", to_email)
-        return False, str(exc)
+        return False, "Email sending not configured — set RESEND_API_KEY (recommended) or SMTP_USERNAME/SMTP_PASSWORD in backend/.env"
+    return _send_email(to_email, "Reset your TFD Workspace password", _password_reset_html(name, reset_url))
 
 
 def send_email_with_pdf(to_email: str, subject: str, body_html: str, pdf_bytes: bytes, pdf_filename: str) -> tuple[bool, str]:
@@ -152,35 +192,11 @@ def send_email_with_pdf(to_email: str, subject: str, body_html: str, pdf_bytes: 
 def send_email_with_pdfs(to_email: str, subject: str, body_html: str, attachments: list[tuple[str, bytes]], cc_emails: list[str] | None = None) -> tuple[bool, str]:
     """attachments: [(filename, pdf_bytes), ...] — used for bundled sends
     (e.g. a certificate emailed together with its completion letter).
-    cc_emails: optional addresses to CC — added to both the visible Cc
-    header and the actual SMTP envelope recipients (a header alone doesn't
-    deliver anything)."""
+    cc_emails: optional addresses to CC."""
     if not email_configured():
-        return False, "Email sending not configured — set SMTP_USERNAME and SMTP_PASSWORD in backend/.env"
-
+        return False, "Email sending not configured — set RESEND_API_KEY (recommended) or SMTP_USERNAME/SMTP_PASSWORD in backend/.env"
     cc_emails = [e.strip() for e in (cc_emails or []) if e and e.strip()]
-
-    msg = MIMEMultipart("mixed")
-    msg["Subject"] = subject
-    msg["From"] = f"Team - The Financial Doctor <{SMTP_USERNAME}>"
-    msg["To"] = to_email
-    if cc_emails:
-        msg["Cc"] = ", ".join(cc_emails)
-    msg.attach(MIMEText(body_html, "html"))
-
-    for filename, pdf_bytes in attachments:
-        attachment = MIMEApplication(pdf_bytes, _subtype="pdf")
-        attachment.add_header("Content-Disposition", "attachment", filename=filename)
-        msg.attach(attachment)
-
-    try:
-        with _IPv4SMTP_SSL(SMTP_HOST, SMTP_PORT, timeout=20) as server:
-            server.login(SMTP_USERNAME, SMTP_PASSWORD)
-            server.sendmail(SMTP_USERNAME, [to_email] + cc_emails, msg.as_string())
-        return True, "sent"
-    except Exception as exc:
-        logger.exception("Failed to send %s document(s) to %s", len(attachments), to_email)
-        return False, str(exc)
+    return _send_email(to_email, subject, body_html, attachments=attachments, cc_emails=cc_emails)
 
 
 def _branded_wrapper(heading: str, body_paragraphs: list[str]) -> str:
