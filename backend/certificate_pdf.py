@@ -392,6 +392,57 @@ def generate_completion_letter_pdf(data: dict, custom_body: Optional[str] = None
     return buf.getvalue()
 
 
+def build_experience_letter_body(data: dict) -> str:
+    """data: name, employee_id, designation, department, start_date, end_date."""
+    name = _title_case_name(data["name"])
+    first_name = name.split()[0]
+    tenure_months = data.get("tenure_months")
+    tenure_clause = f" (a period of {tenure_months} month{'s' if tenure_months != 1 else ''})" if tenure_months else ""
+    para1 = (
+        f"This is to certify that <b>{name}</b> (Employee ID: <b>{data['employee_id']}</b>) was employed with "
+        f"<b>The Financial Doctor</b> as <b>{data['designation'] or 'a team member'}</b> in the "
+        f"<b>{data['department'] or 'organization'}</b> department, from <b>{_fmt_date(data['start_date'])}</b> to "
+        f"<b>{_fmt_date(data['end_date'])}</b>{tenure_clause}."
+    )
+    para2 = (
+        f"During this period, {first_name} demonstrated professionalism, sincerity, and a strong commitment to their "
+        "responsibilities. Their conduct and performance throughout their tenure with us were found to be satisfactory."
+    )
+    para3 = f"We wish {first_name} the very best in all their future endeavours."
+    return f"{para1}\n\n{para2}\n\n{para3}"
+
+
+def generate_experience_letter_pdf(data: dict, verify_url: Optional[str] = None, certificate_number: Optional[str] = None) -> bytes:
+    """data: name, employee_id, designation, department, start_date, end_date,
+    tenure_months (optional, for the parenthetical duration clause).
+
+    verify_url here is deliberately the employee-ID public verification page
+    (/verify/{employee_id}), not a certificate-number lookup — the QR is
+    meant to double as the same verification link already printed on the
+    employee's ID/visiting card, showing their active/former-employee
+    status rather than just this one document."""
+    buf = io.BytesIO()
+    doc = SimpleDocTemplate(buf, pagesize=A4, topMargin=50 * mm, bottomMargin=48 * mm, leftMargin=22 * mm, rightMargin=26 * mm)
+    styles = _letter_styles()
+    elements = []
+
+    elements.append(Paragraph("TO WHOMSOEVER IT MAY CONCERN", ParagraphStyle("ToWhom", parent=styles["Normal"], alignment=TA_CENTER, fontSize=11, fontName="Helvetica-Bold")))
+    elements.append(Spacer(1, 10))
+
+    body_text = build_experience_letter_body(data)
+    for para in body_text.split("\n\n"):
+        if para.strip():
+            elements.append(Paragraph(para.strip(), styles["TFDBody"]))
+
+    _signature_block(elements, styles)
+    decorator = make_formal_letter_decorator(
+        "EXPERIENCE LETTER", show_internship_logo=False,
+        verify_url=verify_url, doc_number=certificate_number,
+    )
+    doc.build(elements, onFirstPage=decorator, onLaterPages=decorator)
+    return buf.getvalue()
+
+
 def default_certificate_detail(cert: dict) -> str:
     if cert["cert_type"] == "internship":
         return f"for successfully completing an internship of {cert['duration_label']} in the {cert['department']} department"
@@ -521,14 +572,6 @@ def generate_certificate_pdf(cert: dict, verify_url: str) -> bytes:
     c.showPage()
     c.save()
     return buf.getvalue()
-
-
-_CERT_CODE_MAP = {"internship": "INT", "employee": "EMP", "offer_letter": "OL", "completion_letter": "CL"}
-
-
-def next_certificate_number(cert_type: str, year: int, sequence: int) -> str:
-    code = _CERT_CODE_MAP.get(cert_type, "EMP")
-    return f"TFD/{code}/{year}/{sequence:04d}"
 
 
 def new_certificate_id() -> str:

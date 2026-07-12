@@ -12,6 +12,7 @@ from database import invoices_collection, business_settings_collection
 from storage_r2 import r2_enabled, upload_bytes, presigned_url
 from invoice_pdf import generate_invoice_pdf
 from activity_service import log_activity
+from utils.document_numbering import generate_document_number
 
 router = APIRouter(prefix="/api/invoices", tags=["invoices"])
 
@@ -36,9 +37,7 @@ class InvoiceCreate(BaseModel):
 
 
 async def _next_invoice_number(year: int) -> str:
-    prefix = f"TFD/INV/{year}/"
-    count = await invoices_collection.count_documents({"invoice_number": {"$regex": f"^{prefix.replace('/', chr(92) + '/')}"}})
-    return f"{prefix}{count + 1:04d}"
+    return await generate_document_number(invoices_collection, "invoice_number", "INV", year)
 
 
 @router.get("/settings")

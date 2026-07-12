@@ -1,20 +1,12 @@
-import re
-from uuid import uuid4
+import random
 
 
-def gen_employee_id_from_phone(phone: str) -> str:
-    """Generate employee ID in format: TFD + first2 + (5th&6th) + last2 from a 10+ digit phone.
-
-    Examples:
-      phone=9876543210 -> TFD98 54 10 => TFD985410
-    If phone is missing or shorter than 10 digits, fall back to TFD + 6 hex chars.
-    """
-    if not phone:
-        return f"TFD{uuid4().hex[:6].upper()}"
-    digits = re.sub(r"\D", "", phone)
-    if len(digits) >= 10:
-        first2 = digits[:2]
-        mid56 = digits[4:6]
-        last2 = digits[-2:]
-        return f"TFD{first2}{mid56}{last2}"
-    return f"TFD{uuid4().hex[:6].upper()}"
+def gen_random_employee_id() -> str:
+    """TFD + a random 6-digit number — deliberately not derived from the
+    phone number (the old scheme was TFD + digits picked out of the phone
+    itself, e.g. phone=9876543210 -> TFD985410), since anyone who knows both
+    the formula and an employee's phone number could compute their employee
+    ID without it ever being shared. The caller is expected to check this
+    against users_collection for uniqueness and retry on the rare collision
+    (see create_employee in auth_routes.py)."""
+    return f"TFD{random.randint(100000, 999999)}"

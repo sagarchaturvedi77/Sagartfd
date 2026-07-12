@@ -16,7 +16,7 @@ from database import certificates_collection, interns_collection, users_collecti
 from storage_r2 import r2_enabled, upload_bytes, presigned_url
 from certificate_pdf import (
     generate_offer_letter_pdf, generate_completion_letter_pdf, generate_certificate_pdf,
-    next_certificate_number,
+    generate_experience_letter_pdf,
 )
 from certificate_content import DEPARTMENTS
 from email_service import (
@@ -25,6 +25,7 @@ from email_service import (
 )
 from activity_service import log_activity
 from notification_service import create_notification
+from utils.document_numbering import generate_document_number
 
 router = APIRouter(prefix="/api", tags=["certificates"])
 
@@ -40,13 +41,15 @@ def _duration_label(start: str, end: str) -> str:
     return f"{days} days"
 
 
-_SEQ_CODE_MAP = {"internship": "INT", "employee": "EMP", "offer_letter": "OL", "completion_letter": "CL"}
+_SEQ_CODE_MAP = {"internship": "INT", "employee": "EMP", "offer_letter": "OL", "completion_letter": "CL", "experience_letter": "EXP"}
 
 
-async def _next_sequence(cert_type: str, year: int) -> int:
-    prefix = f"TFD/{_SEQ_CODE_MAP.get(cert_type, 'EMP')}/{year}/"
-    count = await certificates_collection.count_documents({"certificate_number": {"$regex": f"^{prefix.replace('/', chr(92) + '/')}"}})
-    return count + 1
+async def _next_sequence(cert_type: str, year: int) -> str:
+    """Despite the name (kept to minimize the diff at every call site),
+    this now returns the full random certificate number directly, not a
+    sequential counter — see utils/document_numbering.py."""
+    code = _SEQ_CODE_MAP.get(cert_type, "EMP")
+    return await generate_document_number(certificates_collection, "certificate_number", code, year)
 
 
 async def _store_pdf(pdf_bytes: bytes, key: str) -> Optional[str]:
@@ -56,14 +59,61 @@ async def _store_pdf(pdf_bytes: bytes, key: str) -> Optional[str]:
     return None
 
 
+def _tenure_months(join_date: str, end_date: str) -> int:
+    start = date.fromisoformat(join_date)
+    end = date.fromisoformat(end_date)
+    months = (end.year - start.year) * 12 + (end.month - start.month)
+    if end.day < start.day:
+        months -= 1
+    return max(months, 0)
+
+
+async def generate_experience_letter_for_employee(employee_id: str, emp: dict, admin_id: str, resign_date: str) -> Optional[dict]:
+    """Called on resignation. Only generates a letter when the employee's
+    tenure (join_date -> resign_date) was 6+ months — returns None (no
+    letter) otherwise, per policy. The QR on the letter deliberately points
+    at the employee-ID public verification page (/verify/{employee_id}),
+    the same one already printed on their ID/visiting card, rather than a
+    certificate-number lookup — see generate_experience_letter_pdf's
+    docstring."""
+    join_date = emp.get("join_date")
+    if not join_date:
+        return None
+    months = _tenure_months(join_date, resign_date)
+    if months < 6:
+        return None
+
+    year = date.fromisoformat(resign_date).year
+    cert_number = await _next_sequence("experience_letter", year)
+    letter_data = {
+        "name": emp["name"], "employee_id": employee_id,
+        "designation": emp.get("designation") or "", "department": emp.get("department") or "",
+        "start_date": join_date, "end_date": resign_date, "tenure_months": months,
+    }
+    employee_verify_url = f"{SITE_URL}/verify/{employee_id}"
+    pdf_bytes = generate_experience_letter_pdf(letter_data, verify_url=employee_verify_url, certificate_number=cert_number)
+
+    doc_id = str(uuid.uuid4())
+    r2_key = await _store_pdf(pdf_bytes, f"experience-letters/{doc_id}.pdf")
+
+    cert_doc = {
+        "id": doc_id, "certificate_number": cert_number, "person_name": emp["name"], "type": "experience_letter",
+        "department": emp.get("department"), "issue_date": resign_date, "duration_label": f"{months} months",
+        "college": None, "linked_employee_id": employee_id, "intern_id": None,
+        "designation": emp.get("designation"), "start_date": join_date, "end_date": resign_date,
+        "r2_key": r2_key, "created_by": admin_id, "created_at": datetime.now(timezone.utc).isoformat(),
+    }
+    await certificates_collection.insert_one(cert_doc)
+    return cert_doc
+
+
 async def _persist_letter_record(intern: dict, letter_type: str, pdf_bytes: bytes, created_by: str) -> None:
     """Offer/completion letters are generated on demand for download, but also
     get a numbered, R2-stored record here so Universal Document Search can
     find them — same pattern certificates/letterheads already use. These are
     intentionally NOT publicly verifiable (see qr_routes.py's type filter)."""
     year = date.today().year
-    seq = await _next_sequence(letter_type, year)
-    number = next_certificate_number(letter_type, year, seq)
+    number = await _next_sequence(letter_type, year)
     doc_id = str(uuid.uuid4())
     r2_key = None
     if r2_enabled():
@@ -469,8 +519,7 @@ async def _ensure_intern_certificate(intern_id: str, intern: dict, admin_id: str
         return cert
 
     year = date.fromisoformat(intern["end_date"]).year
-    seq = await _next_sequence("internship", year)
-    cert_number = next_certificate_number("internship", year, seq)
+    cert_number = await _next_sequence("internship", year)
     duration_label = _duration_label(intern["start_date"], intern["end_date"])
     issue_date = intern["end_date"]
 
@@ -553,8 +602,7 @@ async def create_intern_certificate(intern_id: str, data: GenerateCertificateIn 
         raise HTTPException(status_code=400, detail="This intern application hasn't been approved yet")
 
     year = date.fromisoformat(intern["end_date"]).year
-    seq = await _next_sequence("internship", year)
-    cert_number = next_certificate_number("internship", year, seq)
+    cert_number = await _next_sequence("internship", year)
     duration_label = _duration_label(intern["start_date"], intern["end_date"])
     issue_date = intern["end_date"]
 
@@ -612,8 +660,7 @@ async def create_employee_certificate(data: EmployeeCertificateCreate, admin: di
     end = data.end_date or date.today().isoformat()
     duration_label = data.duration_label or _duration_label(data.start_date, end)
     year = date.fromisoformat(end).year
-    seq = await _next_sequence("employee", year)
-    cert_number = next_certificate_number("employee", year, seq)
+    cert_number = await _next_sequence("employee", year)
 
     cert_data = {
         "certificate_number": cert_number, "person_name": emp["name"], "cert_type": "employee",
@@ -658,8 +705,7 @@ async def create_achievement(data: AchievementCreate, admin: dict = Depends(requ
 
     issue_date = data.issue_date or date.today().isoformat()
     year = date.fromisoformat(issue_date).year
-    seq = await _next_sequence("employee", year)
-    cert_number = next_certificate_number("employee", year, seq)
+    cert_number = await _next_sequence("employee", year)
 
     cert_data = {
         "certificate_number": cert_number, "person_name": emp["name"], "cert_type": "achievement",
@@ -745,13 +791,25 @@ async def download_certificate(cert_id: str, payload: dict = Depends(get_current
         except Exception:
             pdf_bytes = None
     if pdf_bytes is None:
-        cert_data = {
-            "certificate_number": doc["certificate_number"], "person_name": doc["person_name"],
-            "cert_type": doc.get("type", "employee"), "department": doc.get("department"),
-            "issue_date": doc["issue_date"], "duration_label": doc.get("duration_label"),
-            "designation": doc.get("designation"), "start_date": doc.get("start_date"), "ongoing": doc.get("ongoing"),
-        }
-        pdf_bytes = generate_certificate_pdf(cert_data, _verify_url(doc["certificate_number"]))
+        if doc.get("type") == "experience_letter":
+            letter_data = {
+                "name": doc["person_name"], "employee_id": doc.get("linked_employee_id"),
+                "designation": doc.get("designation") or "", "department": doc.get("department") or "",
+                "start_date": doc.get("start_date"), "end_date": doc.get("end_date"),
+                "tenure_months": _tenure_months(doc["start_date"], doc["end_date"]) if doc.get("start_date") and doc.get("end_date") else None,
+            }
+            pdf_bytes = generate_experience_letter_pdf(
+                letter_data, verify_url=f"{SITE_URL}/verify/{doc.get('linked_employee_id')}",
+                certificate_number=doc["certificate_number"],
+            )
+        else:
+            cert_data = {
+                "certificate_number": doc["certificate_number"], "person_name": doc["person_name"],
+                "cert_type": doc.get("type", "employee"), "department": doc.get("department"),
+                "issue_date": doc["issue_date"], "duration_label": doc.get("duration_label"),
+                "designation": doc.get("designation"), "start_date": doc.get("start_date"), "ongoing": doc.get("ongoing"),
+            }
+            pdf_bytes = generate_certificate_pdf(cert_data, _verify_url(doc["certificate_number"]))
 
     filename = f"Certificate_{doc['certificate_number'].replace('/', '_')}.pdf"
     return StreamingResponse(io.BytesIO(pdf_bytes), media_type="application/pdf", headers={"Content-Disposition": f'inline; filename="{filename}"'})
@@ -786,8 +844,10 @@ async def email_certificate(cert_id: str, data: EmailCertificateIn, admin: dict 
 
     from storage_r2 import get_client, R2_BUCKET_NAME
     obj = get_client().get_object(Bucket=R2_BUCKET_NAME, Key=doc["r2_key"])
-    attachments = [(f"Certificate_{doc['certificate_number'].replace('/', '_')}.pdf", obj["Body"].read())]
-    doc_labels = [f"Certificate ({doc['certificate_number']})"]
+    is_experience_letter = doc.get("type") == "experience_letter"
+    filename_prefix = "Experience_Letter" if is_experience_letter else "Certificate"
+    attachments = [(f"{filename_prefix}_{doc['certificate_number'].replace('/', '_')}.pdf", obj["Body"].read())]
+    doc_labels = [f"Experience Letter ({doc['certificate_number']})" if is_experience_letter else f"Certificate ({doc['certificate_number']})"]
 
     is_internship = doc.get("type") == "internship" and doc.get("intern_id")
     if is_internship:
@@ -800,6 +860,9 @@ async def email_certificate(cert_id: str, data: EmailCertificateIn, admin: dict 
     if is_internship:
         subject = "Your Internship Certificate & Completion Letter — The Financial Doctor"
         body_html = certificate_completion_email_html(doc["person_name"], doc["department"], doc["certificate_number"], _verify_url(doc["certificate_number"]))
+    elif is_experience_letter:
+        subject = "Your Experience Letter — The Financial Doctor"
+        body_html = document_email_html(doc["person_name"], doc_labels)
     else:
         subject = f"Your Documents from The Financial Doctor — {doc['certificate_number']}"
         body_html = document_email_html(doc["person_name"], doc_labels)

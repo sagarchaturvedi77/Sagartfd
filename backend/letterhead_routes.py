@@ -17,17 +17,13 @@ from database import certificates_collection
 from storage_r2 import r2_enabled, upload_bytes, presigned_url
 from letterhead_pdf import build_letterhead_pdf
 from activity_service import log_activity
+from utils.document_numbering import generate_document_number
 
 router = APIRouter(prefix="/api/letterheads", tags=["letterheads"])
 
 
 async def _next_letterhead_number(year: int) -> str:
-    prefix = f"TFD/LH/{year}/"
-    count = await certificates_collection.count_documents({
-        "type": "letterhead",
-        "certificate_number": {"$regex": f"^{prefix.replace('/', chr(92) + '/')}"},
-    })
-    return f"{prefix}{count + 1:04d}"
+    return await generate_document_number(certificates_collection, "certificate_number", "LH", year)
 
 
 class LetterheadCreate(BaseModel):
