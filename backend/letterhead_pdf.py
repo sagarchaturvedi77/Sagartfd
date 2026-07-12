@@ -20,14 +20,14 @@ from reportlab.lib.pagesizes import A4
 from reportlab.lib.units import mm
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, ListFlowable, ListItem
 
-from certificate_pdf import _letter_styles, _signature_block, make_formal_letter_decorator
+from certificate_pdf import _letter_styles, _signature_block, make_formal_letter_decorator, MUTUAL_FUND_DISCLAIMER
 
 
 def _parse_inline_bold(text: str) -> str:
     return re.sub(r"\*\*(.+?)\*\*", r"<b>\1</b>", text)
 
 
-def build_letterhead_pdf(letterhead_number: str, content: str, signature_type: str = "ceo", title: str = "") -> bytes:
+def build_letterhead_pdf(letterhead_number: str, content: str, signature_type: str = "ceo", title: str = "", include_disclaimer: bool = False) -> bytes:
     buf = io.BytesIO()
     doc = SimpleDocTemplate(buf, pagesize=A4, topMargin=50 * mm, bottomMargin=48 * mm, leftMargin=22 * mm, rightMargin=26 * mm)
     styles = _letter_styles()
@@ -45,6 +45,11 @@ def build_letterhead_pdf(letterhead_number: str, content: str, signature_type: s
             elements.append(Paragraph(_parse_inline_bold(" ".join(lines)), styles["TFDBody"]))
 
     _signature_block(elements, styles, signature_type=signature_type)
+
+    if include_disclaimer:
+        elements.append(Spacer(1, 20))
+        elements.append(Paragraph(MUTUAL_FUND_DISCLAIMER, styles["TFDDisclaimer"]))
+
     decorator = make_formal_letter_decorator(title or "", extra_footer_line=letterhead_number)
     doc.build(elements, onFirstPage=decorator, onLaterPages=decorator)
     return buf.getvalue()

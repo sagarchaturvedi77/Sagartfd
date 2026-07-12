@@ -16,6 +16,7 @@ export default function AdminLetterheads() {
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
   const [signatureType, setSignatureType] = useState("ceo");
+  const [includeDisclaimer, setIncludeDisclaimer] = useState(false);
   const [saving, setSaving] = useState(false);
 
   const load = useCallback(async () => {
@@ -38,10 +39,10 @@ export default function AdminLetterheads() {
     try {
       const res = await fetch(`${API_BASE}/api/letterheads`, {
         method: "POST", headers,
-        body: JSON.stringify({ title: title || null, content, signature_type: signatureType }),
+        body: JSON.stringify({ title: title || null, content, signature_type: signatureType, include_disclaimer: includeDisclaimer }),
       });
       if (res.ok) {
-        setTitle(""); setContent(""); setSignatureType("ceo");
+        setTitle(""); setContent(""); setSignatureType("ceo"); setIncludeDisclaimer(false);
         load();
       }
     } finally {
@@ -77,6 +78,12 @@ export default function AdminLetterheads() {
                 <option value="authorized">Authorized Signature (generic)</option>
               </select>
             </div>
+
+            <label className="flex items-center gap-2.5 py-1 cursor-pointer select-none">
+              <input type="checkbox" checked={includeDisclaimer} onChange={(e) => setIncludeDisclaimer(e.target.checked)} className="w-4 h-4 rounded accent-[#024396]" />
+              <span className="text-sm font-medium text-[#0E1B2C] dark:text-[#F1EDE3]">Add Disclaimer</span>
+              <span className="text-xs text-[#2A364B]/50 dark:text-[#8E99AC]">— standard mutual fund / investment risk disclaimer</span>
+            </label>
 
             <Button type="submit" disabled={saving || !content.trim()} className="w-full bg-[#024396] hover:bg-[#023580]">
               {saving ? "Generating..." : "Generate Letterhead"}

@@ -34,6 +34,7 @@ class LetterheadCreate(BaseModel):
     title: Optional[str] = None
     content: str
     signature_type: Literal["ceo", "authorized"] = "ceo"
+    include_disclaimer: bool = False
 
 
 def _to_out(doc: dict) -> dict:
@@ -51,7 +52,7 @@ async def create_letterhead(data: LetterheadCreate, admin: dict = Depends(requir
 
     year = date.today().year
     letterhead_number = await _next_letterhead_number(year)
-    pdf_bytes = build_letterhead_pdf(letterhead_number, data.content, data.signature_type, data.title or "")
+    pdf_bytes = build_letterhead_pdf(letterhead_number, data.content, data.signature_type, data.title or "", data.include_disclaimer)
 
     doc_id = str(uuid.uuid4())
     r2_key = None

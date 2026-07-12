@@ -33,6 +33,7 @@ WORKSPACE_LOGO_PATH = os.path.join(ASSETS_DIR, "tfd-workspace-logo.png")
 SIGNATURE_PATH = os.path.join(ASSETS_DIR, "ceo-signature.png")
 SEAL_PATH = os.path.join(ASSETS_DIR, "tfd-seal.png")
 TEMPLATE_PATH = os.path.join(ASSETS_DIR, "certificate-template.png")
+LETTERHEAD_TEMPLATE_PATH = os.path.join(ASSETS_DIR, "tfd-letterhead.png")
 
 _FONTS_DIR = os.path.join(ASSETS_DIR, "fonts")
 FONT_SCRIPT = "Helvetica-Oblique"
@@ -62,12 +63,22 @@ def _fmt_date(d: str) -> str:
     return date.fromisoformat(d).strftime("%d %B %Y")
 
 
+MUTUAL_FUND_DISCLAIMER = (
+    "Disclaimer: Mutual Fund investments are subject to market risks. Please read all scheme related "
+    "documents carefully before investing. Past performance is not indicative of future returns. "
+    "The Financial Doctor (AMFI-registered Mutual Fund Distributor, ARN-290298) does not guarantee any "
+    "returns and is not liable for any investment decision taken on the basis of this communication. "
+    "This document is for informational purposes only and does not constitute investment, tax, or legal advice."
+)
+
+
 def _letter_styles():
     styles = getSampleStyleSheet()
     styles.add(ParagraphStyle("TFDTitle", parent=styles["Heading1"], alignment=TA_CENTER, textColor=TFD_NAVY, fontSize=16, spaceAfter=4))
     styles.add(ParagraphStyle("TFDSub", parent=styles["Normal"], alignment=TA_CENTER, textColor=colors.grey, fontSize=9))
     styles.add(ParagraphStyle("TFDBody", parent=styles["Normal"], alignment=TA_JUSTIFY, fontSize=11, leading=16, spaceAfter=10))
     styles.add(ParagraphStyle("TFDMeta", parent=styles["Normal"], fontSize=10, textColor=colors.grey))
+    styles.add(ParagraphStyle("TFDDisclaimer", parent=styles["Normal"], alignment=TA_JUSTIFY, fontSize=7, leading=9.5, textColor=colors.grey, fontName="Helvetica-Oblique"))
     return styles
 
 
@@ -135,45 +146,21 @@ def watermark_page(canvas_obj, doc):
     canvas_obj.restoreState()
 
 
-def _draw_side_chevrons(c, width, height):
-    """A ribbon-style red/navy strip running the full right edge of the
-    page, top to bottom — alternating diagonal blocks with a small gap
-    between each, matching the reference letter design's side accent."""
-    c.saveState()
-    strip_w = 9 * mm
-    block_h = 22 * mm
-    gap = 3 * mm
-    step = block_h + gap
-    cy = height - block_h / 2
-    toggle = True
-    while cy > -block_h / 2:
-        c.setFillColor(TFD_RED if toggle else TFD_NAVY)
-        p = c.beginPath()
-        p.moveTo(width, cy + block_h / 2)
-        p.lineTo(width - strip_w, cy + block_h / 2 - 5 * mm)
-        p.lineTo(width - strip_w, cy - block_h / 2 - 5 * mm)
-        p.lineTo(width, cy - block_h / 2)
-        p.close()
-        c.drawPath(p, fill=1, stroke=0)
-        toggle = not toggle
-        cy -= step
-    c.restoreState()
+def _draw_letterhead_background(c, width, height):
+    """Full-page background — the actual provided letterhead template
+    (backend/assets/tfd-letterhead.png: logo, dashed rule, watermark, right-
+    edge ribbon, and footer contact bar all baked in), not hand-drawn
+    shapes. Falls back to a plain white page if the asset is missing."""
+    if os.path.exists(LETTERHEAD_TEMPLATE_PATH):
+        c.drawImage(LETTERHEAD_TEMPLATE_PATH, 0, 0, width=width, height=height)
 
 
 def _draw_letter_header(c, width, height, title: str = "", show_internship_logo: bool = False):
-    """Logo + dashed navy rule + bold underlined title, drawn directly on
-    the canvas (not the Platypus flow) so it repeats identically on every
-    page of a multi-page document, not just the first. The internship logo
-    (when shown) sits lower on the right side, below the rule, rather than
-    competing with the main logo at the very top."""
+    """Bold underlined title, drawn directly on the canvas (not the
+    Platypus flow) so it repeats identically on every page of a multi-page
+    document. Logo/dashed-rule are part of the template background now, not
+    drawn here."""
     c.saveState()
-    if os.path.exists(LOGO_PATH):
-        c.drawImage(LOGO_PATH, 22 * mm, height - 28 * mm, width=66 * mm, height=17.2 * mm, mask="auto", preserveAspectRatio=True, anchor="sw")
-    c.setStrokeColor(TFD_NAVY)
-    c.setLineWidth(1)
-    c.setDash(2, 2)
-    c.line(22 * mm, height - 30 * mm, width - 22 * mm, height - 30 * mm)
-    c.setDash()
     if title:
         c.setFont("Helvetica-Bold", 15)
         c.setFillColor(colors.HexColor("#0E1B2C"))
@@ -182,34 +169,30 @@ def _draw_letter_header(c, width, height, title: str = "", show_internship_logo:
         ty = height - 42 * mm
         c.drawCentredString(tx, ty, title)
         c.line(tx - tw / 2, ty - 2.5, tx + tw / 2, ty - 2.5)
-    if show_internship_logo and os.path.exists(INTERNSHIP_LOGO_PATH):
-        c.drawImage(INTERNSHIP_LOGO_PATH, width - 22 * mm - 32 * mm, height - 48 * mm, width=32 * mm, height=15.8 * mm, mask="auto", preserveAspectRatio=True, anchor="sw")
     c.restoreState()
 
 
-def _draw_letter_footer(c, width, extra_footer_line: str = None, verify_url: str = None, doc_number: str = None):
-    """Full-width navy box with white contact text, a red rule directly
-    above it, and (for the blank letterhead tool) a small reference line
-    just above the red rule. Matches the certificate's solid footer-bar
-    treatment for a consistent look across every formal document.
-
-    verify_url/doc_number (completion letter only) draw the *same* QR and
-    certificate_number as the intern's actual certificate — not a separate
-    one — as a small block in the bottom-left of the content area, above
-    the navy box."""
+def _draw_letter_footer(c, width, extra_footer_line: str = None, verify_url: str = None, doc_number: str = None, show_internship_logo: bool = False):
+    """The template's own footer bar (contact info, dashed rule, right-edge
+    ribbon) is part of the background image now — this only draws the
+    optional extras that sit *above* it, in the blank space between body
+    content and the template's dashed line (~30mm from the bottom):
+    a small reference line (blank letterhead's letterhead_number), a QR +
+    certificate_number bottom-left (completion letter only, reusing the
+    intern's actual certificate's own QR — not a separately minted one),
+    and the TFD internship logo bottom-right (offer/completion letters)."""
     c.saveState()
-    box_h = 20 * mm
-    rule_y = box_h + 1.5 * mm
+    baseline_y = 37 * mm
 
     if extra_footer_line:
         c.setFont("Helvetica", 7)
         c.setFillColor(colors.grey)
-        c.drawCentredString(width / 2, rule_y + 5 * mm, extra_footer_line)
+        c.drawCentredString(width / 2, baseline_y, extra_footer_line)
 
     if verify_url and doc_number:
         qr_size = 15 * mm
         qr_x = 22 * mm
-        qr_y = rule_y + 6 * mm
+        qr_y = baseline_y
         qr_buf = _make_qr_image_reader(verify_url)
         c.drawImage(ImageReader(qr_buf), qr_x, qr_y, width=qr_size, height=qr_size, mask="auto")
         c.setFont("Helvetica", 6.5)
@@ -219,30 +202,22 @@ def _draw_letter_footer(c, width, extra_footer_line: str = None, verify_url: str
         c.setFillColor(TFD_RED)
         c.drawString(qr_x + qr_size + 3.5 * mm, qr_y + qr_size / 2 - 3, doc_number)
 
-    c.setFillColor(TFD_RED)
-    c.rect(0, rule_y, width, 1.5 * mm, fill=1, stroke=0)
-
-    c.setFillColor(TFD_NAVY)
-    c.rect(0, 0, width, box_h, fill=1, stroke=0)
-    c.setFillColor(colors.white)
-    c.setFont("Helvetica-Bold", 9.5)
-    c.drawCentredString(width / 2, box_h / 2 + 3.5, "www.thefinancialdoctor.in   |   wecare@thefinancialdoctor.in   |   07562463942")
-    c.setFont("Helvetica", 8)
-    c.drawCentredString(width / 2, box_h / 2 - 4.5, "AMFI Registered Distributor  ·  ARN-290298")
+    if show_internship_logo and os.path.exists(INTERNSHIP_LOGO_PATH):
+        c.drawImage(INTERNSHIP_LOGO_PATH, width - 22 * mm - 32 * mm, baseline_y, width=32 * mm, height=15.8 * mm, mask="auto", preserveAspectRatio=True, anchor="s")
     c.restoreState()
 
 
 def make_formal_letter_decorator(title: str = "", extra_footer_line: str = None, show_internship_logo: bool = False, verify_url: str = None, doc_number: str = None):
     """Factory for the combined page decorator shared by every formal TFD
-    document (offer letter, completion letter, blank letterhead): watermark
-    + header (logo/rule/title) + side chevrons + footer (icons/ARN badge),
-    identically on every page — not just the first — so multi-page
-    documents stay fully branded throughout."""
+    document (offer letter, completion letter, blank letterhead): the real
+    letterhead template as a full-page background + title + any extras
+    (internship logo / reference line / QR+number), identically on every
+    page — not just the first — so multi-page documents stay fully
+    branded throughout."""
     def _decorate(canvas_obj, doc):
-        watermark_page(canvas_obj, doc)
-        _draw_letter_header(canvas_obj, doc.pagesize[0], doc.pagesize[1], title, show_internship_logo)
-        _draw_side_chevrons(canvas_obj, doc.pagesize[0], doc.pagesize[1])
-        _draw_letter_footer(canvas_obj, doc.pagesize[0], extra_footer_line, verify_url, doc_number)
+        _draw_letterhead_background(canvas_obj, doc.pagesize[0], doc.pagesize[1])
+        _draw_letter_header(canvas_obj, doc.pagesize[0], doc.pagesize[1], title)
+        _draw_letter_footer(canvas_obj, doc.pagesize[0], extra_footer_line, verify_url, doc_number, show_internship_logo)
     return _decorate
 
 
