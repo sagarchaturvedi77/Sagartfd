@@ -20,6 +20,7 @@ export default function EmployeeIDCardPage() {
   const { token, user } = useAuth();
   const [profile, setProfile] = useState(null);
   const [uploads, setUploads] = useState({});
+  const [photoObjectUrl, setPhotoObjectUrl] = useState(null);
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState("id");
   const [editingPhone, setEditingPhone] = useState(false);
@@ -40,12 +41,25 @@ export default function EmployeeIDCardPage() {
         if (profRes.ok) setProfile({ ...me, ...(await profRes.json()) });
         else setProfile(me);
       }
-      if (uploadsRes?.ok) setUploads(await uploadsRes.json());
+      if (uploadsRes?.ok) {
+        const uploadsData = await uploadsRes.json();
+        setUploads(uploadsData);
+        if (uploadsData.photo && me?.id) {
+          // The R2 bucket has no CORS policy, so a direct <img crossOrigin="anonymous">
+          // against the presigned URL fails CORS and silently breaks the ID-card PDF
+          // download (html2canvas can't read the image's pixels). Fetching the bytes
+          // through our own backend and turning them into a same-origin blob: URL
+          // sidesteps that entirely.
+          const photoRes = await fetch(`${API_BASE}/api/uploads/${me.id}/photo/raw`, { headers: { Authorization: `Bearer ${token}` } });
+          if (photoRes.ok) setPhotoObjectUrl(URL.createObjectURL(await photoRes.blob()));
+        }
+      }
     } catch (e) {}
     setLoading(false);
   };
 
   useEffect(() => { loadAll(); }, [token]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => () => { if (photoObjectUrl) URL.revokeObjectURL(photoObjectUrl); }, [photoObjectUrl]);
 
   if (loading) return <PortalLayout><div className="py-20 text-center text-[#2A364B]/50 dark:text-[#8E99AC]">Loading...</div></PortalLayout>;
 
@@ -59,7 +73,7 @@ export default function EmployeeIDCardPage() {
   const verifyUrl = `${window.location.hostname === "localhost" ? window.location.origin : LINKS.siteUrl}/verify/${emp.id || ""}`;
   const qrUrl = `${QR_BASE}${encodeURIComponent(verifyUrl)}`;
   const empId = emp.employee_id || (emp.id || "").slice(0, 8).toUpperCase();
-  const photoUrl = uploads.photo?.data || null;
+  const photoUrl = photoObjectUrl;
 
   const startEditPhone = () => {
     setPhoneInput(displayPhone === "—" ? "" : displayPhone);

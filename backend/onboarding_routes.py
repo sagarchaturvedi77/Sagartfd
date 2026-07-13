@@ -8,6 +8,7 @@ from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form, Request
 from fastapi.responses import JSONResponse, StreamingResponse
+from pydantic import BaseModel
 
 from auth_utils import get_current_user_payload, require_admin
 from database import db, users_collection
@@ -79,6 +80,30 @@ async def get_uploads(user_id: str, payload: dict = Depends(get_current_user_pay
     async for doc in cursor:
         result[doc["field"]] = _upload_doc_to_out(doc)
     return result
+
+
+@router.get("/uploads/{user_id}/{field}/raw")
+async def get_upload_raw(user_id: str, field: str, payload: dict = Depends(get_current_user_payload)):
+    """Same file as GET /uploads/{user_id}, but served as actual image bytes
+    through our own domain instead of a presigned R2 URL. The R2 bucket has
+    no CORS policy configured (and the backend's R2 credentials aren't
+    permissioned to set one), so <img crossOrigin="anonymous"> against a
+    presigned URL fails CORS entirely — which silently breaks html2canvas
+    captures (ID card / visiting card PDF downloads) that need to read the
+    image's pixel data, not just display it. Proxying through here uses the
+    backend's own CORS policy instead, which the frontend origin already
+    trusts for every other API call."""
+    if payload["role"] != "admin" and payload["sub"] != user_id:
+        raise HTTPException(status_code=403, detail="Forbidden")
+    if field not in UPLOAD_FIELDS:
+        raise HTTPException(status_code=400, detail=f"Invalid field: {field}")
+    doc = await db.uploads.find_one({"user_id": user_id, "field": field})
+    if not doc:
+        raise HTTPException(status_code=404, detail="File not found")
+    data = _upload_bytes_sync(doc)
+    if data is None:
+        raise HTTPException(status_code=404, detail="File not available")
+    return StreamingResponse(io.BytesIO(data), media_type=doc.get("content_type") or "application/octet-stream")
 
 
 # ── Employee Profile (onboarding data) ────────────────────────────────────
@@ -164,6 +189,50 @@ def _upload_bytes_sync(doc: dict):
     return None
 
 
+class AgreementSignIn(BaseModel):
+    lat: float
+    lng: float
+
+
+@router.get("/employees/{employee_id}/agreement/status")
+async def employee_agreement_status(employee_id: str, payload: dict = Depends(get_current_user_payload)):
+    if payload["role"] != "admin" and payload["sub"] != employee_id:
+        raise HTTPException(status_code=403, detail="Forbidden")
+    user = await users_collection.find_one({"id": employee_id}, {"agreement_signed_at": 1, "agreement_signed_location": 1})
+    if not user:
+        raise HTTPException(status_code=404, detail="Employee not found")
+    return {
+        "signed": bool(user.get("agreement_signed_at")),
+        "signed_at": user.get("agreement_signed_at"),
+        "location": user.get("agreement_signed_location"),
+    }
+
+
+@router.post("/employees/{employee_id}/agreement/sign")
+async def sign_employee_agreement(employee_id: str, data: AgreementSignIn, payload: dict = Depends(get_current_user_payload)):
+    """Only the employee themselves can sign their own agreement — this is a
+    one-time, immutable act (a signature, not an editable field), so an
+    already-signed record is returned as-is rather than overwritten, and an
+    admin can never trigger this on someone else's behalf. Location is
+    mandatory here (no "N/A" fallback like the old client-only page had) —
+    a denied/failed geolocation request simply means signing didn't happen."""
+    if payload["sub"] != employee_id:
+        raise HTTPException(status_code=403, detail="You can only sign your own agreement")
+    user = await users_collection.find_one({"id": employee_id})
+    if not user:
+        raise HTTPException(status_code=404, detail="Employee not found")
+    if user.get("agreement_signed_at"):
+        return {"status": "already_signed", "signed_at": user["agreement_signed_at"], "location": user.get("agreement_signed_location")}
+
+    now = datetime.now(timezone.utc)
+    location_str = f"{data.lat:.6f}, {data.lng:.6f}"
+    await users_collection.update_one(
+        {"id": employee_id},
+        {"$set": {"agreement_signed_at": now.isoformat(), "agreement_signed_location": location_str}},
+    )
+    return {"status": "signed", "signed_at": now.isoformat(), "location": location_str}
+
+
 @router.get("/employees/{employee_id}/agreement/download")
 async def download_employee_agreement(employee_id: str, payload: dict = Depends(get_current_user_payload)):
     if payload["role"] != "admin" and payload["sub"] != employee_id:
@@ -178,10 +247,18 @@ async def download_employee_agreement(employee_id: str, payload: dict = Depends(
         uploads[doc["field"]] = doc
     photo_bytes = _upload_bytes_sync(uploads.get("photo"))
     signature_bytes = _upload_bytes_sync(uploads.get("signature"))
+    aadhar_front_bytes = _upload_bytes_sync(uploads.get("aadhar_front"))
+    aadhar_back_bytes = _upload_bytes_sync(uploads.get("aadhar_back"))
 
     aadhar_number = profile.get("aadhar_number")
     aadhar_masked = f"XXXX-XXXX-{aadhar_number[-4:]}" if aadhar_number else None
-    now = datetime.now(timezone.utc)
+
+    signed_at_iso = user.get("agreement_signed_at")
+    signed_date = signed_time = None
+    if signed_at_iso:
+        signed_dt = datetime.fromisoformat(signed_at_iso)
+        signed_date = signed_dt.strftime("%d %B %Y")
+        signed_time = signed_dt.strftime("%I:%M %p UTC")
 
     from certificate_pdf import generate_employee_agreement_pdf
     agreement_data = {
@@ -195,10 +272,14 @@ async def download_employee_agreement(employee_id: str, payload: dict = Depends(
         "pan_number": profile.get("pan_number"),
         "employee_id": employee_id,
         "join_date": user.get("join_date"),
-        "signed_date": now.strftime("%d %B %Y"),
-        "signed_time": now.strftime("%I:%M %p UTC"),
+        "signed_at": user.get("agreement_signed_location"),
+        "signed_date": signed_date,
+        "signed_time": signed_time,
     }
-    pdf_bytes = generate_employee_agreement_pdf(agreement_data, photo_bytes=photo_bytes, signature_bytes=signature_bytes)
+    pdf_bytes = generate_employee_agreement_pdf(
+        agreement_data, photo_bytes=photo_bytes, signature_bytes=signature_bytes,
+        aadhar_front_bytes=aadhar_front_bytes, aadhar_back_bytes=aadhar_back_bytes,
+    )
 
     safe_name = (agreement_data["name"] or employee_id).replace(" ", "_")
     filename = f"Employment_Agreement_{safe_name}.pdf"

@@ -540,7 +540,45 @@ def _fitted_image(img_bytes: bytes, max_width: float, max_height: float, hAlign:
     return img
 
 
-def generate_employee_agreement_pdf(data: dict, photo_bytes: Optional[bytes] = None, signature_bytes: Optional[bytes] = None) -> bytes:
+class _NumberedCanvas(pdf_canvas.Canvas):
+    """Draws "Page X of Y" on every page — reportlab renders pages one at a
+    time and doesn't know the final page count until the document is done,
+    so this buffers every page (via the reportlab-cookbook showPage/save
+    override) and stamps the total in a second pass at save() time. Used
+    only for the employee agreement, whose length varies (2-3 pages
+    depending on content), unlike the mostly-one-page certificates/letters
+    elsewhere in this file."""
+    def __init__(self, *args, **kwargs):
+        pdf_canvas.Canvas.__init__(self, *args, **kwargs)
+        self._saved_page_states = []
+
+    def showPage(self):
+        self._saved_page_states.append(dict(self.__dict__))
+        self._startPage()
+
+    def save(self):
+        total_pages = len(self._saved_page_states)
+        for state in self._saved_page_states:
+            self.__dict__.update(state)
+            self._draw_page_number(total_pages)
+            pdf_canvas.Canvas.showPage(self)
+        pdf_canvas.Canvas.save(self)
+
+    def _draw_page_number(self, total_pages):
+        # Left side of the footer strip — the workspace logo (see
+        # show_workspace_logo) already occupies the right side at this
+        # same baseline, on the agreement this is used for.
+        self.saveState()
+        self.setFont("Helvetica", 8)
+        self.setFillColor(colors.grey)
+        self.drawString(22 * mm, 37 * mm, f"Page {self.getPageNumber()} of {total_pages}")
+        self.restoreState()
+
+
+def generate_employee_agreement_pdf(
+    data: dict, photo_bytes: Optional[bytes] = None, signature_bytes: Optional[bytes] = None,
+    aadhar_front_bytes: Optional[bytes] = None, aadhar_back_bytes: Optional[bytes] = None,
+) -> bytes:
     """data: name, father_name, designation, dob, contact_no, address,
     aadhar_masked, pan_number, employee_id, join_date, signed_at (GPS string),
     signed_date, signed_time.
@@ -548,7 +586,9 @@ def generate_employee_agreement_pdf(data: dict, photo_bytes: Optional[bytes] = N
     signature_bytes is the employee's own uploaded signature image — passed
     through _remove_signature_background before being placed above their
     printed name, mirroring how _signature_block already places the CEO's
-    signature above his."""
+    signature above his. There is no PAN card *image* anywhere in the system
+    (onboarding only ever collects a PAN *number*, not a scan) — only the
+    Aadhaar front/back scans exist as uploaded files."""
     buf = io.BytesIO()
     doc = SimpleDocTemplate(buf, pagesize=A4, topMargin=50 * mm, bottomMargin=48 * mm, leftMargin=20 * mm, rightMargin=20 * mm)
     styles = _letter_styles()
@@ -578,7 +618,19 @@ def generate_employee_agreement_pdf(data: dict, photo_bytes: Optional[bytes] = N
     elements.append(header_table)
     elements.append(Spacer(1, 4))
     elements.append(Paragraph(f"<b>Address / पता:</b> {data.get('address') or '-'}", styles["TFDDetailLabel"]))
-    elements.append(Spacer(1, 14))
+    elements.append(Spacer(1, 10))
+
+    if aadhar_front_bytes or aadhar_back_bytes:
+        elements.append(Paragraph("Aadhaar Card / आधार कार्ड", styles["TFDMetaHindi"]))
+        elements.append(Spacer(1, 4))
+        aadhar_imgs = [img for img in (
+            _fitted_image(aadhar_front_bytes, 70 * mm, 44 * mm, hAlign="LEFT") if aadhar_front_bytes else None,
+            _fitted_image(aadhar_back_bytes, 70 * mm, 44 * mm, hAlign="LEFT") if aadhar_back_bytes else None,
+        ) if img]
+        aadhar_row = Table([aadhar_imgs], colWidths=[76 * mm] * len(aadhar_imgs), hAlign="LEFT")
+        aadhar_row.setStyle(TableStyle([("ALIGN", (0, 0), (-1, -1), "LEFT"), ("LEFTPADDING", (0, 0), (-1, -1), 0), ("VALIGN", (0, 0), (-1, -1), "TOP")]))
+        elements.append(aadhar_row)
+        elements.append(Spacer(1, 10))
 
     elements.append(Paragraph("TERMS AND CONDITIONS / नियम एवं शर्तें", ParagraphStyle(
         "AgreementSectionHead", parent=styles["Heading3"], textColor=TFD_NAVY, fontSize=11.5, spaceAfter=6, fontName=FONT_HINDI,
@@ -610,22 +662,30 @@ def generate_employee_agreement_pdf(data: dict, photo_bytes: Optional[bytes] = N
         ))
 
     elements.append(Spacer(1, 24))
-    elements.append(Paragraph("Employee Signature / कर्मचारी हस्ताक्षर", styles["TFDMetaHindi"]))
+
+    # Employee signature (left) and the company's (right), side by side rather
+    # than stacked — _signature_block already knows how to build the CEO
+    # block, so it's called against a scratch list and dropped into the
+    # right-hand table cell instead of appending straight to the page.
+    employee_cell = [Paragraph("Employee Signature / कर्मचारी हस्ताक्षर", styles["TFDMetaHindi"])]
     if signature_bytes:
         try:
             cleaned = _remove_signature_background(signature_bytes)
-            elements.append(Spacer(1, 4))
-            sig_row = Table([[_fitted_image(cleaned, 46 * mm, 18 * mm, hAlign="LEFT")]], colWidths=[52 * mm], hAlign="LEFT")
-            sig_row.setStyle(TableStyle([("ALIGN", (0, 0), (-1, -1), "LEFT"), ("LEFTPADDING", (0, 0), (-1, -1), 0)]))
-            elements.append(sig_row)
+            employee_cell.append(Spacer(1, 4))
+            employee_cell.append(_fitted_image(cleaned, 46 * mm, 18 * mm, hAlign="LEFT"))
         except Exception:
-            elements.append(Spacer(1, 22))
+            employee_cell.append(Spacer(1, 22))
     else:
-        elements.append(Spacer(1, 22))
-    elements.append(Paragraph(f"<b>{name}</b>", styles["TFDBody"]))
-    elements.append(Paragraph("Employee / कर्मचारी", styles["TFDMetaHindi"]))
+        employee_cell.append(Spacer(1, 22))
+    employee_cell.append(Paragraph(f"<b>{name}</b>", styles["TFDBody"]))
+    employee_cell.append(Paragraph("Employee / कर्मचारी", styles["TFDMetaHindi"]))
 
-    _signature_block(elements, styles, "ceo")
+    ceo_cell = []
+    _signature_block(ceo_cell, styles, "ceo")
+
+    sig_table = Table([[employee_cell, ceo_cell]], colWidths=[78 * mm, 78 * mm])
+    sig_table.setStyle(TableStyle([("VALIGN", (0, 0), (-1, -1), "TOP"), ("LEFTPADDING", (0, 0), (-1, -1), 0), ("RIGHTPADDING", (0, 0), (-1, -1), 0)]))
+    elements.append(sig_table)
 
     elements.append(Spacer(1, 10))
     elements.append(Paragraph(
@@ -634,7 +694,7 @@ def generate_employee_agreement_pdf(data: dict, photo_bytes: Optional[bytes] = N
     ))
 
     decorator = make_formal_letter_decorator("EMPLOYMENT AGREEMENT", show_workspace_logo=True)
-    doc.build(elements, onFirstPage=decorator, onLaterPages=decorator)
+    doc.build(elements, onFirstPage=decorator, onLaterPages=decorator, canvasmaker=_NumberedCanvas)
     return buf.getvalue()
 
 
