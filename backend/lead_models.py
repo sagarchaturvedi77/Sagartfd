@@ -21,6 +21,7 @@ class LeadCreate(BaseModel):
 class LeadUpdate(BaseModel):
     name: Optional[str] = None
     phone: Optional[str] = None
+    alternate_phone: Optional[str] = None
     email: Optional[str] = None
     city: Optional[str] = None
     source: Optional[str] = None
@@ -70,10 +71,15 @@ class LeadNameUpdate(BaseModel):
     name: str
 
 
+class LeadAlternatePhoneUpdate(BaseModel):
+    alternate_phone: str
+
+
 class LeadInDB(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     name: str
     phone: str
+    alternate_phone: Optional[str] = None  # a second number for the same client/lead — kept on this one profile rather than creating a duplicate lead
     email: Optional[str] = None
     city: Optional[str] = None
     source: str = "manual"
@@ -109,6 +115,7 @@ class LeadOut(BaseModel):
     id: str
     name: str
     phone: str
+    alternate_phone: Optional[str] = None
     email: Optional[str] = None
     city: Optional[str] = None
     source: str = "manual"

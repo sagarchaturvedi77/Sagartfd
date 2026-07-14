@@ -189,7 +189,7 @@ export default function PortalLayout({ children }) {
     setTranslateLoading(false);
   };
 
-  const profilePath = isAdmin ? "/portal/admin" : "/portal/employee/profile";
+  const profilePath = isAdmin ? "/portal/admin/profile" : "/portal/employee/profile";
   const salaryPath = isAdmin ? "/portal/admin/salary" : "/portal/employee/salary";
   const idCardPath = "/portal/employee/id-card";
   const isStandalone = window.matchMedia("(display-mode: standalone)").matches || window.navigator.standalone;

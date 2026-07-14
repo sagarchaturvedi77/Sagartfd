@@ -24,7 +24,7 @@ from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile, File, Request
 from pydantic import BaseModel, Field
 
-from lead_models import LeadCreate, LeadUpdate, LeadStatusUpdate, LeadNameUpdate, LeadInDB, LeadOut, CallOutcomeIn, TransferIn
+from lead_models import LeadCreate, LeadUpdate, LeadStatusUpdate, LeadNameUpdate, LeadAlternatePhoneUpdate, LeadInDB, LeadOut, CallOutcomeIn, TransferIn
 from notification_models import NotificationInDB
 from auth_utils import get_current_user_payload, require_admin
 from database import leads_collection, users_collection, db, reminders_collection, pipelines_collection, lead_batches_collection, notifications_collection
@@ -657,6 +657,28 @@ async def update_lead_name(
     return {"status": "updated", "name": name}
 
 
+@router.put("/{lead_id}/alternate-phone")
+async def update_lead_alternate_phone(
+    lead_id: str, data: LeadAlternatePhoneUpdate, payload: dict = Depends(get_current_user_payload)
+):
+    """A second number for the same client (e.g. they call back from a
+    different phone) — kept on this one lead rather than creating a
+    duplicate lead, mirrors update_lead_name's employee-accessible pattern."""
+    alt = data.alternate_phone.strip()
+    if not alt:
+        raise HTTPException(status_code=400, detail="Alternate phone cannot be empty")
+
+    doc = await leads_collection.find_one({"id": lead_id})
+    if not doc:
+        raise HTTPException(status_code=404, detail="Lead not found")
+    if payload["role"] != "admin" and doc.get("assigned_to") != payload["sub"]:
+        raise HTTPException(status_code=403, detail="Lead not assigned to you")
+
+    now = datetime.now(timezone.utc).isoformat()
+    await leads_collection.update_one({"id": lead_id}, {"$set": {"alternate_phone": alt, "updated_at": now}})
+    return {"status": "updated", "alternate_phone": alt}
+
+
 class QuickNoteIn(BaseModel):
     note: str
 
@@ -1148,22 +1170,7 @@ def is_complete_phone(digits: str) -> bool:
     return len(digits) == 10
 
 
-@router.post("/import-excel")
-async def import_leads_excel(
-    file: UploadFile = File(...),
-    assign_to: Optional[str] = Query(default=None),
-    assign_mode: Optional[str] = Query(default=None),  # "self", "all", "selected" — required, no unassigned imports
-    employee_ids: Optional[str] = Query(default=None),  # comma-separated
-    include_existing_duplicates: bool = Query(default=False),  # if True, numbers already in the DB get re-assigned instead of skipped
-    admin: dict = Depends(require_admin),
-):
-    import openpyxl
-    data = await file.read()
-    wb = openpyxl.load_workbook(io.BytesIO(data), read_only=True)
-    ws = wb.active
-    rows = list(ws.iter_rows(min_row=2, values_only=True))
-    headers_row = list(ws.iter_rows(min_row=1, max_row=1, values_only=True))[0]
-    headers_lower = [str(h).strip().lower() if h else "" for h in headers_row]
+def _auto_detect_columns(headers_lower: list[str]) -> dict:
     col_map = {}
     for i, h in enumerate(headers_lower):
         if "name" in h and "name" not in col_map:
@@ -1178,8 +1185,84 @@ async def import_leads_excel(
             col_map["service_interest"] = i
         elif "city" in h:
             col_map["city"] = i
-    if "name" not in col_map or "phone" not in col_map:
-        raise HTTPException(status_code=400, detail="Excel must have Name and Phone/Contact columns")
+    return col_map
+
+
+@router.post("/import-excel/preview")
+async def preview_leads_excel(file: UploadFile = File(...), admin: dict = Depends(require_admin)):
+    """Returns the header row, a few sample data rows, and our best guess at
+    which column is which — the admin UI shows this so a column can be
+    re-mapped by hand before the real import runs, instead of the import
+    just failing outright when headers don't match our guesses (e.g. an
+    Excel with only a phone-number column, or headers in a different
+    wording/language)."""
+    import openpyxl
+    data = await file.read()
+    wb = openpyxl.load_workbook(io.BytesIO(data), read_only=True)
+    ws = wb.active
+    all_rows = list(ws.iter_rows(min_row=1, values_only=True))
+    wb.close()
+    if not all_rows:
+        raise HTTPException(status_code=400, detail="Excel file is empty")
+
+    headers_row = list(all_rows[0])
+    headers = [str(h).strip() if h is not None else "" for h in headers_row]
+    headers_lower = [h.lower() for h in headers]
+    auto_map = _auto_detect_columns(headers_lower)
+    sample_rows = [[("" if c is None else str(c)) for c in row] for row in all_rows[1:6]]
+
+    return {
+        "headers": headers,
+        "sample_rows": sample_rows,
+        "total_rows": len(all_rows) - 1,
+        "auto_map": auto_map,
+    }
+
+
+@router.post("/import-excel")
+async def import_leads_excel(
+    file: UploadFile = File(...),
+    assign_to: Optional[str] = Query(default=None),
+    assign_mode: Optional[str] = Query(default=None),  # "self", "all", "selected" — required, no unassigned imports
+    employee_ids: Optional[str] = Query(default=None),  # comma-separated
+    include_existing_duplicates: bool = Query(default=False),  # if True, numbers already in the DB get re-assigned instead of skipped
+    name_col: Optional[int] = Query(default=None),  # explicit column-mapping override (from the preview step) — -1 means "not present"
+    phone_col: Optional[int] = Query(default=None),
+    email_col: Optional[int] = Query(default=None),
+    source_col: Optional[int] = Query(default=None),
+    service_interest_col: Optional[int] = Query(default=None),
+    city_col: Optional[int] = Query(default=None),
+    admin: dict = Depends(require_admin),
+):
+    import openpyxl
+    data = await file.read()
+    wb = openpyxl.load_workbook(io.BytesIO(data), read_only=True)
+    ws = wb.active
+    rows = list(ws.iter_rows(min_row=2, values_only=True))
+    headers_row = list(ws.iter_rows(min_row=1, max_row=1, values_only=True))[0]
+    headers_lower = [str(h).strip().lower() if h else "" for h in headers_row]
+
+    # An explicit mapping from the preview/confirm step always wins; anything
+    # left unset (None, not passed at all) falls back to auto-detection so
+    # existing callers that never used the preview step keep working.
+    explicit = {
+        "name": name_col, "phone": phone_col, "email": email_col,
+        "source": source_col, "service_interest": service_interest_col, "city": city_col,
+    }
+    col_map = _auto_detect_columns(headers_lower)
+    for key, idx in explicit.items():
+        if idx is None:
+            continue
+        if idx < 0:
+            col_map.pop(key, None)  # explicitly marked "not present" — don't fall back to a guess
+        else:
+            col_map[key] = idx
+
+    # A name column is no longer required — a lead with just a phone number
+    # is still a real lead (e.g. a missed call), and can have its name filled
+    # in later from the employee portal (PUT /{lead_id}/name).
+    if "phone" not in col_map:
+        raise HTTPException(status_code=400, detail="Couldn't find a Phone/Contact column — please map one in the import screen.")
 
     # Determine assignment targets — importing without assigning to someone
     # (self or one/more employees) is no longer allowed.
@@ -1231,10 +1314,16 @@ async def import_leads_excel(
     duplicate_infile_rows = []    # [{name, phone}] — repeated more than once within this same upload
     duplicate_existing_rows = []  # [{name, phone}] — already present in the database from before
 
+    def _cell(row, key):
+        idx = col_map.get(key)
+        if idx is None or idx >= len(row) or row[idx] is None:
+            return ""
+        return str(row[idx]).strip()
+
     for row in rows:
-        name = str(row[col_map["name"]]).strip() if row[col_map["name"]] else ""
-        phone = str(row[col_map["phone"]]).strip() if row[col_map["phone"]] else ""
-        if not name or not phone:
+        name = _cell(row, "name")
+        phone = _cell(row, "phone")
+        if not phone:
             continue
 
         norm_phone = normalize_phone(phone)
@@ -1272,10 +1361,10 @@ async def import_leads_excel(
         lead = LeadInDB(
             name=name,
             phone=phone,
-            email=str(row[col_map["email"]]).strip() if "email" in col_map and row[col_map["email"]] else None,
-            source=str(row[col_map["source"]]).strip() if "source" in col_map and row[col_map["source"]] else "excel",
-            service_interest=str(row[col_map["service_interest"]]).strip() if "service_interest" in col_map and row[col_map["service_interest"]] else None,
-            city=str(row[col_map["city"]]).strip() if "city" in col_map and row[col_map["city"]] else None,
+            email=_cell(row, "email") or None,
+            source=_cell(row, "source") or "excel",
+            service_interest=_cell(row, "service_interest") or None,
+            city=_cell(row, "city") or None,
         )
         lead_doc = lead.model_dump()
         lead_doc["batch_id"] = batch_id

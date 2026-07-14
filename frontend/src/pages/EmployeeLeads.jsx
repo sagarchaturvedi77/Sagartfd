@@ -47,6 +47,10 @@ export default function EmployeeLeads() {
   const [merging, setMerging] = useState(false);
 
   const [detailLead, setDetailLead] = useState(null);
+  const [editingContact, setEditingContact] = useState(false);
+  const [editName, setEditName] = useState("");
+  const [editAltPhone, setEditAltPhone] = useState("");
+  const [savingContact, setSavingContact] = useState(false);
   const [addServiceLead, setAddServiceLead] = useState(null);
   const [newServiceValue, setNewServiceValue] = useState("");
 
@@ -64,6 +68,8 @@ export default function EmployeeLeads() {
 
   const [leadDates, setLeadDates] = useState([]);
   const [selectedDate, setSelectedDate] = useState("");
+
+  useEffect(() => { setEditingContact(false); }, [detailLead?.id]);
 
   const load = useCallback(async () => {
     try {
@@ -214,6 +220,37 @@ export default function EmployeeLeads() {
     if (res.ok) { setAddServiceLead(null); setNewServiceValue(""); load(); }
   };
 
+  const startEditContact = (lead) => {
+    setEditName(lead.name || "");
+    setEditAltPhone(lead.alternate_phone || "");
+    setEditingContact(true);
+  };
+
+  const saveContact = async () => {
+    if (!detailLead) return;
+    setSavingContact(true);
+    try {
+      const calls = [];
+      const name = editName.trim();
+      if (name && name !== detailLead.name) {
+        calls.push(fetch(`${API_BASE}/api/leads/${detailLead.id}/name`, {
+          method: "PUT", headers, body: JSON.stringify({ name }),
+        }));
+      }
+      const altPhone = editAltPhone.trim();
+      if (altPhone && altPhone !== detailLead.alternate_phone) {
+        calls.push(fetch(`${API_BASE}/api/leads/${detailLead.id}/alternate-phone`, {
+          method: "PUT", headers, body: JSON.stringify({ alternate_phone: altPhone }),
+        }));
+      }
+      await Promise.all(calls);
+      setEditingContact(false);
+      setDetailLead((prev) => prev && { ...prev, name: name || prev.name, alternate_phone: altPhone || prev.alternate_phone });
+      load();
+    } catch { /* silent */ }
+    setSavingContact(false);
+  };
+
   // A lead with a scheduled follow-up date should show in the Follow Up tab
   // even if its status is "interested" (not just the literal "follow_up"
   // status set by the not-connected/not-interested retry flow) — this was
@@ -242,7 +279,7 @@ export default function EmployeeLeads() {
     <div key={lead.id} className="flex items-center justify-between p-4 hover:bg-[#FBF7EE] dark:hover:bg-white/5 transition-colors cursor-pointer" onClick={() => setDetailLead(lead)}>
       <div className="flex-1 min-w-0">
         <p className="font-medium text-[#0E1B2C] dark:text-[#F1EDE3] text-sm truncate flex items-center gap-1.5">
-          {lead.name}
+          {lead.name || <span className="text-[#2A364B]/40 dark:text-[#8E99AC] italic font-normal">No name — tap to add</span>}
           {lead.source === "employee_added" && (
             <span className="text-[9px] font-semibold uppercase tracking-wide text-violet-600 dark:text-violet-400 bg-violet-50 dark:bg-violet-900/30 px-1.5 py-0.5 rounded shrink-0">Self-added</span>
           )}
@@ -536,13 +573,46 @@ export default function EmployeeLeads() {
                 <button onClick={() => setDetailLead(null)} className="flex items-center gap-1 text-xs text-[#024396] dark:text-[#7CB0FF]"><ChevronLeft size={14} /> Back</button>
                 <StatusBadge status={detailLead.status} label={STATUS_LABELS[detailLead.status]} />
               </div>
-              <h3 className="font-semibold text-lg text-[#0E1B2C] dark:text-[#F1EDE3] flex items-center gap-2">
-                {detailLead.name}
-                {detailLead.source === "employee_added" && (
-                  <span className="text-[9px] font-semibold uppercase tracking-wide text-violet-600 dark:text-violet-400 bg-violet-50 dark:bg-violet-900/30 px-1.5 py-0.5 rounded">Self-added</span>
-                )}
-              </h3>
-              <p className="text-xs text-[#2A364B]/60 dark:text-[#8E99AC]"><ProtectedText>{detailLead.phone}</ProtectedText> {detailLead.email && `| ${detailLead.email}`} {detailLead.city && `| ${detailLead.city}`}</p>
+              {editingContact ? (
+                <div className="space-y-2 mb-2">
+                  <input
+                    value={editName} onChange={(e) => setEditName(e.target.value)}
+                    placeholder="Lead name"
+                    className="w-full border border-[#E2D8C2] dark:border-white/15 dark:bg-white/5 dark:text-[#F1EDE3] rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#024396]/30"
+                  />
+                  <input
+                    value={editAltPhone} onChange={(e) => setEditAltPhone(e.target.value)}
+                    placeholder="Alternate phone number (optional)"
+                    className="w-full border border-[#E2D8C2] dark:border-white/15 dark:bg-white/5 dark:text-[#F1EDE3] rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#024396]/30"
+                  />
+                  <div className="flex gap-2">
+                    <button onClick={saveContact} disabled={savingContact || !editName.trim()}
+                      className="px-3 py-1.5 rounded-lg text-xs font-medium text-white bg-[#024396] dark:bg-[#4C8DFF] disabled:opacity-50">
+                      {savingContact ? "Saving..." : "Save"}
+                    </button>
+                    <button onClick={() => setEditingContact(false)} className="px-3 py-1.5 rounded-lg text-xs font-medium text-[#2A364B] dark:text-[#C7CEDA] bg-[#2A364B]/5 dark:bg-white/10">
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <>
+                  <h3 className="font-semibold text-lg text-[#0E1B2C] dark:text-[#F1EDE3] flex items-center gap-2 flex-wrap">
+                    {detailLead.name || <span className="text-[#2A364B]/40 dark:text-[#8E99AC] italic font-normal text-sm">No name yet</span>}
+                    {detailLead.source === "employee_added" && (
+                      <span className="text-[9px] font-semibold uppercase tracking-wide text-violet-600 dark:text-violet-400 bg-violet-50 dark:bg-violet-900/30 px-1.5 py-0.5 rounded">Self-added</span>
+                    )}
+                    <button onClick={() => startEditContact(detailLead)} className="text-[10px] font-medium text-[#024396] dark:text-[#7CB0FF] hover:underline">
+                      {detailLead.name ? "Edit" : "Add name"}
+                    </button>
+                  </h3>
+                  <p className="text-xs text-[#2A364B]/60 dark:text-[#8E99AC]">
+                    <ProtectedText>{detailLead.phone}</ProtectedText>
+                    {detailLead.alternate_phone && <> · <ProtectedText>{detailLead.alternate_phone}</ProtectedText> <span className="text-[9px] text-[#2A364B]/40 dark:text-[#8E99AC]/70">(alt)</span></>}
+                    {detailLead.email && ` | ${detailLead.email}`} {detailLead.city && `| ${detailLead.city}`}
+                  </p>
+                </>
+              )}
               {detailLead.service_interest && <p className="text-xs text-[#024396] dark:text-[#7CB0FF] mt-1">Services: {detailLead.service_interest}</p>}
               {detailLead.follow_up_date && <p className="text-xs text-orange-600 dark:text-orange-400 mt-1">Follow-up: {detailLead.follow_up_date}</p>}
               {(detailLead.code_name || detailLead.service_price || detailLead.service_expires_at) && (

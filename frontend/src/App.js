@@ -25,6 +25,7 @@ import ResetPassword from "./pages/ResetPassword";
 import AdminDashboard from "./pages/AdminDashboard";
 import AdminEmployeeList from "./pages/AdminEmployeeList";
 import AdminStorageStatus from "./pages/AdminStorageStatus";
+import AdminProfile from "./pages/AdminProfile";
 import AdminDataCleanup from "./pages/AdminDataCleanup";
 import AdminCertificates from "./pages/AdminCertificates";
 import AdminInvoices from "./pages/AdminInvoices";
@@ -244,6 +245,14 @@ function App() {
                   element={
                     <ProtectedRoute requiredRole="admin">
                       <AdminStorageStatus />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/portal/admin/profile"
+                  element={
+                    <ProtectedRoute requiredRole="admin">
+                      <AdminProfile />
                     </ProtectedRoute>
                   }
                 />

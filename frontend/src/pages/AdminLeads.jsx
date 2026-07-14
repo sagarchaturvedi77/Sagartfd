@@ -49,6 +49,11 @@ export default function AdminLeads() {
   const [selectedAssignEmps, setSelectedAssignEmps] = useState([]);
   const [includeExistingDuplicates, setIncludeExistingDuplicates] = useState(false);
 
+  const [showMappingDialog, setShowMappingDialog] = useState(false);
+  const [importPreview, setImportPreview] = useState(null);
+  const [previewLoading, setPreviewLoading] = useState(false);
+  const [colMap, setColMap] = useState({ name: "", phone: "", email: "", source: "", service_interest: "", city: "" });
+
   const [batches, setBatches] = useState([]);
   const [openBatch, setOpenBatch] = useState(null);
   const [batchLeads, setBatchLeads] = useState([]);
@@ -184,9 +189,50 @@ export default function AdminLeads() {
     load(); loadMyLeads();
   };
 
-  const handleFileSelect = (file) => {
+  const handleFileSelect = async (file) => {
     if (!file) return;
     setImportFile(file);
+    setPreviewLoading(true);
+    setShowMappingDialog(true);
+    try {
+      const fd = new FormData();
+      fd.append("file", file);
+      const res = await fetch(`${API_BASE}/api/leads/import-excel/preview`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+        body: fd,
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setImportPreview(data);
+        setColMap({
+          name: data.auto_map.name ?? "",
+          phone: data.auto_map.phone ?? "",
+          email: data.auto_map.email ?? "",
+          source: data.auto_map.source ?? "",
+          service_interest: data.auto_map.service_interest ?? "",
+          city: data.auto_map.city ?? "",
+        });
+      } else {
+        const err = await res.json().catch(() => ({}));
+        alert(err.detail || "Could not read this Excel file.");
+        setShowMappingDialog(false);
+        setImportFile(null);
+      }
+    } catch {
+      alert("Could not read this Excel file.");
+      setShowMappingDialog(false);
+      setImportFile(null);
+    }
+    setPreviewLoading(false);
+  };
+
+  const confirmMapping = () => {
+    if (colMap.phone === "") {
+      alert("Select which column has the phone number — every lead needs at least a phone number.");
+      return;
+    }
+    setShowMappingDialog(false);
     setShowAssignDialog(true);
   };
 
@@ -203,6 +249,12 @@ export default function AdminLeads() {
     let url = `${API_BASE}/api/leads/import-excel?assign_mode=${assignMode}&include_existing_duplicates=${includeExistingDuplicates}`;
     if (assignMode === "selected" && selectedAssignEmps.length > 0) {
       url += `&employee_ids=${selectedAssignEmps.join(",")}`;
+    }
+    // Column mapping confirmed on the previous screen — always sent explicitly
+    // (blank -> -1, "not present in this file") so the import uses exactly
+    // what was shown/confirmed rather than re-guessing from headers.
+    for (const [field, idx] of Object.entries(colMap)) {
+      url += `&${field}_col=${idx === "" ? -1 : idx}`;
     }
     try {
       const res = await fetch(url, {
@@ -231,6 +283,8 @@ export default function AdminLeads() {
     setAssignMode("self");
     setIncludeExistingDuplicates(false);
     setSelectedAssignEmps([]);
+    setImportPreview(null);
+    setColMap({ name: "", phone: "", email: "", source: "", service_interest: "", city: "" });
   };
 
   const openBatchDetail = async (batch) => {
@@ -396,6 +450,69 @@ export default function AdminLeads() {
             </button>
           ))}
         </div>
+
+        {/* Import Column Mapping */}
+        <PortalModal
+          open={showMappingDialog}
+          onOpenChange={(v) => { setShowMappingDialog(v); if (!v) { setImportFile(null); setImportPreview(null); } }}
+          title="Import Leads — Match Columns"
+          maxWidth="max-w-lg"
+        >
+          {previewLoading ? (
+            <p className="text-sm text-[#2A364B]/60 dark:text-[#8E99AC]">Reading file...</p>
+          ) : importPreview ? (
+            <>
+              <p className="text-xs text-[#2A364B]/60 dark:text-[#8E99AC] -mt-2">
+                {importPreview.total_rows} rows found. Tell us which column is which — only Phone is required.
+              </p>
+              <div className="space-y-2.5">
+                {[
+                  ["phone", "Phone Number *"],
+                  ["name", "Name"],
+                  ["email", "Email"],
+                  ["city", "City"],
+                  ["service_interest", "Service / Interest"],
+                  ["source", "Source"],
+                ].map(([field, label]) => (
+                  <div key={field} className="flex items-center gap-3">
+                    <label className="text-xs font-medium text-[#0E1B2C] dark:text-[#F1EDE3] w-36 shrink-0">{label}</label>
+                    <select
+                      value={colMap[field]}
+                      onChange={(e) => setColMap((prev) => ({ ...prev, [field]: e.target.value === "" ? "" : Number(e.target.value) }))}
+                      className="flex-1 border border-[#E2D8C2] dark:border-white/15 dark:bg-white/5 dark:text-[#F1EDE3] rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#024396]/30"
+                    >
+                      <option value="">— Not in this file —</option>
+                      {importPreview.headers.map((h, i) => (
+                        <option key={i} value={i}>{h || `Column ${i + 1}`}</option>
+                      ))}
+                    </select>
+                  </div>
+                ))}
+              </div>
+
+              {importPreview.sample_rows.length > 0 && (
+                <div className="bg-[#FBF7EE] dark:bg-white/5 rounded-lg p-2.5 overflow-x-auto">
+                  <p className="text-[10px] font-semibold uppercase tracking-wide text-[#2A364B]/50 dark:text-[#8E99AC] mb-1.5">Preview (first rows)</p>
+                  <table className="text-xs w-full">
+                    <thead>
+                      <tr>{importPreview.headers.map((h, i) => <th key={i} className="text-left font-medium text-[#2A364B]/60 dark:text-[#8E99AC] pr-3 whitespace-nowrap">{h || `Col ${i + 1}`}</th>)}</tr>
+                    </thead>
+                    <tbody>
+                      {importPreview.sample_rows.map((row, ri) => (
+                        <tr key={ri}>{row.map((c, ci) => <td key={ci} className="pr-3 text-[#0E1B2C] dark:text-[#F1EDE3] whitespace-nowrap">{c}</td>)}</tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+
+              <div className="flex gap-3 pt-2">
+                <Button variant="outline" className="flex-1" onClick={() => { setShowMappingDialog(false); setImportFile(null); setImportPreview(null); }}>Cancel</Button>
+                <Button className="flex-1 bg-gradient-to-r from-[#024396] to-[#0356c4]" onClick={confirmMapping}>Next: Assign →</Button>
+              </div>
+            </>
+          ) : null}
+        </PortalModal>
 
         {/* Import Assign Dialog */}
         <PortalModal open={showAssignDialog} onOpenChange={(v) => { setShowAssignDialog(v); if (!v) setImportFile(null); }} title="Import Leads — Assign To" maxWidth="max-w-md">
