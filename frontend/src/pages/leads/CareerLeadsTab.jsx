@@ -1,8 +1,8 @@
 import React from "react";
-import { X } from "lucide-react";
+import { X, Eye } from "lucide-react";
 import EmptyState from "../../components/portal/EmptyState";
 
-export default function CareerLeadsTab({ careerLeads, employees, updateCareerStatus, convertCareerLead, deleteCareerLead }) {
+export default function CareerLeadsTab({ careerLeads, employees, updateCareerStatus, convertCareerLead, deleteCareerLead, setDetailCareerLead }) {
   return (
     <div className="space-y-4">
       <p className="text-sm text-[#2A364B]/60 dark:text-[#8E99AC]">Applications from the Career page</p>
@@ -15,13 +15,19 @@ export default function CareerLeadsTab({ careerLeads, employees, updateCareerSta
           {careerLeads.map((cl) => (
             <div key={cl.id} className="bg-white dark:bg-[#101D2E] rounded-2xl border border-[#E2D8C2] dark:border-white/10 p-5 shadow-sm">
               <div className="flex items-start justify-between gap-4 flex-wrap">
-                <div className="space-y-1">
+                <button onClick={() => setDetailCareerLead(cl)} className="space-y-1 text-left cursor-pointer hover:opacity-80">
                   <p className="font-semibold text-[#0E1B2C] dark:text-[#F1EDE3]">{cl.full_name}</p>
                   <p className="text-xs text-[#2A364B]/70 dark:text-[#C7CEDA]">{cl.phone} {cl.email && `| ${cl.email}`}</p>
                   {cl.position && <p className="text-xs text-[#024396] dark:text-[#7CB0FF]">Applied for: {cl.position}</p>}
                   <p className="text-[10px] text-[#2A364B]/40 dark:text-[#8E99AC]/70">{new Date(cl.created_at).toLocaleDateString("en-IN")}</p>
-                </div>
+                </button>
                 <div className="flex items-center gap-2 shrink-0 flex-wrap">
+                  <button
+                    onClick={() => setDetailCareerLead(cl)}
+                    className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium text-[#024396] dark:text-[#7CB0FF] bg-[#024396]/5 dark:bg-white/10 hover:bg-[#024396]/10 dark:hover:bg-white/15 whitespace-nowrap"
+                  >
+                    <Eye size={13} /> View
+                  </button>
                   <select value={cl.status || "new"} onChange={(e) => updateCareerStatus(cl.id, e.target.value)} className="text-xs border border-[#E2D8C2] dark:border-white/15 dark:bg-white/5 dark:text-[#F1EDE3] rounded-lg px-2 py-1.5">
                     <option value="new">New</option>
                     <option value="shortlisted">Shortlisted</option>

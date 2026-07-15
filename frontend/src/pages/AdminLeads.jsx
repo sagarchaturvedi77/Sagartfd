@@ -61,6 +61,7 @@ export default function AdminLeads() {
   const [batchLoading, setBatchLoading] = useState(false);
 
   const [detailLead, setDetailLead] = useState(null);
+  const [detailCareerLead, setDetailCareerLead] = useState(null);
 
   const [form, setForm] = useState({ name: "", phone: "", email: "", city: "", source: "manual", service_interest: "", notes: "", assigned_to: "" });
   const [saving, setSaving] = useState(false);
@@ -649,6 +650,92 @@ export default function AdminLeads() {
           )}
         </PortalModal>
 
+        {/* Career Application Detail Modal */}
+        <PortalModal
+          open={!!detailCareerLead}
+          onOpenChange={(v) => !v && setDetailCareerLead(null)}
+          title={detailCareerLead?.full_name}
+          description={detailCareerLead ? `${detailCareerLead.phone}${detailCareerLead.email ? ` | ${detailCareerLead.email}` : ""}` : ""}
+          maxWidth="max-w-lg"
+        >
+          {detailCareerLead && (
+            <div className="space-y-4 text-sm">
+              <div className="flex items-center gap-3 flex-wrap">
+                {detailCareerLead.photo_url && (
+                  <img src={detailCareerLead.photo_url} alt={detailCareerLead.full_name} className="w-14 h-14 rounded-xl object-cover border border-[#E2D8C2] dark:border-white/10" />
+                )}
+                <div className="flex items-center gap-2 flex-wrap">
+                  <StatusBadge status={detailCareerLead.status || "new"} />
+                  {detailCareerLead.position && (
+                    <span className="text-xs text-[#024396] dark:text-[#7CB0FF] bg-[#024396]/5 dark:bg-white/10 px-2 py-0.5 rounded">{detailCareerLead.position}</span>
+                  )}
+                  {detailCareerLead.converted && (
+                    <span className="text-xs text-emerald-600 dark:text-emerald-400 font-medium px-2 py-0.5 bg-emerald-100 dark:bg-emerald-900/40 rounded-full">In Leads</span>
+                  )}
+                </div>
+              </div>
+
+              <DetailSection title="Personal Details">
+                <DetailRow label="Full Name" value={detailCareerLead.full_name} />
+                <DetailRow label="Father's Name" value={detailCareerLead.father_name} />
+                <DetailRow label="Mother's Name" value={detailCareerLead.mother_name} />
+                <DetailRow label="Date of Birth" value={detailCareerLead.dob} />
+                <DetailRow label="Gender" value={detailCareerLead.gender} />
+                <DetailRow label="Marital Status" value={detailCareerLead.marital_status} />
+              </DetailSection>
+
+              <DetailSection title="Contact Details">
+                <DetailRow label="Mobile Number" value={detailCareerLead.phone} />
+                <DetailRow label="Alternate Mobile" value={detailCareerLead.alt_mobile} />
+                <DetailRow label="Email ID" value={detailCareerLead.email} />
+                <DetailRow label="City" value={detailCareerLead.city} />
+                <DetailRow label="State" value={detailCareerLead.state} />
+                <DetailRow label="Address" value={detailCareerLead.address} />
+              </DetailSection>
+
+              <DetailSection title="Position & Professional Info">
+                <DetailRow label="Position Applying For" value={detailCareerLead.position} />
+                <DetailRow label="Total Experience" value={detailCareerLead.experience} />
+                <DetailRow label="Current Company" value={detailCareerLead.current_company} />
+                <DetailRow label="Current Designation" value={detailCareerLead.current_designation} />
+                <DetailRow label="Current Salary" value={detailCareerLead.current_salary} />
+                <DetailRow label="Expected Salary" value={detailCareerLead.expected_salary} />
+              </DetailSection>
+
+              <DetailSection title="Education">
+                <DetailRow label="Highest Qualification" value={detailCareerLead.qualification} />
+                <DetailRow label="College/University" value={detailCareerLead.college} />
+                <DetailRow label="Passing Year" value={detailCareerLead.passing_year} />
+              </DetailSection>
+
+              <DetailSection title="Skills">
+                <DetailRow label="Selected Skills" value={(detailCareerLead.skills || []).join(", ")} />
+                <DetailRow label="Other Skills" value={detailCareerLead.other_skills} />
+              </DetailSection>
+
+              <DetailSection title="Documents & Reference">
+                {detailCareerLead.resume_url && (
+                  <a href={detailCareerLead.resume_url} target="_blank" rel="noreferrer" className="text-xs text-[#024396] dark:text-[#7CB0FF] font-medium hover:underline block">View Resume ↗</a>
+                )}
+                {detailCareerLead.photo_url && (
+                  <a href={detailCareerLead.photo_url} target="_blank" rel="noreferrer" className="text-xs text-[#024396] dark:text-[#7CB0FF] font-medium hover:underline block">View Photo ↗</a>
+                )}
+                <DetailRow label="Reference Name" value={detailCareerLead.ref_name} />
+              </DetailSection>
+
+              <DetailSection title="Additional Information">
+                <DetailRow
+                  label="How did you hear about us?"
+                  value={detailCareerLead.hear_about_us === "Other" ? `Other — ${detailCareerLead.hear_about_us_other || ""}` : detailCareerLead.hear_about_us}
+                />
+                <DetailRow label="Why join TFD?" value={detailCareerLead.why_join} />
+                <DetailRow label="Anything else?" value={detailCareerLead.additional_info} />
+                <DetailRow label="Applied On" value={detailCareerLead.created_at ? new Date(detailCareerLead.created_at).toLocaleString("en-IN") : ""} />
+              </DetailSection>
+            </div>
+          )}
+        </PortalModal>
+
         {tab === "my_leads" && (
           <MyLeadsTab
             myLeads={myLeads} stats={stats} filter={filter} setFilter={setFilter}
@@ -673,7 +760,7 @@ export default function AdminLeads() {
         {tab === "career" && (
           <CareerLeadsTab
             careerLeads={careerLeads} employees={employees} updateCareerStatus={updateCareerStatus}
-            convertCareerLead={convertCareerLead} deleteCareerLead={deleteCareerLead}
+            convertCareerLead={convertCareerLead} deleteCareerLead={deleteCareerLead} setDetailCareerLead={setDetailCareerLead}
           />
         )}
 
@@ -685,5 +772,26 @@ export default function AdminLeads() {
         )}
       </div>
     </PortalLayout>
+  );
+}
+
+function DetailSection({ title, children }) {
+  const hasContent = React.Children.toArray(children).some((c) => c?.props?.value ?? true);
+  if (!hasContent) return null;
+  return (
+    <div className="pt-2 border-t border-[#E2D8C2] dark:border-white/10 first:border-t-0 first:pt-0">
+      <p className="text-[10px] font-bold uppercase tracking-wider text-[#024396] dark:text-[#7CB0FF] mb-1.5">{title}</p>
+      <div className="space-y-1">{children}</div>
+    </div>
+  );
+}
+
+function DetailRow({ label, value }) {
+  if (!value) return null;
+  return (
+    <div className="flex justify-between gap-3 text-xs">
+      <span className="text-[#2A364B]/60 dark:text-[#8E99AC] shrink-0">{label}</span>
+      <span className="text-[#0E1B2C] dark:text-[#F1EDE3] font-medium text-right">{value}</span>
+    </div>
   );
 }

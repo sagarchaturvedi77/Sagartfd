@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Upload, CheckCircle, Briefcase, Award, ArrowUpRight, ArrowLeft, Users, ShieldCheck, TrendingUp, Clock } from "lucide-react";
+import { Upload, CheckCircle, Briefcase, Award, ArrowUpRight, ArrowLeft, ChevronLeft, Users, ShieldCheck, TrendingUp, Clock, Check } from "lucide-react";
 import { toast } from "sonner";
 
 const LOGO_URL = "https://customer-assets.emergentagent.com/job_advisor-phase4-build/artifacts/buhrts3f_IMG_2870.png";
@@ -7,6 +7,17 @@ const LOGO_URL = "https://customer-assets.emergentagent.com/job_advisor-phase4-b
 // Cloudinary config (unsigned upload preset — safe for client-side use)
 const CLOUDINARY_CLOUD_NAME = "dq6g81hma";
 const CLOUDINARY_UPLOAD_PRESET = "career_resumes";
+
+const HEAR_ABOUT_OPTIONS = [
+  "Instagram", "LinkedIn", "Facebook", "Google Search", "Friend/Family Referral",
+  "College/Institute Notice", "Newspaper", "Walk-in", "Other",
+];
+
+const STEPS = [
+  { key: "form", label: "Your Details" },
+  { key: "review", label: "Review & Confirm" },
+  { key: "done", label: "Submitted" },
+];
 
 async function uploadToCloudinary(file) {
   const url = `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/auto/upload`;
@@ -21,9 +32,48 @@ async function uploadToCloudinary(file) {
   return json.secure_url;
 }
 
+function StepIndicator({ step }) {
+  const activeIndex = STEPS.findIndex((s) => s.key === step);
+  return (
+    <div className="flex items-center justify-center mb-6">
+      {STEPS.map((s, i) => (
+        <React.Fragment key={s.key}>
+          <div className="flex flex-col items-center gap-1.5">
+            <div
+              className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold border-2 transition-colors ${
+                i < activeIndex
+                  ? "bg-[#024396] border-[#024396] text-white"
+                  : i === activeIndex
+                  ? "bg-white border-[#024396] text-[#024396]"
+                  : "bg-white border-[#E2D8C2] text-[#9AA5B4]"
+              }`}
+            >
+              {i < activeIndex ? <Check size={14} /> : i + 1}
+            </div>
+            <span className={`text-[10px] font-medium tracking-wide ${i <= activeIndex ? "text-[#0E1B2C]" : "text-[#9AA5B4]"}`}>{s.label}</span>
+          </div>
+          {i < STEPS.length - 1 && (
+            <div className={`w-10 sm:w-16 h-[2px] mb-4 mx-1.5 transition-colors ${i < activeIndex ? "bg-[#024396]" : "bg-[#E2D8C2]"}`} />
+          )}
+        </React.Fragment>
+      ))}
+    </div>
+  );
+}
+
+function Row({ label, value }) {
+  if (!value) return null;
+  return (
+    <div className="flex justify-between gap-3">
+      <span className="text-[#5C677D] shrink-0">{label}</span>
+      <span className="text-[#0E1B2C] font-medium text-right">{value}</span>
+    </div>
+  );
+}
+
 export default function CareerPage() {
+  const [step, setStep] = useState("form"); // "form" | "review" | "done"
   const [submitting, setSubmitting] = useState(false);
-  const [submitted, setSubmitted] = useState(false);
   const [photoFile, setPhotoFile] = useState(null);
   const [resumeFile, setResumeFile] = useState(null);
   const [formData, setFormData] = useState({
@@ -32,6 +82,7 @@ export default function CareerPage() {
     position: "", experience: "", currentCompany: "", currentDesignation: "",
     currentSalary: "", expectedSalary: "", qualification: "", college: "", passingYear: "",
     skills: [], otherSkills: "", refName: "", whyJoin: "", additionalInfo: "",
+    hearAbout: "", hearAboutOther: "",
     declaration1: false, declaration2: false
   });
 
@@ -49,10 +100,34 @@ export default function CareerPage() {
     }));
   };
 
-  const handleSubmit = async (e) => {
+  const goToReview = (e) => {
     e.preventDefault();
-    if (!formData.declaration1 || !formData.declaration2) {
-      toast.error("Please accept both declaration terms to proceed.");
+    if (!formData.fullName.trim() || !formData.fatherName.trim() || !formData.dob || !formData.gender || !formData.maritalStatus) {
+      toast.error("Please complete all required Personal Details fields.");
+      return;
+    }
+    if (!formData.mobile.trim() || !formData.email.trim() || !formData.city.trim() || !formData.state.trim()) {
+      toast.error("Please complete all required Contact Details fields.");
+      return;
+    }
+    if (!formData.position || !formData.experience) {
+      toast.error("Please select the position and experience.");
+      return;
+    }
+    if (!formData.qualification) {
+      toast.error("Please select your highest qualification.");
+      return;
+    }
+    if (!formData.whyJoin.trim()) {
+      toast.error("Please tell us why you want to join The Financial Doctor.");
+      return;
+    }
+    if (!formData.hearAbout) {
+      toast.error("Please tell us how you heard about us.");
+      return;
+    }
+    if (formData.hearAbout === "Other" && !formData.hearAboutOther.trim()) {
+      toast.error("Please specify how you heard about us.");
       return;
     }
     if (!resumeFile) {
@@ -63,6 +138,12 @@ export default function CareerPage() {
       toast.error("Please upload your candidate photo.");
       return;
     }
+    setStep("review");
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  const handleConfirmSubmit = async () => {
+    if (!formData.declaration1 || !formData.declaration2 || submitting) return;
 
     setSubmitting(true);
     const toastId = toast.loading("Uploading documents...");
@@ -99,12 +180,8 @@ export default function CareerPage() {
       const result = await response.json();
 
       if (response.ok && result.success) {
-        toast.success("Application submitted successfully!", { id: toastId });
-        setSubmitted(true);
-        window.scrollTo({ top: 0, behavior: 'smooth' });
-
-        // Also save into the backend so it shows up under
-        // Admin Portal -> Leads -> Career Leads (separate from regular/website leads).
+        // Save the full application into the backend so it shows up under
+        // Admin Portal -> Leads -> Career Leads with complete details.
         try {
           await fetch(`${process.env.REACT_APP_BACKEND_URL || ""}/api/leads/public/career`, {
             method: "POST",
@@ -117,11 +194,39 @@ export default function CareerPage() {
               experience: formData.experience || null,
               message: `City: ${formData.city || "-"}, Current: ${formData.currentDesignation || "-"} at ${formData.currentCompany || "-"}`,
               resume_url: resumeUrl,
+              father_name: formData.fatherName || null,
+              mother_name: formData.motherName || null,
+              dob: formData.dob || null,
+              gender: formData.gender || null,
+              marital_status: formData.maritalStatus || null,
+              alt_mobile: formData.altMobile || null,
+              city: formData.city || null,
+              state: formData.state || null,
+              address: formData.address || null,
+              current_company: formData.currentCompany || null,
+              current_designation: formData.currentDesignation || null,
+              current_salary: formData.currentSalary || null,
+              expected_salary: formData.expectedSalary || null,
+              qualification: formData.qualification || null,
+              college: formData.college || null,
+              passing_year: formData.passingYear || null,
+              skills: formData.skills,
+              other_skills: formData.otherSkills || null,
+              ref_name: formData.refName || null,
+              why_join: formData.whyJoin || null,
+              additional_info: formData.additionalInfo || null,
+              photo_url: photoUrl,
+              hear_about_us: formData.hearAbout || null,
+              hear_about_us_other: formData.hearAbout === "Other" ? (formData.hearAboutOther || null) : null,
             }),
           });
         } catch (backendErr) {
           // Non-blocking — application already went through via email above.
         }
+
+        toast.success("Application submitted successfully!", { id: toastId });
+        setStep("done");
+        window.scrollTo({ top: 0, behavior: 'smooth' });
       } else {
         throw new Error(result.message || "Submission backend issue");
       }
@@ -155,44 +260,46 @@ export default function CareerPage() {
           </button>
         </div>
 
-        <div className="bg-white border border-[#E2D8C2] rounded-3xl p-6 sm:p-8 mb-8 shadow-sm space-y-6">
-          <div>
-            <h1 className="font-serif text-2xl sm:text-3xl text-[#0E1B2C] font-bold">Work with The Financial Doctor (TFD)</h1>
-            <p className="text-sm text-[#2A364B] mt-2 leading-relaxed">
-              We are a fast-growing financial tech-distribution platform providing goal-based regular mutual funds and comprehensive protection planning to families. At TFD, we believe in professional integrity, continuous learning, and a supportive, growth-oriented environment.
-            </p>
+        {step !== "done" && (
+          <div className="bg-white border border-[#E2D8C2] rounded-3xl p-6 sm:p-8 mb-8 shadow-sm space-y-6">
+            <div>
+              <h1 className="font-serif text-2xl sm:text-3xl text-[#0E1B2C] font-bold">Work with The Financial Doctor (TFD)</h1>
+              <p className="text-sm text-[#2A364B] mt-2 leading-relaxed">
+                We are a fast-growing financial tech-distribution platform providing goal-based regular mutual funds and comprehensive protection planning to families. At TFD, we believe in professional integrity, continuous learning, and a supportive, growth-oriented environment.
+              </p>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
+              <div className="flex gap-3 bg-[#FBF7EE]/60 border border-[#E2D8C2]/60 p-4 rounded-2xl">
+                <Users className="text-[#024396] shrink-0" size={22} />
+                <div>
+                  <h3 className="text-sm font-bold text-[#0E1B2C]">Great Work Culture</h3>
+                  <p className="text-xs text-[#5C677D] mt-1 leading-normal">A friendly, supportive, and execution-oriented workspace where fresh ideas are always prioritized.</p>
+                </div>
+              </div>
+              <div className="flex gap-3 bg-[#FBF7EE]/60 border border-[#E2D8C2]/60 p-4 rounded-2xl">
+                <TrendingUp className="text-[#C7102E] shrink-0" size={22} />
+                <div>
+                  <h3 className="text-sm font-bold text-[#0E1B2C]">Growth & Incentives</h3>
+                  <p className="text-xs text-[#5C677D] mt-1 leading-normal">Industry-standard compensation structure with transparent monthly performance incentives.</p>
+                </div>
+              </div>
+              <div className="flex gap-3 bg-[#FBF7EE]/60 border border-[#E2D8C2]/60 p-4 rounded-2xl">
+                <ShieldCheck className="text-[#024396] shrink-0" size={22} />
+                <div>
+                  <h3 className="text-sm font-bold text-[#0E1B2C]">Training & Certification</h3>
+                  <p className="text-xs text-[#5C677D] mt-1 leading-normal">Complete guidance and support for NISM/AMFI certifications to build your career in wealth management.</p>
+                </div>
+              </div>
+              <div className="flex gap-3 bg-[#FBF7EE]/60 border border-[#E2D8C2]/60 p-4 rounded-2xl">
+                <Clock className="text-[#C7102E] shrink-0" size={22} />
+                <div>
+                  <h3 className="text-sm font-bold text-[#0E1B2C]">Work-Life Balance</h3>
+                  <p className="text-xs text-[#5C677D] mt-1 leading-normal">Structured flexibility designed to support your productivity and personal growth.</p>
+                </div>
+              </div>
+            </div>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
-            <div className="flex gap-3 bg-[#FBF7EE]/60 border border-[#E2D8C2]/60 p-4 rounded-2xl">
-              <Users className="text-[#024396] shrink-0" size={22} />
-              <div>
-                <h3 className="text-sm font-bold text-[#0E1B2C]">Great Work Culture</h3>
-                <p className="text-xs text-[#5C677D] mt-1 leading-normal">A friendly, supportive, and execution-oriented workspace where fresh ideas are always prioritized.</p>
-              </div>
-            </div>
-            <div className="flex gap-3 bg-[#FBF7EE]/60 border border-[#E2D8C2]/60 p-4 rounded-2xl">
-              <TrendingUp className="text-[#C7102E] shrink-0" size={22} />
-              <div>
-                <h3 className="text-sm font-bold text-[#0E1B2C]">Growth & Incentives</h3>
-                <p className="text-xs text-[#5C677D] mt-1 leading-normal">Industry-standard compensation structure with transparent monthly performance incentives.</p>
-              </div>
-            </div>
-            <div className="flex gap-3 bg-[#FBF7EE]/60 border border-[#E2D8C2]/60 p-4 rounded-2xl">
-              <ShieldCheck className="text-[#024396] shrink-0" size={22} />
-              <div>
-                <h3 className="text-sm font-bold text-[#0E1B2C]">Training & Certification</h3>
-                <p className="text-xs text-[#5C677D] mt-1 leading-normal">Complete guidance and support for NISM/AMFI certifications to build your career in wealth management.</p>
-              </div>
-            </div>
-            <div className="flex gap-3 bg-[#FBF7EE]/60 border border-[#E2D8C2]/60 p-4 rounded-2xl">
-              <Clock className="text-[#C7102E] shrink-0" size={22} />
-              <div>
-                <h3 className="text-sm font-bold text-[#0E1B2C]">Work-Life Balance</h3>
-                <p className="text-xs text-[#5C677D] mt-1 leading-normal">Structured flexibility designed to support your productivity and personal growth.</p>
-              </div>
-            </div>
-          </div>
-        </div>
+        )}
 
         <div className="bg-white border border-[#E2D8C2] rounded-3xl shadow-xl overflow-hidden">
           <div className="px-6 py-6 sm:px-8 bg-[#0E1B2C] text-[#F6F1E8] flex items-center gap-4">
@@ -206,8 +313,10 @@ export default function CareerPage() {
           </div>
 
           <div className="p-6 sm:p-10">
-            {!submitted ? (
-              <form onSubmit={handleSubmit} className="space-y-8">
+            {step !== "done" && <StepIndicator step={step} />}
+
+            {step === "form" && (
+              <form onSubmit={goToReview} className="space-y-8">
                 <div>
                   <h4 className="text-xs font-bold uppercase tracking-wider text-[#024396] border-b border-[#E2D8C2] pb-1.5 mb-4">1. Personal Details</h4>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -428,6 +537,37 @@ export default function CareerPage() {
                   </div>
                 </div>
 
+                <div>
+                  <h4 className="text-xs font-bold uppercase tracking-wider text-[#024396] border-b border-[#E2D8C2] pb-1.5 mb-4">7. How Did You Hear About Us?</h4>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-xs font-medium text-[#5C677D] mb-1">How did you hear about us? *</label>
+                      <select
+                        required
+                        value={formData.hearAbout}
+                        onChange={e => setFormData({...formData, hearAbout: e.target.value, hearAboutOther: e.target.value === "Other" ? formData.hearAboutOther : ""})}
+                        className="w-full bg-white border border-[#E2D8C2] rounded-xl px-4 py-2 text-sm focus:border-[#024396] outline-none h-[38px]"
+                      >
+                        <option value="">Select an option</option>
+                        {HEAR_ABOUT_OPTIONS.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+                      </select>
+                    </div>
+                    {formData.hearAbout === "Other" && (
+                      <div>
+                        <label className="block text-xs font-medium text-[#5C677D] mb-1">Please specify *</label>
+                        <input
+                          type="text"
+                          required
+                          placeholder="Tell us where you heard about us"
+                          value={formData.hearAboutOther}
+                          onChange={e => setFormData({...formData, hearAboutOther: e.target.value})}
+                          className="w-full bg-white border border-[#E2D8C2] rounded-xl px-4 py-2 text-sm focus:border-[#024396] outline-none"
+                        />
+                      </div>
+                    )}
+                  </div>
+                </div>
+
                 <div className="space-y-4">
                   <div>
                     <label className="block text-xs font-medium text-[#5C677D] mb-1">Why do you want to join The Financial Doctor? *</label>
@@ -439,22 +579,97 @@ export default function CareerPage() {
                   </div>
                 </div>
 
+                <button type="submit" className="w-full bg-[#024396] hover:bg-[#012E6B] text-[#F6F1E8] font-display font-bold py-3 px-6 rounded-xl shadow-lg transition-colors flex items-center justify-center gap-2 cursor-pointer">
+                  Review Application <ArrowUpRight size={16} />
+                </button>
+              </form>
+            )}
+
+            {step === "review" && (
+              <div className="space-y-6">
+                <button onClick={() => setStep("form")} className="flex items-center gap-1 text-xs text-[#024396] font-semibold hover:underline">
+                  <ChevronLeft size={14} /> Back to edit
+                </button>
+                <div>
+                  <h3 className="font-serif text-xl text-[#0E1B2C] font-bold">Please review your application</h3>
+                  <p className="text-xs text-[#5C677D] mt-0.5">Take a moment to check everything is correct before submitting.</p>
+                </div>
+
+                <div className="bg-[#FBF7EE]/60 border border-[#E2D8C2] rounded-2xl p-4 space-y-4 text-xs">
+                  <div className="space-y-1.5">
+                    <p className="text-[10px] font-bold uppercase tracking-wider text-[#024396]">Personal Details</p>
+                    <Row label="Full Name" value={formData.fullName} />
+                    <Row label="Father's Name" value={formData.fatherName} />
+                    <Row label="Mother's Name" value={formData.motherName} />
+                    <Row label="Date of Birth" value={formData.dob} />
+                    <Row label="Gender" value={formData.gender} />
+                    <Row label="Marital Status" value={formData.maritalStatus} />
+                  </div>
+                  <div className="space-y-1.5 pt-2 border-t border-[#E2D8C2]">
+                    <p className="text-[10px] font-bold uppercase tracking-wider text-[#024396]">Contact Details</p>
+                    <Row label="Mobile Number" value={formData.mobile} />
+                    <Row label="Alternate Mobile" value={formData.altMobile} />
+                    <Row label="Email ID" value={formData.email} />
+                    <Row label="City" value={formData.city} />
+                    <Row label="State" value={formData.state} />
+                    <Row label="Address" value={formData.address} />
+                  </div>
+                  <div className="space-y-1.5 pt-2 border-t border-[#E2D8C2]">
+                    <p className="text-[10px] font-bold uppercase tracking-wider text-[#024396]">Position & Professional Info</p>
+                    <Row label="Position Applying For" value={formData.position} />
+                    <Row label="Total Experience" value={formData.experience} />
+                    <Row label="Current Company" value={formData.currentCompany} />
+                    <Row label="Current Designation" value={formData.currentDesignation} />
+                    <Row label="Current Salary" value={formData.currentSalary} />
+                    <Row label="Expected Salary" value={formData.expectedSalary} />
+                  </div>
+                  <div className="space-y-1.5 pt-2 border-t border-[#E2D8C2]">
+                    <p className="text-[10px] font-bold uppercase tracking-wider text-[#024396]">Education</p>
+                    <Row label="Highest Qualification" value={formData.qualification} />
+                    <Row label="College/University" value={formData.college} />
+                    <Row label="Passing Year" value={formData.passingYear} />
+                  </div>
+                  <div className="space-y-1.5 pt-2 border-t border-[#E2D8C2]">
+                    <p className="text-[10px] font-bold uppercase tracking-wider text-[#024396]">Skills</p>
+                    <Row label="Selected Skills" value={formData.skills.join(", ") || "-"} />
+                    <Row label="Other Skills" value={formData.otherSkills} />
+                  </div>
+                  <div className="space-y-1.5 pt-2 border-t border-[#E2D8C2]">
+                    <p className="text-[10px] font-bold uppercase tracking-wider text-[#024396]">Documents & Reference</p>
+                    <Row label="Resume" value={resumeFile?.name} />
+                    <Row label="Photo" value={photoFile?.name} />
+                    <Row label="Reference Name" value={formData.refName} />
+                  </div>
+                  <div className="space-y-1.5 pt-2 border-t border-[#E2D8C2]">
+                    <p className="text-[10px] font-bold uppercase tracking-wider text-[#024396]">Additional Information</p>
+                    <Row label="How did you hear about us?" value={formData.hearAbout === "Other" ? `Other — ${formData.hearAboutOther}` : formData.hearAbout} />
+                    <Row label="Why join TFD?" value={formData.whyJoin} />
+                    <Row label="Anything else?" value={formData.additionalInfo} />
+                  </div>
+                </div>
+
                 <div className="bg-[#FBF7EE]/60 border border-[#E2D8C2] p-4 rounded-2xl space-y-3">
                   <label className="flex items-start gap-2.5 text-xs text-[#2A364B] cursor-pointer select-none">
-                    <input type="checkbox" required checked={formData.declaration1} onChange={e => setFormData({...formData, declaration1: e.target.checked})} className="mt-0.5 rounded text-[#024396] focus:ring-[#024396]" />
+                    <input type="checkbox" checked={formData.declaration1} onChange={e => setFormData({...formData, declaration1: e.target.checked})} className="mt-0.5 rounded text-[#024396] focus:ring-[#024396]" />
                     <span>I hereby declare that all the information provided by me is true and correct.</span>
                   </label>
                   <label className="flex items-start gap-2.5 text-xs text-[#2A364B] cursor-pointer select-none">
-                    <input type="checkbox" required checked={formData.declaration2} onChange={e => setFormData({...formData, declaration2: e.target.checked})} className="mt-0.5 rounded text-[#024396] focus:ring-[#024396]" />
+                    <input type="checkbox" checked={formData.declaration2} onChange={e => setFormData({...formData, declaration2: e.target.checked})} className="mt-0.5 rounded text-[#024396] focus:ring-[#024396]" />
                     <span>I agree that The Financial Doctor may contact me regarding this job application.</span>
                   </label>
                 </div>
 
-                <button type="submit" disabled={submitting} className="w-full bg-[#024396] hover:bg-[#012E6B] disabled:opacity-50 text-[#F6F1E8] font-display font-bold py-3 px-6 rounded-xl shadow-lg transition-colors flex items-center justify-center gap-2 cursor-pointer">
-                  {submitting ? "Submitting Application..." : "Submit Application"} <ArrowUpRight size={16} />
+                <button
+                  onClick={handleConfirmSubmit}
+                  disabled={!formData.declaration1 || !formData.declaration2 || submitting}
+                  className="w-full bg-[#024396] hover:bg-[#012E6B] disabled:opacity-50 text-[#F6F1E8] font-display font-bold py-3 px-6 rounded-xl shadow-lg transition-colors flex items-center justify-center gap-2 cursor-pointer"
+                >
+                  {submitting ? "Submitting Application..." : "Confirm & Submit Application"} <ArrowUpRight size={16} />
                 </button>
-              </form>
-            ) : (
+              </div>
+            )}
+
+            {step === "done" && (
               <div className="text-center py-12 px-4 space-y-6 max-w-md mx-auto">
                 <div className="w-20 h-20 rounded-full bg-emerald-50 border-4 border-emerald-500/20 grid place-items-center mx-auto text-emerald-500">
                   <CheckCircle size={44} className="stroke-[2.5]" />
@@ -462,7 +677,7 @@ export default function CareerPage() {
                 <div className="space-y-2">
                   <h3 className="font-serif text-3xl text-[#0E1B2C]">Thank You!</h3>
                   <p className="text-sm text-[#5C677D] leading-relaxed">
-                    Your application details have been successfully submitted to the **TFD HR Team**. Our recruitment management panel will review your profile and credentials and contact you shortly via email or phone.
+                    Your application details have been successfully submitted to the <strong>TFD HR Team</strong>. Our recruitment management panel will review your profile and credentials and contact you shortly via email or phone. A confirmation email has also been sent to <strong>{formData.email}</strong>.
                   </p>
                 </div>
                 <div className="bg-[#FBF7EE] border border-[#E2D8C2] p-4 rounded-2xl flex items-center gap-3 text-left">

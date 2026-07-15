@@ -15,11 +15,12 @@ Employee:
 """
 
 import io
+import logging
 import random
 import re
 import uuid
 from datetime import datetime, timezone, timedelta
-from typing import Optional
+from typing import List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile, File, Request
 from pydantic import BaseModel, Field
@@ -30,6 +31,9 @@ from auth_utils import get_current_user_payload, require_admin
 from database import leads_collection, users_collection, db, reminders_collection, pipelines_collection, lead_batches_collection, notifications_collection
 from notification_service import create_notification
 from activity_service import log_activity
+from email_service import send_career_application_received_email
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/leads", tags=["leads"])
 
@@ -1593,6 +1597,31 @@ class PublicCareerLeadCreate(BaseModel):
     experience: Optional[str] = None
     message: Optional[str] = None
     resume_url: Optional[str] = None
+    # Extended application fields (personal, contact, position, education, skills, docs)
+    father_name: Optional[str] = None
+    mother_name: Optional[str] = None
+    dob: Optional[str] = None
+    gender: Optional[str] = None
+    marital_status: Optional[str] = None
+    alt_mobile: Optional[str] = None
+    city: Optional[str] = None
+    state: Optional[str] = None
+    address: Optional[str] = None
+    current_company: Optional[str] = None
+    current_designation: Optional[str] = None
+    current_salary: Optional[str] = None
+    expected_salary: Optional[str] = None
+    qualification: Optional[str] = None
+    college: Optional[str] = None
+    passing_year: Optional[str] = None
+    skills: Optional[List[str]] = None
+    other_skills: Optional[str] = None
+    ref_name: Optional[str] = None
+    why_join: Optional[str] = None
+    additional_info: Optional[str] = None
+    photo_url: Optional[str] = None
+    hear_about_us: Optional[str] = None
+    hear_about_us_other: Optional[str] = None
 
 
 @router.post("/public/website")
@@ -1640,6 +1669,30 @@ async def capture_career_lead(data: PublicCareerLeadCreate):
         "experience": data.experience,
         "message": data.message,
         "resume_url": data.resume_url,
+        "father_name": data.father_name,
+        "mother_name": data.mother_name,
+        "dob": data.dob,
+        "gender": data.gender,
+        "marital_status": data.marital_status,
+        "alt_mobile": data.alt_mobile,
+        "city": data.city,
+        "state": data.state,
+        "address": data.address,
+        "current_company": data.current_company,
+        "current_designation": data.current_designation,
+        "current_salary": data.current_salary,
+        "expected_salary": data.expected_salary,
+        "qualification": data.qualification,
+        "college": data.college,
+        "passing_year": data.passing_year,
+        "skills": data.skills,
+        "other_skills": data.other_skills,
+        "ref_name": data.ref_name,
+        "why_join": data.why_join,
+        "additional_info": data.additional_info,
+        "photo_url": data.photo_url,
+        "hear_about_us": data.hear_about_us,
+        "hear_about_us_other": data.hear_about_us_other,
         "status": "new",  # new, shortlisted, interview, hired, rejected
         "created_at": datetime.now(timezone.utc).isoformat(),
     }
@@ -1655,6 +1708,13 @@ async def capture_career_lead(data: PublicCareerLeadCreate):
             n_type="lead",
             link="/portal/admin/leads",
         )
+
+    if data.email:
+        try:
+            send_career_application_received_email(data.email, data.full_name, data.position)
+        except Exception:
+            logger.exception("Failed to send career application confirmation email to %s", data.email)
+
     return {"status": "received", "id": doc["id"]}
 
 

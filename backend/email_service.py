@@ -283,6 +283,24 @@ def offer_letter_email_html(intern_name: str) -> str:
     )
 
 
+def career_application_email_html(name: str, position: str = None) -> str:
+    """Sent to an applicant right after they submit the public Career form."""
+    role_text = f" for the <strong>{position}</strong> position" if position else ""
+    paragraphs = [
+        f"Thank you for applying{role_text} at The Financial Doctor! We've received your application and our HR "
+        "team will carefully review your profile and credentials.",
+        "If your profile matches what we're looking for, we'll reach out to you shortly via email or phone for "
+        "the next steps. We appreciate your interest in joining our team.",
+    ]
+    return _branded_wrapper(f"Dear {name},", paragraphs)
+
+
+def send_career_application_received_email(to_email: str, name: str, position: str = None) -> tuple[bool, str]:
+    if not email_configured():
+        return False, "Email sending not configured — set RESEND_API_KEY (recommended) or SMTP_USERNAME/SMTP_PASSWORD in backend/.env"
+    return _send_email(to_email, "We've received your application — The Financial Doctor", career_application_email_html(name, position))
+
+
 def document_email_html(person_name: str, document_labels: list[str]) -> str:
     """Professional branded template for certificate/letter document sends —
     same visual language as the welcome email."""
