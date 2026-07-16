@@ -73,7 +73,7 @@ export default function Footer() {
                     <div className="flex gap-2.5 mt-5">
                         <FooterLogoBox href="/partner-with-us" src={PARTNER_LOGO_URL} label="TFD Partner" />
                         <FooterLogoBox href="/portal/login" src={WORKSPACE_LOGO_URL} label="TFD Workspace" />
-                        <FooterLogoBox href="/internship" src={INTERNSHIP_LOGO_URL} label="TFD Internship" />
+                        <FooterLogoBox href="/internship" src={INTERNSHIP_LOGO_URL} label="TFD Internship — New Portal" />
                     </div>
                 </div>
 
