@@ -789,6 +789,176 @@ def generate_employee_agreement_pdf(
     return buf.getvalue()
 
 
+# ── TFD Internship Agreement ────────────────────────────────────────────
+# Deliberately its own clause list, not shared with AGREEMENT_CLAUSES above
+# — the gamified internship program has no salary/probation/notice-period
+# concepts at all, and its own non-refundable-fee / AI-verification /
+# certificate-eligibility terms that don't apply to a regular employee.
+
+INTERNSHIP_AGREEMENT_CLAUSES = [
+    ("1. Program Fee &amp; Refund Policy / प्रोग्राम फीस एवं रिफंड नीति",
+     "The internship program fee, once paid, is strictly NON-REFUNDABLE under any circumstances, including but not limited to early withdrawal, "
+     "suspension, or ban from the program. The fee secures a seat and access to the program's tasks, mentorship content, and certification "
+     "eligibility for the full chosen duration.",
+     "इंटर्नशिप प्रोग्राम फीस, एक बार भुगतान करने के बाद, किसी भी परिस्थिति में वापस (रिफंड) नहीं की जाएगी — चाहे बीच में प्रोग्राम छोड़ना हो, "
+     "सस्पेंशन हो या बैन हो। यह फीस पूरी अवधि के लिए सीट, टास्क्स और सर्टिफिकेट पात्रता सुनिश्चित करती है।"),
+    ("2. Task Submission &amp; Automatic Verification / टास्क सबमिशन एवं स्वचालित सत्यापन",
+     "All tasks must be the intern's own genuine, original work. Submissions are checked automatically (AI-assisted) for genuine effort. A "
+     "rejected task may always be corrected and resubmitted with no penalty — but knowingly submitting copied, fake, or AI-generated content "
+     "passed off as one's own work is a violation of program conduct.",
+     "सभी टास्क इंटर्न के अपने वास्तविक कार्य होने चाहिए। सबमिशन को स्वचालित रूप से (AI की सहायता से) जांचा जाता है। रिजेक्ट हुए टास्क को बिना "
+     "किसी दंड के दोबारा सुधार कर सबमिट किया जा सकता है — लेकिन जानबूझकर कॉपी किया हुआ या नकली काम अपना बताकर देना नियमों का उल्लंघन है।"),
+    ("3. Program Duration &amp; Certificate Eligibility / प्रोग्राम अवधि एवं सर्टिफिकेट पात्रता",
+     "The certificate is issued only after the intern completes the FULL chosen program duration (45/60/90 days) AND achieves an overall score "
+     "of at least 75% across all assigned tasks and weekly quizzes. A missed task never permanently locks — it stays completable until the "
+     "program's final day, and the final score is based on total points earned, not on completing every single task.",
+     "सर्टिफिकेट तभी जारी होगा जब इंटर्न पूरी चुनी हुई अवधि (45/60/90 दिन) पूरी करे और सभी टास्क व साप्ताहिक क्विज़ में मिलाकर कम से कम 75% "
+     "स्कोर प्राप्त करे। कोई टास्क छूट जाए तो भी वह हमेशा के लिए बंद नहीं होता — प्रोग्राम के आखिरी दिन तक पूरा किया जा सकता है।"),
+    ("4. No Stipend — Internal Points Only / कोई वेतन नहीं — केवल आंतरिक पॉइंट्स",
+     "This is a learning-and-certification program, not a paid position. Points earned for approved tasks and quizzes are purely internal, "
+     "non-monetary, and used only for the leaderboard/skill-radar display — they are never convertible to cash or paid out in any form.",
+     "यह एक सीखने एवं प्रमाणन कार्यक्रम है, वेतन वाली नौकरी नहीं। टास्क व क्विज़ के लिए मिलने वाले पॉइंट्स केवल आंतरिक हैं, इन्हें कभी भी नकद "
+     "में नहीं बदला जाएगा और न ही भुगतान किया जाएगा।"),
+    ("5. Conduct, Warnings &amp; Suspension / आचरण, चेतावनी एवं निलंबन",
+     "The intern must engage genuinely and respectfully with the program. Repeated dishonest submissions, abusive conduct, or misuse of the "
+     "platform may result in a formal warning; continued violations may lead to suspension or a permanent ban from the program without a "
+     "refund of the fee already paid.",
+     "इंटर्न को कार्यक्रम में ईमानदारी और सम्मान के साथ भाग लेना चाहिए। बार-बार बेईमानी से सबमिशन, दुर्व्यवहार या प्लेटफ़ॉर्म के दुरुपयोग पर "
+     "औपचारिक चेतावनी दी जा सकती है; बार-बार उल्लंघन पर बिना फीस वापसी के निलंबन या स्थायी बैन हो सकता है।"),
+    ("6. Confidentiality of Business Information / व्यावसायिक जानकारी की गोपनीयता",
+     "Any business processes, internal tools, or company-related information the intern is exposed to while completing tasks must be kept "
+     "confidential and not shared publicly or with third parties.",
+     "टास्क पूरे करते समय इंटर्न को जो भी व्यावसायिक प्रक्रियाएँ, आंतरिक टूल्स या कंपनी संबंधित जानकारी मिले, उसे गोपनीय रखा जाना चाहिए और "
+     "सार्वजनिक रूप से या किसी तीसरे पक्ष के साथ साझा नहीं किया जाना चाहिए।"),
+    ("7. End-of-Program Video Review &amp; Consent / प्रोग्राम के अंत में वीडियो रिव्यू एवं सहमति",
+     "Near the end of the program, the intern will be asked to share a short video review of their experience (a link to a video they've "
+     "uploaded elsewhere, not a file upload). Whether The Financial Doctor may feature this video on its social media is entirely the "
+     "intern's own choice, confirmed separately at signup and again at submission — it does not affect certificate eligibility either way.",
+     "प्रोग्राम के अंत के करीब, इंटर्न से उनके अनुभव का एक छोटा वीडियो रिव्यू माँगा जाएगा। यह वीडियो सोशल मीडिया पर दिखाया जाए या नहीं, यह "
+     "पूरी तरह इंटर्न की अपनी सहमति पर निर्भर है और सर्टिफिकेट पात्रता को प्रभावित नहीं करता।"),
+    ("8. Use of Photo, ID Card &amp; Certificate Details / फोटो, आईडी कार्ड एवं सर्टिफिकेट विवरण का उपयोग",
+     "The photo, name, and program details submitted during onboarding are used to generate the intern's official ID card and completion "
+     "certificate, both of which carry a scannable QR code for public, employer-facing verification of authenticity.",
+     "ऑनबोर्डिंग के दौरान दी गई फोटो, नाम और प्रोग्राम विवरण का उपयोग इंटर्न का आधिकारिक आईडी कार्ड एवं पूर्णता प्रमाणपत्र बनाने के लिए किया "
+     "जाता है, जिन पर सत्यापन हेतु स्कैन करने योग्य QR कोड होता है।"),
+    ("9. Termination Without Refund / बिना रिफंड के समाप्ति",
+     "The Financial Doctor reserves the right to suspend or terminate an intern's access to the program for a serious violation of these "
+     "terms. Termination under this clause does not entitle the intern to any refund of the fee already paid.",
+     "गंभीर उल्लंघन की स्थिति में The Financial Doctor को इंटर्न की प्रोग्राम तक पहुँच निलंबित या समाप्त करने का अधिकार है। इस स्थिति में पहले "
+     "से भुगतान की गई फीस वापस नहीं की जाएगी।"),
+    ("10. Governing Law &amp; Jurisdiction / शासकीय कानून एवं क्षेत्राधिकार",
+     "This agreement is governed by the laws of India, and any dispute shall be subject to the exclusive jurisdiction of the courts at "
+     "Sehore, Madhya Pradesh.",
+     "यह समझौता भारत के कानूनों द्वारा शासित है, और किसी भी विवाद की स्थिति में सीहोर, मध्य प्रदेश की अदालतों का विशेष क्षेत्राधिकार होगा।"),
+]
+
+
+def generate_internship_agreement_pdf(data: dict, photo_bytes: Optional[bytes] = None, signature_bytes: Optional[bytes] = None) -> bytes:
+    """data: name, intern_id, college, course_year, dob, gender, contact_no,
+    email, aadhar_number, pan_number, college_id_number, track_label,
+    duration_days, payment_amount, program_start_date, signed_at (GPS
+    string), signed_location.
+
+    No Aadhaar card images here (unlike the employee agreement) — the
+    internship KYC step only collects the Aadhaar *number*, not a scan."""
+    buf = io.BytesIO()
+    doc = SimpleDocTemplate(buf, pagesize=A4, topMargin=50 * mm, bottomMargin=48 * mm, leftMargin=20 * mm, rightMargin=20 * mm)
+    styles = _letter_styles()
+    elements = []
+
+    name = _title_case_name(data["name"])
+    gender_label = {"male": "Male", "female": "Female"}.get(data.get("gender"), data.get("gender") or "-")
+
+    header_cells = [Paragraph(
+        f"<b>Name / नाम:</b> {name}<br/><b>Intern ID:</b> {data.get('intern_id') or '-'}<br/>"
+        f"<b>College / कॉलेज:</b> {data.get('college') or '-'}<br/><b>Course &amp; Year / कोर्स एवं वर्ष:</b> {data.get('course_year') or '-'}<br/>"
+        f"<b>College ID No. / कॉलेज आईडी नं.:</b> {data.get('college_id_number') or '-'}<br/>"
+        f"<b>Date of Birth / जन्मतिथि:</b> {data.get('dob') or '-'}<br/><b>Gender / लिंग:</b> {gender_label}<br/>"
+        f"<b>Contact / संपर्क:</b> {data.get('contact_no') or '-'}<br/><b>Email:</b> {data.get('email') or '-'}<br/>"
+        f"<b>Aadhar / आधार:</b> {data.get('aadhar_number') or '-'}<br/><b>PAN / पैन:</b> {data.get('pan_number') or 'Not Provided'}<br/>"
+        f"<b>Track / ट्रैक:</b> {data.get('track_label') or '-'} &middot; <b>Duration / अवधि:</b> {data.get('duration_days') or '-'} days<br/>"
+        f"<b>Program Fee / प्रोग्राम फीस:</b> Rs. {data.get('payment_amount') or '-'} (Non-Refundable / अप्रतिदेय)<br/>"
+        f"<b>Start Date / प्रारंभ तिथि:</b> {data.get('program_start_date') or '-'}",
+        styles["TFDDetailLabel"],
+    )]
+    if photo_bytes:
+        header_cells.append(_fitted_image(photo_bytes, 28 * mm, 34 * mm, hAlign="RIGHT"))
+    else:
+        header_cells.append(Paragraph("", styles["TFDDetailLabel"]))
+
+    header_table = Table([header_cells], colWidths=[122 * mm, 34 * mm])
+    header_table.setStyle(TableStyle([
+        ("VALIGN", (0, 0), (-1, -1), "TOP"),
+        ("ALIGN", (1, 0), (1, 0), "RIGHT"),
+        ("BOX", (1, 0), (1, 0), 1, colors.HexColor("#024396")) if photo_bytes else ("BOX", (1, 0), (1, 0), 0, colors.white),
+    ]))
+    elements.append(header_table)
+    elements.append(Spacer(1, 10))
+
+    elements.append(Paragraph("TERMS AND CONDITIONS / नियम एवं शर्तें", ParagraphStyle(
+        "InternAgreementSectionHead", parent=styles["Heading3"], textColor=TFD_NAVY, fontSize=11.5, spaceAfter=6, fontName=FONT_HINDI,
+    )))
+    for title, body_en, body_hi in INTERNSHIP_AGREEMENT_CLAUSES:
+        elements.append(Paragraph(title, styles["TFDClauseTitle"]))
+        elements.append(Paragraph(body_en, styles["TFDClauseBody"]))
+        elements.append(Paragraph(body_hi, styles["TFDClauseHindi"]))
+
+    elements.append(Spacer(1, 6))
+    elements.append(Paragraph("DECLARATION / घोषणा", ParagraphStyle(
+        "InternAgreementSectionHead2", parent=styles["Heading3"], textColor=TFD_NAVY, fontSize=11.5, spaceAfter=6, fontName=FONT_HINDI,
+    )))
+    elements.append(Paragraph(
+        f"I, <b>{name}</b>, hereby declare that I have read, understood, and voluntarily agree to all the terms and conditions of the "
+        "TFD Internship Program mentioned above, including the non-refundable nature of the program fee, and I commit to abiding by "
+        "the program's rules for its full duration.", styles["TFDBody"],
+    ))
+    elements.append(Paragraph(
+        f"मैं, <b>{name}</b>, घोषणा करता/करती हूँ कि मैंने ऊपर दिए गए TFD इंटर्नशिप प्रोग्राम के सभी नियम एवं शर्तें पढ़ ली हैं, समझ ली हैं "
+        "और स्वेच्छा से इनसे सहमत हूँ, जिसमें प्रोग्राम फीस का अप्रतिदेय (नॉन-रिफंडेबल) होना भी शामिल है।", styles["TFDHindiBody"],
+    ))
+    if data.get("signed_at") or data.get("signed_location"):
+        elements.append(Paragraph(
+            f"<b>Signed at (GPS) / हस्ताक्षर स्थान:</b> {data.get('signed_location') or 'N/A'}<br/>"
+            f"<b>Date &amp; Time / दिनांक एवं समय:</b> {data.get('signed_at') or ''}",
+            styles["TFDMetaHindi"],
+        ))
+
+    elements.append(Spacer(1, 24))
+
+    # Intern's own signature (left) and TFD's authorized signatory, Palak
+    # Mehta (right) — side by side, same layout pattern as the employee
+    # agreement's employee-vs-CEO signature row.
+    intern_cell = [Paragraph("Intern Signature / इंटर्न हस्ताक्षर", styles["TFDMetaHindi"])]
+    if signature_bytes:
+        try:
+            cleaned = _remove_signature_background(signature_bytes)
+            intern_cell.append(Spacer(1, 4))
+            intern_cell.append(_fitted_image(cleaned, 46 * mm, 18 * mm, hAlign="LEFT"))
+        except Exception:
+            intern_cell.append(Spacer(1, 22))
+    else:
+        intern_cell.append(Spacer(1, 22))
+    intern_cell.append(Paragraph(f"<b>{name}</b>", styles["TFDBody"]))
+    intern_cell.append(Paragraph("Intern / इंटर्न", styles["TFDMetaHindi"]))
+
+    authorized_cell = []
+    _signature_block(authorized_cell, styles, "authorized_palak")
+
+    sig_table = Table([[intern_cell, authorized_cell]], colWidths=[78 * mm, 78 * mm])
+    sig_table.setStyle(TableStyle([("VALIGN", (0, 0), (-1, -1), "TOP"), ("LEFTPADDING", (0, 0), (-1, -1), 0), ("RIGHTPADDING", (0, 0), (-1, -1), 0)]))
+    elements.append(sig_table)
+
+    elements.append(Spacer(1, 10))
+    elements.append(Paragraph(
+        "This is a computer-generated agreement, valid without a physical stamp when digitally issued.",
+        ParagraphStyle("InternAgreementFooterNote", parent=styles["Normal"], alignment=TA_CENTER, fontSize=7.5, textColor=colors.grey),
+    ))
+
+    decorator = make_formal_letter_decorator("TFD INTERNSHIP AGREEMENT", show_internship_logo=True)
+    doc.build(elements, onFirstPage=decorator, onLaterPages=decorator, canvasmaker=_NumberedCanvas)
+    return buf.getvalue()
+
+
 def default_certificate_detail(cert: dict) -> str:
     if cert["cert_type"] == "internship":
         return f"for successfully completing an internship of {cert['duration_label']} in the {cert['department']} department"

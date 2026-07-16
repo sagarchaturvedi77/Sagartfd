@@ -73,6 +73,7 @@ import InternshipLandingPage from "./pages/InternshipLandingPage";
 import InternshipSignup from "./pages/InternshipSignup";
 import InternshipLogin from "./pages/InternshipLogin";
 import StudentDashboard from "./pages/StudentDashboard";
+import StudentOnboarding from "./pages/StudentOnboarding";
 import StudentMissions from "./pages/StudentMissions";
 import StudentProfile from "./pages/StudentProfile";
 import InternIDCardPage from "./pages/InternIDCardPage";
@@ -477,6 +478,14 @@ element={
                 <Route path="/internship" element={<InternshipLandingPage />} />
                 <Route path="/internship/apply" element={<InternshipSignup />} />
                 <Route path="/internship/login" element={<InternshipLogin />} />
+                <Route
+                  path="/portal/student/onboarding"
+                  element={
+                    <StudentProtectedRoute skipOnboardingGate>
+                      <StudentOnboarding />
+                    </StudentProtectedRoute>
+                  }
+                />
                 <Route
                   path="/portal/student"
                   element={

@@ -5,7 +5,13 @@ import { useInternshipAuth } from "./InternshipAuthContext";
 // Mirrors components/ProtectedRoute.jsx's shape but checks the separate
 // InternshipAuthContext — the internship program's login has no relation
 // to TFD Workspace staff/employee auth.
-export default function StudentProtectedRoute({ children }) {
+//
+// Onboarding gate: once payment is confirmed, a student must complete the
+// one-time KYC + agreement-signing step (StudentOnboarding.jsx) before
+// reaching the rest of the portal — mirrors the employee ProtectedRoute's
+// profile_completed gate. Pass skipOnboardingGate on the onboarding route
+// itself, or this would redirect to itself in a loop.
+export default function StudentProtectedRoute({ children, skipOnboardingGate = false }) {
   const { token, student, loading } = useInternshipAuth();
 
   if (loading) {
@@ -14,5 +20,11 @@ export default function StudentProtectedRoute({ children }) {
   if (!token || !student) {
     return <Navigate to="/internship/login" replace />;
   }
+
+  const paymentDone = student.payment_status === "paid" || student.payment_status === "waived";
+  if (!skipOnboardingGate && paymentDone && !student.profile_completed) {
+    return <Navigate to="/portal/student/onboarding" replace />;
+  }
+
   return children;
 }

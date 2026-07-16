@@ -54,6 +54,23 @@ class DobUpdateIn(BaseModel):
     dob: str = Field(min_length=8, max_length=10)  # "YYYY-MM-DD"
 
 
+class KycSubmitIn(BaseModel):
+    """The mandatory one-time KYC step, gating the rest of the portal until
+    completed (see profile_completed) — name/phone/email are already known
+    from signup and deliberately not repeated here."""
+    dob: str = Field(min_length=8, max_length=10)
+    gender: Literal["male", "female"]
+    aadhar_number: str = Field(min_length=12, max_length=14)
+    pan_number: Optional[str] = None
+    no_pan: bool = False
+    college_id_number: str = Field(min_length=1, max_length=50)
+
+
+class AgreementSignIn(BaseModel):
+    lat: float
+    lng: float
+
+
 class InternshipStudentInDB(BaseModel):
     """Credentials live directly on this collection — deliberately NOT in
     users_collection. The internship program has its own login, separate
@@ -71,6 +88,15 @@ class InternshipStudentInDB(BaseModel):
     course_year: Optional[str] = None
     dob: Optional[str] = None
     photo_r2_key: Optional[str] = None
+    gender: Optional[str] = None  # "male" | "female"
+    aadhar_number: Optional[str] = None
+    pan_number: Optional[str] = None
+    no_pan: bool = False  # "I don't have a PAN card" — makes pan_number optional
+    college_id_number: Optional[str] = None
+    agreement_signature_r2_key: Optional[str] = None
+    agreement_signed_at: Optional[datetime] = None
+    agreement_signed_location: Optional[str] = None  # "lat, lng" string, same format as the employee agreement
+    profile_completed: bool = False  # KYC + agreement both done — gates the rest of the portal
     duration_days: DurationDays = 45
     track: Optional[Track] = None
     track_locked_at: Optional[datetime] = None
@@ -108,6 +134,14 @@ class StudentOut(BaseModel):
     course_year: Optional[str] = None
     dob: Optional[str] = None
     photo_url: Optional[str] = None
+    gender: Optional[str] = None
+    aadhar_number: Optional[str] = None
+    pan_number: Optional[str] = None
+    no_pan: bool = False
+    college_id_number: Optional[str] = None
+    agreement_signed_at: Optional[datetime] = None
+    agreement_signed_location: Optional[str] = None
+    profile_completed: bool = False
     duration_days: int = 45
     track: Optional[str] = None
     track_label: Optional[str] = None
@@ -335,6 +369,21 @@ class GraduationCheckOut(BaseModel):
 
 class GraduateIn(BaseModel):
     force: bool = False
+
+
+# ── Cashfree payment (internship signup) ─────────────────────────────────
+
+class PaymentOrderOut(BaseModel):
+    order_id: str
+    payment_session_id: str
+    amount: int
+    cashfree_env: str
+
+
+class PaymentStatusOut(BaseModel):
+    order_id: str
+    order_status: str  # our payment_orders_collection status: "created"|"paid"|"failed"
+    payment_status: str  # the student's own payment_status, for convenience
 
 
 # ── End-of-program video review ─────────────────────────────────────────

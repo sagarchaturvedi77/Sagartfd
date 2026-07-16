@@ -1,8 +1,12 @@
 import React, { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { Rocket, PlayCircle, Award, CheckCircle2, Clock3, ArrowUpRight, NotebookPen } from "lucide-react";
+import { useNavigate, useSearchParams } from "react-router-dom";
+import { toast } from "sonner";
+import { Rocket, PlayCircle, Award, CheckCircle2, Clock3, ArrowUpRight, NotebookPen, CreditCard } from "lucide-react";
 import StudentLayout from "../portal/student/StudentLayout";
 import { useInternshipAuth } from "../portal/student/InternshipAuthContext";
+import { openCashfreeCheckout } from "../lib/cashfree";
+
+const API_BASE = process.env.REACT_APP_BACKEND_URL || "";
 
 const TRACK_LABELS = {
   finance: "Finance",
@@ -28,13 +32,76 @@ function LockedCard({ icon: Icon, title, note }) {
 }
 
 export default function StudentDashboard() {
-  const { student, loading, refreshMe } = useInternshipAuth();
+  const { student, token, loading, refreshMe } = useInternshipAuth();
   const [error] = useState("");
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const orderId = searchParams.get("order_id");
+  const [checkingPayment, setCheckingPayment] = useState(!!orderId);
+  const [startingPayment, setStartingPayment] = useState(false);
 
   // One extra refresh on mount so a just-confirmed payment (marked paid by
   // an admin in a different tab/session) shows up without a manual reload.
   useEffect(() => { refreshMe(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Returning from Cashfree checkout lands back here with ?order_id=... —
+  // the webhook (server-to-server) is what actually confirms payment, so
+  // this just polls a few times for it to land, rather than trusting the
+  // redirect itself as proof of success.
+  useEffect(() => {
+    if (!orderId || !token) return;
+    let cancelled = false;
+    let attempts = 0;
+
+    const poll = async () => {
+      if (cancelled) return;
+      attempts += 1;
+      try {
+        const res = await fetch(`${API_BASE}/api/internship/payment/status/${orderId}`, { headers: { Authorization: `Bearer ${token}` } });
+        const data = await res.json().catch(() => ({}));
+        if (res.ok && data.payment_status === "paid") {
+          toast.success("Payment confirmed — your internship has started!");
+          await refreshMe();
+          setCheckingPayment(false);
+          setSearchParams({}, { replace: true });
+          return;
+        }
+        if (res.ok && data.order_status === "failed") {
+          toast.error("Payment didn't go through — you can retry below.");
+          setCheckingPayment(false);
+          setSearchParams({}, { replace: true });
+          return;
+        }
+      } catch {
+        // network hiccup — just retry on the next tick
+      }
+      if (attempts < 7 && !cancelled) {
+        setTimeout(poll, 3000);
+      } else if (!cancelled) {
+        setCheckingPayment(false);
+        setSearchParams({}, { replace: true });
+      }
+    };
+    poll();
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [orderId, token]);
+
+  const startPayment = async () => {
+    setStartingPayment(true);
+    try {
+      const res = await fetch(`${API_BASE}/api/internship/payment/create-order`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.detail || "Could not start payment");
+      await openCashfreeCheckout(data.payment_session_id, data.cashfree_env);
+    } catch (err) {
+      toast.error(err.message || "Could not start payment — please try again.");
+      setStartingPayment(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -68,15 +135,32 @@ export default function StudentDashboard() {
           </p>
         </div>
 
-        {pendingPayment && (
+        {checkingPayment && (
+          <div className="rounded-2xl border border-[#14E0A0]/30 bg-[#14E0A0]/10 p-5 flex items-start gap-3">
+            <Clock3 size={20} className="text-[#14E0A0] shrink-0 mt-0.5 animate-pulse" />
+            <div>
+              <p className="text-sm font-bold text-[#14E0A0]">Confirming your payment...</p>
+              <p className="text-xs text-[#14E0A0]/70 mt-1 leading-relaxed">This usually takes a few seconds.</p>
+            </div>
+          </div>
+        )}
+
+        {pendingPayment && !checkingPayment && (
           <div className="rounded-2xl border border-amber-400/30 bg-amber-400/10 p-5 flex items-start gap-3">
             <Clock3 size={20} className="text-amber-400 shrink-0 mt-0.5" />
-            <div>
+            <div className="flex-1">
               <p className="text-sm font-bold text-amber-300">Payment: Pending</p>
               <p className="text-xs text-amber-200/70 mt-1 leading-relaxed">
-                Your seat (₹{student.payment_amount}) is reserved. Our team will confirm your payment shortly and
-                Day 1 of your {programDays}-day program will begin automatically — no action needed from you right now.
+                Your seat (₹{student.payment_amount}) is reserved but not paid yet. Pay now to start Day 1 of your
+                {" "}{programDays}-day program immediately.
               </p>
+              <button
+                onClick={startPayment}
+                disabled={startingPayment}
+                className="mt-3 flex items-center gap-1.5 text-xs font-bold bg-amber-400 hover:bg-amber-300 disabled:opacity-50 text-[#050B16] px-3.5 py-2 rounded-xl transition-colors"
+              >
+                <CreditCard size={13} /> {startingPayment ? "Starting..." : `Pay ₹${student.payment_amount} Now`}
+              </button>
             </div>
           </div>
         )}

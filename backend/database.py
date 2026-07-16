@@ -50,3 +50,6 @@ internship_submissions_collection = db["internship_submissions"]
 internship_quiz_questions_collection = db["internship_quiz_questions"]
 internship_quiz_attempts_collection = db["internship_quiz_attempts"]
 internship_reports_collection = db["internship_reports"]
+# Cashfree Payment Gateway orders — generic across payment_type values
+# ("internship_signup", "certificate_regeneration", ...), see cashfree_client.py.
+payment_orders_collection = db["payment_orders"]

@@ -14,6 +14,7 @@ inside the existing staff portal; the student-facing endpoints use their
 own get_current_student_payload dependency defined in this file.
 """
 import io
+import json
 import logging
 import os
 import random
@@ -29,7 +30,13 @@ from fastapi.security import OAuth2PasswordBearer
 
 from activity_service import log_activity
 from auth_utils import create_access_token, decode_token, hash_password, require_admin, verify_password
-from certificate_pdf import generate_certificate_pdf, generate_internship_program_letter_pdf, generate_internship_report_pdf
+from cashfree_client import CashfreeError, cashfree_configured, create_order as cf_create_order, new_order_id, verify_webhook_signature
+from certificate_pdf import (
+    generate_certificate_pdf,
+    generate_internship_agreement_pdf,
+    generate_internship_program_letter_pdf,
+    generate_internship_report_pdf,
+)
 from certificate_routes import _next_sequence
 from database import (
     certificates_collection,
@@ -39,6 +46,7 @@ from database import (
     internship_students_collection,
     internship_submissions_collection,
     internship_task_pool_collection,
+    payment_orders_collection,
 )
 from internship_models import (
     DURATION_PRICING,
@@ -46,10 +54,12 @@ from internship_models import (
     QUIZ_PASS_THRESHOLD,
     RADAR_CATEGORY_LABELS,
     TRACK_LABELS,
+    AgreementSignIn,
     DobUpdateIn,
     GraduateIn,
     GraduationCheckOut,
     InternshipStudentInDB,
+    KycSubmitIn,
     PaymentOverrideIn,
     QuizAttemptOut,
     QuizQuestionAdminOut,
@@ -58,6 +68,8 @@ from internship_models import (
     QuizSubmitIn,
     ReportEntryIn,
     ReportEntryOut,
+    PaymentOrderOut,
+    PaymentStatusOut,
     StudentLoginIn,
     StudentOut,
     StudentSignupIn,
@@ -139,6 +151,10 @@ def _to_student_out(doc: dict) -> StudentOut:
     return StudentOut(
         id=doc["id"], intern_id=doc.get("intern_id", ""), name=doc["name"], phone=doc["phone"], email=doc["email"],
         college=doc.get("college"), course_year=doc.get("course_year"), dob=doc.get("dob"), photo_url=photo_url,
+        gender=doc.get("gender"), aadhar_number=doc.get("aadhar_number"), pan_number=doc.get("pan_number"),
+        no_pan=doc.get("no_pan", False), college_id_number=doc.get("college_id_number"),
+        agreement_signed_at=doc.get("agreement_signed_at"), agreement_signed_location=doc.get("agreement_signed_location"),
+        profile_completed=doc.get("profile_completed", False),
         duration_days=doc.get("duration_days", 45),
         track=doc.get("track"), track_label=TRACK_LABELS.get(doc.get("track")) if doc.get("track") else None,
         payment_status=doc.get("payment_status", "pending"), payment_amount=doc.get("payment_amount", 2000),
@@ -307,6 +323,133 @@ async def get_profile_photo_raw(payload: dict = Depends(get_current_student_payl
     return StreamingResponse(obj["Body"], media_type=obj.get("ContentType", "image/jpeg"))
 
 
+# ── Mandatory KYC + agreement onboarding ────────────────────────────────
+# A one-time gate between payment and actually using the portal: KYC
+# details, a photo (same one the ID card uses — no separate upload), and a
+# GPS-gated agreement signature. profile_completed flips to True only once
+# the agreement is signed — see StudentProtectedRoute.jsx for the gate.
+
+@router.post("/me/kyc", response_model=StudentOut)
+async def submit_kyc(data: KycSubmitIn, payload: dict = Depends(get_current_student_payload)):
+    if not data.no_pan and not (data.pan_number or "").strip():
+        raise HTTPException(status_code=400, detail="Enter your PAN number, or check 'I don't have a PAN card'")
+    await internship_students_collection.update_one(
+        {"id": payload["sub"]},
+        {"$set": {
+            "dob": data.dob, "gender": data.gender, "aadhar_number": data.aadhar_number.strip(),
+            "pan_number": None if data.no_pan else data.pan_number.strip().upper(),
+            "no_pan": data.no_pan, "college_id_number": data.college_id_number.strip(),
+            "updated_at": datetime.now(timezone.utc),
+        }},
+    )
+    updated = await internship_students_collection.find_one({"id": payload["sub"]})
+    return _to_student_out(updated)
+
+
+@router.post("/me/agreement/signature")
+async def upload_agreement_signature(signature: UploadFile = File(...), payload: dict = Depends(get_current_student_payload)):
+    content = await signature.read()
+    if len(content) > 5 * 1024 * 1024:
+        raise HTTPException(status_code=400, detail="Signature image must be under 5MB")
+    ext = (signature.filename or "signature.png").rsplit(".", 1)[-1].lower()
+    if ext not in ("jpg", "jpeg", "png", "webp"):
+        ext = "png"
+    r2_key = f"internship-uploads/{payload['sub']}/signature.{ext}"
+    upload_bytes(r2_key, content, signature.content_type or "image/png")
+    await internship_students_collection.update_one(
+        {"id": payload["sub"]}, {"$set": {"agreement_signature_r2_key": r2_key, "updated_at": datetime.now(timezone.utc)}},
+    )
+    return {"status": "uploaded"}
+
+
+@router.get("/me/agreement/status")
+async def get_agreement_status(payload: dict = Depends(get_current_student_payload)):
+    doc = await internship_students_collection.find_one(
+        {"id": payload["sub"]}, {"agreement_signed_at": 1, "agreement_signed_location": 1, "agreement_signature_r2_key": 1},
+    )
+    if not doc:
+        raise HTTPException(status_code=404, detail="Student profile not found")
+    return {
+        "signed": bool(doc.get("agreement_signed_at")),
+        "signed_at": doc.get("agreement_signed_at"),
+        "location": doc.get("agreement_signed_location"),
+        "has_signature_uploaded": bool(doc.get("agreement_signature_r2_key")),
+    }
+
+
+@router.post("/me/agreement/sign")
+async def sign_agreement(data: AgreementSignIn, payload: dict = Depends(get_current_student_payload)):
+    doc = await internship_students_collection.find_one({"id": payload["sub"]})
+    if not doc:
+        raise HTTPException(status_code=404, detail="Student profile not found")
+    if doc.get("agreement_signed_at"):
+        return {"status": "already_signed", "signed_at": doc["agreement_signed_at"], "location": doc.get("agreement_signed_location")}
+
+    missing = [
+        label for field, label in [
+            ("dob", "date of birth"), ("gender", "gender"), ("aadhar_number", "Aadhaar number"),
+            ("college_id_number", "college ID number"), ("photo_r2_key", "photo"), ("agreement_signature_r2_key", "signature"),
+        ] if not doc.get(field)
+    ]
+    if missing:
+        raise HTTPException(status_code=400, detail=f"Please complete these steps first: {', '.join(missing)}")
+
+    now = datetime.now(timezone.utc)
+    location_str = f"{data.lat:.6f}, {data.lng:.6f}"
+    await internship_students_collection.update_one(
+        {"id": payload["sub"]},
+        {"$set": {
+            "agreement_signed_at": now, "agreement_signed_location": location_str,
+            "profile_completed": True, "updated_at": now,
+        }},
+    )
+    return {"status": "signed", "signed_at": now, "location": location_str}
+
+
+def _internship_agreement_pdf_data(doc: dict) -> dict:
+    duration_days = doc.get("duration_days", 45)
+    start = doc.get("program_start_date")
+    start_label = start.date().isoformat() if start else None
+    return {
+        "name": doc["name"], "intern_id": doc.get("intern_id", ""), "college": doc.get("college"),
+        "course_year": doc.get("course_year"), "dob": doc.get("dob"), "gender": doc.get("gender"),
+        "contact_no": doc.get("phone"), "email": doc.get("email"),
+        "aadhar_number": doc.get("aadhar_number"), "pan_number": doc.get("pan_number") or "Not Provided",
+        "college_id_number": doc.get("college_id_number"), "track_label": TRACK_LABELS.get(doc.get("track"), doc.get("track")),
+        "duration_days": duration_days, "payment_amount": doc.get("payment_amount"),
+        "program_start_date": start_label,
+        "signed_at": doc.get("agreement_signed_at"), "signed_location": doc.get("agreement_signed_location"),
+    }
+
+
+@router.get("/me/agreement/download")
+async def download_agreement(payload: dict = Depends(get_current_student_payload)):
+    doc = await internship_students_collection.find_one({"id": payload["sub"]})
+    if not doc:
+        raise HTTPException(status_code=404, detail="Student profile not found")
+    if not doc.get("agreement_signed_at"):
+        raise HTTPException(status_code=400, detail="Agreement hasn't been signed yet")
+
+    photo_bytes = None
+    if doc.get("photo_r2_key"):
+        try:
+            obj = r2_client().get_object(Bucket=R2_BUCKET_NAME, Key=doc["photo_r2_key"])
+            photo_bytes = obj["Body"].read()
+        except Exception:
+            photo_bytes = None
+    signature_bytes = None
+    if doc.get("agreement_signature_r2_key"):
+        try:
+            obj = r2_client().get_object(Bucket=R2_BUCKET_NAME, Key=doc["agreement_signature_r2_key"])
+            signature_bytes = obj["Body"].read()
+        except Exception:
+            signature_bytes = None
+
+    pdf_bytes = generate_internship_agreement_pdf(_internship_agreement_pdf_data(doc), photo_bytes=photo_bytes, signature_bytes=signature_bytes)
+    filename = f"TFD_Internship_Agreement_{doc['name'].replace(' ', '_')}.pdf"
+    return StreamingResponse(io.BytesIO(pdf_bytes), media_type="application/pdf", headers={"Content-Disposition": f'inline; filename="{filename}"'})
+
+
 @router.put("/me/video-review", response_model=StudentOut)
 async def submit_video_review(data: VideoReviewIn, payload: dict = Depends(get_current_student_payload)):
     """Requested (encouraged from signup onward), not required for the
@@ -389,10 +532,10 @@ async def list_students(_admin: dict = Depends(require_admin)):
     return [_to_student_out(doc) async for doc in cursor]
 
 
-@router.patch("/admin/students/{student_id}/payment")
-async def mark_paid(student_id: str, data: PaymentOverrideIn, admin: dict = Depends(require_admin)):
-    """Manual admin override standing in for the real payment gateway until
-    API keys are available — sets Day 1 the moment a seat is confirmed."""
+async def _mark_student_paid(student_id: str, marked_by: str) -> dict:
+    """Shared by the admin's manual override and the Cashfree webhook —
+    same effect either way: Day 1 starts the moment a seat is confirmed
+    paid, however that confirmation arrived."""
     doc = await internship_students_collection.find_one({"id": student_id})
     if not doc:
         raise HTTPException(status_code=404, detail="Student not found")
@@ -400,13 +543,137 @@ async def mark_paid(student_id: str, data: PaymentOverrideIn, admin: dict = Depe
     await internship_students_collection.update_one(
         {"id": student_id},
         {"$set": {
-            "payment_status": "paid", "payment_marked_by": admin["sub"], "payment_marked_at": now,
+            "payment_status": "paid", "payment_marked_by": marked_by, "payment_marked_at": now,
             "program_start_date": doc.get("program_start_date") or now,
             "status": "active", "updated_at": now,
         }},
     )
-    updated = await internship_students_collection.find_one({"id": student_id})
+    return await internship_students_collection.find_one({"id": student_id})
+
+
+@router.patch("/admin/students/{student_id}/payment")
+async def mark_paid(student_id: str, data: PaymentOverrideIn, admin: dict = Depends(require_admin)):
+    """Manual admin override — a fallback for edge cases (a webhook that
+    never arrives, a customer who paid by other means, etc.) now that
+    Cashfree handles the normal path; kept intentionally, not removed."""
+    updated = await _mark_student_paid(student_id, admin["sub"])
     return _to_student_out(updated)
+
+
+# ── Cashfree payment — signup fee (₹2000/3000/5000 by duration) ─────────
+
+@router.post("/payment/create-order", response_model=PaymentOrderOut)
+@limiter.limit("10/minute")
+async def create_payment_order(request: Request, payload: dict = Depends(get_current_student_payload)):
+    if not cashfree_configured():
+        raise HTTPException(status_code=503, detail="Payments aren't configured yet — please contact support.")
+    student = await internship_students_collection.find_one({"id": payload["sub"]})
+    if not student:
+        raise HTTPException(status_code=404, detail="Student profile not found")
+    if student.get("payment_status") == "paid":
+        raise HTTPException(status_code=409, detail="Your payment is already confirmed.")
+
+    # Reuse a still-fresh order instead of minting a new one on every click
+    # (e.g. the student re-opens the checkout modal) — Cashfree sessions are
+    # valid for a while, no need to spam new orders.
+    recent_cutoff = datetime.now(timezone.utc) - timedelta(minutes=15)
+    existing = await payment_orders_collection.find_one(
+        {"linked_id": student["id"], "payment_type": "internship_signup", "status": "created", "created_at": {"$gte": recent_cutoff}},
+        sort=[("created_at", -1)],
+    )
+    if existing:
+        return PaymentOrderOut(
+            order_id=existing["order_id"], payment_session_id=existing["payment_session_id"],
+            amount=existing["amount"], cashfree_env=os.environ.get("CASHFREE_ENV", "sandbox"),
+        )
+
+    order_id = new_order_id(f"INT{student.get('intern_id', '')}")
+    amount = student.get("payment_amount", 2000)
+    return_url = f"{SITE_URL}/portal/student?order_id={{order_id}}"
+    notify_url = f"{os.environ.get('BACKEND_PUBLIC_URL', '').rstrip('/')}/api/internship/payment/webhook"
+
+    try:
+        cf_resp = await cf_create_order(
+            order_id=order_id, amount=amount, customer_id=student["id"],
+            customer_phone=student["phone"], customer_email=student.get("email"),
+            return_url=return_url, notify_url=notify_url,
+            order_note=f"TFD Internship signup — {student.get('duration_days')} days — {student['name']}",
+        )
+    except CashfreeError:
+        logger.exception("Cashfree create_order failed for internship signup")
+        raise HTTPException(status_code=502, detail="Could not start payment right now — please try again in a moment.")
+
+    now = datetime.now(timezone.utc)
+    await payment_orders_collection.insert_one({
+        "id": str(uuid.uuid4()), "order_id": order_id, "cf_order_id": cf_resp.get("cf_order_id"),
+        "payment_session_id": cf_resp.get("payment_session_id"), "payment_type": "internship_signup",
+        "amount": amount, "currency": "INR", "status": "created",
+        "linked_id": student["id"], "customer_email": student.get("email"), "customer_phone": student["phone"],
+        "cf_payment_id": None, "created_at": now, "paid_at": None,
+    })
+    return PaymentOrderOut(
+        order_id=order_id, payment_session_id=cf_resp.get("payment_session_id"),
+        amount=amount, cashfree_env=os.environ.get("CASHFREE_ENV", "sandbox"),
+    )
+
+
+@router.get("/payment/status/{order_id}", response_model=PaymentStatusOut)
+async def get_payment_status(order_id: str, payload: dict = Depends(get_current_student_payload)):
+    order = await payment_orders_collection.find_one({"order_id": order_id, "linked_id": payload["sub"]})
+    if not order:
+        raise HTTPException(status_code=404, detail="Order not found")
+    student = await internship_students_collection.find_one({"id": payload["sub"]})
+    return PaymentStatusOut(order_id=order_id, order_status=order["status"], payment_status=student.get("payment_status", "pending"))
+
+
+@router.post("/payment/webhook")
+async def cashfree_webhook(request: Request):
+    """Public — called server-to-server by Cashfree, never by a browser.
+    The signature check below is the ONLY thing standing between this
+    endpoint and anyone on the internet claiming a payment succeeded, so it
+    is mandatory and never skipped, regardless of what the payload claims."""
+    raw_body = await request.body()
+    timestamp = request.headers.get("x-webhook-timestamp", "")
+    signature = request.headers.get("x-webhook-signature", "")
+
+    if not verify_webhook_signature(raw_body, timestamp, signature):
+        logger.warning("Cashfree webhook signature verification failed")
+        raise HTTPException(status_code=401, detail="Invalid signature")
+
+    try:
+        payload = json.loads(raw_body)
+    except Exception:
+        raise HTTPException(status_code=400, detail="Invalid payload")
+
+    event_type = payload.get("type", "")
+    order_data = (payload.get("data") or {}).get("order") or {}
+    payment_data = (payload.get("data") or {}).get("payment") or {}
+    order_id = order_data.get("order_id")
+    if not order_id:
+        return {"status": "ignored", "reason": "no order_id in payload"}
+
+    order = await payment_orders_collection.find_one({"order_id": order_id})
+    if not order:
+        logger.warning("Cashfree webhook for unknown order_id: %s", order_id)
+        return {"status": "ignored", "reason": "unknown order"}
+
+    if order["status"] == "paid":
+        return {"status": "already_processed"}
+
+    is_success = event_type == "PAYMENT_SUCCESS_WEBHOOK" or payment_data.get("payment_status") == "SUCCESS"
+    now = datetime.now(timezone.utc)
+
+    if is_success:
+        await payment_orders_collection.update_one(
+            {"order_id": order_id},
+            {"$set": {"status": "paid", "paid_at": now, "cf_payment_id": payment_data.get("cf_payment_id")}},
+        )
+        if order["payment_type"] == "internship_signup":
+            await _mark_student_paid(order["linked_id"], "cashfree_webhook")
+    else:
+        await payment_orders_collection.update_one({"order_id": order_id}, {"$set": {"status": "failed"}})
+
+    return {"status": "processed"}
 
 
 # ── Weekly task engine & submissions ──────────────────────────────────

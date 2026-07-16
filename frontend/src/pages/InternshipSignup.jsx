@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { ArrowLeft, ArrowUpRight, TrendingUp, Heart, Megaphone, Landmark, Video } from "lucide-react";
 import { toast } from "sonner";
 import { useInternshipAuth } from "../portal/student/InternshipAuthContext";
+import { openCashfreeCheckout } from "../lib/cashfree";
 
 const API_BASE = process.env.REACT_APP_BACKEND_URL || "";
 const MAIN_LOGO_URL = "/assets/logos/TFD-MAIN-LOGO.png";
@@ -66,8 +67,23 @@ export default function InternshipSignup() {
       } catch {
         // Non-fatal — student can still pick a track from their dashboard.
       }
-      toast.success("Welcome to TFD Internship!");
-      navigate("/portal/student");
+      toast.success("Account created — let's secure your seat.");
+
+      try {
+        const orderRes = await fetch(`${API_BASE}/api/internship/payment/create-order`, {
+          method: "POST",
+          headers: { Authorization: `Bearer ${data.access_token}` },
+        });
+        const orderData = await orderRes.json().catch(() => ({}));
+        if (!orderRes.ok) throw new Error(orderData.detail || "Could not start payment");
+        // Navigates the browser to Cashfree's hosted checkout — nothing
+        // after this line runs in this page load on success. On return,
+        // /portal/student picks up ?order_id=... and confirms the status.
+        await openCashfreeCheckout(orderData.payment_session_id, orderData.cashfree_env);
+      } catch (payErr) {
+        toast.error((payErr && payErr.message) || "Payment could not be started — you can retry from your dashboard.");
+        navigate("/portal/student");
+      }
     } catch {
       toast.error("Something went wrong. Please try again.");
       setSubmitting(false);
@@ -212,8 +228,8 @@ export default function InternshipSignup() {
             className="w-full flex items-center justify-center gap-2 bg-[#14E0A0] hover:bg-[#0FCB8F] disabled:opacity-50 text-[#050B16] font-bold text-sm py-3 rounded-xl shadow-[0_8px_24px_rgba(20,224,160,0.3)] transition-all mt-2"
           >
             {submitting
-              ? "Creating your account..."
-              : `Create Account & Continue — ₹${DURATIONS.find((d) => d.days === form.duration_days)?.price}`} <ArrowUpRight size={16} />
+              ? "Setting things up..."
+              : `Create Account & Pay ₹${DURATIONS.find((d) => d.days === form.duration_days)?.price}`} <ArrowUpRight size={16} />
           </button>
         </form>
       </div>
