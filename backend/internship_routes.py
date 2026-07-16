@@ -225,9 +225,14 @@ async def _reset_demo_student(student_id: str) -> dict:
                 "status": "active", "program_start_date": now, "assigned_tasks": {},
                 "warning_count": 0, "quiz_pass_count": 0, "last_quiz_score": None, "radar_scores": {},
                 "video_consent": False, "video_review_url": None, "video_review_submitted_at": None,
+                "no_pan": False, "profile_completed": False,
                 "updated_at": now,
             },
-            "$unset": {"ban_reason": "", "banned_at": "", "certificate_id": "", "letter_id": "", "report_id": "", "graduated_at": ""},
+            "$unset": {
+                "ban_reason": "", "banned_at": "", "certificate_id": "", "letter_id": "", "report_id": "", "graduated_at": "",
+                "dob": "", "photo_r2_key": "", "gender": "", "aadhar_number": "", "pan_number": "", "college_id_number": "",
+                "agreement_signature_r2_key": "", "agreement_signed_at": "", "agreement_signed_location": "",
+            },
         },
     )
     return await internship_students_collection.find_one({"id": student_id})
