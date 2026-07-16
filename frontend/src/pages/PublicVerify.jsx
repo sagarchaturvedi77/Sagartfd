@@ -27,7 +27,15 @@ export default function PublicVerify() {
     setLoading(true);
     setResult(null);
     try {
-      const path = type === "employee" ? `/api/verify/${encodeURIComponent(code.trim())}` : `/api/verify/certificate/${encodeURIComponent(code.trim())}`;
+      // Certificate numbers print with slashes (e.g. TFD/INTP/2026/123456), but
+      // a literal "/" in a URL path segment breaks routing (it gets treated as
+      // an extra path separator) — the QR code already encodes it with dashes
+      // instead (see certificate_routes.py's _verify_url), so manual entry
+      // needs the same conversion or a copy-pasted certificate number silently
+      // fails to verify even though it's perfectly valid.
+      const path = type === "employee"
+        ? `/api/verify/${encodeURIComponent(code.trim())}`
+        : `/api/verify/certificate/${encodeURIComponent(code.trim().replace(/\//g, "-"))}`;
       const res = await fetch(`${API_BASE}${path}`);
       if (res.ok) setResult({ ok: true, data: await res.json() });
       else setResult({ ok: false });
