@@ -527,6 +527,9 @@ app.include_router(letterhead_router)
 from document_search_routes import router as document_search_router
 app.include_router(document_search_router)
 
+from internship_routes import router as internship_router
+app.include_router(internship_router)
+
 app.add_middleware(
     CORSMiddleware,
     allow_credentials=True,

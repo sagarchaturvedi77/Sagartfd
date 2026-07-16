@@ -130,7 +130,7 @@ async def verify_certificate(request: Request, certificate_number: str):
     TFD-INT-2026-0001), so normalize back before querying."""
     normalized = certificate_number.replace("-", "/")
     cert = await certificates_collection.find_one(
-        {"certificate_number": normalized, "type": {"$in": ["internship", "employee", "achievement", "letterhead"]}},
+        {"certificate_number": normalized, "type": {"$in": ["internship", "employee", "achievement", "letterhead", "internship_program"]}},
         {"_id": 0},
     )
     if not cert:
@@ -178,7 +178,7 @@ async def request_certificate_regeneration(request: Request, certificate_number:
     follow-up once a payment gateway is integrated."""
     normalized = certificate_number.replace("-", "/")
     cert = await certificates_collection.find_one(
-        {"certificate_number": normalized, "type": {"$in": ["internship", "employee", "achievement", "letterhead"]}},
+        {"certificate_number": normalized, "type": {"$in": ["internship", "employee", "achievement", "letterhead", "internship_program"]}},
     )
     if not cert:
         raise HTTPException(status_code=404, detail="Certificate not found")

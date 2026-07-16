@@ -17,7 +17,7 @@ import {
   LayoutDashboard, Clock, Users, Briefcase, GitBranch, Landmark, BarChart3,
   FolderOpen, Palmtree, KeyRound, Megaphone, Globe, Settings, Calculator,
   UserCircle, LogOut, Menu, Languages, MessageCircle, Sun, Moon, MoreHorizontal,
-  Wallet, IdCard, Download, Smartphone, X, Send, HardDrive, GraduationCap, Receipt, FileText, Search,
+  Wallet, IdCard, Download, Smartphone, X, Send, HardDrive, GraduationCap, Receipt, FileText, Search, Rocket,
 } from "lucide-react";
 
 // Salary, ID Card and Team Chat are intentionally not top-level sidebar items —
@@ -37,6 +37,7 @@ const adminItems = [
   { key: "documents",  label: "Documents",         path: "/portal/admin/documents", icon: FolderOpen },
   { key: "leaves",     label: "Leave Requests",    path: "/portal/admin/leaves", icon: Palmtree },
   { key: "certificates", label: "Certificates",     path: "/portal/admin/certificates", icon: GraduationCap },
+  { key: "internship",  label: "TFD Internship",    path: "/portal/admin/internship", icon: Rocket },
   { key: "letterheads", label: "Blank Letterhead",  path: "/portal/admin/letterheads", icon: FileText },
   { key: "invoices",   label: "Billing / Invoices", path: "/portal/admin/invoices", icon: Receipt },
   { key: "document-search", label: "Document Search", path: "/portal/admin/document-search", icon: Search },

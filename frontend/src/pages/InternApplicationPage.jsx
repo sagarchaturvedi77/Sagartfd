@@ -172,6 +172,10 @@ export default function InternApplicationPage() {
       <div className="relative flex items-center gap-3">
         <img src={LOGO_URL} alt="The Financial Doctor" className="h-11 bg-white rounded-lg p-1.5 object-contain" />
         <img src={INTERNSHIP_LOGO_URL} alt="TFD Internship" className="h-8 object-contain" />
+        <div className="leading-tight">
+          <div className="text-sm font-bold text-white">TFD Internship</div>
+          <div className="text-[9px] text-[#14E0A0] font-semibold tracking-wide">Learn. Build. Launch.</div>
+        </div>
       </div>
 
       <div className="relative">
@@ -225,6 +229,10 @@ export default function InternApplicationPage() {
               <img src={LOGO_URL} alt="The Financial Doctor" className="h-12 rounded-xl object-contain" />
               <div className="w-px h-8 bg-[#D8CDB0]" />
               <img src={INTERNSHIP_LOGO_URL} alt="TFD Internship" className="h-9 object-contain" />
+              <div className="text-left leading-tight">
+                <div className="text-sm font-bold text-[#0E1B2C]">TFD Internship</div>
+                <div className="text-[9px] text-[#0E7A55] font-semibold tracking-wide">Learn. Build. Launch.</div>
+              </div>
             </div>
             <h1 className="font-display text-2xl font-medium text-[#0E1B2C]">Internship Application</h1>
             <p className="text-sm text-[#5C677D] mt-1.5">Apply for an internship at The Financial Doctor</p>

@@ -41,3 +41,12 @@ invoices_collection = db["invoices"]
 interns_collection = db["interns"]
 business_settings_collection = db["business_settings"]
 password_resets_collection = db["password_resets"]
+# TFD Internship (gamified program) — separate from the interns_collection
+# KYC-application/offer-letter pipeline above; only converges with the
+# certificate/QR system at Day-45 graduation (see internship_routes.py).
+internship_students_collection = db["internship_students"]
+internship_task_pool_collection = db["internship_task_pool"]
+internship_submissions_collection = db["internship_submissions"]
+internship_quiz_questions_collection = db["internship_quiz_questions"]
+internship_quiz_attempts_collection = db["internship_quiz_attempts"]
+internship_reports_collection = db["internship_reports"]

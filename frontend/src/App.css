@@ -1,4 +1,14 @@
 /* App-level styles intentionally minimal — see index.css for global tokens */
-.App { 
-  min-height: 100vh; 
+.App {
+  min-height: 100vh;
+}
+
+/* Pulsing neon-green dot next to the "Internship" navbar item */
+@keyframes nav-pulse {
+  0% { transform: scale(0.85); opacity: 0.7; }
+  50% { transform: scale(1.25); opacity: 1; }
+  100% { transform: scale(0.85); opacity: 0.7; }
+}
+.animate-nav-pulse {
+  animation: nav-pulse 1.6s ease-in-out infinite;
 }

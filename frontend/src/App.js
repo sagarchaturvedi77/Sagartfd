@@ -69,6 +69,21 @@ import EmployeeAgreement from "./pages/EmployeeAgreement";
 import PublicVerifyEmployee from "./pages/PublicVerifyEmployee";
 import PublicVerify from "./pages/PublicVerify";
 import InternApplicationPage from "./pages/InternApplicationPage";
+import InternshipLandingPage from "./pages/InternshipLandingPage";
+import InternshipSignup from "./pages/InternshipSignup";
+import InternshipLogin from "./pages/InternshipLogin";
+import StudentDashboard from "./pages/StudentDashboard";
+import StudentMissions from "./pages/StudentMissions";
+import StudentProfile from "./pages/StudentProfile";
+import InternIDCardPage from "./pages/InternIDCardPage";
+import StudentQuiz from "./pages/StudentQuiz";
+import StudentLeaderboard from "./pages/StudentLeaderboard";
+import StudentReport from "./pages/StudentReport";
+import StudentCertificate from "./pages/StudentCertificate";
+import PublicVerifyIntern from "./pages/PublicVerifyIntern";
+import AdminInternship from "./pages/AdminInternship";
+import { InternshipAuthProvider } from "./portal/student/InternshipAuthContext";
+import StudentProtectedRoute from "./portal/student/StudentProtectedRoute";
 
 // 🩺 TEMPORARY PLACEHOLDERS (Design ready hone par inhe alag files me daal denge)
 const TermInsurancePage = () => <div className="min-h-screen bg-[#FBF7EE] p-20 text-center text-3xl font-serif">Term Insurance Solutions (Coming Soon)</div>;
@@ -83,6 +98,7 @@ function App() {
         <ModalProvider>
           <ThemeProvider>
           <AuthProvider>
+          <InternshipAuthProvider>
           <CallReturnProvider>
             <BrowserRouter>
               <AnalyticsTracker />
@@ -453,6 +469,86 @@ element={
                 <Route path="/verify" element={<PublicVerify />} />
                 <Route path="/intern-application" element={<InternApplicationPage />} />
                 <Route path="/verify/:employee_id" element={<PublicVerifyEmployee />} />
+                <Route path="/verify/intern/:intern_id" element={<PublicVerifyIntern />} />
+
+                {/* 🎓 TFD Internship — gamified 45-day program (own login,
+                    fully separate from TFD Workspace staff/employee auth —
+                    see portal/student/InternshipAuthContext.jsx) */}
+                <Route path="/internship" element={<InternshipLandingPage />} />
+                <Route path="/internship/apply" element={<InternshipSignup />} />
+                <Route path="/internship/login" element={<InternshipLogin />} />
+                <Route
+                  path="/portal/student"
+                  element={
+                    <StudentProtectedRoute>
+                      <StudentDashboard />
+                    </StudentProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/portal/student/missions"
+                  element={
+                    <StudentProtectedRoute>
+                      <StudentMissions />
+                    </StudentProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/portal/student/profile"
+                  element={
+                    <StudentProtectedRoute>
+                      <StudentProfile />
+                    </StudentProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/portal/student/id-card"
+                  element={
+                    <StudentProtectedRoute>
+                      <InternIDCardPage />
+                    </StudentProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/portal/student/quiz"
+                  element={
+                    <StudentProtectedRoute>
+                      <StudentQuiz />
+                    </StudentProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/portal/student/leaderboard"
+                  element={
+                    <StudentProtectedRoute>
+                      <StudentLeaderboard />
+                    </StudentProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/portal/student/report"
+                  element={
+                    <StudentProtectedRoute>
+                      <StudentReport />
+                    </StudentProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/portal/student/certificate"
+                  element={
+                    <StudentProtectedRoute>
+                      <StudentCertificate />
+                    </StudentProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/portal/admin/internship"
+                  element={
+                    <ProtectedRoute requiredRole="admin">
+                      <AdminInternship />
+                    </ProtectedRoute>
+                  }
+                />
                 <Route
                   path="/portal/employee/profile"
                   element={
@@ -491,6 +587,7 @@ element={
               }}
             />
           </CallReturnProvider>
+          </InternshipAuthProvider>
           </AuthProvider>
           </ThemeProvider>
         </ModalProvider>

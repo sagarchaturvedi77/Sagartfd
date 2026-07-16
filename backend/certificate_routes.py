@@ -41,7 +41,10 @@ def _duration_label(start: str, end: str) -> str:
     return f"{days} days"
 
 
-_SEQ_CODE_MAP = {"internship": "INT", "employee": "EMP", "offer_letter": "OL", "completion_letter": "CL", "experience_letter": "EXP"}
+_SEQ_CODE_MAP = {
+    "internship": "INT", "employee": "EMP", "offer_letter": "OL", "completion_letter": "CL", "experience_letter": "EXP",
+    "internship_program": "INTP", "internship_program_letter": "INTPL", "internship_program_report": "INTPR",
+}
 
 
 async def _next_sequence(cert_type: str, year: int) -> str:

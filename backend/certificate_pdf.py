@@ -409,6 +409,97 @@ def generate_completion_letter_pdf(data: dict, custom_body: Optional[str] = None
     return buf.getvalue()
 
 
+def generate_internship_program_letter_pdf(data: dict, verify_url: Optional[str] = None, certificate_number: Optional[str] = None) -> bytes:
+    """The TFD Internship gamified program's own completion letter —
+    deliberately NOT reusing build_completion_letter_body/generate_completion_letter_pdf,
+    which assume a manager_name/manager_designation and a KYC-flow department
+    (see certificate_content.py's DEPARTMENTS) that this self-paced,
+    automatically-graded program doesn't have. Issued alongside the
+    certificate at graduation, reusing that same certificate's QR/number.
+
+    data: name, college (optional), track_label, start_date, end_date,
+    duration_days, percentage."""
+    buf = io.BytesIO()
+    doc = SimpleDocTemplate(buf, pagesize=A4, topMargin=50 * mm, bottomMargin=48 * mm, leftMargin=22 * mm, rightMargin=26 * mm)
+    styles = _letter_styles()
+    elements = []
+
+    elements.append(Paragraph("TO WHOMSOEVER IT MAY CONCERN", ParagraphStyle("ToWhom", parent=styles["Normal"], alignment=TA_CENTER, fontSize=11, fontName="Helvetica-Bold")))
+    elements.append(Spacer(1, 10))
+
+    name = _title_case_name(data["name"])
+    first_name = name.split()[0]
+    college_clause = f", a student at <b>{_upper_text(data['college'])}</b>," if data.get("college") else ""
+    para1 = (
+        f"This is to certify that <b>{name}</b>{college_clause} has successfully completed the "
+        f"<b>TFD Internship Program</b> in the <b>{data['track_label']}</b> track, from "
+        f"<b>{_fmt_date(data['start_date'])}</b> to <b>{_fmt_date(data['end_date'])}</b>, a duration of "
+        f"<b>{data['duration_days']} days</b>, achieving a program score of <b>{data['percentage']}%</b>."
+    )
+    para2 = (
+        f"During this period, {first_name} completed a series of practical, task-based assignments and weekly "
+        f"assessments designed to build real-world professional skills in {data['track_label'].lower()} — "
+        "skills applicable at any organisation, not specific to any one industry."
+    )
+    para3 = (
+        f"We found {first_name} to be sincere and dedicated throughout the program, and wish them the very "
+        "best in their future endeavours."
+    )
+    for para in (para1, para2, para3):
+        elements.append(Paragraph(para, styles["TFDBody"]))
+
+    _signature_block(elements, styles)
+    decorator = make_formal_letter_decorator(
+        "TFD INTERNSHIP LETTER", show_internship_logo=True,
+        verify_url=verify_url, doc_number=certificate_number,
+    )
+    doc.build(elements, onFirstPage=decorator, onLaterPages=decorator)
+    return buf.getvalue()
+
+
+def generate_internship_report_pdf(data: dict) -> bytes:
+    """A compiled PDF of the student's own day-by-day report entries (what
+    they logged themselves via the Report page) — a snapshot taken at
+    graduation time, not live-synced afterward. Not publicly verifiable
+    (no QR) since it's the student's own self-written log, not an
+    institutional claim.
+
+    data: name, intern_id, track_label, start_date, end_date,
+    entries: [{date, what_learned, what_did}, ...] (already sorted)."""
+    buf = io.BytesIO()
+    doc = SimpleDocTemplate(buf, pagesize=A4, topMargin=50 * mm, bottomMargin=48 * mm, leftMargin=22 * mm, rightMargin=26 * mm)
+    styles = _letter_styles()
+    elements = []
+
+    name = _title_case_name(data["name"])
+    elements.append(Paragraph(
+        f"<b>{name}</b> ({data['intern_id']}) &middot; {data['track_label']} Track &middot; "
+        f"{_fmt_date(data['start_date'])} to {_fmt_date(data['end_date'])}",
+        styles["TFDMeta"],
+    ))
+    elements.append(Spacer(1, 12))
+
+    entry_style = ParagraphStyle("ReportEntryLabel", parent=styles["Normal"], fontSize=9, fontName="Helvetica-Bold", textColor=TFD_NAVY, spaceBefore=2)
+    entry_body = ParagraphStyle("ReportEntryBody", parent=styles["Normal"], fontSize=9.5, leading=13, textColor=colors.HexColor("#333333"), spaceAfter=8)
+    date_style = ParagraphStyle("ReportEntryDate", parent=styles["Normal"], fontSize=10.5, fontName="Helvetica-Bold", textColor=colors.HexColor("#0E1B2C"), spaceBefore=10, spaceAfter=3)
+
+    entries = data.get("entries") or []
+    if not entries:
+        elements.append(Paragraph("No report entries were logged during this program.", styles["TFDBody"]))
+    for e in entries:
+        elements.append(Paragraph(_fmt_date(e["date"]), date_style))
+        if e.get("what_learned"):
+            elements.append(Paragraph("What I Learned", entry_style))
+            elements.append(Paragraph(e["what_learned"].replace("\n", "<br/>"), entry_body))
+        if e.get("what_did"):
+            elements.append(Paragraph("What I Did", entry_style))
+            elements.append(Paragraph(e["what_did"].replace("\n", "<br/>"), entry_body))
+
+    decorator = make_formal_letter_decorator("INTERNSHIP REPORT", show_internship_logo=True)
+    doc.build(elements, onFirstPage=decorator, onLaterPages=decorator)
+    return buf.getvalue()
+
+
 def build_experience_letter_body(data: dict) -> str:
     """data: name, employee_id, designation, department, start_date, end_date."""
     name = _title_case_name(data["name"])

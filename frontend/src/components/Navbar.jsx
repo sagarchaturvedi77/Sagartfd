@@ -15,6 +15,7 @@ const links = [
   { id: "reviews", label: "Reviews", path: "/reviews" },
   { id: "contact", label: "Contact", path: "/contact" },
   { id: "career", label: "Career", path: "/career" },
+  { id: "internship", label: "Internship 🎓", path: "/internship", badge: true },
 ];
 
 export default function Navbar() {
@@ -67,6 +68,9 @@ export default function Navbar() {
               className="hover:text-[#024396] transition-colors relative font-medium text-[15px] cursor-pointer bg-transparent border-none outline-none"
             >
               {l.label}
+              {l.badge && (
+                <span className="absolute -top-1 -right-2.5 w-2 h-2 rounded-full bg-[#14E0A0] shadow-[0_0_6px_#14E0A0] animate-nav-pulse" />
+              )}
             </button>
           ))}
         </nav>
@@ -101,9 +105,12 @@ export default function Navbar() {
               <li key={l.id}>
                 <button
                   onClick={() => handleNavClick(l, true)}
-                  className="text-[#0E1B2C] text-lg font-display block text-left w-full cursor-pointer"
+                  className="text-[#0E1B2C] text-lg font-display block text-left w-full cursor-pointer relative"
                 >
                   {l.label}
+                  {l.badge && (
+                    <span className="inline-block ml-2 w-2 h-2 rounded-full bg-[#14E0A0] shadow-[0_0_6px_#14E0A0] animate-nav-pulse align-middle" />
+                  )}
                 </button>
               </li>
             ))}
