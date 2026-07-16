@@ -1,4 +1,5 @@
 import React from "react";
+import { Link } from "react-router-dom";
 import { Instagram, Youtube, Linkedin, MessageCircle, Sparkles, ShieldCheck } from "lucide-react";
 
 const LOGO_URL = "/assets/logos/TFD-MAIN-LOGO.png";
@@ -99,14 +100,14 @@ export default function Footer() {
 
 function FooterLogoBox({ href, src, label }) {
     return (
-        <a
-            href={href}
+        <Link
+            to={href}
             title={label}
             aria-label={label}
             className="w-14 h-14 rounded-lg bg-[#F6F1E8] border border-[#2A364B] flex items-center justify-center p-1.5 hover:border-[#C7102E] transition-colors shrink-0"
         >
             <img src={src} alt={label} className="w-full h-full object-contain" />
-        </a>
+        </Link>
     );
 }
 
