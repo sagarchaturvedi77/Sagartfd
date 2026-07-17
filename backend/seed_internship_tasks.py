@@ -272,7 +272,19 @@ FINANCE_TASKS = [
      "mistake_explanation": "If Assets doesn't equal Liabilities + Equity, something was misclassified — usually a "
                              "liability treated as an asset (or vice versa), or a formula that hand-typed a total "
                              "instead of referencing cells. In a real company, a Balance Sheet that doesn't balance "
-                             "can't be filed or audited — it's not a minor rounding issue, it means the books are wrong."},
+                             "can't be filed or audited — it's not a minor rounding issue, it means the books are wrong.",
+     "hints": [
+         "Hint 1: An asset is something the business OWNS (Cash, Accounts Receivable, Inventory, Furniture). A liability is something it OWES (Accounts Payable, Bank Loan). Equity is the owner's own stake (Capital, plus profit, minus drawings).",
+         "Hint 2: Net Profit (B15) = Sales Revenue − COGS − Rent − Salaries. Use a formula referencing C9, B10, B11, B12 — don't type the final number by hand.",
+         "Hint 3: Closing Capital (B20) = Owner's Capital + Net Profit − Drawings. If B18 (Total Assets) doesn't equal B21 (Total Liabilities + Equity) after this, re-check which items you classified as assets vs liabilities.",
+     ],
+     "sample_solution": "Worked example using the same structure (different numbers): if Cash=50000, AR=30000, Inventory=80000, "
+                         "Furniture=40000 → Total Assets = 50000+30000+80000+40000 = 200000. If AP=20000, Bank Loan=60000 → "
+                         "Total Liabilities = 80000. If Capital=100000, Net Profit=30000, Drawings=10000 → Closing Capital = "
+                         "100000+30000-10000=120000. Total Liabilities+Equity = 80000+120000 = 200000 — matches Total Assets. "
+                         "The written explanation should say: this equality isn't a coincidence, it's a rule (double-entry "
+                         "accounting) — every asset the business holds was paid for either by borrowing (liability) or by "
+                         "the owner's own money (equity), so the two sides can never legitimately disagree."},
 
     {"track": "finance", "title": "Monthly P&L Statement", "phase": 1, "difficulty": "medium",
      "points_value": 85, "deliverable_type": "text_and_spreadsheet", "requires_geotag": False, "estimated_duration": "1.5-2.5 hours",
@@ -318,9 +330,12 @@ FINANCE_TASKS = [
      "brief": "You've been handed Meridian Textiles Ltd's full Balance Sheet + P&L snapshot for the year. Calculate the 4 standard health-check ratios and form your own judgment on whether this company is financially healthy.",
      "why_it_matters": "This is the exact exercise a credit analyst, an investor, or a lender runs before deciding whether to trust a company with money — a capstone-level, judgment-heavy task, not a formula-filling exercise.",
      "instructions": "No step-by-step this time — you're given the raw financial data (rows 2-11) and need to work out the 4 ratios yourself in rows 14-17: Current Ratio, Quick Ratio, Net Profit Margin %, and ROI % (using Shareholders' Equity as the investment base). Then write a 200-word summary: is Meridian Textiles Ltd financially healthy? Use all 4 ratios you calculated to support your answer, and call out at least one risk or concern if you see one.",
-     "spreadsheet_template": _TASK7_TEMPLATE, "spreadsheet_answer_key": _TASK7_ANSWER_KEY},
+     "spreadsheet_template": _TASK7_TEMPLATE, "spreadsheet_answer_key": _TASK7_ANSWER_KEY, "is_blindfold": False},
 
-    {"track": "finance", "title": "Build a Monthly Financial Dashboard", "phase": 3, "difficulty": "hard",
+    # Grand Finale / Blindfold — no hints, no sample solution, English-only,
+    # moderately (not perfectionist-ly) stricter grading. See
+    # backend/internship_routes.py's _phase_for_week/is_blindfold handling.
+    {"track": "finance", "title": "Build a Monthly Financial Dashboard", "phase": 3, "is_blindfold": True, "difficulty": "hard",
      "points_value": 130, "deliverable_type": "text_and_spreadsheet", "requires_geotag": False, "estimated_duration": "3-4 hours",
      "brief": "110 raw transactions for the month are listed below — a mix of client payments (income) and vendor/operational payments (expenses), completely unsorted, exactly like a real bulk transaction export. Build a summary dashboard from it: total income, total expenses, net cash flow, and average transaction size — using formulas, not manual counting.",
      "why_it_matters": "This is literally what a finance analyst delivers every single month at almost any company — a clean summary dashboard built from a messy raw export. It's the closing, capstone-level task of the Finance track for a reason.",
@@ -962,9 +977,12 @@ async def seed():
             "estimated_duration": t.get("estimated_duration"),
             "is_active": True,
             "phase": t.get("phase"),
+            "is_blindfold": t.get("is_blindfold", False),
             "spreadsheet_template": t.get("spreadsheet_template"),
             "spreadsheet_answer_key": t.get("spreadsheet_answer_key"),
             "mistake_explanation": t.get("mistake_explanation"),
+            "hints": t.get("hints"),
+            "sample_solution": t.get("sample_solution"),
             "created_by": "seed_script",
             "created_at": datetime.now(timezone.utc),
         }
