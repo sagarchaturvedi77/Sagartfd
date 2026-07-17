@@ -1,6 +1,8 @@
 import React, { useEffect, useState, useCallback } from "react";
 import { useSearchParams } from "react-router-dom";
-import { Search, CheckCircle2, XCircle, ShieldCheck, RefreshCw } from "lucide-react";
+import { toast } from "sonner";
+import { Search, CheckCircle2, XCircle, ShieldCheck, RefreshCw, ChevronDown, ChevronUp, ClipboardList, NotebookPen, Award, Mail } from "lucide-react";
+import { openCashfreeCheckout } from "../lib/cashfree";
 
 const API_BASE = process.env.REACT_APP_BACKEND_URL || "";
 const LOGO_URL = "/assets/logos/TFD-MAIN-LOGO.png";
@@ -10,6 +12,7 @@ const WORKSPACE_LOGO_URL = "/assets/logos/TFD-WORKSPACE-LOGO.png";
 
 const TYPE_LABELS = {
   internship: "Internship Certificate",
+  internship_program: "TFD Internship Program Certificate",
   employee: "Employee Certificate",
   achievement: "Achievement",
   letterhead: "Official Letter",
@@ -44,6 +47,8 @@ export default function PublicVerify() {
     }
     setLoading(false);
   }, []);
+
+  const regenOrderId = searchParams.get("regen_order_id");
 
   useEffect(() => {
     const cert = searchParams.get("certificate");
@@ -104,6 +109,19 @@ export default function PublicVerify() {
             </button>
           </form>
 
+          {tab === "certificate" && (
+            <div className="px-5 pb-5">
+              {regenOrderId ? (
+                <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-3.5 flex items-start gap-2">
+                  <Mail size={15} className="text-emerald-600 shrink-0 mt-0.5" />
+                  <p className="text-xs text-emerald-800">Payment received! Your certificate and internship letter are being emailed to your registered email address now.</p>
+                </div>
+              ) : (
+                <InternshipRegenerateWidget />
+              )}
+            </div>
+          )}
+
           {result && (
             <div className="px-5 pb-5">
               {!result.ok ? (
@@ -130,9 +148,16 @@ export default function PublicVerify() {
         </div>
         <p className="text-center text-[10px] text-[#9AA5B4] mt-2.5">Powered by The Financial Doctor</p>
 
-        <p className="text-center text-[10px] text-[#9AA5B4] mt-3">
-          AMFI Registered · ARN-290298 · <a href="https://www.thefinancialdoctor.in" className="text-[#024396]">thefinancialdoctor.in</a>
-        </p>
+        {tab === "employee" && (
+          <p className="text-center text-[10px] text-[#9AA5B4] mt-3">
+            AMFI Registered · ARN-290298 · <a href="https://www.thefinancialdoctor.in" className="text-[#024396]">thefinancialdoctor.in</a>
+          </p>
+        )}
+        {tab === "certificate" && (
+          <p className="text-center text-[10px] text-[#9AA5B4] mt-3">
+            <a href="https://www.thefinancialdoctor.in" className="text-[#024396]">thefinancialdoctor.in</a>
+          </p>
+        )}
       </div>
     </div>
   );
@@ -174,6 +199,7 @@ function EmployeeResult({ data }) {
 }
 
 function CertificateResult({ data }) {
+  const isInternshipProgram = data.type === "internship_program";
   return (
     <div className="border-t border-[#E2D8C2] pt-4">
       <div className="text-center mb-4">
@@ -186,8 +212,9 @@ function CertificateResult({ data }) {
       <p className="text-center text-xs text-[#5C677D] mb-3 font-mono">{data.certificate_number}</p>
       <div className="bg-[#F5F1EB] rounded-xl p-3 text-xs space-y-1.5">
         <div className="flex justify-between"><span className="text-[#5C677D]">Type</span><span className="font-semibold text-[#0E1B2C]">{TYPE_LABELS[data.type] || data.type}</span></div>
-        {data.department && <div className="flex justify-between"><span className="text-[#5C677D]">Department</span><span className="font-semibold text-[#0E1B2C]">{data.department}</span></div>}
+        {(data.track_label || data.department) && <div className="flex justify-between"><span className="text-[#5C677D]">{isInternshipProgram ? "Track" : "Department"}</span><span className="font-semibold text-[#0E1B2C]">{data.track_label || data.department}</span></div>}
         {data.college && <div className="flex justify-between"><span className="text-[#5C677D]">College</span><span className="font-semibold text-[#0E1B2C]">{data.college}</span></div>}
+        {data.college_id_number && <div className="flex justify-between"><span className="text-[#5C677D]">College ID</span><span className="font-semibold text-[#0E1B2C]">{data.college_id_number}</span></div>}
         {data.father_name && <div className="flex justify-between"><span className="text-[#5C677D]">Father's Name</span><span className="font-semibold text-[#0E1B2C]">{data.father_name}</span></div>}
         {data.start_date && data.end_date ? (
           <div className="flex justify-between"><span className="text-[#5C677D]">Duration</span><span className="font-semibold text-[#0E1B2C]">{data.start_date} to {data.end_date}</span></div>
@@ -199,7 +226,81 @@ function CertificateResult({ data }) {
         <div className="flex justify-between"><span className="text-[#5C677D]">Issued on</span><span className="font-semibold text-[#0E1B2C]">{data.issue_date}</span></div>
       </div>
 
+      {isInternshipProgram && typeof data.percentage === "number" && (
+        <div className="mt-3 bg-[#0E1B2C] rounded-xl p-3.5">
+          <div className="flex items-center justify-between mb-1.5">
+            <span className="flex items-center gap-1.5 text-[11px] font-semibold text-white/70"><Award size={13} className="text-[#14E0A0]" /> Program Score</span>
+            <span className="text-sm font-bold text-[#14E0A0]">{data.percentage}%</span>
+          </div>
+          <div className="h-1.5 rounded-full bg-white/10 overflow-hidden">
+            <div className="h-full bg-gradient-to-r from-[#14E0A0] to-[#5EEAD4] rounded-full" style={{ width: `${Math.min(100, data.percentage)}%` }} />
+          </div>
+          <p className="text-[10px] text-white/40 mt-1.5">{data.earned_points} / {data.total_points} points earned across the full program</p>
+        </div>
+      )}
+
+      {isInternshipProgram && (data.completed_tasks?.length > 0 || data.daily_report?.length > 0) && (
+        <InternshipPortfolio tasks={data.completed_tasks || []} report={data.daily_report || []} />
+      )}
+
       <RegenerateSection certificateNumber={data.certificate_number} />
+    </div>
+  );
+}
+
+function InternshipPortfolio({ tasks, report }) {
+  const [expanded, setExpanded] = useState(null); // null | "tasks" | "report"
+
+  return (
+    <div className="mt-3 space-y-2">
+      {tasks.length > 0 && (
+        <div className="border border-[#E2D8C2] rounded-xl overflow-hidden">
+          <button
+            onClick={() => setExpanded(expanded === "tasks" ? null : "tasks")}
+            className="w-full flex items-center justify-between px-3.5 py-2.5 bg-white hover:bg-[#F5F1EB] transition-colors"
+          >
+            <span className="flex items-center gap-1.5 text-xs font-semibold text-[#0E1B2C]"><ClipboardList size={13} className="text-[#024396]" /> Completed Tasks ({tasks.length})</span>
+            {expanded === "tasks" ? <ChevronUp size={14} className="text-[#5C677D]" /> : <ChevronDown size={14} className="text-[#5C677D]" />}
+          </button>
+          {expanded === "tasks" && (
+            <div className="max-h-72 overflow-y-auto divide-y divide-[#E2D8C2] bg-[#FBF9F5]">
+              {tasks.map((t, i) => (
+                <div key={i} className="px-3.5 py-2.5">
+                  <div className="flex items-center justify-between gap-2 mb-1">
+                    <p className="text-xs font-semibold text-[#0E1B2C]">{t.task_title}</p>
+                    <span className="text-[10px] font-bold text-[#024396] shrink-0">+{t.points_awarded} pts</span>
+                  </div>
+                  <p className="text-[10px] text-[#5C677D]">Week {t.week_number}{t.had_photo ? " · Field task with photo" : ""}</p>
+                  {t.submitted_answer && <p className="text-[11px] text-[#2A364B]/80 mt-1 leading-relaxed line-clamp-3">{t.submitted_answer}</p>}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {report.length > 0 && (
+        <div className="border border-[#E2D8C2] rounded-xl overflow-hidden">
+          <button
+            onClick={() => setExpanded(expanded === "report" ? null : "report")}
+            className="w-full flex items-center justify-between px-3.5 py-2.5 bg-white hover:bg-[#F5F1EB] transition-colors"
+          >
+            <span className="flex items-center gap-1.5 text-xs font-semibold text-[#0E1B2C]"><NotebookPen size={13} className="text-[#024396]" /> Daily Report ({report.length} entries)</span>
+            {expanded === "report" ? <ChevronUp size={14} className="text-[#5C677D]" /> : <ChevronDown size={14} className="text-[#5C677D]" />}
+          </button>
+          {expanded === "report" && (
+            <div className="max-h-72 overflow-y-auto divide-y divide-[#E2D8C2] bg-[#FBF9F5]">
+              {report.map((r) => (
+                <div key={r.date} className="px-3.5 py-2.5">
+                  <p className="text-[10px] font-bold text-[#024396] mb-1">{r.date}</p>
+                  {r.what_learned && <p className="text-[11px] text-[#2A364B]/80 leading-relaxed"><b className="text-[#5C677D]">Learned:</b> {r.what_learned}</p>}
+                  {r.what_did && <p className="text-[11px] text-[#2A364B]/80 leading-relaxed mt-0.5"><b className="text-[#5C677D]">Did:</b> {r.what_did}</p>}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }
@@ -261,6 +362,123 @@ function RegenerateSection({ certificateNumber }) {
             {submitting ? "Sending request..." : "Request Regeneration — ₹499"}
           </button>
           <p className="text-[10px] text-[#5C677D] text-center">Our team will reach out to arrange payment before sending your documents.</p>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// Instant, self-service regeneration for TFD Internship (gamified program)
+// certificates specifically — search by certificate number, or by at least
+// 2 of your own KYC details, then pay ₹499 via Cashfree and both the
+// certificate and internship letter are emailed automatically on success.
+function InternshipRegenerateWidget() {
+  const [expanded, setExpanded] = useState(false);
+  const [mode, setMode] = useState("cert"); // "cert" | "details"
+  const [certNumber, setCertNumber] = useState("");
+  const [details, setDetails] = useState({ college_id_number: "", email: "", phone: "", aadhar_number: "" });
+  const [searching, setSearching] = useState(false);
+  const [found, setFound] = useState(null); // {certificate_number, name, masked_email} | null
+  const [paying, setPaying] = useState(false);
+
+  const detailsFilledCount = Object.values(details).filter((v) => v.trim()).length;
+
+  const buildSearchBody = () =>
+    mode === "cert" ? { certificate_number: certNumber.trim() } : { ...details };
+
+  const search = async () => {
+    if (mode === "cert" && !certNumber.trim()) {
+      toast.error("Please enter your certificate number.");
+      return;
+    }
+    if (mode === "details" && detailsFilledCount < 2) {
+      toast.error("Please fill in at least 2 details to search.");
+      return;
+    }
+    setSearching(true);
+    setFound(null);
+    try {
+      const res = await fetch(`${API_BASE}/api/internship/certificate/regenerate/search`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(buildSearchBody()),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || !data.found) {
+        toast.error("No matching certificate found — please double-check your details.");
+        return;
+      }
+      setFound(data);
+    } catch {
+      toast.error("Something went wrong. Please try again.");
+    }
+    setSearching(false);
+  };
+
+  const payAndRegenerate = async () => {
+    setPaying(true);
+    try {
+      const res = await fetch(`${API_BASE}/api/internship/certificate/regenerate/create-order`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(buildSearchBody()),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.detail || "Could not start payment");
+      await openCashfreeCheckout(data.payment_session_id, data.cashfree_env);
+    } catch (err) {
+      toast.error(err.message || "Could not start payment");
+      setPaying(false);
+    }
+  };
+
+  const smallField = "w-full px-3 py-2 rounded-lg border border-[#E2D8C2] text-xs focus:outline-none focus:ring-2 focus:ring-[#024396]/30 bg-white";
+
+  if (!expanded) {
+    return (
+      <button onClick={() => setExpanded(true)} className="w-full flex items-center justify-center gap-1.5 text-xs font-medium text-[#5C677D] hover:text-[#024396] transition-colors py-1">
+        <RefreshCw size={12} /> Lost your TFD Internship Certificate? Regenerate it — ₹499
+      </button>
+    );
+  }
+
+  return (
+    <div className="bg-[#F5F1EB] rounded-xl p-3.5 space-y-3">
+      <p className="text-xs font-semibold text-[#0E1B2C]">Find Your Certificate to Regenerate</p>
+
+      <div className="flex gap-1.5">
+        <button onClick={() => { setMode("cert"); setFound(null); }} className={`flex-1 py-1.5 rounded-lg text-[11px] font-semibold ${mode === "cert" ? "bg-[#024396] text-white" : "bg-white text-[#5C677D] border border-[#E2D8C2]"}`}>
+          By Certificate No.
+        </button>
+        <button onClick={() => { setMode("details"); setFound(null); }} className={`flex-1 py-1.5 rounded-lg text-[11px] font-semibold ${mode === "details" ? "bg-[#024396] text-white" : "bg-white text-[#5C677D] border border-[#E2D8C2]"}`}>
+          By My Details
+        </button>
+      </div>
+
+      {mode === "cert" ? (
+        <input value={certNumber} onChange={(e) => setCertNumber(e.target.value)} placeholder="e.g. TFD/INTP/2026/123456" className={smallField} />
+      ) : (
+        <div className="space-y-2">
+          <p className="text-[10px] text-[#5C677D]">Fill in at least 2 to search (helps us confirm it's really you):</p>
+          <input value={details.college_id_number} onChange={(e) => setDetails({ ...details, college_id_number: e.target.value })} placeholder="College ID Number" className={smallField} />
+          <input value={details.email} onChange={(e) => setDetails({ ...details, email: e.target.value })} placeholder="Email" className={smallField} />
+          <input value={details.phone} onChange={(e) => setDetails({ ...details, phone: e.target.value })} placeholder="Mobile Number" className={smallField} />
+          <input value={details.aadhar_number} onChange={(e) => setDetails({ ...details, aadhar_number: e.target.value })} placeholder="Aadhaar Number" className={smallField} />
+        </div>
+      )}
+
+      {!found ? (
+        <button onClick={search} disabled={searching} className="w-full py-2.5 rounded-lg bg-[#024396] text-white text-xs font-semibold hover:bg-[#023580] transition-colors disabled:opacity-50">
+          {searching ? "Searching..." : "Search My Certificate"}
+        </button>
+      ) : (
+        <div className="bg-white rounded-lg p-3 space-y-2 border border-emerald-200">
+          <p className="text-xs text-emerald-800 flex items-center gap-1.5"><CheckCircle2 size={13} className="text-emerald-600 shrink-0" /> Found: <b>{found.name}</b></p>
+          <p className="text-[11px] text-[#5C677D] font-mono">{found.certificate_number}</p>
+          <p className="text-[10px] text-[#5C677D]">Your certificate + internship letter will be emailed to <b>{found.masked_email}</b>.</p>
+          <button onClick={payAndRegenerate} disabled={paying} className="w-full py-2.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold transition-colors disabled:opacity-50">
+            {paying ? "Starting payment..." : "Pay ₹499 & Email My Documents"}
+          </button>
         </div>
       )}
     </div>

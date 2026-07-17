@@ -25,6 +25,22 @@ const CLAUSE_SUMMARY = [
 const field = "w-full bg-white/5 border border-white/15 rounded-xl px-3.5 py-2.5 text-sm text-white placeholder:text-white/25 focus:outline-none focus:border-[#14E0A0]/60";
 const readOnlyField = "w-full bg-white/[0.02] border border-white/10 rounded-xl px-3.5 py-2.5 text-sm text-white/50";
 
+// Groups digits into the standard "XXXX XXXX XXXX" Aadhaar display format
+// as the user types, and hard-caps at 12 digits — previously a plain text
+// input let in any length/characters and the backend only checked
+// min/max string length (12-14), so e.g. 14 digits of anything slipped through.
+function formatAadhaar(raw) {
+  const digits = raw.replace(/\D/g, "").slice(0, 12);
+  return digits.replace(/(\d{4})(?=\d)/g, "$1 ").trim();
+}
+
+// PAN is always exactly 10 uppercase alphanumeric characters (AAAAA9999A) —
+// uppercases as you type and hard-caps the length instead of accepting
+// free-form text.
+function formatPan(raw) {
+  return raw.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 10);
+}
+
 export default function StudentOnboarding() {
   const { student, token, refreshMe } = useInternshipAuth();
   const [step, setStep] = useState(1);
@@ -49,8 +65,16 @@ export default function StudentOnboarding() {
       toast.error("Please fill in all required fields.");
       return;
     }
+    if (kyc.aadhar_number.replace(/\D/g, "").length !== 12) {
+      toast.error("Aadhaar number must be exactly 12 digits.");
+      return;
+    }
     if (!kyc.no_pan && !kyc.pan_number.trim()) {
       toast.error("Enter your PAN number, or check 'I don't have a PAN card'.");
+      return;
+    }
+    if (!kyc.no_pan && !/^[A-Z]{5}[0-9]{4}[A-Z]$/.test(kyc.pan_number.trim())) {
+      toast.error("PAN must be in the format ABCDE1234F.");
       return;
     }
     setSaving(true);
@@ -200,13 +224,17 @@ export default function StudentOnboarding() {
             </div>
             <div>
               <label className="block text-[11px] font-semibold text-white/50 mb-1.5">Aadhaar Number *</label>
-              <input placeholder="XXXX XXXX XXXX" value={kyc.aadhar_number} onChange={(e) => setKyc({ ...kyc, aadhar_number: e.target.value })} className={field} />
+              <input
+                placeholder="XXXX XXXX XXXX" value={kyc.aadhar_number} inputMode="numeric" maxLength={14}
+                onChange={(e) => setKyc({ ...kyc, aadhar_number: formatAadhaar(e.target.value) })}
+                className={field}
+              />
             </div>
             <div>
               <label className="block text-[11px] font-semibold text-white/50 mb-1.5">PAN Number {!kyc.no_pan && "*"}</label>
               <input
-                placeholder="ABCDE1234F" value={kyc.pan_number} disabled={kyc.no_pan}
-                onChange={(e) => setKyc({ ...kyc, pan_number: e.target.value })}
+                placeholder="ABCDE1234F" value={kyc.pan_number} disabled={kyc.no_pan} maxLength={10}
+                onChange={(e) => setKyc({ ...kyc, pan_number: formatPan(e.target.value) })}
                 className={`${field} ${kyc.no_pan ? "opacity-40" : ""}`}
               />
               <label className="flex items-center gap-1.5 text-xs text-white/50 mt-2">

@@ -50,6 +50,13 @@ export default function InternshipLogin() {
           <div>
             <label className="block text-[11px] font-semibold text-white/50 uppercase tracking-wide mb-1.5">Password</label>
             <input required type="password" value={password} onChange={(e) => setPassword(e.target.value)} className={field} />
+            <button
+              type="button"
+              onClick={() => navigate("/internship/forgot-password")}
+              className="text-[11px] font-semibold text-[#14E0A0] hover:underline mt-2"
+            >
+              Forgot Password?
+            </button>
           </div>
           <button
             type="submit"

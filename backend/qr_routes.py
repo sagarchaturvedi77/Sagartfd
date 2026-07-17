@@ -20,9 +20,13 @@ from typing import Optional
 import qrcode
 import qrcode.image.svg
 from auth_utils import get_current_user_payload
-from database import users_collection, certificates_collection, interns_collection
+from database import (
+    users_collection, certificates_collection, interns_collection,
+    internship_students_collection, internship_submissions_collection, internship_reports_collection,
+)
 from notification_service import create_notification
 from rate_limit import limiter
+from internship_models import TRACK_LABELS
 
 router = APIRouter(prefix="/api/verify", tags=["qr"])
 
@@ -119,7 +123,10 @@ async def verify_employee(request: Request, employee_id: str):
 # (internal), Aadhaar/PAN (sensitive KYC), raw contact_email/contact_phone
 # (masked versions are added separately) — this endpoint is public and
 # unauthenticated.
-_CERT_PUBLIC_FIELDS = {"certificate_number", "person_name", "type", "department", "issue_date", "duration_label", "college"}
+_CERT_PUBLIC_FIELDS = {
+    "certificate_number", "person_name", "type", "department", "issue_date", "duration_label", "college",
+    "percentage", "earned_points", "total_points",
+}
 
 
 @router.get("/certificate/{certificate_number}")
@@ -158,6 +165,36 @@ async def verify_certificate(request: Request, certificate_number: str):
             out["end_date"] = intern.get("end_date")
             out["contact_email_masked"] = _mask_email(intern.get("contact_email"))
             out["contact_phone_masked"] = _mask_phone(intern.get("contact_phone"))
+
+    # TFD Internship (gamified program) certificates carry a full portfolio —
+    # this is deliberately richer than a typical certificate verify page
+    # (score, every completed task's actual submitted work, daily report)
+    # since the whole point is to double as an employer-facing "digital
+    # project report", not just a yes/no authenticity check. Still no
+    # phone/email/Aadhaar exposed — those stay behind the student's own login.
+    if cert.get("type") == "internship_program" and cert.get("internship_student_id"):
+        student = await internship_students_collection.find_one({"id": cert["internship_student_id"]})
+        if student:
+            out["college_id_number"] = student.get("college_id_number")
+            out["track_label"] = TRACK_LABELS.get(student.get("track"), student.get("track"))
+            out["program_start_date"] = student.get("program_start_date")
+            out["radar_scores"] = student.get("radar_scores", {})
+
+            tasks = []
+            async for sub in internship_submissions_collection.find(
+                {"student_id": student["id"], "status": "approved"}, {"_id": 0}
+            ).sort("submitted_at", 1):
+                tasks.append({
+                    "task_title": sub.get("task_title"), "week_number": sub.get("week_number"),
+                    "points_awarded": sub.get("points_awarded"), "submitted_answer": sub.get("text_answer"),
+                    "had_photo": bool(sub.get("photo_r2_key")), "submitted_at": sub.get("submitted_at"),
+                })
+            out["completed_tasks"] = tasks
+
+            report = []
+            async for entry in internship_reports_collection.find({"student_id": student["id"]}, {"_id": 0}).sort("date", 1):
+                report.append({"date": entry["date"], "what_learned": entry.get("what_learned"), "what_did": entry.get("what_did")})
+            out["daily_report"] = report
 
     return out
 

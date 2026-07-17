@@ -19,6 +19,7 @@ import logging
 import os
 import random
 import re
+import secrets
 import uuid
 from datetime import date, datetime, timedelta, timezone
 from math import ceil
@@ -38,6 +39,15 @@ from certificate_pdf import (
     generate_internship_report_pdf,
 )
 from certificate_routes import _next_sequence
+from email_service import (
+    document_email_html,
+    email_configured,
+    send_email_with_pdfs,
+    send_internship_password_reset_email,
+    send_internship_welcome_email,
+    INTERNSHIP_RESET_PASSWORD_URL,
+)
+from qr_routes import _mask_email, _mask_phone
 from database import (
     certificates_collection,
     internship_quiz_attempts_collection,
@@ -46,6 +56,7 @@ from database import (
     internship_students_collection,
     internship_submissions_collection,
     internship_task_pool_collection,
+    password_resets_collection,
     payment_orders_collection,
 )
 from internship_models import (
@@ -56,6 +67,7 @@ from internship_models import (
     TRACK_LABELS,
     AgreementSignIn,
     DobUpdateIn,
+    ForgotPasswordIn,
     GraduateIn,
     GraduationCheckOut,
     InternshipStudentInDB,
@@ -70,6 +82,9 @@ from internship_models import (
     ReportEntryOut,
     PaymentOrderOut,
     PaymentStatusOut,
+    RegenerateSearchIn,
+    RegenerateSearchOut,
+    ResetPasswordIn,
     StudentLoginIn,
     StudentOut,
     StudentSignupIn,
@@ -204,6 +219,16 @@ async def signup(request: Request, data: StudentSignupIn):
     await internship_students_collection.insert_one(doc)
     doc.pop("_id", None)
 
+    try:
+        # Track isn't chosen until the immediately-following PUT /track call
+        # in the real signup flow, so this is deliberately generic here.
+        send_internship_welcome_email(
+            student.email, student.name, student.intern_id,
+            TRACK_LABELS.get(student.track, "your chosen"), student.duration_days, student.payment_amount,
+        )
+    except Exception:
+        logger.exception("Internship welcome email failed for %s", student.email)  # never block signup on email failure
+
     token = create_access_token(student.id, "internship_student")
     return {"access_token": token, "token_type": "bearer", "student": _to_student_out(doc)}
 
@@ -250,6 +275,69 @@ async def login(request: Request, data: StudentLoginIn):
         doc = await _reset_demo_student(doc["id"])
     token = create_access_token(doc["id"], "internship_student")
     return {"access_token": token, "token_type": "bearer", "student": _to_student_out(doc)}
+
+
+@router.post("/forgot-password")
+@limiter.limit("5/minute")
+async def forgot_password(request: Request, data: ForgotPasswordIn):
+    """Public, unauthenticated. Mirrors auth_routes.py's employee/admin
+    forgot-password flow exactly, but scoped to internship_students_collection
+    with account_type tagged on the reset record — a token minted here can
+    never be replayed against the staff-portal reset-password endpoint or
+    vice versa, even though user_id collision is practically impossible
+    with UUIDs anyway."""
+    email = data.email.strip()
+    if not email:
+        raise HTTPException(status_code=400, detail="Please enter your registered email ID.")
+    student = await internship_students_collection.find_one({"email": {"$regex": f"^{re.escape(email)}$", "$options": "i"}})
+    not_registered = HTTPException(
+        status_code=404,
+        detail="Please check your email ID. This email is not registered with us. Enter your registered email ID to reset your password.",
+    )
+    if not student or not student.get("email"):
+        raise not_registered
+    if not email_configured():
+        raise HTTPException(status_code=503, detail="Email sending is not configured. Please contact your administrator.")
+
+    await password_resets_collection.delete_many({"user_id": student["id"], "account_type": "internship_student", "used": False})
+
+    token = secrets.token_urlsafe(32)
+    now = datetime.now(timezone.utc)
+    await password_resets_collection.insert_one({
+        "token": token,
+        "user_id": student["id"],
+        "account_type": "internship_student",
+        "created_at": now,
+        "expires_at": now + timedelta(minutes=20),
+        "used": False,
+    })
+
+    reset_url = f"{INTERNSHIP_RESET_PASSWORD_URL}?token={token}"
+    send_internship_password_reset_email(student["email"], student.get("name", "there"), reset_url)
+    return {"status": "sent"}
+
+
+@router.post("/reset-password")
+async def reset_password(data: ResetPasswordIn):
+    """Public, unauthenticated — the link from the internship forgot-password
+    email lands here. One-time use, 20-minute expiry, whichever comes first."""
+    record = await password_resets_collection.find_one({"token": data.token, "account_type": "internship_student"})
+    if not record or record.get("used"):
+        raise HTTPException(status_code=400, detail="This reset link is invalid or has already been used. Please request a new one.")
+
+    expires_at = record["expires_at"]
+    if expires_at.tzinfo is None:
+        expires_at = expires_at.replace(tzinfo=timezone.utc)
+    if expires_at < datetime.now(timezone.utc):
+        raise HTTPException(status_code=400, detail="This reset link has expired. Please request a new one.")
+
+    student = await internship_students_collection.find_one({"id": record["user_id"]})
+    if not student:
+        raise HTTPException(status_code=400, detail="This reset link is invalid or has already been used. Please request a new one.")
+
+    await internship_students_collection.update_one({"id": record["user_id"]}, {"$set": {"password_hash": hash_password(data.new_password)}})
+    await password_resets_collection.update_one({"token": data.token}, {"$set": {"used": True}})
+    return {"status": "password_reset"}
 
 
 @router.put("/track")
@@ -675,10 +763,151 @@ async def cashfree_webhook(request: Request):
         )
         if order["payment_type"] == "internship_signup":
             await _mark_student_paid(order["linked_id"], "cashfree_webhook")
+        elif order["payment_type"] == "certificate_regeneration":
+            await _email_regenerated_documents(order["linked_id"])
     else:
         await payment_orders_collection.update_one({"order_id": order_id}, {"$set": {"status": "failed"}})
 
     return {"status": "processed"}
+
+
+# ── Certificate regeneration (public, no login — ₹499 via Cashfree) ─────
+
+async def _find_regeneration_target(data: RegenerateSearchIn) -> dict | None:
+    """Returns the matched, graduated student doc (with a real certificate),
+    or None. By certificate number alone, OR by at least 2 of their own KYC
+    details together — a single field (e.g. just a phone number) is never
+    enough, to keep this hard to enumerate."""
+    if data.certificate_number and data.certificate_number.strip():
+        normalized = data.certificate_number.strip().replace("-", "/")
+        cert = await certificates_collection.find_one({"certificate_number": normalized, "type": "internship_program"})
+        if not cert or not cert.get("internship_student_id"):
+            return None
+        return await internship_students_collection.find_one({"id": cert["internship_student_id"]})
+
+    query = {}
+    if data.college_id_number and data.college_id_number.strip():
+        query["college_id_number"] = data.college_id_number.strip()
+    if data.email and data.email.strip():
+        query["email"] = data.email.strip().lower()
+    if data.phone and data.phone.strip():
+        query["phone"] = data.phone.strip()
+    if data.aadhar_number and data.aadhar_number.strip():
+        query["aadhar_number"] = data.aadhar_number.strip()
+    if len(query) < 2:
+        return None
+    return await internship_students_collection.find_one(query)
+
+
+@router.post("/certificate/regenerate/search", response_model=RegenerateSearchOut)
+@limiter.limit("10/minute")
+async def regenerate_search(request: Request, data: RegenerateSearchIn):
+    student = await _find_regeneration_target(data)
+    if not student or student.get("status") != "graduated" or not student.get("certificate_id"):
+        return RegenerateSearchOut(found=False)
+    cert = await certificates_collection.find_one({"id": student["certificate_id"]})
+    if not cert:
+        return RegenerateSearchOut(found=False)
+    return RegenerateSearchOut(found=True, certificate_number=cert["certificate_number"], name=student["name"], masked_email=_mask_email(student.get("email")))
+
+
+@router.post("/certificate/regenerate/create-order", response_model=PaymentOrderOut)
+@limiter.limit("5/minute")
+async def regenerate_create_order(request: Request, data: RegenerateSearchIn):
+    if not cashfree_configured():
+        raise HTTPException(status_code=503, detail="Payments aren't configured yet — please contact support.")
+    student = await _find_regeneration_target(data)
+    if not student or student.get("status") != "graduated" or not student.get("certificate_id"):
+        raise HTTPException(status_code=404, detail="No matching certificate found — please double-check your details.")
+    cert = await certificates_collection.find_one({"id": student["certificate_id"]})
+    if not cert:
+        raise HTTPException(status_code=404, detail="Certificate record not found")
+
+    # Duplicate-payment prevention — reuse a still-fresh order for this
+    # exact certificate instead of letting someone spam-create new ones.
+    recent_cutoff = datetime.now(timezone.utc) - timedelta(minutes=15)
+    existing = await payment_orders_collection.find_one(
+        {"linked_id": student["id"], "payment_type": "certificate_regeneration", "status": "created", "created_at": {"$gte": recent_cutoff}},
+        sort=[("created_at", -1)],
+    )
+    if existing:
+        return PaymentOrderOut(order_id=existing["order_id"], payment_session_id=existing["payment_session_id"], amount=existing["amount"], cashfree_env=os.environ.get("CASHFREE_ENV", "sandbox"))
+
+    order_id = new_order_id(f"REGEN{student.get('intern_id', '')}")
+    amount = 499
+    return_url = f"{SITE_URL}/verify?certificate={cert['certificate_number'].replace('/', '-')}&regen_order_id={{order_id}}"
+    notify_url = f"{os.environ.get('BACKEND_PUBLIC_URL', '').rstrip('/')}/api/internship/payment/webhook"
+
+    try:
+        cf_resp = await cf_create_order(
+            order_id=order_id, amount=amount, customer_id=student["id"],
+            customer_phone=student["phone"], customer_email=student.get("email"),
+            return_url=return_url, notify_url=notify_url,
+            order_note=f"Certificate regeneration — {cert['certificate_number']} — {student['name']}",
+        )
+    except CashfreeError:
+        logger.exception("Cashfree create_order failed for certificate regeneration")
+        raise HTTPException(status_code=502, detail="Could not start payment right now — please try again in a moment.")
+
+    now = datetime.now(timezone.utc)
+    await payment_orders_collection.insert_one({
+        "id": str(uuid.uuid4()), "order_id": order_id, "cf_order_id": cf_resp.get("cf_order_id"),
+        "payment_session_id": cf_resp.get("payment_session_id"), "payment_type": "certificate_regeneration",
+        "amount": amount, "currency": "INR", "status": "created",
+        "linked_id": student["id"], "certificate_number": cert["certificate_number"],
+        "customer_email": student.get("email"), "customer_phone": student["phone"],
+        "cf_payment_id": None, "created_at": now, "paid_at": None,
+    })
+    return PaymentOrderOut(order_id=order_id, payment_session_id=cf_resp.get("payment_session_id"), amount=amount, cashfree_env=os.environ.get("CASHFREE_ENV", "sandbox"))
+
+
+async def _email_regenerated_documents(student_id: str) -> None:
+    """Called from the webhook on a confirmed ₹499 payment — fetches the
+    student's ALREADY-issued certificate + internship letter PDFs from R2
+    (not regenerated from scratch, so the emailed copy always matches what
+    was actually issued) and emails both instantly to their registered
+    email."""
+    student = await internship_students_collection.find_one({"id": student_id})
+    if not student or not student.get("email") or not email_configured():
+        return
+
+    attachments = []
+    labels = []
+    for doc_id, prefix, label in [
+        (student.get("certificate_id"), "Certificate", "Internship Certificate"),
+        (student.get("letter_id"), "Internship_Letter", "Internship Letter"),
+    ]:
+        if not doc_id:
+            continue
+        cert_doc = await certificates_collection.find_one({"id": doc_id})
+        if not cert_doc or not cert_doc.get("r2_key"):
+            continue
+        try:
+            obj = r2_client().get_object(Bucket=R2_BUCKET_NAME, Key=cert_doc["r2_key"])
+            pdf_bytes = obj["Body"].read()
+        except Exception:
+            continue
+        attachments.append((f"{prefix}_{student['name'].replace(' ', '_')}.pdf", pdf_bytes))
+        labels.append(f"{label} ({cert_doc['certificate_number']})")
+
+    if not attachments:
+        logger.warning("Certificate regeneration: no documents found to email for student %s", student_id)
+        return
+
+    subject = "Your TFD Internship Certificate & Letter — Re-sent"
+    body_html = document_email_html(student["name"], labels, include_arn=False)
+    ok, message = send_email_with_pdfs(student["email"], subject, body_html, attachments)
+    if not ok:
+        logger.error("Certificate regeneration email failed for student %s: %s", student_id, message)
+
+
+@router.get("/admin/certificate-regenerations")
+async def admin_list_regenerations(_admin: dict = Depends(require_admin)):
+    docs = []
+    async for doc in payment_orders_collection.find({"payment_type": "certificate_regeneration"}).sort("created_at", -1):
+        doc.pop("_id", None)
+        docs.append(doc)
+    return docs
 
 
 # ── Weekly task engine & submissions ──────────────────────────────────
@@ -1491,11 +1720,31 @@ async def _generate_graduation_documents(student: dict, check: GraduationCheckOu
         {"date": e["date"], "what_learned": e.get("what_learned", ""), "what_did": e.get("what_did", "")}
         async for e in internship_reports_collection.find({"student_id": student["id"]}).sort("date", 1)
     ]
+    approved_submissions = [
+        {"week_number": s.get("week_number", 0), "task_title": s.get("task_title", "-"), "points_awarded": s.get("points_awarded") or 0, "status": s.get("status", "approved")}
+        async for s in internship_submissions_collection.find({"student_id": student["id"], "status": "approved"}).sort("week_number", 1)
+    ]
+    radar_scores_labelled = {
+        RADAR_CATEGORY_LABELS.get(k, k): v for k, v in (student.get("radar_scores") or {}).items()
+    }
+    report_photo_bytes = None
+    if student.get("photo_r2_key"):
+        try:
+            obj = r2_client().get_object(Bucket=R2_BUCKET_NAME, Key=student["photo_r2_key"])
+            report_photo_bytes = obj["Body"].read()
+        except Exception:
+            report_photo_bytes = None
     report_pdf = generate_internship_report_pdf({
-        "name": student["name"], "intern_id": student["intern_id"], "track_label": track_label,
+        "name": student["name"], "intern_id": student["intern_id"], "college": student.get("college"),
+        "college_id_number": student.get("college_id_number"), "course_year": student.get("course_year"),
+        "track_label": track_label,
         "start_date": student["program_start_date"].date().isoformat() if student.get("program_start_date") else issue_date,
-        "end_date": issue_date, "entries": report_entries,
-    })
+        "end_date": issue_date, "duration_days": duration_days, "status_label": "Graduated",
+        "percentage": check.percentage, "earned_points": check.earned_points, "total_points": check.total_points,
+        "quiz_pass_count": student.get("quiz_pass_count", 0), "last_quiz_score": student.get("last_quiz_score"),
+        "radar_scores": radar_scores_labelled, "submissions": approved_submissions, "entries": report_entries,
+        "certificate_number": cert_number,
+    }, photo_bytes=report_photo_bytes)
     report_id = str(uuid.uuid4())
     report_r2_key = None
     if r2_enabled():

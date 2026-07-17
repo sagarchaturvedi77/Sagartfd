@@ -4,6 +4,7 @@ standard build) rather than a browser print-to-PDF, because these need to
 be an actual stored file (R2 + pdf_url) for later download/email/
 verification, not just a one-off print dialog.
 """
+import functools
 import io
 import os
 import uuid
@@ -25,6 +26,17 @@ from reportlab.pdfbase.ttfonts import TTFont
 TFD_NAVY = colors.HexColor("#024396")
 TFD_CREAM = colors.HexColor("#F6F2E9")
 TFD_RED = colors.HexColor("#C7102E")
+
+# TFD Internship's own brand palette (dark navy + neon green) — deliberately
+# distinct from TFD_NAVY/TFD_CREAM above, which belong to the main MFD
+# business's letterhead. Matches InternshipLandingPage.jsx / the internship
+# email templates, so the report "feels" like the same product the student
+# has been using, not a repurposed employee letterhead.
+INTERNSHIP_DARK = colors.HexColor("#0B1424")
+INTERNSHIP_PANEL = colors.HexColor("#101E33")
+INTERNSHIP_ACCENT = colors.HexColor("#14E0A0")
+INTERNSHIP_ACCENT_DARK = colors.HexColor("#0FCB8F")
+INTERNSHIP_MUTED = colors.HexColor("#8592A6")
 
 ASSETS_DIR = os.path.join(os.path.dirname(__file__), "assets")
 LOGO_PATH = os.path.join(ASSETS_DIR, "tfd-main-logo.png")
@@ -457,33 +469,235 @@ def generate_internship_program_letter_pdf(data: dict, verify_url: Optional[str]
     return buf.getvalue()
 
 
-def generate_internship_report_pdf(data: dict) -> bytes:
-    """A compiled PDF of the student's own day-by-day report entries (what
-    they logged themselves via the Report page) — a snapshot taken at
-    graduation time, not live-synced afterward. Not publicly verifiable
-    (no QR) since it's the student's own self-written log, not an
-    institutional claim.
+PRINT_ACCENT_DARK = colors.HexColor("#0E9F6E")  # readable-on-white stand-in for INTERNSHIP_ACCENT, which is too light for body text
 
-    data: name, intern_id, track_label, start_date, end_date,
-    entries: [{date, what_learned, what_did}, ...] (already sorted)."""
+
+@functools.lru_cache(maxsize=2)
+def _faded_internship_logo_reader(opacity: float = 0.06):
+    """A pre-baked, low-opacity copy of the internship logo for use as a
+    watermark. reportlab's canvas.drawImage doesn't reliably honour
+    setFillAlpha for bitmaps the way it does for vector fills/strokes, so
+    the opacity is baked into the pixel alpha channel itself (once, then
+    lru_cached) rather than attempted at draw time."""
+    from PIL import Image as PILImage
+
+    if not os.path.exists(INTERNSHIP_LOGO_PATH):
+        return None
+    img = PILImage.open(INTERNSHIP_LOGO_PATH).convert("RGBA")
+    r, g, b, a = img.split()
+    img.putalpha(a.point(lambda p: int(p * opacity)))
     buf = io.BytesIO()
-    doc = SimpleDocTemplate(buf, pagesize=A4, topMargin=50 * mm, bottomMargin=48 * mm, leftMargin=22 * mm, rightMargin=26 * mm)
+    img.save(buf, format="PNG")
+    buf.seek(0)
+    return ImageReader(buf)
+
+
+def _report_decorator(student_name: str, intern_id: str, certificate_number: Optional[str] = None):
+    """Page background+header+footer for the internship report card — a
+    dark-navy/neon-green header band matching the internship product's own
+    branding (InternshipLandingPage.jsx / internship email templates), NOT
+    the plain shared TFD letterhead used for offer/completion letters.
+    Deliberately its own visual identity since the report is a rich program
+    transcript, not a formal signed letter."""
+    generated_on = date.today().strftime("%d %B %Y")
+
+    def _decorate(c, doc):
+        width, height = doc.pagesize
+        c.saveState()
+
+        watermark = _faded_internship_logo_reader()
+        if watermark:
+            iw, ih = watermark.getSize()
+            wm_w = 150 * mm
+            wm_h = wm_w * (ih / iw) if iw else wm_w
+            c.saveState()
+            c.translate(width / 2, height / 2)
+            c.rotate(22)
+            c.drawImage(watermark, -wm_w / 2, -wm_h / 2, width=wm_w, height=wm_h, mask="auto")
+            c.restoreState()
+
+        band_h = 40 * mm
+        c.setFillColor(INTERNSHIP_DARK)
+        c.rect(0, height - band_h, width, band_h, stroke=0, fill=1)
+        c.setFillColor(INTERNSHIP_ACCENT)
+        c.rect(0, height - band_h - 1.3 * mm, width, 1.3 * mm, stroke=0, fill=1)
+
+        if os.path.exists(INTERNSHIP_LOGO_PATH):
+            c.drawImage(INTERNSHIP_LOGO_PATH, 18 * mm, height - band_h + 8 * mm, width=34 * mm, height=22 * mm, mask="auto", preserveAspectRatio=True, anchor="sw")
+
+        c.setFont("Helvetica-Bold", 15)
+        c.setFillColor(colors.white)
+        c.drawString(58 * mm, height - 19 * mm, "TFD INTERNSHIP")
+        c.setFont("Helvetica-Bold", 8)
+        c.setFillColor(INTERNSHIP_ACCENT)
+        c.drawString(58 * mm, height - 25 * mm, "PROGRAM REPORT  •  LEARN. BUILD. LAUNCH.")
+
+        c.setFont("Helvetica-Bold", 10.5)
+        c.setFillColor(colors.white)
+        c.drawRightString(width - 18 * mm, height - 17 * mm, student_name)
+        c.setFont("Helvetica", 8.5)
+        c.setFillColor(INTERNSHIP_MUTED)
+        c.drawRightString(width - 18 * mm, height - 23 * mm, f"Intern ID: {intern_id}")
+
+        c.setFont("Helvetica", 7.5)
+        c.setFillColor(colors.HexColor("#8592A6"))
+        c.drawString(18 * mm, 20 * mm, f"Page {c.getPageNumber()}")
+        c.drawCentredString(width / 2, 20 * mm, f"Generated on {generated_on}  ·  thefinancialdoctor.in/internship")
+        footer_note = (
+            f"Official certificate: {certificate_number}  —  verify at thefinancialdoctor.in/verify"
+            if certificate_number else
+            "This program report is a compiled activity summary, issued alongside the official certificate."
+        )
+        c.setFont("Helvetica-Oblique", 7)
+        c.drawCentredString(width / 2, 15 * mm, footer_note)
+
+        c.restoreState()
+
+    return _decorate
+
+
+def _score_bar(score: float, width_mm: float = 100):
+    """A simple horizontal progress bar built from a 1-row Table (filled +
+    unfilled cell), used for the Skill Radar section — avoids pulling in a
+    charting library for one small visual."""
+    score = max(0, min(100, score or 0))
+    filled = round(width_mm * (score / 100), 1)
+    empty = round(width_mm - filled, 1)
+    if empty <= 0:
+        t = Table([[""]], colWidths=[width_mm * mm], rowHeights=[3.4 * mm])
+        t.setStyle(TableStyle([("BACKGROUND", (0, 0), (0, 0), INTERNSHIP_ACCENT)]))
+        return t
+    if filled <= 0:
+        t = Table([[""]], colWidths=[width_mm * mm], rowHeights=[3.4 * mm])
+        t.setStyle(TableStyle([("BACKGROUND", (0, 0), (0, 0), colors.HexColor("#E7ECF3"))]))
+        return t
+    t = Table([["", ""]], colWidths=[filled * mm, empty * mm], rowHeights=[3.4 * mm])
+    t.setStyle(TableStyle([
+        ("BACKGROUND", (0, 0), (0, 0), INTERNSHIP_ACCENT),
+        ("BACKGROUND", (1, 0), (1, 0), colors.HexColor("#E7ECF3")),
+    ]))
+    return t
+
+
+def _report_section_header(elements, text: str):
+    elements.append(Spacer(1, 12))
+    elements.append(Paragraph(text.upper(), ParagraphStyle(
+        "ReportSectionHead", fontSize=10.5, fontName="Helvetica-Bold", textColor=INTERNSHIP_DARK, spaceAfter=4,
+    )))
+    rule = Table([[""]], colWidths=[172 * mm], rowHeights=[0.6 * mm])
+    rule.setStyle(TableStyle([("BACKGROUND", (0, 0), (-1, -1), INTERNSHIP_ACCENT)]))
+    elements.append(rule)
+    elements.append(Spacer(1, 6))
+
+
+def generate_internship_report_pdf(data: dict, photo_bytes: Optional[bytes] = None) -> bytes:
+    """The TFD Internship gamified program's own "report card" — a rich
+    program transcript (score summary, skill radar, task-by-task
+    achievements, plus the student's own daily log), issued alongside the
+    certificate at graduation. Deliberately built on its own dark-navy/
+    neon-green branded layout (see _report_decorator) rather than the
+    shared plain TFD letterhead used for offer/completion letters, since
+    this carries institutional program data, not just a self-written log.
+
+    data: name, intern_id, college, college_id_number, course_year,
+    track_label, start_date, end_date, duration_days, status_label,
+    percentage, earned_points, total_points, quiz_pass_count,
+    last_quiz_score, radar_scores: {label: score_0_100} (already
+    human-labelled by the caller), submissions: [{week_number, task_title,
+    points_awarded, status}, ...], entries: [{date, what_learned,
+    what_did}, ...] (already sorted), certificate_number (optional, printed
+    in the footer as a cross-reference to the verifiable certificate)."""
+    buf = io.BytesIO()
+    doc = SimpleDocTemplate(buf, pagesize=A4, topMargin=50 * mm, bottomMargin=32 * mm, leftMargin=19 * mm, rightMargin=19 * mm)
     styles = _letter_styles()
     elements = []
 
     name = _title_case_name(data["name"])
-    elements.append(Paragraph(
-        f"<b>{name}</b> ({data['intern_id']}) &middot; {data['track_label']} Track &middot; "
-        f"{_fmt_date(data['start_date'])} to {_fmt_date(data['end_date'])}",
-        styles["TFDMeta"],
-    ))
-    elements.append(Spacer(1, 12))
 
-    entry_style = ParagraphStyle("ReportEntryLabel", parent=styles["Normal"], fontSize=9, fontName="Helvetica-Bold", textColor=TFD_NAVY, spaceBefore=2)
-    entry_body = ParagraphStyle("ReportEntryBody", parent=styles["Normal"], fontSize=9.5, leading=13, textColor=colors.HexColor("#333333"), spaceAfter=8)
-    date_style = ParagraphStyle("ReportEntryDate", parent=styles["Normal"], fontSize=10.5, fontName="Helvetica-Bold", textColor=colors.HexColor("#0E1B2C"), spaceBefore=10, spaceAfter=3)
+    name_cell = Paragraph(
+        f"<font size=16 color='#0B1424'><b>{name}</b></font><br/>"
+        f"<font size=9 color='#0E9F6E'><b>Intern ID: {data.get('intern_id', '')}</b></font>",
+        styles["Normal"],
+    )
+    header_row = [[name_cell, _fitted_image(photo_bytes, 26 * mm, 32 * mm, hAlign="RIGHT") if photo_bytes else Paragraph("", styles["Normal"])]]
+    name_row = Table(header_row, colWidths=[136 * mm, 36 * mm])
+    name_row.setStyle(TableStyle([("VALIGN", (0, 0), (-1, -1), "TOP"), ("ALIGN", (1, 0), (1, 0), "RIGHT")]))
+    elements.append(name_row)
+    elements.append(Spacer(1, 8))
+
+    detail_lines = [
+        f"<b>College:</b> {data.get('college') or '-'}",
+        f"<b>College ID No.:</b> {data.get('college_id_number') or '-'}",
+        f"<b>Course / Year:</b> {data.get('course_year') or '-'}",
+        f"<b>Track:</b> {data.get('track_label') or '-'}",
+        f"<b>Duration:</b> {_fmt_date(data['start_date'])} to {_fmt_date(data['end_date'])} ({data.get('duration_days', '-')} days)",
+        f"<b>Status:</b> {data.get('status_label') or '-'}",
+    ]
+    elements.append(Paragraph("<br/>".join(detail_lines), ParagraphStyle(
+        "ReportDetail", fontSize=9.5, leading=15, textColor=colors.HexColor("#2A364B"),
+    )))
+
+    _report_section_header(elements, "Program Score Summary")
+    stat_cells = [
+        (f"{data.get('percentage', 0)}%", "Program Score"),
+        (f"{data.get('earned_points', 0)} / {data.get('total_points', 0)}", "Points Earned"),
+        (str(data.get("quiz_pass_count", 0)), "Quizzes Passed"),
+        (f"{data['last_quiz_score']}%" if data.get("last_quiz_score") is not None else "-", "Last Quiz Score"),
+    ]
+    stat_row = Table(
+        [[Paragraph(f"<font size=15 color='#0E9F6E'><b>{v}</b></font><br/><font size=7.5 color='#5C677D'>{l}</font>", styles["Normal"]) for v, l in stat_cells]],
+        colWidths=[43 * mm] * 4,
+    )
+    stat_row.setStyle(TableStyle([
+        ("BACKGROUND", (0, 0), (-1, -1), colors.HexColor("#F1FBF7")),
+        ("BOX", (0, 0), (-1, -1), 0.6, colors.HexColor("#CFEFE1")),
+        ("INNERGRID", (0, 0), (-1, -1), 0.6, colors.HexColor("#CFEFE1")),
+        ("ALIGN", (0, 0), (-1, -1), "CENTER"),
+        ("TOPPADDING", (0, 0), (-1, -1), 8),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 8),
+    ]))
+    elements.append(stat_row)
+
+    radar_scores = data.get("radar_scores") or {}
+    if radar_scores:
+        _report_section_header(elements, "Skill Radar")
+        radar_rows = []
+        for label, score in radar_scores.items():
+            radar_rows.append([
+                Paragraph(label, ParagraphStyle("RadarLabel", fontSize=9, textColor=colors.HexColor("#2A364B"))),
+                _score_bar(score, width_mm=95),
+                Paragraph(f"{score:.0f}/100", ParagraphStyle("RadarScore", fontSize=9, fontName="Helvetica-Bold", textColor=PRINT_ACCENT_DARK)),
+            ])
+        radar_table = Table(radar_rows, colWidths=[38 * mm, 114 * mm, 20 * mm])
+        radar_table.setStyle(TableStyle([("VALIGN", (0, 0), (-1, -1), "MIDDLE"), ("BOTTOMPADDING", (0, 0), (-1, -1), 5)]))
+        elements.append(radar_table)
+
+    submissions = data.get("submissions") or []
+    _report_section_header(elements, "Task Achievements")
+    if submissions:
+        rows = [["Week", "Task", "Points", "Status"]]
+        for s in submissions:
+            rows.append([str(s.get("week_number", "-")), s.get("task_title", "-"), str(s.get("points_awarded", 0)), (s.get("status") or "-").title()])
+        task_table = Table(rows, colWidths=[16 * mm, 112 * mm, 20 * mm, 24 * mm], repeatRows=1)
+        task_table.setStyle(TableStyle([
+            ("BACKGROUND", (0, 0), (-1, 0), INTERNSHIP_DARK),
+            ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
+            ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
+            ("FONTSIZE", (0, 0), (-1, -1), 8.5),
+            ("ROWBACKGROUNDS", (0, 1), (-1, -1), [colors.white, colors.HexColor("#F6F8FB")]),
+            ("GRID", (0, 0), (-1, -1), 0.4, colors.HexColor("#E2E8F0")),
+            ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+            ("TOPPADDING", (0, 0), (-1, -1), 5), ("BOTTOMPADDING", (0, 0), (-1, -1), 5),
+        ]))
+        elements.append(task_table)
+    else:
+        elements.append(Paragraph("No approved tasks recorded.", styles["TFDBody"]))
 
     entries = data.get("entries") or []
+    _report_section_header(elements, "Daily Activity Log")
+    entry_style = ParagraphStyle("ReportEntryLabel", parent=styles["Normal"], fontSize=9, fontName="Helvetica-Bold", textColor=PRINT_ACCENT_DARK, spaceBefore=2)
+    entry_body = ParagraphStyle("ReportEntryBody", parent=styles["Normal"], fontSize=9.5, leading=13, textColor=colors.HexColor("#333333"), spaceAfter=8)
+    date_style = ParagraphStyle("ReportEntryDate", parent=styles["Normal"], fontSize=10.5, fontName="Helvetica-Bold", textColor=INTERNSHIP_DARK, spaceBefore=10, spaceAfter=3)
     if not entries:
         elements.append(Paragraph("No report entries were logged during this program.", styles["TFDBody"]))
     for e in entries:
@@ -495,7 +709,7 @@ def generate_internship_report_pdf(data: dict) -> bytes:
             elements.append(Paragraph("What I Did", entry_style))
             elements.append(Paragraph(e["what_did"].replace("\n", "<br/>"), entry_body))
 
-    decorator = make_formal_letter_decorator("INTERNSHIP REPORT", show_internship_logo=True)
+    decorator = _report_decorator(name, data.get("intern_id", ""), data.get("certificate_number"))
     doc.build(elements, onFirstPage=decorator, onLaterPages=decorator)
     return buf.getvalue()
 

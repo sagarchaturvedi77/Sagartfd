@@ -1,7 +1,11 @@
-from pydantic import BaseModel, Field
+import re
+
+from pydantic import BaseModel, Field, field_validator
 from typing import Optional, Literal
 from datetime import datetime
 import uuid
+
+PAN_PATTERN = re.compile(r"^[A-Z]{5}[0-9]{4}[A-Z]$")
 
 Track = Literal["finance", "marketing", "sales", "hr"]
 
@@ -42,6 +46,15 @@ class StudentLoginIn(BaseModel):
     password: str
 
 
+class ForgotPasswordIn(BaseModel):
+    email: str
+
+
+class ResetPasswordIn(BaseModel):
+    token: str
+    new_password: str = Field(min_length=6)
+
+
 class TrackSelectIn(BaseModel):
     track: Track
 
@@ -60,10 +73,33 @@ class KycSubmitIn(BaseModel):
     from signup and deliberately not repeated here."""
     dob: str = Field(min_length=8, max_length=10)
     gender: Literal["male", "female"]
-    aadhar_number: str = Field(min_length=12, max_length=14)
+    aadhar_number: str
     pan_number: Optional[str] = None
     no_pan: bool = False
     college_id_number: str = Field(min_length=1, max_length=50)
+
+    @field_validator("aadhar_number")
+    @classmethod
+    def _validate_aadhar(cls, v: str) -> str:
+        # Accepts either raw digits or the spaced "XXXX XXXX XXXX" display
+        # format the frontend types in — normalizes to 12 plain digits either
+        # way, and rejects anything that isn't exactly 12 digits (previously
+        # a plain str Field(min_length=12, max_length=14) let up to 14
+        # characters of anything through).
+        digits = re.sub(r"\D", "", v or "")
+        if len(digits) != 12:
+            raise ValueError("Aadhaar number must be exactly 12 digits")
+        return digits
+
+    @field_validator("pan_number")
+    @classmethod
+    def _validate_pan(cls, v: Optional[str]) -> Optional[str]:
+        if v is None or not v.strip():
+            return None
+        cleaned = v.strip().upper()
+        if not PAN_PATTERN.match(cleaned):
+            raise ValueError("PAN must be in the format AAAAA9999A (5 letters, 4 digits, 1 letter)")
+        return cleaned
 
 
 class AgreementSignIn(BaseModel):
@@ -384,6 +420,27 @@ class PaymentStatusOut(BaseModel):
     order_id: str
     order_status: str  # our payment_orders_collection status: "created"|"paid"|"failed"
     payment_status: str  # the student's own payment_status, for convenience
+
+
+# ── Certificate regeneration (public, no login — ₹499 via Cashfree) ─────
+# Lets a graduated student re-fetch their certificate + internship letter
+# by email if they've lost them, without needing to log in — identified
+# either by their certificate number, or by at least two of their own KYC
+# details (deliberately requiring 2+ to make this hard to enumerate).
+
+class RegenerateSearchIn(BaseModel):
+    certificate_number: Optional[str] = None
+    college_id_number: Optional[str] = None
+    email: Optional[str] = None
+    phone: Optional[str] = None
+    aadhar_number: Optional[str] = None
+
+
+class RegenerateSearchOut(BaseModel):
+    found: bool
+    certificate_number: Optional[str] = None
+    name: Optional[str] = None
+    masked_email: Optional[str] = None
 
 
 # ── End-of-program video review ─────────────────────────────────────────

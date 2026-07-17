@@ -72,6 +72,8 @@ import InternApplicationPage from "./pages/InternApplicationPage";
 import InternshipLandingPage from "./pages/InternshipLandingPage";
 import InternshipSignup from "./pages/InternshipSignup";
 import InternshipLogin from "./pages/InternshipLogin";
+import InternshipForgotPassword from "./pages/InternshipForgotPassword";
+import InternshipResetPassword from "./pages/InternshipResetPassword";
 import StudentDashboard from "./pages/StudentDashboard";
 import StudentOnboarding from "./pages/StudentOnboarding";
 import StudentMissions from "./pages/StudentMissions";
@@ -478,6 +480,8 @@ element={
                 <Route path="/internship" element={<InternshipLandingPage />} />
                 <Route path="/internship/apply" element={<InternshipSignup />} />
                 <Route path="/internship/login" element={<InternshipLogin />} />
+                <Route path="/internship/forgot-password" element={<InternshipForgotPassword />} />
+                <Route path="/internship/reset-password" element={<InternshipResetPassword />} />
                 <Route
                   path="/portal/student/onboarding"
                   element={

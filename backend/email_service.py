@@ -53,6 +53,12 @@ LOGIN_URL = "https://thefinancialdoctor.in/portal/login"
 RESET_PASSWORD_URL = "https://thefinancialdoctor.in/portal/reset-password"
 ANDROID_APK_URL = "https://thefinancialdoctor.in/TFD-Workspace.apk"
 
+# TFD Internship (gamified program) — its own login, separate from TFD
+# Workspace above, so its emails get their own URLs/branding.
+INTERNSHIP_LOGO_URL = "https://thefinancialdoctor.in/assets/logos/TFD-INTERNSHIP-LOGO.png"
+INTERNSHIP_LOGIN_URL = "https://thefinancialdoctor.in/internship/login"
+INTERNSHIP_RESET_PASSWORD_URL = "https://thefinancialdoctor.in/internship/reset-password"
+
 
 def email_configured() -> bool:
     return bool(RESEND_API_KEY) or bool(SMTP_PASSWORD and SMTP_USERNAME)
@@ -213,6 +219,83 @@ def send_password_reset_email(to_email: str, name: str, reset_url: str) -> tuple
     return _send_email(to_email, "Reset your TFD Workspace password", _password_reset_html(name, reset_url))
 
 
+def _internship_welcome_html(name: str, intern_id: str, track_label: str, duration_days: int, payment_amount: int) -> str:
+    return f"""
+    <div style="font-family:'Segoe UI',Arial,sans-serif;max-width:540px;margin:0 auto;background:#050B16;padding:24px;">
+      <div style="text-align:center;margin-bottom:20px;">
+        <img src="{INTERNSHIP_LOGO_URL}" alt="TFD Internship" style="height:48px;object-fit:contain;" />
+      </div>
+      <div style="background:#0E1B2C;border-radius:16px;padding:28px;border:1px solid #1F2E44;">
+        <h2 style="color:#F6F1E8;margin:0 0 4px;font-size:21px;">Welcome to TFD Internship, {name}! 🎓</h2>
+        <p style="color:#9AA5B4;font-size:13.5px;line-height:1.6;margin:10px 0 22px;">
+          Thanks for applying to <strong style="color:#F6F1E8;">The Financial Doctor's</strong> internship program. Your
+          seat in the <strong style="color:#14E0A0;">{track_label}</strong> track ({duration_days} days) is reserved —
+          Day 1 begins automatically the moment your payment of &#8377;{payment_amount} is confirmed.
+        </p>
+
+        <table role="presentation" width="100%" style="border-collapse:collapse;margin-bottom:22px;">
+          <tr>
+            <td style="background:#050B16;border:1px solid #1F2E44;border-radius:10px;padding:14px 16px;">
+              <p style="margin:0 0 4px;font-size:10.5px;text-transform:uppercase;letter-spacing:0.05em;color:#6B7280;font-weight:600;">Your Intern ID</p>
+              <p style="margin:0;font-size:15px;font-family:'Courier New',monospace;color:#14E0A0;font-weight:700;">{intern_id}</p>
+            </td>
+          </tr>
+        </table>
+
+        <div style="text-align:center;margin-bottom:8px;">
+          <a href="{INTERNSHIP_LOGIN_URL}" style="display:inline-block;background:#14E0A0;color:#050B16;text-decoration:none;padding:13px 32px;border-radius:10px;font-weight:700;font-size:14.5px;">Log In to TFD Internship →</a>
+        </div>
+        <p style="color:#6B7280;font-size:11.5px;text-align:center;margin:8px 0 0;">Log in anytime with the mobile number and password you signed up with.</p>
+      </div>
+      <div style="text-align:center;margin-top:18px;">
+        <p style="font-size:10.5px;color:#6B7280;">The Financial Doctor &middot; TFD Internship &middot; thefinancialdoctor.in</p>
+      </div>
+    </div>
+    """
+
+
+def send_internship_welcome_email(to_email: str, name: str, intern_id: str, track_label: str, duration_days: int, payment_amount: int) -> tuple[bool, str]:
+    if not email_configured():
+        return False, "Email sending not configured — set RESEND_API_KEY (recommended) or SMTP_USERNAME/SMTP_PASSWORD in backend/.env"
+    return _send_email(
+        to_email, "Welcome to TFD Internship! 🎓",
+        _internship_welcome_html(name, intern_id, track_label, duration_days, payment_amount),
+    )
+
+
+def _internship_password_reset_html(name: str, reset_url: str) -> str:
+    return f"""
+    <div style="font-family:'Segoe UI',Arial,sans-serif;max-width:520px;margin:0 auto;background:#050B16;padding:24px;">
+      <div style="text-align:center;margin-bottom:20px;">
+        <img src="{INTERNSHIP_LOGO_URL}" alt="TFD Internship" style="height:44px;object-fit:contain;" />
+      </div>
+      <div style="background:#0E1B2C;border-radius:16px;padding:28px;border:1px solid #1F2E44;">
+        <h2 style="color:#F6F1E8;margin:0 0 4px;font-size:20px;">Reset your password</h2>
+        <p style="color:#9AA5B4;font-size:13px;margin:12px 0;">
+          Hi {name}, we received a request to reset your TFD Internship password. Click the button below to choose a
+          new one.
+        </p>
+        <div style="text-align:center;margin:24px 0;">
+          <a href="{reset_url}" style="display:inline-block;background:#14E0A0;color:#050B16;text-decoration:none;padding:12px 28px;border-radius:10px;font-weight:700;font-size:14px;">Reset Password →</a>
+        </div>
+        <p style="color:#6B7280;font-size:12.5px;margin:0;">
+          This link expires in <strong>20 minutes</strong>, or as soon as it's used once — whichever comes first.
+          If you didn't request this, you can safely ignore this email; your password won't change.
+        </p>
+      </div>
+      <div style="text-align:center;margin-top:18px;">
+        <p style="font-size:10.5px;color:#6B7280;">The Financial Doctor &middot; TFD Internship &middot; thefinancialdoctor.in</p>
+      </div>
+    </div>
+    """
+
+
+def send_internship_password_reset_email(to_email: str, name: str, reset_url: str) -> tuple[bool, str]:
+    if not email_configured():
+        return False, "Email sending not configured — set RESEND_API_KEY (recommended) or SMTP_USERNAME/SMTP_PASSWORD in backend/.env"
+    return _send_email(to_email, "Reset your TFD Internship password", _internship_password_reset_html(name, reset_url))
+
+
 def send_email_with_pdf(to_email: str, subject: str, body_html: str, pdf_bytes: bytes, pdf_filename: str) -> tuple[bool, str]:
     """Generic single-attachment sender — kept for existing callers; new
     code should prefer send_email_with_pdfs (plural) which this now wraps."""
@@ -301,10 +384,17 @@ def send_career_application_received_email(to_email: str, name: str, position: s
     return _send_email(to_email, "We've received your application — The Financial Doctor", career_application_email_html(name, position))
 
 
-def document_email_html(person_name: str, document_labels: list[str]) -> str:
+def document_email_html(person_name: str, document_labels: list[str], include_arn: bool = True) -> str:
     """Professional branded template for certificate/letter document sends —
-    same visual language as the welcome email."""
+    same visual language as the welcome email. include_arn=False is used by
+    the TFD Internship program's emails (a distinct product from Sagar's
+    AMFI mutual-fund distribution business), so the ARN line is omitted
+    there while staying intact for employee/letterhead sends."""
     docs_list = "".join(f"<li style='margin-bottom:4px;'>{label}</li>" for label in document_labels)
+    footer_line = (
+        '<p style="font-size:11px;color:#9AA5B4;">The Financial Doctor &middot; AMFI Registered &middot; ARN-290298</p>'
+        if include_arn else ""
+    )
     return f"""
     <div style="font-family:'Segoe UI',Arial,sans-serif;max-width:520px;margin:0 auto;background:#F5F1EB;padding:24px;">
       <div style="text-align:center;margin-bottom:20px;">
@@ -323,7 +413,7 @@ def document_email_html(person_name: str, document_labels: list[str]) -> str:
         </p>
       </div>
       <div style="text-align:center;margin-top:18px;">
-        <p style="font-size:11px;color:#9AA5B4;">The Financial Doctor &middot; AMFI Registered &middot; ARN-290298</p>
+        {footer_line}
         <p style="font-size:10.5px;color:#9AA5B4;">thefinancialdoctor.in</p>
       </div>
     </div>
