@@ -1,11 +1,10 @@
-import React, { useEffect, useState } from "react";
-import { toast } from "sonner";
-import { Volume2, Square, FileEdit, CheckCircle2, Clock3, XCircle } from "lucide-react";
+import React, { useState } from "react";
+import { Languages, FileEdit, CheckCircle2, Clock3, XCircle } from "lucide-react";
 
 // Shared between StudentMissions.jsx (task list) and TaskWorkspace.jsx (the
 // dedicated task page) — kept in one place so both render task chrome
-// (difficulty/status badges, the anti-paste textarea, the voice-explain
-// widget) identically.
+// (difficulty/status badges, the anti-paste textarea, the language toggle)
+// identically.
 
 const API_BASE = process.env.REACT_APP_BACKEND_URL || "";
 
@@ -55,120 +54,60 @@ export function Section({ icon: Icon, title, children, tone = "default" }) {
   );
 }
 
-// Reads the task's brief/instructions aloud in Hindi or Indian English using
-// the browser's built-in Web Speech API — no audio files, no TTS API cost.
-// Text is generated once per task server-side (Gemini) and cached, then
-// spoken client-side with the device's own hi-IN/en-IN voice.
-// Common Indian TTS voice names across Chrome/Android/Windows/iOS, used as
-// a name-based fallback when a device doesn't expose a clean "hi-IN"/"en-IN"
-// lang tag but does have an Indian-accented voice installed under a
-// different label.
-const INDIAN_VOICE_NAME_HINTS = ["india", "hindi", "lekha", "veena", "rishi", "swara", "neerja", "priya", "kajal", "heera", "google हिन्दी", "google uk english"];
+// Text-only English/Hinglish toggle for a task's step-by-step explanation —
+// replaces the old text-to-speech widget (removed per product feedback: no
+// audio, just a plain-text language switch). Reuses the same backend
+// endpoint/cache (GET /tasks/{id}/voice-explain) since it already generates
+// a natural-language Hindi/English pair per task via Gemini — only the
+// frontend presentation changed, not the underlying content. Locked to
+// English-only in Blindfold Mode (see TaskWorkspace.jsx) via `disabled`.
+export function LanguageToggle({ taskId, token, englishText, disabled }) {
+  const [lang, setLang] = useState("english");
+  const [hindiText, setHindiText] = useState(null);
+  const [loading, setLoading] = useState(false);
 
-function waitForVoices() {
-  return new Promise((resolve) => {
-    const existing = window.speechSynthesis.getVoices();
-    if (existing.length) return resolve(existing);
-    const onChange = () => {
-      window.speechSynthesis.removeEventListener("voiceschanged", onChange);
-      resolve(window.speechSynthesis.getVoices());
-    };
-    window.speechSynthesis.addEventListener("voiceschanged", onChange);
-    setTimeout(() => resolve(window.speechSynthesis.getVoices()), 1200);
-  });
-}
-
-function pickBestVoice(voices, lang) {
-  const prefix = lang.split("-")[0].toLowerCase();
-  const sameLangFamily = voices.filter((v) => v.lang?.toLowerCase().startsWith(prefix));
-  if (!sameLangFamily.length) return null;
-  const exact = sameLangFamily.find((v) => v.lang?.toLowerCase() === lang.toLowerCase());
-  if (exact) return exact;
-  const byName = sameLangFamily.find((v) => INDIAN_VOICE_NAME_HINTS.some((h) => v.name?.toLowerCase().includes(h)));
-  if (byName) return byName;
-  return sameLangFamily[0];
-}
-
-export function VoiceExplainButtons({ taskId, token }) {
-  const [texts, setTexts] = useState(null);
-  const [loadingLang, setLoadingLang] = useState(null);
-  const [speakingLang, setSpeakingLang] = useState(null);
-
-  useEffect(() => {
-    return () => { window.speechSynthesis?.cancel(); };
-  }, []);
-
-  const fetchTexts = async () => {
-    if (texts) return texts;
-    const res = await fetch(`${API_BASE}/api/internship/tasks/${taskId}/voice-explain`, { headers: { Authorization: `Bearer ${token}` } });
-    if (!res.ok) throw new Error("Could not load voice explanation");
-    const data = await res.json();
-    setTexts(data);
-    return data;
-  };
-
-  const speak = async (lang) => {
-    if (!("speechSynthesis" in window)) {
-      toast.error("Voice playback isn't supported on this device/browser.");
-      return;
-    }
-    if (speakingLang === lang) {
-      window.speechSynthesis.cancel();
-      setSpeakingLang(null);
-      return;
-    }
-    window.speechSynthesis.cancel();
-    setLoadingLang(lang);
+  const showHinglish = async () => {
+    if (disabled) return;
+    if (hindiText) { setLang("hindi"); return; }
+    setLoading(true);
     try {
-      const data = await fetchTexts();
-      const text = lang === "hindi" ? data.hindi : data.english;
-      const targetLang = lang === "hindi" ? "hi-IN" : "en-IN";
-      const voices = await waitForVoices();
-      const voiceMatch = pickBestVoice(voices, targetLang);
-
-      if (lang === "hindi" && !voices.some((v) => v.lang?.toLowerCase().startsWith("hi"))) {
-        toast.error("This device doesn't have a Hindi voice installed. Try the Chrome browser on Android for Hindi playback.");
-        setLoadingLang(null);
-        return;
+      const res = await fetch(`${API_BASE}/api/internship/tasks/${taskId}/voice-explain`, { headers: { Authorization: `Bearer ${token}` } });
+      if (res.ok) {
+        const data = await res.json();
+        setHindiText(data.hindi);
+        setLang("hindi");
       }
-
-      const utter = new SpeechSynthesisUtterance(text);
-      utter.lang = voiceMatch?.lang || targetLang;
-      utter.rate = 0.9;
-      utter.pitch = 1;
-      if (voiceMatch) utter.voice = voiceMatch;
-      utter.onend = () => setSpeakingLang(null);
-      utter.onerror = () => setSpeakingLang(null);
-      setSpeakingLang(lang);
-      window.speechSynthesis.speak(utter);
-    } catch (e) {
-      toast.error(e.message || "Could not load voice explanation");
+    } catch {
+      // silent — English text is always shown as the fallback either way
     }
-    setLoadingLang(null);
+    setLoading(false);
   };
 
   return (
-    <div className="flex items-center gap-2 flex-wrap mb-4">
-      <button
-        type="button"
-        onClick={() => speak("hindi")}
-        className={`flex items-center gap-1.5 text-xs font-semibold border rounded-full px-3 py-1.5 transition-colors ${
-          speakingLang === "hindi" ? "bg-[#14E0A0]/20 border-[#14E0A0] text-[#14E0A0]" : "bg-white/5 border-white/15 text-white/70 hover:border-white/30"
-        }`}
-      >
-        {speakingLang === "hindi" ? <Square size={12} /> : <Volume2 size={12} />}
-        {loadingLang === "hindi" ? "Loading..." : speakingLang === "hindi" ? "Stop" : "हिंदी में सुनें"}
-      </button>
-      <button
-        type="button"
-        onClick={() => speak("english")}
-        className={`flex items-center gap-1.5 text-xs font-semibold border rounded-full px-3 py-1.5 transition-colors ${
-          speakingLang === "english" ? "bg-[#14E0A0]/20 border-[#14E0A0] text-[#14E0A0]" : "bg-white/5 border-white/15 text-white/70 hover:border-white/30"
-        }`}
-      >
-        {speakingLang === "english" ? <Square size={12} /> : <Volume2 size={12} />}
-        {loadingLang === "english" ? "Loading..." : speakingLang === "english" ? "Stop" : "Listen in English"}
-      </button>
+    <div className="mb-3">
+      <div className="flex items-center gap-2 mb-2">
+        <button
+          type="button"
+          onClick={() => setLang("english")}
+          className={`flex items-center gap-1.5 text-[11px] font-bold border rounded-full px-2.5 py-1 transition-colors ${
+            lang === "english" ? "bg-[#14E0A0]/20 border-[#14E0A0] text-[#14E0A0]" : "bg-white/5 border-white/15 text-white/60 hover:border-white/30"
+          }`}
+        >
+          <Languages size={11} /> English
+        </button>
+        <button
+          type="button"
+          onClick={showHinglish}
+          disabled={disabled || loading}
+          title={disabled ? "Not available in Blindfold Mode" : undefined}
+          className={`flex items-center gap-1.5 text-[11px] font-bold border rounded-full px-2.5 py-1 transition-colors disabled:opacity-30 disabled:cursor-not-allowed ${
+            lang === "hindi" ? "bg-[#14E0A0]/20 border-[#14E0A0] text-[#14E0A0]" : "bg-white/5 border-white/15 text-white/60 hover:border-white/30"
+          }`}
+        >
+          <Languages size={11} /> {loading ? "Loading..." : "हिंग्लिश"}
+        </button>
+      </div>
+      <p className="text-white/75 text-sm leading-relaxed whitespace-pre-line">{lang === "hindi" && hindiText ? hindiText : englishText}</p>
     </div>
   );
 }

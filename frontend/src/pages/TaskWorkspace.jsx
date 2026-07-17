@@ -9,7 +9,7 @@ import StudentLayout from "../portal/student/StudentLayout";
 import { useInternshipAuth } from "../portal/student/InternshipAuthContext";
 import { getCurrentLocation } from "../portal/api";
 import { useSubmitOnce } from "../lib/useSubmitOnce";
-import { DIFFICULTY_STYLES, AntiCheatTextarea, Section, VoiceExplainButtons } from "../portal/student/taskUi";
+import { DIFFICULTY_STYLES, AntiCheatTextarea, Section, LanguageToggle } from "../portal/student/taskUi";
 import SpreadsheetGrid from "../components/SpreadsheetGrid";
 import { buildSubmissionPayload } from "../lib/miniSpreadsheet";
 
@@ -254,8 +254,6 @@ export default function TaskWorkspace() {
           <h1 className="font-display text-xl font-bold">{task.title}</h1>
         </div>
 
-        <VoiceExplainButtons taskId={task.id} token={token} />
-
         <div className="space-y-4">
           <Section icon={ClipboardList} title="What You Need To Do">
             <p className="text-white/75 text-sm leading-relaxed">{task.brief}</p>
@@ -272,7 +270,12 @@ export default function TaskWorkspace() {
 
           {task.instructions && (
             <Section icon={FileText} title="Step-by-Step">
-              <p className="text-white/60 text-sm leading-relaxed whitespace-pre-line">{task.instructions}</p>
+              <LanguageToggle
+                taskId={task.id}
+                token={token}
+                englishText={task.instructions}
+                disabled={task.is_blindfold}
+              />
             </Section>
           )}
 
