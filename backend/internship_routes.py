@@ -601,7 +601,7 @@ Doctor's internship program. A student has a question or problem. Answer clearly
 2-4 short sentences, in simple English (Hinglish is fine if the student wrote in Hinglish).
 
 What you know about the program:
-- 45, 60, or 90-day tracks in Finance, Marketing, Sales, or HR, chosen at signup.
+- A 90-day program, in Finance, Marketing, Sales, or HR, chosen at signup.
 - A seat is reserved at signup; an admin confirms payment manually right now (a payment gateway is
   coming soon) — Day 1 starts automatically the moment payment is confirmed.
 - Each week, 4 tasks are automatically assigned based on the student's track — no admin action needed.
@@ -1136,6 +1136,74 @@ async def get_all_assigned_tasks(payload: dict = Depends(get_current_student_pay
     }
 
 
+# ── Manager's Feed — a small, track-specific rotating message board ──────
+# Deliberately a hardcoded pool, not an admin-editable/DB-driven system —
+# per product notes, a fixed pool that reliably rotates beats a "smart"
+# system that can silently go empty. One new message per calendar day,
+# picked deterministically (day-of-year mod pool size) so it's consistent
+# across requests/instances without needing a scheduler.
+_MANAGER_PERSONAS = {
+    "finance": {"name": "Priya Nair", "role": "Finance Manager"},
+    "marketing": {"name": "Karan Mehta", "role": "Marketing Head"},
+    "sales": {"name": "Ritu Desai", "role": "Sales Manager"},
+    "hr": {"name": "Arjun Rao", "role": "HR Manager"},
+}
+_MANAGER_MESSAGES = {
+    "finance": [
+        "Numbers don't lie, but they don't explain themselves either — that's your job. Always attach the 'why' to every figure you report.",
+        "A trial balance that balances isn't proof it's correct — just that debits equal credits. Sanity-check the story the numbers are telling.",
+        "In real audits, the first question is always 'show me the source document.' Get in the habit of it now.",
+        "GST rates change, and it's on you to know the current one before you invoice — mistakes here cost real penalties.",
+        "Reconciliation isn't busywork — it's how fraud and simple typos both get caught before they become expensive.",
+        "A good financial dashboard tells a story in ten seconds. If someone has to ask 'so what does this mean', simplify it.",
+        "Every rupee has to be somewhere — cash, receivable, expense, or owner's equity. If your books don't balance, one of those is wrong.",
+        "Budgets are promises to your own team. A variance isn't a failure — it's information. Explain it, don't hide it.",
+    ],
+    "marketing": [
+        "A campaign without a clear target audience is just noise with a budget attached.",
+        "Data tells you what happened. Your job is figuring out why — and what to do next.",
+        "The best copy doesn't sell the product — it sells the outcome the customer actually wants.",
+        "Before you write a single word of a campaign, know exactly who you're NOT talking to.",
+        "A/B testing isn't about being right — it's about being wrong faster and cheaper than your competitors.",
+        "Brand consistency matters more than any single clever post — people trust what feels familiar.",
+        "Your competitor's biggest weakness is usually visible in their own reviews. Go read them.",
+        "Good marketing respects the customer's time. If it doesn't add value, it's just interruption.",
+    ],
+    "sales": [
+        "Nobody buys a product — they buy a solution to a problem they already have. Find the problem first.",
+        "The best salespeople talk less and listen more. Silence after a question is a tool, not a mistake.",
+        "Objections aren't rejections — they're requests for more information. Answer the real concern underneath.",
+        "A follow-up that comes a day late is often a deal that goes cold. Speed matters more than people admit.",
+        "Know your numbers — conversion rate, average deal size, follow-up count. Feelings don't close deals; patterns do.",
+        "The close isn't a single moment — it's the natural next step after you've actually solved the problem.",
+        "Every 'no' today is data for the pitch you'll give tomorrow. Track why, not just that.",
+        "Trust is built before the pitch even starts — in how you show up, how prepared you are, how well you listen.",
+    ],
+    "hr": [
+        "Every policy you write will eventually be tested by exactly the edge case you didn't think of. Write for clarity, not just coverage.",
+        "Onboarding sets the tone for someone's entire tenure — the first week matters more than people realize.",
+        "A fair process, applied consistently, protects everyone — including the company.",
+        "Exit interviews are one of the few honest feedback loops a company gets. Don't waste them.",
+        "Documentation isn't bureaucracy — it's what protects both the employee and the company when memory gets fuzzy.",
+        "Confidentiality isn't optional in HR — it's the entire foundation of the trust the role depends on.",
+        "A good job description filters better than any interview question — be precise about what the role actually needs.",
+        "People don't leave companies, they leave managers — and HR is often the first to see the warning signs.",
+    ],
+}
+
+
+@router.get("/manager-feed")
+async def get_manager_feed(payload: dict = Depends(get_current_student_payload)):
+    student = await internship_students_collection.find_one({"id": payload["sub"]}, {"track": 1})
+    if not student or not student.get("track"):
+        raise HTTPException(status_code=404, detail="Select a track first")
+    track = student["track"]
+    persona = _MANAGER_PERSONAS.get(track, _MANAGER_PERSONAS["finance"])
+    pool = _MANAGER_MESSAGES.get(track, _MANAGER_MESSAGES["finance"])
+    idx = date.today().toordinal() % len(pool)
+    return {"persona_name": persona["name"], "persona_role": persona["role"], "message": pool[idx]}
+
+
 async def _call_gemini(system_instruction: str, input_text: str, temperature: float = 0.2) -> str | None:
     """Returns the model's text output, or None if Gemini isn't configured or
     the call fails for any reason. Shared by auto-verification and the
@@ -1222,7 +1290,10 @@ def _auto_verify_spreadsheet(task: dict, spreadsheet_data: dict) -> tuple[bool, 
         cell = spreadsheet_data.get(cell_id) or {}
         value = cell.get("value")
         if not isinstance(value, (int, float)) or abs(value - spec["expected"]) > spec.get("tolerance", 0.01):
-            failures.append(f"{cell_id} looks off")
+            # A per-cell mistake_note (admin-authored, see TaskPoolIn's
+            # spreadsheet_answer_key docstring) explains the real-world
+            # impact of THIS specific mistake, not just "which cell is off".
+            failures.append(spec.get("mistake_note") or f"{cell_id} looks off")
     for chk in answer_key.get("checks") or []:
         left = (spreadsheet_data.get(chk["left"]) or {}).get("value")
         right = (spreadsheet_data.get(chk["right"]) or {}).get("value")
@@ -1473,9 +1544,18 @@ async def create_submission(
     approved = text_approved and sheet_approved
     failure_reasons = [r for ok, r in ((text_approved, text_reason), (sheet_approved, sheet_reason)) if not ok and r]
     reason = " | ".join(failure_reasons) if failure_reasons else text_reason
+    content_rejected = not approved
 
     if task.get("requires_geotag") and not gps:
         approved, reason = False, "Location wasn't captured with this submission — please allow location access and resubmit."
+        content_rejected = False  # this rejection is about location, not the task's own content
+
+    # "Why-audit": on a content rejection, append the task's own
+    # admin-authored real-world-impact note, not just the auto-grader's
+    # terse reason — e.g. "GST 18% ki jagah 5% laga diya - real audit mein
+    # penalty ho sakta hai."
+    if content_rejected and task.get("mistake_explanation"):
+        reason = f"{reason}\n\nWhy this matters: {task['mistake_explanation']}"
 
     doc = {
         "id": existing["id"] if existing else str(uuid.uuid4()),
@@ -2044,7 +2124,7 @@ async def get_sample_certificate(request: Request):
     never a real certificate_number, so it can't be mistaken for one."""
     cert_data = {
         "certificate_number": "TFD/INTP/SAMPLE", "person_name": "Your Name Here", "cert_type": "internship",
-        "department": "Your Track", "issue_date": date.today().isoformat(), "duration_label": "45 days",
+        "department": "Your Track", "issue_date": date.today().isoformat(), "duration_label": "90 days",
         "custom_detail": "for successfully completing the TFD Internship Program, achieving a program score of 90%",
     }
     pdf_bytes = generate_certificate_pdf(cert_data, f"{SITE_URL}/internship")

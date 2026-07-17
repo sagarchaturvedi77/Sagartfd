@@ -12,7 +12,7 @@ const API_BASE = process.env.REACT_APP_BACKEND_URL || "";
 
 const CLAUSE_SUMMARY = [
   ["Program Fee — Non-Refundable", "Once paid, your program fee cannot be refunded under any circumstances, including early withdrawal, suspension, or ban."],
-  ["Genuine Work Only", "All task submissions must be your own genuine work. A rejected task can always be corrected and resubmitted with no penalty — but knowingly submitting copied or fake work is a violation."],
+  ["Genuine Work Only — No Plagiarism", "I confirm every task I submit is my own genuine work, typed/done by me. A rejected task can always be corrected and resubmitted with no penalty — but knowingly submitting copied, AI-generated-and-passed-off, or fake work is plagiarism, and if caught, my internship can be terminated immediately, without a refund."],
   ["Certificate — Full Duration + 75% Score", "Your certificate is issued only after you complete the full chosen duration AND score at least 75% overall. A missed task never permanently locks — it stays completable until the last day."],
   ["No Stipend — Points Are Internal Only", "This is a learning & certification program, not a paid position. Task/quiz points are purely internal (leaderboard/skill display) — never cash, never paid out."],
   ["Conduct & Warnings", "Dishonest submissions, abusive conduct, or platform misuse may lead to a formal warning, and repeated violations to suspension or a permanent ban — without a refund."],
@@ -289,6 +289,15 @@ export default function StudentOnboarding() {
                 ))}
               </div>
               <p className="text-[10px] text-white/30 mt-2">The full formal agreement text (English + Hindi) is included in your signed PDF, downloadable anytime from your Certificate Hub.</p>
+            </div>
+
+            <div className="rounded-2xl border border-amber-400/25 bg-amber-400/[0.06] p-4">
+              <p className="text-xs font-bold text-amber-300 mb-1">Integrity Pledge</p>
+              <p className="text-[11px] text-amber-100/70 leading-relaxed">
+                "I confirm I will submit my own genuine work for every task, and will not plagiarize. I understand that if I'm
+                found submitting copied or fake work, my internship can be terminated immediately."
+              </p>
+              <p className="text-[10px] text-amber-100/40 mt-1.5">Signing below (with your uploaded signature) counts as agreeing to this pledge — no separate signature needed.</p>
             </div>
 
             <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-5">

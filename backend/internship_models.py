@@ -237,7 +237,16 @@ class TaskPoolIn(BaseModel):
     # only, never sent to students. Input-only: TaskPoolIn is what an admin
     # POSTs, TaskPoolOut is what a student receives (see TaskPoolAdminOut
     # below for the admin-facing read model that also carries this).
+    # A "cells" entry may also carry an optional "mistake_note" — a specific,
+    # business-impact explanation shown to the student if THAT cell is what
+    # failed (see _auto_verify_spreadsheet). Falls back to mistake_explanation
+    # below when no per-cell note is set.
     spreadsheet_answer_key: Optional[dict] = None
+    # General "why this is wrong + real business impact" note, authored by
+    # whoever writes the task, shown to the student on rejection alongside
+    # the auto-grader's own reason — not just a score, an explanation of
+    # what actually goes wrong in a real job if this mistake ships.
+    mistake_explanation: Optional[str] = None
 
 
 class TaskPoolOut(BaseModel):
@@ -257,6 +266,7 @@ class TaskPoolOut(BaseModel):
     created_at: datetime
     phase: Optional[TaskPhase] = None
     spreadsheet_template: Optional[dict] = None
+    mistake_explanation: Optional[str] = None
 
 
 class TaskPoolAdminOut(TaskPoolOut):

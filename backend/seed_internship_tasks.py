@@ -126,7 +126,12 @@ for _i, (_client, _desc, _typ, _amt) in enumerate(_INV_ROWS):
 _INV_PREFILLED["A7"] = "Total GST Collected"
 _INV_LOCKED.append("A7")
 _TASK3_TEMPLATE = _grid(8, 7, ["Client", "Description", "Type (1=Excl,0=Incl)", "Given Amount", "Base Amount", "GST (18%)", "Total Amount"], _INV_PREFILLED, _INV_LOCKED)
-_TASK3_ANSWER_KEY = {"cells": {"F7": {"expected": 51300, "tolerance": 5}}}
+_TASK3_ANSWER_KEY = {"cells": {"F7": {
+    "expected": 51300, "tolerance": 5,
+    "mistake_note": "Your total GST doesn't check out — a common real mistake here is applying the wrong rate direction "
+                     "(e.g. treating an inclusive amount as exclusive, or using 5% instead of 18%). In a real company, "
+                     "this exact mistake means the wrong GST gets filed — leading to a tax audit flag and a real penalty.",
+}}}
 
 _BR_PREFILLED = {
     "A1": "Item", "B1": "Amount", "C1": "Sign (+1 Add / -1 Subtract)",
@@ -263,7 +268,11 @@ FINANCE_TASKS = [
      "brief": "You've been given Bright Retail Traders' trial balance for the month. Build a proper Balance Sheet from it in the spreadsheet below — classify each item as an Asset, a Liability, or part of Equity, and make sure your numbers actually balance (Assets = Liabilities + Equity, always).",
      "why_it_matters": "Every accountant's first real job is turning a raw trial balance into a Balance Sheet — this is the single most common finance task in any company, in any industry.",
      "instructions": "Step 1: Look at the 12 trial balance line items already filled in for you (rows 2-13).\nStep 2: In row 15, calculate Net Profit using the formula shown — reference the Sales Revenue, COGS, Rent, and Salaries cells directly (e.g. =C9-B10-B11-B12) rather than retyping numbers.\nStep 3: In rows 18-21, build the Balance Sheet — Total Assets, Total Liabilities, Closing Capital (Capital + Net Profit - Drawings), and Total Liabilities + Equity. Use cell-reference formulas throughout, not hand-typed totals.\nStep 4: Confirm B18 and B21 come out equal — if they don't, you've misclassified something.\nStep 5: In the text box, explain in 100+ words why Assets must always equal Liabilities + Equity, and what it would mean (practically) if a real company's books didn't balance.",
-     "spreadsheet_template": _TASK1_TEMPLATE, "spreadsheet_answer_key": _TASK1_ANSWER_KEY},
+     "spreadsheet_template": _TASK1_TEMPLATE, "spreadsheet_answer_key": _TASK1_ANSWER_KEY,
+     "mistake_explanation": "If Assets doesn't equal Liabilities + Equity, something was misclassified — usually a "
+                             "liability treated as an asset (or vice versa), or a formula that hand-typed a total "
+                             "instead of referencing cells. In a real company, a Balance Sheet that doesn't balance "
+                             "can't be filed or audited — it's not a minor rounding issue, it means the books are wrong."},
 
     {"track": "finance", "title": "Monthly P&L Statement", "phase": 1, "difficulty": "medium",
      "points_value": 85, "deliverable_type": "text_and_spreadsheet", "requires_geotag": False, "estimated_duration": "1.5-2.5 hours",
@@ -277,7 +286,11 @@ FINANCE_TASKS = [
      "brief": "5 mock service invoices are listed below — some quote a GST-exclusive amount (18% GST needs to be added), others quote a GST-inclusive amount (the 18% GST is already baked in and needs to be extracted). Work out the Base Amount, GST, and Total for each.",
      "why_it_matters": "Getting inclusive vs exclusive GST wrong is one of the most common real invoicing mistakes — every business that raises invoices deals with this distinction constantly.",
      "instructions": "Step 1: Column C tells you the type — 1 means the Given Amount (column D) is GST-exclusive (add 18%), 0 means it's already GST-inclusive (extract the 18%).\nStep 2: In column E (Base Amount), use an IF formula: =IF(C2=1,D2,D2/1.18) — same pattern for each row.\nStep 3: In column G (Total Amount), use =IF(C2=1,D2*1.18,D2).\nStep 4: In column F (GST), just subtract: =G2-E2.\nStep 5: In F7, total up all 5 rows' GST with SUM().\nStep 6: In the text box, explain in 100+ words the difference between GST-inclusive and GST-exclusive pricing, and why a business needs to track this correctly for its GST filing.",
-     "spreadsheet_template": _TASK3_TEMPLATE, "spreadsheet_answer_key": _TASK3_ANSWER_KEY},
+     "spreadsheet_template": _TASK3_TEMPLATE, "spreadsheet_answer_key": _TASK3_ANSWER_KEY,
+     "mistake_explanation": "GST-inclusive vs exclusive is the single most common invoicing mistake — e.g. treating an "
+                             "18%-inclusive amount as if it were exclusive (or applying the wrong rate entirely, like 5% "
+                             "instead of 18%). In a real business, this means the wrong GST gets filed with the government, "
+                             "which shows up in a tax audit as a mismatch — and mismatches like this carry real penalties."},
 
     {"track": "finance", "title": "Bank Reconciliation Statement", "phase": 2, "difficulty": "medium",
      "points_value": 95, "deliverable_type": "text_and_spreadsheet", "requires_geotag": False, "estimated_duration": "2-3 hours",
@@ -951,6 +964,7 @@ async def seed():
             "phase": t.get("phase"),
             "spreadsheet_template": t.get("spreadsheet_template"),
             "spreadsheet_answer_key": t.get("spreadsheet_answer_key"),
+            "mistake_explanation": t.get("mistake_explanation"),
             "created_by": "seed_script",
             "created_at": datetime.now(timezone.utc),
         }

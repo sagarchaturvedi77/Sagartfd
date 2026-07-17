@@ -353,7 +353,7 @@ function StudentsTab() {
 
 // ── Task Pool ─────────────────────────────────────────────────────────
 
-const EMPTY_TASK = { track: "finance", title: "", brief: "", instructions: "", why_it_matters: "", deliverable_type: "text_and_photo", requires_geotag: true, points_value: 50, difficulty: "medium", estimated_duration: "", is_active: true };
+const EMPTY_TASK = { track: "finance", title: "", brief: "", instructions: "", why_it_matters: "", deliverable_type: "text_and_photo", requires_geotag: true, points_value: 50, difficulty: "medium", estimated_duration: "", is_active: true, phase: "", spreadsheet_template: "", spreadsheet_answer_key: "", mistake_explanation: "" };
 
 function TasksTab() {
   const [tasks, setTasks] = useState([]);
@@ -373,16 +373,33 @@ function TasksTab() {
   useEffect(() => { load(); }, [load]);
 
   const openNew = () => { setForm(EMPTY_TASK); setEditing({}); };
-  const openEdit = (t) => { setForm({ ...t }); setEditing(t); };
+  const openEdit = (t) => {
+    setForm({
+      ...t,
+      phase: t.phase || "",
+      spreadsheet_template: t.spreadsheet_template ? JSON.stringify(t.spreadsheet_template, null, 2) : "",
+      spreadsheet_answer_key: t.spreadsheet_answer_key ? JSON.stringify(t.spreadsheet_answer_key, null, 2) : "",
+    });
+    setEditing(t);
+  };
 
   const [save, saving] = useSubmitOnce(async () => {
     if (!form.title.trim() || !form.brief.trim()) return toast.error("Title and brief are required.");
+    let spreadsheet_template = null;
+    let spreadsheet_answer_key = null;
+    try {
+      spreadsheet_template = form.spreadsheet_template?.trim() ? JSON.parse(form.spreadsheet_template) : null;
+      spreadsheet_answer_key = form.spreadsheet_answer_key?.trim() ? JSON.parse(form.spreadsheet_answer_key) : null;
+    } catch {
+      return toast.error("Spreadsheet template / answer key must be valid JSON.");
+    }
+    const payload = { ...form, phase: form.phase ? Number(form.phase) : null, spreadsheet_template, spreadsheet_answer_key };
     try {
       if (editing?.id) {
-        await apiSend(`/api/internship/admin/tasks/${editing.id}`, "PUT", form);
+        await apiSend(`/api/internship/admin/tasks/${editing.id}`, "PUT", payload);
         toast.success("Task updated.");
       } else {
-        await apiSend("/api/internship/admin/tasks", "POST", form);
+        await apiSend("/api/internship/admin/tasks", "POST", payload);
         toast.success("Task created.");
       }
       setEditing(null);
@@ -476,6 +493,10 @@ function TasksTab() {
             <label className="block text-[11px] font-semibold text-[#2A364B]/60 dark:text-[#8E99AC] mb-1">Why This Task Matters (optional — shown to the student)</label>
             <textarea placeholder="e.g. This task builds your negotiation skills — useful in any job, not just sales." value={form.why_it_matters || ""} onChange={(e) => setForm({ ...form, why_it_matters: e.target.value })} rows={2} className={field} />
           </div>
+          <div>
+            <label className="block text-[11px] font-semibold text-[#2A364B]/60 dark:text-[#8E99AC] mb-1">Mistake Explanation (shown on rejection — real business impact, not just "wrong")</label>
+            <textarea placeholder="e.g. GST 18% ki jagah 5% laga diya — real company mein tax audit issue + penalty ho sakta hai." value={form.mistake_explanation || ""} onChange={(e) => setForm({ ...form, mistake_explanation: e.target.value })} rows={2} className={field} />
+          </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="block text-[11px] font-semibold text-[#2A364B]/60 dark:text-[#8E99AC] mb-1">Deliverable</label>
@@ -483,6 +504,8 @@ function TasksTab() {
                 <option value="text">Text only</option>
                 <option value="photo">Photo only</option>
                 <option value="text_and_photo">Text + Photo</option>
+                <option value="spreadsheet">Spreadsheet only</option>
+                <option value="text_and_spreadsheet">Text (Reasoning) + Spreadsheet</option>
               </select>
             </div>
             <div>
@@ -490,10 +513,51 @@ function TasksTab() {
               <input type="number" value={form.points_value} onChange={(e) => setForm({ ...form, points_value: Number(e.target.value) })} className={field} />
             </div>
           </div>
-          <div>
-            <label className="block text-[11px] font-semibold text-[#2A364B]/60 dark:text-[#8E99AC] mb-1">Estimated Duration</label>
-            <input placeholder="e.g. 20-30 mins, 1-2 hours" value={form.estimated_duration || ""} onChange={(e) => setForm({ ...form, estimated_duration: e.target.value })} className={field} />
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-[11px] font-semibold text-[#2A364B]/60 dark:text-[#8E99AC] mb-1">Estimated Duration</label>
+              <input placeholder="e.g. 20-30 mins, 1-2 hours" value={form.estimated_duration || ""} onChange={(e) => setForm({ ...form, estimated_duration: e.target.value })} className={field} />
+            </div>
+            <div>
+              <label className="block text-[11px] font-semibold text-[#2A364B]/60 dark:text-[#8E99AC] mb-1">Phase (90-day tracks only)</label>
+              <select value={form.phase} onChange={(e) => setForm({ ...form, phase: e.target.value })} className={field}>
+                <option value="">— None —</option>
+                <option value="1">Phase 1 — Guided (Day 1-30)</option>
+                <option value="2">Phase 2 — Independent (Day 31-60)</option>
+                <option value="3">Phase 3 — Capstone (Day 61-90)</option>
+              </select>
+            </div>
           </div>
+          {(form.deliverable_type === "spreadsheet" || form.deliverable_type === "text_and_spreadsheet") && (
+            <>
+              <div>
+                <label className="block text-[11px] font-semibold text-[#2A364B]/60 dark:text-[#8E99AC] mb-1">
+                  Spreadsheet Template (JSON — {"{rows, cols, headers, prefilled, locked_cells}"})
+                </label>
+                <textarea
+                  value={form.spreadsheet_template || ""}
+                  onChange={(e) => setForm({ ...form, spreadsheet_template: e.target.value })}
+                  rows={4}
+                  spellCheck={false}
+                  className={`${field} font-mono text-[11px]`}
+                  placeholder='{"rows": 10, "cols": 3, "headers": ["Item","Debit","Credit"], "prefilled": {"A1":"Item"}, "locked_cells": ["A1"]}'
+                />
+              </div>
+              <div>
+                <label className="block text-[11px] font-semibold text-[#2A364B]/60 dark:text-[#8E99AC] mb-1">
+                  Spreadsheet Answer Key (JSON — admin/grading only, never sent to students)
+                </label>
+                <textarea
+                  value={form.spreadsheet_answer_key || ""}
+                  onChange={(e) => setForm({ ...form, spreadsheet_answer_key: e.target.value })}
+                  rows={3}
+                  spellCheck={false}
+                  className={`${field} font-mono text-[11px]`}
+                  placeholder='{"cells": {"B15": {"expected": 34000, "tolerance": 1}}, "checks": [{"left":"B18","right":"B21","tolerance":1,"label":"Assets = Liabilities+Equity"}]}'
+                />
+              </div>
+            </>
+          )}
           <div className="flex items-center gap-4">
             <label className="flex items-center gap-1.5 text-xs"><input type="checkbox" checked={form.requires_geotag} onChange={(e) => setForm({ ...form, requires_geotag: e.target.checked })} /> Field task (GPS required)</label>
             <label className="flex items-center gap-1.5 text-xs"><input type="checkbox" checked={form.is_active} onChange={(e) => setForm({ ...form, is_active: e.target.checked })} /> Active</label>

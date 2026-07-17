@@ -77,6 +77,7 @@ import InternshipResetPassword from "./pages/InternshipResetPassword";
 import StudentDashboard from "./pages/StudentDashboard";
 import StudentOnboarding from "./pages/StudentOnboarding";
 import StudentMissions from "./pages/StudentMissions";
+import TaskWorkspace from "./pages/TaskWorkspace";
 import StudentProfile from "./pages/StudentProfile";
 import InternIDCardPage from "./pages/InternIDCardPage";
 import StudentQuiz from "./pages/StudentQuiz";
@@ -474,7 +475,7 @@ element={
                 <Route path="/verify/:employee_id" element={<PublicVerifyEmployee />} />
                 <Route path="/verify/intern/:intern_id" element={<PublicVerifyIntern />} />
 
-                {/* 🎓 TFD Internship — gamified 45-day program (own login,
+                {/* 🎓 TFD Internship — gamified 90-day program (own login,
                     fully separate from TFD Workspace staff/employee auth —
                     see portal/student/InternshipAuthContext.jsx) */}
                 <Route path="/internship" element={<InternshipLandingPage />} />
@@ -503,6 +504,14 @@ element={
                   element={
                     <StudentProtectedRoute>
                       <StudentMissions />
+                    </StudentProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/portal/student/task/:taskId"
+                  element={
+                    <StudentProtectedRoute>
+                      <TaskWorkspace />
                     </StudentProtectedRoute>
                   }
                 />
