@@ -20,13 +20,16 @@ export default function StudentLeaderboard() {
   const { student, token } = useInternshipAuth();
   const [board, setBoard] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [scope, setScope] = useState("overall"); // "overall" | "track"
 
   useEffect(() => {
-    fetch(`${API_BASE}/api/internship/leaderboard`, { headers: { Authorization: `Bearer ${token}` } })
+    setLoading(true);
+    const q = scope === "track" && student?.track ? `?track=${student.track}` : "";
+    fetch(`${API_BASE}/api/internship/leaderboard${q}`, { headers: { Authorization: `Bearer ${token}` } })
       .then((r) => r.json())
       .then(setBoard)
       .finally(() => setLoading(false));
-  }, [token]);
+  }, [token, scope, student?.track]);
 
   const radarData = Object.keys(RADAR_LABELS).map((key) => ({
     subject: RADAR_LABELS[key],
@@ -62,9 +65,26 @@ export default function StudentLeaderboard() {
         </div>
 
         <div className="rounded-2xl border border-white/10 bg-white/[0.03] overflow-hidden">
-          <div className="px-5 py-3.5 border-b border-white/10 flex items-center gap-2">
-            <Trophy size={15} className="text-[#14E0A0]" />
-            <p className="text-sm font-semibold">All-India Leaderboard</p>
+          <div className="px-5 py-3.5 border-b border-white/10 flex items-center justify-between gap-2 flex-wrap">
+            <div className="flex items-center gap-2">
+              <Trophy size={15} className="text-[#14E0A0]" />
+              <p className="text-sm font-semibold">{scope === "track" ? "My Track Leaderboard" : "All-India Leaderboard"}</p>
+            </div>
+            <div className="flex items-center gap-1 bg-white/5 rounded-full p-0.5">
+              <button
+                onClick={() => setScope("overall")}
+                className={`text-[11px] font-bold px-2.5 py-1 rounded-full transition-colors ${scope === "overall" ? "bg-[#14E0A0] text-[#050B16]" : "text-white/50 hover:text-white"}`}
+              >
+                Overall
+              </button>
+              <button
+                onClick={() => setScope("track")}
+                disabled={!student?.track}
+                className={`text-[11px] font-bold px-2.5 py-1 rounded-full transition-colors disabled:opacity-30 ${scope === "track" ? "bg-[#14E0A0] text-[#050B16]" : "text-white/50 hover:text-white"}`}
+              >
+                My Track
+              </button>
+            </div>
           </div>
 
           {loading ? (

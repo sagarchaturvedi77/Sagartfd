@@ -23,6 +23,7 @@ import secrets
 import uuid
 from datetime import date, datetime, timedelta, timezone
 from math import ceil
+from typing import Optional
 
 import httpx
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, Request, UploadFile
@@ -1731,14 +1732,22 @@ async def submit_quiz(data: QuizSubmitIn, payload: dict = Depends(get_current_st
 # ranking display, never paid out or stored as a running balance.
 
 @router.get("/leaderboard")
-async def get_leaderboard(payload: dict = Depends(get_current_student_payload)):
+async def get_leaderboard(track: Optional[str] = Query(default=None), payload: dict = Depends(get_current_student_payload)):
+    """Overall (all-tracks) by default; pass ?track=finance|marketing|sales|hr
+    for a track-specific ranking — same scoring, just a filtered pool of
+    students, so "top of my track" and "top overall" are both a single
+    endpoint rather than two separate ones."""
     points_by_student: dict[str, int] = {}
     async for sub in internship_submissions_collection.find({"status": "approved"}, {"student_id": 1, "points_awarded": 1}):
         points_by_student[sub["student_id"]] = points_by_student.get(sub["student_id"], 0) + (sub.get("points_awarded") or 0)
 
+    student_filter = {"status": {"$in": ["active", "graduated"]}, "is_demo": {"$ne": True}}
+    if track:
+        student_filter["track"] = track
+
     rows = []
     async for s in internship_students_collection.find(
-        {"status": {"$in": ["active", "graduated"]}, "is_demo": {"$ne": True}}, {"id": 1, "name": 1, "track": 1, "quiz_pass_count": 1}
+        student_filter, {"id": 1, "name": 1, "track": 1, "quiz_pass_count": 1}
     ):
         task_points = points_by_student.get(s["id"], 0)
         score = task_points + s.get("quiz_pass_count", 0) * 100
