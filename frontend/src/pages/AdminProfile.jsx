@@ -3,6 +3,7 @@ import { useAuth } from "../context/AuthContext";
 import PortalLayout from "../components/PortalLayout";
 import PageHeader from "../components/portal/PageHeader";
 import { Button } from "../components/ui/button";
+import { useSubmitOnce } from "../lib/useSubmitOnce";
 
 const API_BASE = process.env.REACT_APP_BACKEND_URL || "";
 
@@ -19,7 +20,6 @@ export default function AdminProfile() {
   const { token, user } = useAuth();
   const [form, setForm] = useState({});
   const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
 
   const load = useCallback(async () => {
@@ -42,8 +42,7 @@ export default function AdminProfile() {
 
   const set = (k, v) => { setForm((prev) => ({ ...prev, [k]: v })); setSaved(false); };
 
-  const save = async () => {
-    setSaving(true);
+  const [save, saving] = useSubmitOnce(async () => {
     try {
       const res = await fetch(`${API_BASE}/api/profile`, {
         method: "PUT",
@@ -52,8 +51,7 @@ export default function AdminProfile() {
       });
       if (res.ok) setSaved(true);
     } catch { /* silent */ }
-    setSaving(false);
-  };
+  });
 
   const field = "w-full border border-[#E2D8C2] dark:border-white/15 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#024396]/30 bg-white dark:bg-white/5 dark:text-[#F1EDE3]";
 

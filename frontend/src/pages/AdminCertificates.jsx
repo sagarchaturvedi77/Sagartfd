@@ -7,6 +7,7 @@ import PortalModal from "../components/portal/PortalModal";
 import { Button } from "../components/ui/button";
 import { Download, Mail, Award, Send, Check, X, Share2, Copy, History } from "lucide-react";
 import { LINKS } from "../lib/links";
+import { useSubmitOnce } from "../lib/useSubmitOnce";
 
 const API_BASE = process.env.REACT_APP_BACKEND_URL || "";
 const DEPARTMENTS = ["HR", "Sales", "Marketing", "Accounts"];
@@ -58,26 +59,20 @@ export default function AdminCertificates() {
   };
   const [approveTarget, setApproveTarget] = useState(null);
   const [approveForm, setApproveForm] = useState(emptyApproveForm);
-  const [approving, setApproving] = useState(false);
-
-  const [generatingBoth, setGeneratingBoth] = useState(null); // intern id currently generating cert+completion letter
 
   const [emailTarget, setEmailTarget] = useState(null);
   const [emailAddress, setEmailAddress] = useState("");
   const [emailCc, setEmailCc] = useState("");
-  const [sendingEmail, setSendingEmail] = useState(false);
 
   const [emailInternTarget, setEmailInternTarget] = useState(null);
   const [emailInternAddress, setEmailInternAddress] = useState("");
   const [emailInternCc, setEmailInternCc] = useState("");
   const [emailInternDocs, setEmailInternDocs] = useState([]);
-  const [sendingInternEmail, setSendingInternEmail] = useState(false);
 
   const parseCc = (raw) => raw.split(",").map((s) => s.trim()).filter(Boolean).slice(0, 10);
 
   const [templateEdit, setTemplateEdit] = useState(null); // { intern, kind: "offer_letter"|"completion_letter"|"certificate" }
   const [templateText, setTemplateText] = useState("");
-  const [generatingTemplate, setGeneratingTemplate] = useState(false);
 
   const [personDetail, setPersonDetail] = useState(null); // { type: "intern"|"certificate", intern, cert }
 
@@ -120,16 +115,19 @@ export default function AdminCertificates() {
 
   const field = "w-full border border-[#E2D8C2] dark:border-white/15 dark:bg-white/5 dark:text-[#F1EDE3] rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#024396]/30";
 
-  const generateCertAndCompletionLetter = async (intern) => {
-    if (generatingBoth) return;
-    setGeneratingBoth(intern.id);
+  // Original behavior was already single-flight globally (one `generatingBoth`
+  // id-or-null, not per-row) — useSubmitOnce's ref guard preserves that while
+  // closing the state-only race window; generatingId stays for per-row label.
+  const [generatingId, setGeneratingId] = useState(null);
+  const [generateCertAndCompletionLetter, generatingBoth] = useSubmitOnce(async (intern) => {
+    setGeneratingId(intern.id);
     try {
       await fetch(`${API_BASE}/api/interns/${intern.id}/completion-letter`, { method: "POST", headers, body: JSON.stringify({}) });
       await load();
     } finally {
-      setGeneratingBoth(null);
+      setGeneratingId(null);
     }
-  };
+  });
 
   // Always the real production domain, never window.location.origin — this
   // link is meant to be shared publicly with intern applicants, so it must
@@ -170,37 +168,32 @@ export default function AdminCertificates() {
     });
   };
 
-  const submitApproval = async (e) => {
+  const [submitApproval, approving] = useSubmitOnce(async (e) => {
     e.preventDefault();
-    if (!approveTarget || approving) return;
-    setApproving(true);
-    try {
-      const res = await fetch(`${API_BASE}/api/interns/${approveTarget.id}/approve`, {
-        method: "POST", headers,
-        body: JSON.stringify({
-          ...approveForm,
-          stipend: approveForm.stipend_type === "fixed" && approveForm.stipend ? Number(approveForm.stipend) : null,
-          manager_designation: approveForm.manager_designation || null,
-        }),
-      });
-      if (res.ok) {
-        setApproveTarget(null);
-        setApproveForm(emptyApproveForm);
-        load();
-      } else {
-        const err = await res.json().catch(() => ({}));
-        alert(err.detail || "Failed to approve");
-      }
-    } finally {
-      setApproving(false);
+    if (!approveTarget) return;
+    const res = await fetch(`${API_BASE}/api/interns/${approveTarget.id}/approve`, {
+      method: "POST", headers,
+      body: JSON.stringify({
+        ...approveForm,
+        stipend: approveForm.stipend_type === "fixed" && approveForm.stipend ? Number(approveForm.stipend) : null,
+        manager_designation: approveForm.manager_designation || null,
+      }),
+    });
+    if (res.ok) {
+      setApproveTarget(null);
+      setApproveForm(emptyApproveForm);
+      load();
+    } else {
+      const err = await res.json().catch(() => ({}));
+      alert(err.detail || "Failed to approve");
     }
-  };
+  });
 
-  const rejectIntern = async (intern) => {
+  const [rejectIntern, rejecting] = useSubmitOnce(async (intern) => {
     if (!window.confirm(`Reject ${intern.name}'s application? This cannot be undone.`)) return;
     const res = await fetch(`${API_BASE}/api/interns/${intern.id}/reject`, { method: "DELETE", headers });
     if (res.ok) load();
-  };
+  });
 
   const openInternDetail = (intern) => {
     const linkedCert = intern.certificate_id ? certificates.find((c) => c.id === intern.certificate_id) : null;
@@ -222,72 +215,92 @@ export default function AdminCertificates() {
     }
   };
 
-  const confirmGenerateTemplate = async () => {
+  const [confirmGenerateTemplate, generatingTemplate] = useSubmitOnce(async () => {
     if (!templateEdit) return;
     const { intern, kind } = templateEdit;
-    setGeneratingTemplate(true);
-    try {
-      if (kind === "certificate") {
-        const res = await fetch(`${API_BASE}/api/interns/${intern.id}/certificate`, {
-          method: "POST", headers, body: JSON.stringify({ custom_detail: templateText }),
-        });
-        if (res.ok) { setTemplateEdit(null); load(); alert("Certificate generated!"); }
-        else { const err = await res.json().catch(() => ({})); alert(err.detail || "Failed"); }
-      } else {
-        const endpoint = kind === "offer_letter" ? "offer-letter" : "completion-letter";
-        const res = await fetch(`${API_BASE}/api/interns/${intern.id}/${endpoint}`, {
-          method: "POST", headers, body: JSON.stringify({ custom_body: templateText }),
-        });
-        if (res.ok) {
-          await downloadBlob(res, `${kind === "offer_letter" ? "Offer_Letter" : "Completion_Letter"}_${intern.name.replace(/\s+/g, "_")}.pdf`);
-          setTemplateEdit(null);
-          load();
-        }
-      }
-    } finally {
-      setGeneratingTemplate(false);
-    }
-  };
-
-  const sendEmail = async () => {
-    if (!emailAddress.trim() || sendingEmail) return;
-    if (!window.confirm(`Send certificate email to ${emailAddress.trim()}?`)) return;
-    setSendingEmail(true);
-    try {
-      const res = await fetch(`${API_BASE}/api/certificates/${emailTarget.id}/email`, {
-        method: "POST", headers, body: JSON.stringify({ to_email: emailAddress.trim(), cc_emails: parseCc(emailCc) }),
+    if (kind === "certificate") {
+      const res = await fetch(`${API_BASE}/api/interns/${intern.id}/certificate`, {
+        method: "POST", headers, body: JSON.stringify({ custom_detail: templateText }),
       });
-      if (res.ok) { alert("Emailed!"); setEmailTarget(null); setEmailAddress(""); setEmailCc(""); } else { const err = await res.json().catch(() => ({})); alert(err.detail || "Failed to send"); }
-    } finally {
-      setSendingEmail(false);
+      if (res.ok) { setTemplateEdit(null); load(); alert("Certificate generated!"); }
+      else { const err = await res.json().catch(() => ({})); alert(err.detail || "Failed"); }
+    } else {
+      const endpoint = kind === "offer_letter" ? "offer-letter" : "completion-letter";
+      const res = await fetch(`${API_BASE}/api/interns/${intern.id}/${endpoint}`, {
+        method: "POST", headers, body: JSON.stringify({ custom_body: templateText }),
+      });
+      if (res.ok) {
+        await downloadBlob(res, `${kind === "offer_letter" ? "Offer_Letter" : "Completion_Letter"}_${intern.name.replace(/\s+/g, "_")}.pdf`);
+        setTemplateEdit(null);
+        load();
+      }
     }
-  };
+  });
+
+  const [sendEmail, sendingEmail] = useSubmitOnce(async () => {
+    if (!emailAddress.trim()) return;
+    if (!window.confirm(`Send certificate email to ${emailAddress.trim()}?`)) return;
+    const res = await fetch(`${API_BASE}/api/certificates/${emailTarget.id}/email`, {
+      method: "POST", headers, body: JSON.stringify({ to_email: emailAddress.trim(), cc_emails: parseCc(emailCc) }),
+    });
+    if (res.ok) { alert("Emailed!"); setEmailTarget(null); setEmailAddress(""); setEmailCc(""); } else { const err = await res.json().catch(() => ({})); alert(err.detail || "Failed to send"); }
+  });
 
   const toggleInternDoc = (doc) => {
     setEmailInternDocs((prev) => (prev.includes(doc) ? prev.filter((d) => d !== doc) : [...prev, doc]));
   };
 
-  const sendInternEmail = async () => {
-    if (!emailInternAddress.trim() || emailInternDocs.length === 0 || sendingInternEmail) return;
+  const [sendInternEmail, sendingInternEmail] = useSubmitOnce(async () => {
+    if (!emailInternAddress.trim() || emailInternDocs.length === 0) return;
     if (!window.confirm(`Send ${emailInternDocs.length === 1 ? "this document" : "these documents"} to ${emailInternAddress.trim()}?`)) return;
-    setSendingInternEmail(true);
-    try {
-      const res = await fetch(`${API_BASE}/api/interns/${emailInternTarget.id}/email`, {
-        method: "POST", headers,
-        body: JSON.stringify({ to_email: emailInternAddress.trim(), documents: emailInternDocs, cc_emails: parseCc(emailInternCc) }),
-      });
-      if (res.ok) {
-        const result = await res.json();
-        alert(`Sent: ${result.documents.join(", ")}`);
-        setEmailInternTarget(null); setEmailInternAddress(""); setEmailInternCc(""); setEmailInternDocs([]);
-      } else {
-        const err = await res.json().catch(() => ({}));
-        alert(err.detail || "Failed to send");
-      }
-    } finally {
-      setSendingInternEmail(false);
+    const res = await fetch(`${API_BASE}/api/interns/${emailInternTarget.id}/email`, {
+      method: "POST", headers,
+      body: JSON.stringify({ to_email: emailInternAddress.trim(), documents: emailInternDocs, cc_emails: parseCc(emailInternCc) }),
+    });
+    if (res.ok) {
+      const result = await res.json();
+      alert(`Sent: ${result.documents.join(", ")}`);
+      setEmailInternTarget(null); setEmailInternAddress(""); setEmailInternCc(""); setEmailInternDocs([]);
+    } else {
+      const err = await res.json().catch(() => ({}));
+      alert(err.detail || "Failed to send");
     }
-  };
+  });
+
+  // The person-detail modal's download/WhatsApp buttons previously had no
+  // guard at all — declared here (unconditionally, as hooks require) rather
+  // than inline in the conditionally-rendered JSX below; each reads
+  // `personDetail` fresh from the current render's closure.
+  const [downloadOfferLetter, downloadingOfferLetter] = useSubmitOnce(async () => {
+    if (!personDetail?.intern) return;
+    const res = await fetch(`${API_BASE}/api/interns/${personDetail.intern.id}/offer-letter/download`, { headers });
+    if (res.ok) await downloadBlob(res, `Offer_Letter_${personDetail.intern.name.replace(/\s+/g, "_")}.pdf`);
+  });
+  const [shareOfferLetter, sharingOfferLetter] = useSubmitOnce(async () => {
+    if (!personDetail?.intern) return;
+    const res = await fetch(`${API_BASE}/api/interns/${personDetail.intern.id}/offer-letter/download`, { headers });
+    await shareInternDocViaWhatsApp(res, `Offer_Letter_${personDetail.intern.name.replace(/\s+/g, "_")}.pdf`, "Offer Letter", personDetail.intern.contact_phone, null);
+  });
+  const [downloadCompletionLetter, downloadingCompletionLetter] = useSubmitOnce(async () => {
+    if (!personDetail?.intern) return;
+    const res = await fetch(`${API_BASE}/api/interns/${personDetail.intern.id}/completion-letter/download`, { headers });
+    if (res.ok) await downloadBlob(res, `Completion_Letter_${personDetail.intern.name.replace(/\s+/g, "_")}.pdf`);
+  });
+  const [shareCompletionLetter, sharingCompletionLetter] = useSubmitOnce(async () => {
+    if (!personDetail?.intern) return;
+    const res = await fetch(`${API_BASE}/api/interns/${personDetail.intern.id}/completion-letter/download`, { headers });
+    await shareInternDocViaWhatsApp(res, `Completion_Letter_${personDetail.intern.name.replace(/\s+/g, "_")}.pdf`, "Completion Letter", personDetail.intern.contact_phone, null);
+  });
+  const [downloadCertificatePdf, downloadingCertificatePdf] = useSubmitOnce(async () => {
+    if (!personDetail?.cert) return;
+    const res = await fetch(`${API_BASE}/api/certificates/${personDetail.cert.id}/download`, { headers });
+    if (res.ok) await downloadBlob(res, `Certificate_${personDetail.cert.certificate_number.replace(/\//g, "_")}.pdf`);
+  });
+  const [shareCertificatePdf, sharingCertificatePdf] = useSubmitOnce(async () => {
+    if (!personDetail?.cert) return;
+    const res = await fetch(`${API_BASE}/api/certificates/${personDetail.cert.id}/download`, { headers });
+    await shareInternDocViaWhatsApp(res, `Certificate_${personDetail.cert.certificate_number.replace(/\//g, "_")}.pdf`, "Certificate", personDetail.intern?.contact_phone, personDetail.cert.certificate_number);
+  });
 
   const filteredInterns = (() => {
     const q = searchQuery.trim().toLowerCase();
@@ -354,8 +367,8 @@ export default function AdminCertificates() {
                         {intern.certificate_id ? (
                           <span className="text-xs text-emerald-600 dark:text-emerald-400 font-medium px-3 py-1.5">Certificate + Completion Letter issued ✓</span>
                         ) : (
-                          <Button size="sm" disabled={generatingBoth === intern.id} onClick={() => generateCertAndCompletionLetter(intern)} className="bg-[#024396] hover:bg-[#023580]">
-                            <Award size={12} className="mr-1" /> {generatingBoth === intern.id ? "Generating..." : "Certificate + Completion Letter"}
+                          <Button size="sm" disabled={generatingBoth} onClick={() => generateCertAndCompletionLetter(intern)} className="bg-[#024396] hover:bg-[#023580]">
+                            <Award size={12} className="mr-1" /> {generatingId === intern.id ? "Generating..." : "Certificate + Completion Letter"}
                           </Button>
                         )}
                         <Button size="sm" variant="outline" onClick={() => { setEmailInternTarget(intern); setEmailInternAddress(intern.contact_email || ""); setEmailInternDocs([]); }}>
@@ -418,7 +431,7 @@ export default function AdminCertificates() {
                       <Button size="sm" onClick={() => openApprove(a)} className="bg-emerald-600 hover:bg-emerald-700 text-white">
                         <Check size={12} className="mr-1" /> Approve
                       </Button>
-                      <Button size="sm" variant="outline" onClick={() => rejectIntern(a)} className="text-red-600 dark:text-red-400 border-red-200 dark:border-red-800">
+                      <Button size="sm" variant="outline" disabled={rejecting} onClick={() => rejectIntern(a)} className="text-red-600 dark:text-red-400 border-red-200 dark:border-red-800">
                         <X size={12} className="mr-1" /> Reject
                       </Button>
                     </div>
@@ -598,20 +611,16 @@ export default function AdminCertificates() {
                   {personDetail.intern.offer_letter_generated_at && (
                     <>
                       <button
-                        onClick={async () => {
-                          const res = await fetch(`${API_BASE}/api/interns/${personDetail.intern.id}/offer-letter/download`, { headers });
-                          if (res.ok) await downloadBlob(res, `Offer_Letter_${personDetail.intern.name.replace(/\s+/g, "_")}.pdf`);
-                        }}
-                        className="inline-flex items-center gap-1.5 text-xs font-medium text-[#024396] dark:text-[#7CB0FF]"
+                        onClick={downloadOfferLetter}
+                        disabled={downloadingOfferLetter}
+                        className="inline-flex items-center gap-1.5 text-xs font-medium text-[#024396] dark:text-[#7CB0FF] disabled:opacity-50"
                       >
-                        <Download size={12} /> Download Offer Letter
+                        <Download size={12} /> {downloadingOfferLetter ? "Downloading..." : "Download Offer Letter"}
                       </button>
                       <button
-                        onClick={async () => {
-                          const res = await fetch(`${API_BASE}/api/interns/${personDetail.intern.id}/offer-letter/download`, { headers });
-                          await shareInternDocViaWhatsApp(res, `Offer_Letter_${personDetail.intern.name.replace(/\s+/g, "_")}.pdf`, "Offer Letter", personDetail.intern.contact_phone, null);
-                        }}
-                        className="inline-flex items-center gap-1.5 text-xs font-medium text-emerald-600 dark:text-emerald-400"
+                        onClick={shareOfferLetter}
+                        disabled={sharingOfferLetter}
+                        className="inline-flex items-center gap-1.5 text-xs font-medium text-emerald-600 dark:text-emerald-400 disabled:opacity-50"
                       >
                         <Share2 size={12} /> WhatsApp
                       </button>
@@ -620,20 +629,16 @@ export default function AdminCertificates() {
                   {personDetail.intern.completion_letter_generated_at && (
                     <>
                       <button
-                        onClick={async () => {
-                          const res = await fetch(`${API_BASE}/api/interns/${personDetail.intern.id}/completion-letter/download`, { headers });
-                          if (res.ok) await downloadBlob(res, `Completion_Letter_${personDetail.intern.name.replace(/\s+/g, "_")}.pdf`);
-                        }}
-                        className="inline-flex items-center gap-1.5 text-xs font-medium text-[#024396] dark:text-[#7CB0FF]"
+                        onClick={downloadCompletionLetter}
+                        disabled={downloadingCompletionLetter}
+                        className="inline-flex items-center gap-1.5 text-xs font-medium text-[#024396] dark:text-[#7CB0FF] disabled:opacity-50"
                       >
-                        <Download size={12} /> Download Completion Letter
+                        <Download size={12} /> {downloadingCompletionLetter ? "Downloading..." : "Download Completion Letter"}
                       </button>
                       <button
-                        onClick={async () => {
-                          const res = await fetch(`${API_BASE}/api/interns/${personDetail.intern.id}/completion-letter/download`, { headers });
-                          await shareInternDocViaWhatsApp(res, `Completion_Letter_${personDetail.intern.name.replace(/\s+/g, "_")}.pdf`, "Completion Letter", personDetail.intern.contact_phone, null);
-                        }}
-                        className="inline-flex items-center gap-1.5 text-xs font-medium text-emerald-600 dark:text-emerald-400"
+                        onClick={shareCompletionLetter}
+                        disabled={sharingCompletionLetter}
+                        className="inline-flex items-center gap-1.5 text-xs font-medium text-emerald-600 dark:text-emerald-400 disabled:opacity-50"
                       >
                         <Share2 size={12} /> WhatsApp
                       </button>
@@ -657,13 +662,11 @@ export default function AdminCertificates() {
                 </div>
                 <div className="flex items-center gap-3 mt-2 flex-wrap">
                   <button
-                    onClick={async () => {
-                      const res = await fetch(`${API_BASE}/api/certificates/${personDetail.cert.id}/download`, { headers });
-                      if (res.ok) await downloadBlob(res, `Certificate_${personDetail.cert.certificate_number.replace(/\//g, "_")}.pdf`);
-                    }}
-                    className="inline-flex items-center gap-1.5 text-xs font-medium text-[#024396] dark:text-[#7CB0FF]"
+                    onClick={downloadCertificatePdf}
+                    disabled={downloadingCertificatePdf}
+                    className="inline-flex items-center gap-1.5 text-xs font-medium text-[#024396] dark:text-[#7CB0FF] disabled:opacity-50"
                   >
-                    <Download size={12} /> Download Certificate PDF
+                    <Download size={12} /> {downloadingCertificatePdf ? "Downloading..." : "Download Certificate PDF"}
                   </button>
                   <button
                     onClick={() => { setEmailTarget(personDetail.cert); setEmailAddress(personDetail.intern?.contact_email || ""); }}
@@ -672,11 +675,9 @@ export default function AdminCertificates() {
                     <Mail size={12} /> Email Certificate
                   </button>
                   <button
-                    onClick={async () => {
-                      const res = await fetch(`${API_BASE}/api/certificates/${personDetail.cert.id}/download`, { headers });
-                      await shareInternDocViaWhatsApp(res, `Certificate_${personDetail.cert.certificate_number.replace(/\//g, "_")}.pdf`, "Certificate", personDetail.intern?.contact_phone, personDetail.cert.certificate_number);
-                    }}
-                    className="inline-flex items-center gap-1.5 text-xs font-medium text-emerald-600 dark:text-emerald-400"
+                    onClick={shareCertificatePdf}
+                    disabled={sharingCertificatePdf}
+                    className="inline-flex items-center gap-1.5 text-xs font-medium text-emerald-600 dark:text-emerald-400 disabled:opacity-50"
                   >
                     <Share2 size={12} /> WhatsApp
                   </button>

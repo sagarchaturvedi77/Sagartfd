@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import PortalLayout from "../components/PortalLayout";
 import { useAuth } from "../context/AuthContext";
 import { DashboardCustomizerPanel } from "../components/DashboardCustomizer";
+import { useSubmitOnce } from "../lib/useSubmitOnce";
 
 const API_BASE = process.env.REACT_APP_BACKEND_URL || "";
 
@@ -27,15 +28,13 @@ export default function EmployeeSettings() {
   const [pwForm, setPwForm] = useState({ current: "", newPw: "", confirm: "" });
   const [pwMsg, setPwMsg] = useState("");
   const [pwErr, setPwErr] = useState("");
-  const [saving, setSaving] = useState(false);
   const [lang, setLang] = useState(() => localStorage.getItem("portal_lang") || "en");
 
-  const changePassword = async (e) => {
+  const [changePassword, saving] = useSubmitOnce(async (e) => {
     e.preventDefault();
     setPwMsg(""); setPwErr("");
     if (pwForm.newPw !== pwForm.confirm) { setPwErr("New passwords don't match!"); return; }
     if (pwForm.newPw.length < 6) { setPwErr("Minimum 6 characters required."); return; }
-    setSaving(true);
     try {
       const res = await fetch(`${API_BASE}/api/auth/change-password`, {
         method: "POST",
@@ -45,8 +44,7 @@ export default function EmployeeSettings() {
       if (res.ok) { setPwMsg("✅ Password changed successfully!"); setPwForm({ current: "", newPw: "", confirm: "" }); }
       else { const err = await res.json().catch(() => ({})); setPwErr(err.detail || "Failed. Check current password."); }
     } catch { setPwErr("Network error. Try again."); }
-    setSaving(false);
-  };
+  });
 
   const saveLang = (l) => {
     setLang(l);

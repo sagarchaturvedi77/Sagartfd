@@ -1,10 +1,11 @@
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import { useAuth } from "../context/AuthContext";
 import PortalLayout from "../components/PortalLayout";
 import PageHeader from "../components/portal/PageHeader";
 import PortalModal from "../components/portal/PortalModal";
 import { Button } from "../components/ui/button";
 import { Plus, Trash2, Download, MessageCircle, Share2, Receipt } from "lucide-react";
+import { useSubmitOnce } from "../lib/useSubmitOnce";
 
 const API_BASE = process.env.REACT_APP_BACKEND_URL || "";
 
@@ -32,8 +33,14 @@ export default function AdminInvoices() {
   const [savedGstNumber, setSavedGstNumber] = useState("");
   const [paymentMethod, setPaymentMethod] = useState("");
   const [items, setItems] = useState([{ description: "", quantity: 1, rate: "" }]);
-  const [saving, setSaving] = useState(false);
-  const [busyId, setBusyId] = useState(null); // invoice id currently downloading/sharing
+  const [busyId, setBusyId] = useState(null); // invoice id currently downloading/sharing — per-row UI feedback
+  // Set-based ref guard (not useSubmitOnce directly — these actions are
+  // keyed per-invoice-id, and a hook can't be instantiated dynamically per
+  // row) so a rapid double-click on the SAME invoice's button can't fire
+  // two concurrent downloads/shares, while a different invoice's button
+  // stays independently clickable (busyId already gave per-row visual
+  // feedback; this closes the actual race window that state alone can't).
+  const inFlightRef = useRef(new Set());
   const [detailInvoice, setDetailInvoice] = useState(null);
 
   const load = useCallback(async () => {
@@ -77,31 +84,26 @@ export default function AdminInvoices() {
 
   const useSavedGst = () => setGstNumber(savedGstNumber);
 
-  const submit = async (e) => {
+  const [submit, saving] = useSubmitOnce(async (e) => {
     e.preventDefault();
     if (!billToName.trim() || items.some((it) => !it.description.trim() || !it.rate)) return;
-    setSaving(true);
-    try {
-      const res = await fetch(`${API_BASE}/api/invoices`, {
-        method: "POST", headers,
-        body: JSON.stringify({
-          bill_to_name: billToName, bill_to_address: billToAddress || null, bill_to_phone: billToPhone || null,
-          items: items.map((it) => ({ description: it.description, quantity: Number(it.quantity), rate: Number(it.rate) })),
-          gst_percent: rate, gst_type: gstType, gst_number: gstEnabled ? (gstNumber || null) : null,
-          save_gst_number: gstEnabled && saveGstNumber,
-          payment_method: paymentMethod || null,
-        }),
-      });
-      if (res.ok) {
-        setBillToName(""); setBillToAddress(""); setBillToPhone(""); setPaymentMethod("");
-        setItems([{ description: "", quantity: 1, rate: "" }]);
-        setGstEnabled(false); setGstNumber(""); setSaveGstNumber(false);
-        load();
-      }
-    } finally {
-      setSaving(false);
+    const res = await fetch(`${API_BASE}/api/invoices`, {
+      method: "POST", headers,
+      body: JSON.stringify({
+        bill_to_name: billToName, bill_to_address: billToAddress || null, bill_to_phone: billToPhone || null,
+        items: items.map((it) => ({ description: it.description, quantity: Number(it.quantity), rate: Number(it.rate) })),
+        gst_percent: rate, gst_type: gstType, gst_number: gstEnabled ? (gstNumber || null) : null,
+        save_gst_number: gstEnabled && saveGstNumber,
+        payment_method: paymentMethod || null,
+      }),
+    });
+    if (res.ok) {
+      setBillToName(""); setBillToAddress(""); setBillToPhone(""); setPaymentMethod("");
+      setItems([{ description: "", quantity: 1, rate: "" }]);
+      setGstEnabled(false); setGstNumber(""); setSaveGstNumber(false);
+      load();
     }
-  };
+  });
 
   // Always fetches the PDF fresh through our own authenticated endpoint
   // (regenerated server-side from the stored invoice fields if needed)
@@ -113,6 +115,8 @@ export default function AdminInvoices() {
   };
 
   const downloadInvoice = async (inv) => {
+    if (inFlightRef.current.has(inv.id)) return;
+    inFlightRef.current.add(inv.id);
     setBusyId(inv.id);
     try {
       const blob = await fetchInvoicePdfBlob(inv);
@@ -127,11 +131,14 @@ export default function AdminInvoices() {
     } catch {
       alert("Could not download the invoice PDF. Please try again.");
     } finally {
+      inFlightRef.current.delete(inv.id);
       setBusyId(null);
     }
   };
 
   const shareInvoice = async (inv) => {
+    if (inFlightRef.current.has(inv.id)) return;
+    inFlightRef.current.add(inv.id);
     setBusyId(inv.id);
     const message = `Hello ${inv.bill_to_name},\n\nPlease find your invoice from The Financial Doctor:\nInvoice #: ${inv.invoice_number}\nAmount: ₹${inv.total.toFixed(2)}\n\nThank you for your business!\n- The Financial Doctor`;
     try {
@@ -152,6 +159,7 @@ export default function AdminInvoices() {
     } catch (e) {
       if (e?.name !== "AbortError") alert("Could not share the invoice. Please try downloading it instead.");
     } finally {
+      inFlightRef.current.delete(inv.id);
       setBusyId(null);
     }
   };

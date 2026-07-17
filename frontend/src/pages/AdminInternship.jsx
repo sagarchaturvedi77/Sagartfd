@@ -1,10 +1,11 @@
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import PortalLayout from "../components/PortalLayout";
 import PageHeader from "../components/portal/PageHeader";
 import PortalModal from "../components/portal/PortalModal";
 import { apiGet, apiSend } from "../portal/api";
 import { useAuth } from "../context/AuthContext";
+import { useSubmitOnce } from "../lib/useSubmitOnce";
 
 const API_BASE = process.env.REACT_APP_BACKEND_URL || "";
 
@@ -98,7 +99,15 @@ function StudentsTab() {
 
   useEffect(() => { load(); }, [load]);
 
+  // markPaid/submitWarn/submitBan/unban all shared one `busyId` state
+  // already (single-flight across the whole table, not per-row) — this ref
+  // preserves that exact behavior while closing the double-click race
+  // window a state-only check can't.
+  const actionInFlightRef = useRef(false);
+
   const markPaid = async (id) => {
+    if (actionInFlightRef.current) return;
+    actionInFlightRef.current = true;
     setBusyId(id);
     try {
       await apiSend(`/api/internship/admin/students/${id}/payment`, "PATCH", {});
@@ -107,11 +116,14 @@ function StudentsTab() {
     } catch (e) {
       toast.error(e.message || "Failed to update payment status");
     }
+    actionInFlightRef.current = false;
     setBusyId(null);
   };
 
   const submitWarn = async () => {
+    if (actionInFlightRef.current) return;
     if (!reason.trim()) return toast.error("Please enter a reason.");
+    actionInFlightRef.current = true;
     setBusyId(warnTarget.id);
     try {
       await apiSend(`/api/internship/admin/students/${warnTarget.id}/warn`, "PATCH", { reason });
@@ -121,11 +133,14 @@ function StudentsTab() {
     } catch (e) {
       toast.error(e.message || "Failed to warn student");
     }
+    actionInFlightRef.current = false;
     setBusyId(null);
   };
 
   const submitBan = async () => {
+    if (actionInFlightRef.current) return;
     if (!reason.trim()) return toast.error("Please enter a reason.");
+    actionInFlightRef.current = true;
     setBusyId(banTarget.id);
     try {
       await apiSend(`/api/internship/admin/students/${banTarget.id}/ban`, "PATCH", { reason });
@@ -135,10 +150,13 @@ function StudentsTab() {
     } catch (e) {
       toast.error(e.message || "Failed to ban student");
     }
+    actionInFlightRef.current = false;
     setBusyId(null);
   };
 
   const unban = async (id) => {
+    if (actionInFlightRef.current) return;
+    actionInFlightRef.current = true;
     setBusyId(id);
     try {
       await apiSend(`/api/internship/admin/students/${id}/unban`, "PATCH", {});
@@ -147,6 +165,7 @@ function StudentsTab() {
     } catch (e) {
       toast.error(e.message || "Failed to unban student");
     }
+    actionInFlightRef.current = false;
     setBusyId(null);
   };
 
@@ -164,6 +183,7 @@ function StudentsTab() {
   };
 
   const confirmGraduate = async () => {
+    if (gradBusy) return;
     setGradBusy(true);
     try {
       await apiSend(`/api/internship/admin/students/${gradTarget.id}/graduate`, "POST", { force: gradForce });
@@ -176,7 +196,7 @@ function StudentsTab() {
     setGradBusy(false);
   };
 
-  const downloadCertificate = async (certificateId, name) => {
+  const [downloadCertificate, downloadingCert] = useSubmitOnce(async (certificateId, name) => {
     try {
       const res = await fetch(`${API_BASE}/api/certificates/${certificateId}/download`, { headers: { Authorization: `Bearer ${token}` } });
       if (res.ok) await downloadBlob(res, `Certificate_${name.replace(/\s+/g, "_")}.pdf`);
@@ -184,7 +204,7 @@ function StudentsTab() {
     } catch (e) {
       toast.error("Failed to download certificate");
     }
-  };
+  });
 
   return (
     <div className="bg-white dark:bg-[#101D2E] rounded-2xl border border-[#E2D8C2] dark:border-white/10 shadow-sm overflow-hidden">
@@ -248,7 +268,7 @@ function StudentsTab() {
                         </button>
                       ) : s.status === "graduated" ? (
                         s.certificate_id && (
-                          <button onClick={() => downloadCertificate(s.certificate_id, s.name)} className="px-2.5 py-1.5 rounded-lg text-[11px] font-medium text-violet-700 bg-violet-50 hover:bg-violet-100 dark:bg-violet-900/30 dark:text-violet-400">
+                          <button onClick={() => downloadCertificate(s.certificate_id, s.name)} disabled={downloadingCert} className="px-2.5 py-1.5 rounded-lg text-[11px] font-medium text-violet-700 bg-violet-50 hover:bg-violet-100 dark:bg-violet-900/30 dark:text-violet-400 disabled:opacity-50">
                             Certificate
                           </button>
                         )
@@ -340,7 +360,6 @@ function TasksTab() {
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState(null); // task object, or {} for new
   const [form, setForm] = useState(EMPTY_TASK);
-  const [saving, setSaving] = useState(false);
 
   const load = useCallback(async () => {
     try {
@@ -356,9 +375,8 @@ function TasksTab() {
   const openNew = () => { setForm(EMPTY_TASK); setEditing({}); };
   const openEdit = (t) => { setForm({ ...t }); setEditing(t); };
 
-  const save = async () => {
+  const [save, saving] = useSubmitOnce(async () => {
     if (!form.title.trim() || !form.brief.trim()) return toast.error("Title and brief are required.");
-    setSaving(true);
     try {
       if (editing?.id) {
         await apiSend(`/api/internship/admin/tasks/${editing.id}`, "PUT", form);
@@ -372,11 +390,13 @@ function TasksTab() {
     } catch (e) {
       toast.error(e.message || "Failed to save task");
     }
-    setSaving(false);
-  };
+  });
 
+  const removeInFlightRef = useRef(new Set());
   const remove = async (id) => {
     if (!window.confirm("Delete this task from the pool?")) return;
+    if (removeInFlightRef.current.has(id)) return;
+    removeInFlightRef.current.add(id);
     try {
       await apiSend(`/api/internship/admin/tasks/${id}`, "DELETE");
       toast.success("Task deleted.");
@@ -384,6 +404,7 @@ function TasksTab() {
     } catch (e) {
       toast.error(e.message || "Failed to delete task");
     }
+    removeInFlightRef.current.delete(id);
   };
 
   const field = "w-full border border-[#E2D8C2] dark:border-white/10 dark:bg-white/5 rounded-lg px-3 py-2 text-sm";
@@ -494,6 +515,10 @@ function SubmissionsTab() {
   const [loading, setLoading] = useState(true);
   const [busyId, setBusyId] = useState(null);
   const [noteDraft, setNoteDraft] = useState({});
+  // Set-based ref guard (id-keyed, like AdminInvoices' download/share) so a
+  // rapid double-click on the SAME submission's Approve/Reject can't fire
+  // twice, while other rows' buttons stay independently usable.
+  const reviewInFlightRef = useRef(new Set());
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -509,6 +534,8 @@ function SubmissionsTab() {
   useEffect(() => { load(); }, [load]);
 
   const review = async (id, status) => {
+    if (reviewInFlightRef.current.has(id)) return;
+    reviewInFlightRef.current.add(id);
     setBusyId(id);
     try {
       await apiSend(`/api/internship/admin/submissions/${id}/review`, "PATCH", { status, admin_note: noteDraft[id] || "" });
@@ -517,6 +544,7 @@ function SubmissionsTab() {
     } catch (e) {
       toast.error(e.message || "Failed to update submission");
     }
+    reviewInFlightRef.current.delete(id);
     setBusyId(null);
   };
 

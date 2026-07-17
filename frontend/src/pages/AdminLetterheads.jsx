@@ -5,6 +5,7 @@ import PageHeader from "../components/portal/PageHeader";
 import PortalModal from "../components/portal/PortalModal";
 import { Button } from "../components/ui/button";
 import { Download, Eye, Mail, Share2 } from "lucide-react";
+import { useSubmitOnce } from "../lib/useSubmitOnce";
 
 const API_BASE = process.env.REACT_APP_BACKEND_URL || "";
 
@@ -31,12 +32,10 @@ export default function AdminLetterheads() {
   const [includeSignature, setIncludeSignature] = useState(true);
   const [signatureType, setSignatureType] = useState("ceo");
   const [includeDisclaimer, setIncludeDisclaimer] = useState(false);
-  const [saving, setSaving] = useState(false);
 
   const [emailTarget, setEmailTarget] = useState(null);
   const [emailAddress, setEmailAddress] = useState("");
   const [emailCc, setEmailCc] = useState("");
-  const [sendingEmail, setSendingEmail] = useState(false);
 
   const load = useCallback(async () => {
     try {
@@ -51,36 +50,31 @@ export default function AdminLetterheads() {
 
   const field = "w-full border border-[#E2D8C2] dark:border-white/15 dark:bg-white/5 dark:text-[#F1EDE3] rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#024396]/30";
 
-  const submit = async (e) => {
+  const [submit, saving] = useSubmitOnce(async (e) => {
     e.preventDefault();
     if (!content.trim()) return;
-    setSaving(true);
-    try {
-      const res = await fetch(`${API_BASE}/api/letterheads`, {
-        method: "POST", headers,
-        body: JSON.stringify({ title: title || null, content, signature_type: includeSignature ? signatureType : "none", include_disclaimer: includeDisclaimer }),
-      });
-      if (res.ok) {
-        setTitle(""); setContent(""); setIncludeSignature(true); setSignatureType("ceo"); setIncludeDisclaimer(false);
-        load();
-      }
-    } finally {
-      setSaving(false);
+    const res = await fetch(`${API_BASE}/api/letterheads`, {
+      method: "POST", headers,
+      body: JSON.stringify({ title: title || null, content, signature_type: includeSignature ? signatureType : "none", include_disclaimer: includeDisclaimer }),
+    });
+    if (res.ok) {
+      setTitle(""); setContent(""); setIncludeSignature(true); setSignatureType("ceo"); setIncludeDisclaimer(false);
+      load();
     }
-  };
+  });
 
-  const viewLetterhead = async (lh) => {
+  const [viewLetterhead, viewing] = useSubmitOnce(async (lh) => {
     const res = await fetch(`${API_BASE}/api/letterheads/${lh.id}/download`, { headers });
     if (res.ok) {
       const blob = await res.blob();
       window.open(URL.createObjectURL(blob), "_blank");
     }
-  };
+  });
 
-  const downloadLetterhead = async (lh) => {
+  const [downloadLetterhead, downloadingLetterhead] = useSubmitOnce(async (lh) => {
     const res = await fetch(`${API_BASE}/api/letterheads/${lh.id}/download`, { headers });
     if (res.ok) await downloadBlob(res, `Letterhead_${lh.certificate_number.replace(/\//g, "_")}.pdf`);
-  };
+  });
 
   const shareViaWhatsApp = (lh) => {
     const phone = window.prompt("Enter the recipient's WhatsApp number (10-digit mobile):");
@@ -91,25 +85,20 @@ export default function AdminLetterheads() {
     window.open(`https://wa.me/${target}?text=${encodeURIComponent(text)}`, "_blank");
   };
 
-  const sendEmail = async () => {
+  const [sendEmail, sendingEmail] = useSubmitOnce(async () => {
     if (!emailTarget || !emailAddress.trim()) return;
-    setSendingEmail(true);
-    try {
-      const res = await fetch(`${API_BASE}/api/letterheads/${emailTarget.id}/email`, {
-        method: "POST", headers,
-        body: JSON.stringify({ to_email: emailAddress.trim(), cc_emails: emailCc.split(",").map((s) => s.trim()).filter(Boolean).slice(0, 10) }),
-      });
-      if (res.ok) {
-        setEmailTarget(null); setEmailAddress(""); setEmailCc("");
-        alert("Letterhead emailed successfully.");
-      } else {
-        const err = await res.json().catch(() => ({}));
-        alert(err.detail || "Failed to send email");
-      }
-    } finally {
-      setSendingEmail(false);
+    const res = await fetch(`${API_BASE}/api/letterheads/${emailTarget.id}/email`, {
+      method: "POST", headers,
+      body: JSON.stringify({ to_email: emailAddress.trim(), cc_emails: emailCc.split(",").map((s) => s.trim()).filter(Boolean).slice(0, 10) }),
+    });
+    if (res.ok) {
+      setEmailTarget(null); setEmailAddress(""); setEmailCc("");
+      alert("Letterhead emailed successfully.");
+    } else {
+      const err = await res.json().catch(() => ({}));
+      alert(err.detail || "Failed to send email");
     }
-  };
+  });
 
   return (
     <PortalLayout>
@@ -170,8 +159,8 @@ export default function AdminLetterheads() {
                     <p className="text-xs text-[#2A364B]/50 dark:text-[#8E99AC]">{lh.certificate_number} · {lh.issue_date}</p>
                   </div>
                   <div className="flex gap-1.5 flex-wrap">
-                    <Button size="sm" variant="outline" onClick={() => viewLetterhead(lh)}><Eye size={12} className="mr-1" /> View</Button>
-                    <Button size="sm" variant="outline" onClick={() => downloadLetterhead(lh)}><Download size={12} className="mr-1" /> Download</Button>
+                    <Button size="sm" variant="outline" onClick={() => viewLetterhead(lh)} disabled={viewing}><Eye size={12} className="mr-1" /> View</Button>
+                    <Button size="sm" variant="outline" onClick={() => downloadLetterhead(lh)} disabled={downloadingLetterhead}><Download size={12} className="mr-1" /> Download</Button>
                     <Button size="sm" variant="outline" onClick={() => { setEmailTarget(lh); setEmailAddress(""); setEmailCc(""); }}><Mail size={12} className="mr-1" /> Email</Button>
                     <Button size="sm" variant="outline" onClick={() => shareViaWhatsApp(lh)}><Share2 size={12} className="mr-1" /> WhatsApp</Button>
                   </div>
