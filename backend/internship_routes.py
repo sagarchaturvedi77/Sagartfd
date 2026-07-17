@@ -144,18 +144,23 @@ def _compute_progress(doc: dict) -> tuple[int, int]:
     return current_day, current_week
 
 
-def _phase_for_week(week_number: int) -> int:
-    """1 = guided (Day 1-30), 2 = independent (Day 31-60), 3 = capstone
-    (Day 61-90+) — mirrors a real career progression. Based on the calendar
-    day the week starts on, so it works for any week_number/duration; a
-    week that starts past day 90 (shouldn't normally happen for a 90-day
-    program) still safely falls into phase 3 rather than erroring."""
+def _phase_for_week(week_number: int) -> tuple[int, bool]:
+    """(phase, is_blindfold_week). 1 = guided (Day 1-30), 2 = independent
+    (Day 31-60), 3 = capstone (Day 61-90+) — mirrors a real career
+    progression. Phase 3 splits into two halves by day: 61-75 is capstone
+    work (hints/sample-solution/Hinglish still on), 76-90+ is "Grand
+    Finale / Blindfold" — independent, no hints, no sample, English-only,
+    moderately (not perfectionist-ly) stricter grading — see
+    _auto_verify_spreadsheet/_auto_verify_text. Based on the calendar day
+    the week starts on, so it works for any week_number/duration; a week
+    that starts past day 90 (shouldn't normally happen for a 90-day
+    program) still safely falls into phase 3/blindfold rather than erroring."""
     start_day = (week_number - 1) * 7 + 1
     if start_day <= 30:
-        return 1
+        return 1, False
     if start_day <= 60:
-        return 2
-    return 3
+        return 2, False
+    return 3, start_day > 75
 
 
 async def _gen_intern_id() -> str:
@@ -928,6 +933,7 @@ async def admin_list_regenerations(_admin: dict = Depends(require_admin)):
 # ── Weekly task engine & submissions ──────────────────────────────────
 
 async def _to_task_pool_out(doc: dict) -> TaskPoolOut:
+    is_blindfold = doc.get("is_blindfold", False)
     return TaskPoolOut(
         id=doc["id"], track=doc["track"], track_label=TRACK_LABELS.get(doc["track"], doc["track"]),
         title=doc["title"], brief=doc["brief"], instructions=doc.get("instructions"),
@@ -936,7 +942,13 @@ async def _to_task_pool_out(doc: dict) -> TaskPoolOut:
         points_value=doc.get("points_value", 50), difficulty=doc.get("difficulty", "medium"),
         estimated_duration=doc.get("estimated_duration"),
         is_active=doc.get("is_active", True), created_at=doc["created_at"],
-        phase=doc.get("phase"), spreadsheet_template=doc.get("spreadsheet_template"),
+        phase=doc.get("phase"), is_blindfold=is_blindfold, spreadsheet_template=doc.get("spreadsheet_template"),
+        # Blindfold Mode: no hints, no sample solution — genuinely stripped
+        # server-side (not just hidden in the UI), so it can't be read via
+        # devtools/API either. See LanguageToggle's `disabled` prop for the
+        # matching English-locked restriction.
+        hints=None if is_blindfold else doc.get("hints"),
+        sample_solution=None if is_blindfold else doc.get("sample_solution"),
     )
 
 
@@ -976,13 +988,14 @@ async def _assign_week_tasks(student: dict, week_number: int) -> list[dict]:
 
     # Curated, phase-tagged pools (see backend/internship_models.py's
     # TaskPhase) restrict each week to phase-appropriate tasks — guided
-    # work only in weeks 1-5, independent in 6-9, capstone in 10+. Tracks
-    # not yet reworked onto a curated pool (no task has a `phase` at all)
-    # fall straight through to the original whole-pool behavior, unchanged.
+    # work only in weeks 1-5, independent in 6-9, capstone in 10-11,
+    # blindfold in 12-13. Tracks not yet reworked onto a curated pool (no
+    # task has a `phase` at all) fall straight through to the original
+    # whole-pool behavior, unchanged.
     phase_tagged = any(t.get("phase") is not None for t in pool)
     if phase_tagged:
-        phase = _phase_for_week(week_number)
-        phase_pool = [t for t in pool if t.get("phase") == phase]
+        phase, is_blindfold_week = _phase_for_week(week_number)
+        phase_pool = [t for t in pool if t.get("phase") == phase and bool(t.get("is_blindfold", False)) == is_blindfold_week]
         working_pool = phase_pool or pool  # safety net; shouldn't normally trigger
     else:
         working_pool = pool
@@ -1239,20 +1252,35 @@ async def _call_gemini(system_instruction: str, input_text: str, temperature: fl
         return None
 
 
-_VERIFY_SYSTEM_PROMPT = """You are an automatic grader for The Financial Doctor's internship program.
+_VERIFY_SYSTEM_PROMPT_BASE = """You are an automatic grader for The Financial Doctor's internship program.
 You will be given a task brief and a student's submitted answer. Judge only whether this is a
 genuine, on-topic, substantive attempt at the task — not whether it is professionally polished.
 
 Approve if the answer:
 - Is clearly attempting the actual task (not empty, not random characters, not just the prompt repeated back).
 - Shows some real effort and relevant content, even if brief or imperfect.
+- Takes the correct approach — minor wording differences, small formatting issues, or a slightly
+  incomplete word count are NOT reasons to reject on their own if the core reasoning/approach is right.
 
-Reject only if the answer is empty, gibberish, completely off-topic, or an obvious copy of the task
-brief/instructions with nothing added.
+Reject only if the answer is empty, gibberish, completely off-topic, uses a genuinely wrong approach,
+or is an obvious copy of the task brief/instructions with nothing added.
 
 Respond with EXACTLY two lines, nothing else:
 DECISION: APPROVE  (or)  DECISION: REJECT
 REASON: <one short sentence>
+"""
+
+# Appended only for Blindfold Mode (Phase 3B) tasks — moderately stricter
+# (no hints/sample solution were available, so more is expected of the
+# reasoning), but explicitly NOT a zero-tolerance/perfectionist bar. The
+# goal of Blindfold Mode is testing independent thinking, not building a
+# trap nobody can pass — see product notes.
+_VERIFY_SYSTEM_PROMPT_BLINDFOLD_ADDENDUM = """
+This particular task is a "Blindfold Mode" task — the student had no hints or sample solution
+available and had to work independently. Hold the answer to a MODERATELY higher bar than usual
+(expect a bit more depth/completeness in the reasoning), but still do NOT demand perfection —
+approve a genuinely correct approach with minor gaps or imperfect wording. Only reject for a
+genuinely wrong approach or a major, substantive error, not small imperfections.
 """
 
 
@@ -1266,7 +1294,11 @@ async def _auto_verify_text(task: dict, text_answer: str) -> tuple[bool, str, st
         prompt += f"Instructions: {task['instructions']}\n"
     prompt += f"\nStudent's answer:\n{text_answer.strip()}"
 
-    text_out = await _call_gemini(_VERIFY_SYSTEM_PROMPT, prompt, temperature=0.1)
+    system_prompt = _VERIFY_SYSTEM_PROMPT_BASE
+    if task.get("is_blindfold"):
+        system_prompt += _VERIFY_SYSTEM_PROMPT_BLINDFOLD_ADDENDUM
+
+    text_out = await _call_gemini(system_prompt, prompt, temperature=0.1)
     if text_out:
         decision = "APPROVE" in text_out.upper().split("\n")[0]
         reason_line = next((l for l in text_out.split("\n") if l.upper().startswith("REASON:")), "")
@@ -1277,6 +1309,15 @@ async def _auto_verify_text(task: dict, text_answer: str) -> tuple[bool, str, st
     return ok, "Auto-checked (AI grading unavailable — basic check used)", "ai"
 
 
+# Pass thresholds for spreadsheet grading — a ratio of correct cells/checks,
+# NOT an all-or-nothing "every single cell must be exact" bar. Blindfold is
+# moderately stricter (no hints/sample were available) but still well short
+# of demanding 100% — see product notes on why a trap nobody can pass would
+# hurt the program's credibility rather than help it.
+_SPREADSHEET_PASS_THRESHOLD = 0.70
+_SPREADSHEET_PASS_THRESHOLD_BLINDFOLD = 0.85
+
+
 def _auto_verify_spreadsheet(task: dict, spreadsheet_data: dict) -> tuple[bool, str]:
     """(approved, reason). Trusts the client's computed per-cell values
     rather than re-running formulas server-side — the same trust boundary
@@ -1285,24 +1326,41 @@ def _auto_verify_spreadsheet(task: dict, spreadsheet_data: dict) -> tuple[bool, 
     presence-based, not content-quality-verified — see _auto_verify_text's
     neighbors). This is a non-proctored training program, not an exam."""
     answer_key = task.get("spreadsheet_answer_key") or {}
+    cells = answer_key.get("cells") or {}
+    checks = answer_key.get("checks") or []
+    total = len(cells) + len(checks)
+    if total == 0:
+        return True, "No spreadsheet checks configured"
+
     failures = []
-    for cell_id, spec in (answer_key.get("cells") or {}).items():
+    passed = 0
+    for cell_id, spec in cells.items():
         cell = spreadsheet_data.get(cell_id) or {}
         value = cell.get("value")
-        if not isinstance(value, (int, float)) or abs(value - spec["expected"]) > spec.get("tolerance", 0.01):
+        if isinstance(value, (int, float)) and abs(value - spec["expected"]) <= spec.get("tolerance", 0.01):
+            passed += 1
+        else:
             # A per-cell mistake_note (admin-authored, see TaskPoolIn's
             # spreadsheet_answer_key docstring) explains the real-world
             # impact of THIS specific mistake, not just "which cell is off".
             failures.append(spec.get("mistake_note") or f"{cell_id} looks off")
-    for chk in answer_key.get("checks") or []:
+    for chk in checks:
         left = (spreadsheet_data.get(chk["left"]) or {}).get("value")
         right = (spreadsheet_data.get(chk["right"]) or {}).get("value")
-        if left is None or right is None or not isinstance(left, (int, float)) or not isinstance(right, (int, float)) \
-                or abs(left - right) > chk.get("tolerance", 0.01):
-            failures.append(chk.get("label", f"{chk['left']} vs {chk['right']}"))
-    if failures:
-        return False, "These don't check out yet: " + "; ".join(failures[:3])
-    return True, "Spreadsheet values check out"
+        if isinstance(left, (int, float)) and isinstance(right, (int, float)) and abs(left - right) <= chk.get("tolerance", 0.01):
+            passed += 1
+        else:
+            failures.append(chk.get("label", f"{chk.get('left')} vs {chk.get('right')}"))
+
+    threshold = _SPREADSHEET_PASS_THRESHOLD_BLINDFOLD if task.get("is_blindfold") else _SPREADSHEET_PASS_THRESHOLD
+    ratio = passed / total
+    if ratio >= threshold:
+        note = "Spreadsheet values check out" if ratio == 1 else f"Spreadsheet mostly checks out ({passed}/{total} correct)"
+        return True, note
+    return False, (
+        f"These don't check out yet ({passed}/{total} correct, need at least {int(threshold * 100)}%): "
+        + "; ".join(failures[:3])
+    )
 
 
 # ── Voice explain (Hindi + English) ─────────────────────────────────────
