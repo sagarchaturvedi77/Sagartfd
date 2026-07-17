@@ -3,7 +3,7 @@ import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
 import {
   Camera, CheckCircle2, Clock3, MapPin, XCircle, Send, ArrowLeft, ClipboardList, FileText,
-  UploadCloud, AlertTriangle, Sparkles, FileEdit, Save, Table2,
+  UploadCloud, AlertTriangle, Sparkles, FileEdit, Save, Table2, Lightbulb, BookOpen, EyeOff,
 } from "lucide-react";
 import StudentLayout from "../portal/student/StudentLayout";
 import { useInternshipAuth } from "../portal/student/InternshipAuthContext";
@@ -37,6 +37,8 @@ export default function TaskWorkspace() {
   const [spreadsheetValue, setSpreadsheetValue] = useState({});
   const [photoFile, setPhotoFile] = useState(null);
   const [saveState, setSaveState] = useState("idle"); // idle | saving | saved | error
+  const [hintsRevealed, setHintsRevealed] = useState(0);
+  const [showSample, setShowSample] = useState(false);
   const hydratedRef = useRef(false);
   const dirtyRef = useRef(false);
   const savingRef = useRef(false);
@@ -255,6 +257,20 @@ export default function TaskWorkspace() {
         </div>
 
         <div className="space-y-4">
+          {task.is_blindfold && (
+            <div className="rounded-xl bg-purple-500/10 border border-purple-400/30 p-3.5 flex items-start gap-2.5">
+              <EyeOff size={16} className="text-purple-300 shrink-0 mt-0.5" />
+              <div>
+                <p className="text-purple-200 text-xs font-bold">Grand Finale — Blindfold Mode</p>
+                <p className="text-purple-200/70 text-xs leading-relaxed mt-0.5">
+                  No hints, no sample solution, and English only for this one — you're working fully independently,
+                  like a real assignment with no safety net. Grading is a little stricter than usual, but we're not
+                  expecting perfection — a genuinely correct approach with minor gaps still passes.
+                </p>
+              </div>
+            </div>
+          )}
+
           <Section icon={ClipboardList} title="What You Need To Do">
             <p className="text-white/75 text-sm leading-relaxed">{task.brief}</p>
           </Section>
@@ -276,6 +292,49 @@ export default function TaskWorkspace() {
                 englishText={task.instructions}
                 disabled={task.is_blindfold}
               />
+            </Section>
+          )}
+
+          {task.hints?.length > 0 && (
+            <Section icon={Lightbulb} title="Stuck? Hints">
+              <div className="space-y-2">
+                {task.hints.slice(0, hintsRevealed).map((h, i) => (
+                  <div key={i} className="rounded-lg bg-amber-400/10 border border-amber-400/25 px-3 py-2">
+                    <p className="text-amber-200/90 text-xs leading-relaxed">{h}</p>
+                  </div>
+                ))}
+                {hintsRevealed < task.hints.length && (
+                  <button
+                    type="button"
+                    onClick={() => setHintsRevealed((n) => n + 1)}
+                    className="flex items-center gap-1.5 text-xs font-bold text-amber-300 border border-amber-400/30 hover:border-amber-400/60 rounded-full px-3 py-1.5 transition-colors"
+                  >
+                    <Lightbulb size={12} /> {hintsRevealed === 0 ? "Show a hint" : "Show next hint"} ({hintsRevealed}/{task.hints.length} shown)
+                  </button>
+                )}
+              </div>
+            </Section>
+          )}
+
+          {task.sample_solution && (
+            <Section icon={BookOpen} title="Sample Solution">
+              {showSample ? (
+                <div className="rounded-lg bg-white/5 border border-white/15 px-3 py-2.5">
+                  <p className="text-white/70 text-xs leading-relaxed whitespace-pre-line">{task.sample_solution}</p>
+                  <p className="text-white/30 text-[10px] mt-2">
+                    This is a worked example with different numbers/details — copying it won't produce a correct
+                    answer for your own task. Use it to understand the approach, then do your own work.
+                  </p>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => setShowSample(true)}
+                  className="flex items-center gap-1.5 text-xs font-bold text-white/60 hover:text-white border border-white/15 hover:border-white/30 rounded-full px-3 py-1.5 transition-colors"
+                >
+                  <BookOpen size={12} /> View a worked example
+                </button>
+              )}
             </Section>
           )}
 
