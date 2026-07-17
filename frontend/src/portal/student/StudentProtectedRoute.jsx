@@ -11,6 +11,12 @@ import { useInternshipAuth } from "./InternshipAuthContext";
 // reaching the rest of the portal — mirrors the employee ProtectedRoute's
 // profile_completed gate. Pass skipOnboardingGate on the onboarding route
 // itself, or this would redirect to itself in a loop.
+//
+// The permanent demo account (is_demo) bypasses this entirely — same
+// reasoning as its existing quiz-lock bypass in _effective_unlocked_week
+// (backend/internship_routes.py): it's meant to be an always-available,
+// frictionless walkthrough of the whole portal, not something that requires
+// real KYC/Aadhaar/signature/GPS to even reach the dashboard.
 export default function StudentProtectedRoute({ children, skipOnboardingGate = false }) {
   const { token, student, loading } = useInternshipAuth();
 
@@ -22,7 +28,7 @@ export default function StudentProtectedRoute({ children, skipOnboardingGate = f
   }
 
   const paymentDone = student.payment_status === "paid" || student.payment_status === "waived";
-  if (!skipOnboardingGate && paymentDone && !student.profile_completed) {
+  if (!skipOnboardingGate && !student.is_demo && paymentDone && !student.profile_completed) {
     return <Navigate to="/portal/student/onboarding" replace />;
   }
 
