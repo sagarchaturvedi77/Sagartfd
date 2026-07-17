@@ -1,5 +1,6 @@
-import React, { useMemo, useRef } from "react";
+import React, { useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
+import { Maximize2, Minimize2, X } from "lucide-react";
 import { cellId as makeCellId, indexToColLetter, mergeRawInputs, evaluateSheet } from "../lib/miniSpreadsheet";
 
 // Soft, best-effort deterrent only — not real DRM, same posture as
@@ -20,16 +21,7 @@ const ROUGH_EXTRA_ROWS = 15;
 
 const HEADER_CLS = "sticky bg-gray-100 text-gray-500 text-sm font-bold text-center border border-gray-300 select-none";
 
-// Controlled spreadsheet grid for finance-style tasks. `template` is the
-// admin-authored starter grid (rows/cols/prefilled/locked_cells); `value` is
-// the student's own edits, keyed by cellId, editable cells only — locked
-// cells always render from `template.prefilled` regardless of `value`.
-// Styled to look like a real (white, black-text) Excel sheet rather than
-// matching the surrounding dark portal theme — deliberately a visually
-// distinct "embedded spreadsheet" island, with real Excel-style
-// column-letter (A, B, C...) / row-number (1, 2, 3...) headers, sticky on
-// scroll, and a light TFD Internship watermark.
-export default function SpreadsheetGrid({ template, value, onChange, disabled }) {
+function GridTable({ template, value, onChange, disabled, maxHeight }) {
   const { rows: baseRows = 0, cols: baseCols = 0, prefilled = {}, locked_cells = [] } = template || {};
   const rows = baseRows ? baseRows + ROUGH_EXTRA_ROWS : 0;
   const cols = baseCols ? baseCols + ROUGH_EXTRA_COLS : 0;
@@ -43,10 +35,6 @@ export default function SpreadsheetGrid({ template, value, onChange, disabled })
   );
   const { values } = useMemo(() => evaluateSheet(rawInputs), [rawInputs]);
 
-  if (!template || !baseRows || !baseCols) {
-    return <p className="text-white/40 text-xs italic">No spreadsheet template configured for this task.</p>;
-  }
-
   const noteRoughArea = () => {
     if (roughNotedRef.current) return;
     roughNotedRef.current = true;
@@ -54,94 +42,152 @@ export default function SpreadsheetGrid({ template, value, onChange, disabled })
   };
 
   return (
-    <div className="rounded-xl border border-white/15 overflow-hidden">
-      <p className="text-[11px] text-white/40 px-3 py-2 border-b border-white/10 bg-white/[0.03]">
-        Formulas supported: <code className="text-white/60">=SUM(B2:B10)</code>,{" "}
-        <code className="text-white/60">=AVERAGE(...)</code>, <code className="text-white/60">=IF(cond,a,b)</code>,
-        and +−×÷ with cell references (e.g. <code className="text-white/60">=B2+B3</code>). Column letters and row
-        numbers match real spreadsheet cell references (e.g. B15 = column B, row 15). The shaded yellow area is your
-        rough/scratch space — final answers go in the white/gray cells only. Not a full spreadsheet — other Excel
-        functions aren't supported. Pasting is disabled here too — type formulas live.
-      </p>
-      <div className="relative overflow-auto max-h-[65vh] bg-white">
-        <table className="border-collapse text-sm relative">
-          <thead>
-            <tr>
-              <th className={`${HEADER_CLS} left-0 top-0 z-20 w-11 min-w-[44px]`} />
-              {Array.from({ length: cols }).map((_, c) => (
-                <th
-                  key={c}
-                  className={`${HEADER_CLS} top-0 z-10 min-w-[110px] px-3 py-2 ${c >= baseCols ? "bg-amber-100 text-amber-700" : ""}`}
-                >
-                  {indexToColLetter(c)}
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {Array.from({ length: rows }).map((_, r) => (
-              <tr key={r}>
-                <th className={`${HEADER_CLS} left-0 z-10 w-11 min-w-[44px] px-1 ${r >= baseRows ? "bg-amber-100 text-amber-700" : ""}`}>
-                  {r + 1}
-                </th>
-                {Array.from({ length: cols }).map((_, c) => {
-                  const id = makeCellId(r, c);
-                  const isLocked = lockedSet.has(id);
-                  const isRough = r >= baseRows || c >= baseCols;
-                  const raw = rawInputs[id];
-                  const computed = values[id];
-                  const isFormula = typeof raw === "string" && raw.trim().startsWith("=");
-                  const isError = typeof computed === "string" && computed.startsWith("#");
-                  return (
-                    <td
-                      key={id}
-                      className={`border align-top ${
-                        isLocked ? "bg-gray-100 border-gray-300" : isRough ? "bg-amber-50/70 border-amber-200" : "bg-white border-gray-200"
-                      }`}
-                    >
-                      {isLocked ? (
-                        <div className="px-3 py-2 text-gray-700 whitespace-nowrap min-w-[110px]">
-                          {prefilled[id] ?? ""}
-                        </div>
-                      ) : (
-                        <div className="min-w-[110px]">
-                          <input
-                            type="text"
-                            value={raw === undefined || raw === null ? "" : raw}
-                            disabled={disabled}
-                            onFocus={isRough ? noteRoughArea : undefined}
-                            onChange={(e) => onChange(id, e.target.value)}
-                            onCopy={blockClipboard}
-                            onPaste={blockClipboard}
-                            onCut={blockClipboard}
-                            onContextMenu={blockClipboard}
-                            className={`w-full px-3 py-2 bg-transparent text-right text-sm focus:outline-none focus:ring-1 focus:ring-inset focus:ring-[#14E0A0]/60 disabled:opacity-50 ${
-                              isError ? "text-red-600" : "text-gray-900"
-                            }`}
-                          />
-                          {isFormula && (
-                            <div className={`px-3 pb-1.5 text-xs text-right ${isError ? "text-red-600" : "text-gray-500"}`}>
-                              = {String(computed)}
-                            </div>
-                          )}
-                        </div>
-                      )}
-                    </td>
-                  );
-                })}
-              </tr>
+    <div className="relative overflow-auto bg-white" style={{ maxHeight }}>
+      <table className="border-collapse text-sm relative">
+        <thead>
+          <tr>
+            <th className={`${HEADER_CLS} left-0 top-0 z-20 w-11 min-w-[44px]`} />
+            {Array.from({ length: cols }).map((_, c) => (
+              <th
+                key={c}
+                className={`${HEADER_CLS} top-0 z-10 min-w-[110px] px-3 py-2 ${c >= baseCols ? "bg-amber-100 text-amber-700" : ""}`}
+              >
+                {indexToColLetter(c)}
+              </th>
             ))}
-          </tbody>
-        </table>
-        <div
-          className="pointer-events-none absolute inset-0 z-30 flex items-center justify-center overflow-hidden"
-          aria-hidden="true"
-        >
-          <span className="text-gray-400/40 text-5xl font-black tracking-widest -rotate-[20deg] whitespace-nowrap select-none">
-            TFD INTERNSHIP
-          </span>
-        </div>
+          </tr>
+        </thead>
+        <tbody>
+          {Array.from({ length: rows }).map((_, r) => (
+            <tr key={r}>
+              <th className={`${HEADER_CLS} left-0 z-10 w-11 min-w-[44px] px-1 ${r >= baseRows ? "bg-amber-100 text-amber-700" : ""}`}>
+                {r + 1}
+              </th>
+              {Array.from({ length: cols }).map((_, c) => {
+                const id = makeCellId(r, c);
+                const isLocked = lockedSet.has(id);
+                const isRough = r >= baseRows || c >= baseCols;
+                const raw = rawInputs[id];
+                const computed = values[id];
+                const isFormula = typeof raw === "string" && raw.trim().startsWith("=");
+                const isError = typeof computed === "string" && computed.startsWith("#");
+                return (
+                  <td
+                    key={id}
+                    className={`border align-top ${
+                      isLocked ? "bg-gray-100 border-gray-300" : isRough ? "bg-amber-50/70 border-amber-200" : "bg-white border-gray-200"
+                    }`}
+                  >
+                    {isLocked ? (
+                      <div className="px-3 py-2 text-gray-700 whitespace-nowrap min-w-[110px]">
+                        {prefilled[id] ?? ""}
+                      </div>
+                    ) : (
+                      <div className="min-w-[110px]">
+                        <input
+                          type="text"
+                          value={raw === undefined || raw === null ? "" : raw}
+                          disabled={disabled}
+                          onFocus={isRough ? noteRoughArea : undefined}
+                          onChange={(e) => onChange(id, e.target.value)}
+                          onCopy={blockClipboard}
+                          onPaste={blockClipboard}
+                          onCut={blockClipboard}
+                          onContextMenu={blockClipboard}
+                          className={`w-full px-3 py-2 bg-transparent text-right text-sm focus:outline-none focus:ring-1 focus:ring-inset focus:ring-[#14E0A0]/60 disabled:opacity-50 ${
+                            isError ? "text-red-600" : "text-gray-900"
+                          }`}
+                        />
+                        {isFormula && (
+                          <div className={`px-3 pb-1.5 text-xs text-right ${isError ? "text-red-600" : "text-gray-500"}`}>
+                            = {String(computed)}
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </td>
+                );
+              })}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+      <div
+        className="pointer-events-none absolute inset-0 z-30 flex items-center justify-center overflow-hidden"
+        aria-hidden="true"
+      >
+        <span className="text-gray-400/40 text-5xl font-black tracking-widest -rotate-[20deg] whitespace-nowrap select-none">
+          TFD INTERNSHIP
+        </span>
       </div>
     </div>
+  );
+}
+
+// Controlled spreadsheet grid for finance-style tasks. `template` is the
+// admin-authored starter grid (rows/cols/prefilled/locked_cells); `value` is
+// the student's own edits, keyed by cellId, editable cells only — locked
+// cells always render from `template.prefilled` regardless of `value`.
+// Styled to look like a real (white, black-text) Excel sheet rather than
+// matching the surrounding dark portal theme — deliberately a visually
+// distinct "embedded spreadsheet" island, with real Excel-style
+// column-letter (A, B, C...) / row-number (1, 2, 3...) headers, sticky on
+// scroll, a light TFD Internship watermark, and a fullscreen expand toggle
+// for working comfortably on a bigger effective view.
+export default function SpreadsheetGrid({ template, value, onChange, disabled }) {
+  const [fullscreen, setFullscreen] = useState(false);
+  const { rows: baseRows = 0, cols: baseCols = 0 } = template || {};
+
+  if (!template || !baseRows || !baseCols) {
+    return <p className="text-white/40 text-xs italic">No spreadsheet template configured for this task.</p>;
+  }
+
+  return (
+    <>
+      <div className="rounded-xl border border-white/15 overflow-hidden">
+        <div className="flex items-start justify-between gap-3 px-3 py-2 border-b border-white/10 bg-white/[0.03]">
+          <p className="text-[11px] text-white/40">
+            Formulas supported: <code className="text-white/60">=SUM(B2:B10)</code>,{" "}
+            <code className="text-white/60">=AVERAGE(...)</code>, <code className="text-white/60">=IF(cond,a,b)</code>,
+            and +−×÷ with cell references. Column letters/row numbers match real spreadsheet cell references (e.g. B15
+            = column B, row 15). The shaded yellow area is your rough/scratch space — final answers go in the
+            white/gray cells only. Pasting is disabled — type formulas live.
+          </p>
+          <button
+            type="button"
+            onClick={() => setFullscreen(true)}
+            className="shrink-0 flex items-center gap-1.5 text-[11px] font-bold text-white/60 hover:text-white border border-white/15 hover:border-white/30 rounded-lg px-2.5 py-1.5 transition-colors"
+          >
+            <Maximize2 size={12} /> Bigger View
+          </button>
+        </div>
+        <GridTable template={template} value={value} onChange={onChange} disabled={disabled} maxHeight="65vh" />
+      </div>
+
+      {fullscreen && (
+        <div className="fixed inset-0 z-[200] bg-black/80 flex flex-col p-3 sm:p-6" onClick={() => setFullscreen(false)}>
+          <div
+            className="flex-1 min-h-0 flex flex-col bg-[#0A0F1A] border border-white/15 rounded-2xl overflow-hidden"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between gap-3 px-4 py-3 border-b border-white/10">
+              <p className="text-sm font-bold text-white flex items-center gap-1.5">
+                <Maximize2 size={14} className="text-[#14E0A0]" /> Spreadsheet — Bigger View
+              </p>
+              <button
+                type="button"
+                onClick={() => setFullscreen(false)}
+                className="flex items-center gap-1.5 text-xs font-bold text-white/60 hover:text-white border border-white/15 hover:border-white/30 rounded-lg px-2.5 py-1.5 transition-colors"
+              >
+                <Minimize2 size={12} /> Exit Bigger View <X size={12} />
+              </button>
+            </div>
+            <div className="flex-1 min-h-0">
+              <GridTable template={template} value={value} onChange={onChange} disabled={disabled} maxHeight="100%" />
+            </div>
+          </div>
+        </div>
+      )}
+    </>
   );
 }
