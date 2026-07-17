@@ -4,6 +4,7 @@ public verification system (backend/verify_routes.py, once built) queries
 against — every certificate created here gets a unique, verifiable
 certificate_number and a QR code pointing at the public /verify page.
 """
+import asyncio
 import uuid
 from datetime import date, datetime, timedelta, timezone
 from typing import List, Literal, Optional
@@ -57,9 +58,26 @@ async def _next_sequence(cert_type: str, year: int) -> str:
 
 async def _store_pdf(pdf_bytes: bytes, key: str) -> Optional[str]:
     if r2_enabled():
-        upload_bytes(key, pdf_bytes, "application/pdf")
+        # upload_bytes is a blocking network call (boto3-style) — offloaded
+        # so it doesn't stall the event loop for every other concurrent
+        # request while it's in flight (same fix applied throughout this
+        # file's PDF-generation/R2 calls — see the memory-optimization pass).
+        await asyncio.to_thread(upload_bytes, key, pdf_bytes, "application/pdf")
         return key
     return None
+
+
+async def _r2_get_bytes(r2_key: str) -> bytes:
+    """Blocking R2 GET, offloaded to a thread. Raises on failure — callers
+    that want a silent fallback (e.g. regenerate the PDF instead) wrap this
+    in their own try/except, same as before this helper existed."""
+    from storage_r2 import get_client, R2_BUCKET_NAME
+
+    def _fetch():
+        obj = get_client().get_object(Bucket=R2_BUCKET_NAME, Key=r2_key)
+        return obj["Body"].read()
+
+    return await asyncio.to_thread(_fetch)
 
 
 def _tenure_months(join_date: str, end_date: str) -> int:
@@ -97,7 +115,7 @@ async def generate_experience_letter_for_employee(employee_id: str, emp: dict, a
     # The number printed next to the QR is deliberately the employee's own
     # Employee ID, not a separately-minted document number — one identity,
     # one number, matching the ID/visiting card the employee already has.
-    pdf_bytes = generate_experience_letter_pdf(letter_data, verify_url=employee_verify_url, certificate_number=employee_id)
+    pdf_bytes = await asyncio.to_thread(generate_experience_letter_pdf, letter_data, verify_url=employee_verify_url, certificate_number=employee_id)
 
     doc_id = str(uuid.uuid4())
     r2_key = await _store_pdf(pdf_bytes, f"experience-letters/{doc_id}.pdf")
@@ -124,7 +142,7 @@ async def _persist_letter_record(intern: dict, letter_type: str, pdf_bytes: byte
     r2_key = None
     if r2_enabled():
         r2_key = f"letters/{doc_id}.pdf"
-        upload_bytes(r2_key, pdf_bytes, "application/pdf")
+        await asyncio.to_thread(upload_bytes, r2_key, pdf_bytes, "application/pdf")
     doc = {
         "id": doc_id, "certificate_number": number, "person_name": intern["name"], "type": letter_type,
         "department": intern["department"], "issue_date": date.today().isoformat(), "duration_label": None,
@@ -419,7 +437,7 @@ async def _auto_generate_offer_letter(intern_id: str, intern: dict, admin_id: st
     """Shared by the explicit "Generate Offer Letter" button and the
     auto-generate-on-add/approve hooks below — same PDF, same persisted
     record, same activity log either way."""
-    pdf_bytes = generate_offer_letter_pdf(intern)
+    pdf_bytes = await asyncio.to_thread(generate_offer_letter_pdf, intern)
     await _persist_letter_record(intern, "offer_letter", pdf_bytes, admin_id)
     await interns_collection.update_one({"id": intern_id}, {"$set": {"offer_letter_generated_at": datetime.now(timezone.utc).isoformat()}})
     await log_activity(admin_id, "offer_letter_generated", f"Generated offer letter for {intern['name']}", link="/portal/admin/certificates")
@@ -438,7 +456,7 @@ async def get_offer_letter(intern_id: str, data: GenerateLetterIn = GenerateLett
         raise HTTPException(status_code=400, detail="This intern application hasn't been approved yet")
 
     if data.custom_body is not None:
-        pdf_bytes = generate_offer_letter_pdf(intern, custom_body=data.custom_body)
+        pdf_bytes = await asyncio.to_thread(generate_offer_letter_pdf, intern, custom_body=data.custom_body)
         await _persist_letter_record(intern, "offer_letter", pdf_bytes, admin["sub"])
         await interns_collection.update_one({"id": intern_id}, {"$set": {"offer_letter_generated_at": datetime.now(timezone.utc).isoformat()}})
         await log_activity(admin["sub"], "offer_letter_generated", f"Generated offer letter for {intern['name']}", link="/portal/admin/certificates")
@@ -468,13 +486,11 @@ async def download_offer_letter(intern_id: str, admin: dict = Depends(require_ad
     pdf_bytes = None
     if rec.get("r2_key"):
         try:
-            from storage_r2 import get_client, R2_BUCKET_NAME
-            obj = get_client().get_object(Bucket=R2_BUCKET_NAME, Key=rec["r2_key"])
-            pdf_bytes = obj["Body"].read()
+            pdf_bytes = await _r2_get_bytes(rec["r2_key"])
         except Exception:
             pdf_bytes = None
     if pdf_bytes is None:
-        pdf_bytes = generate_offer_letter_pdf(intern)
+        pdf_bytes = await asyncio.to_thread(generate_offer_letter_pdf, intern)
 
     filename = f"Offer_Letter_{intern['name'].replace(' ', '_')}.pdf"
     return StreamingResponse(io.BytesIO(pdf_bytes), media_type="application/pdf", headers={"Content-Disposition": f'inline; filename="{filename}"'})
@@ -499,16 +515,14 @@ async def download_completion_letter(intern_id: str, admin: dict = Depends(requi
     pdf_bytes = None
     if rec.get("r2_key"):
         try:
-            from storage_r2 import get_client, R2_BUCKET_NAME
-            obj = get_client().get_object(Bucket=R2_BUCKET_NAME, Key=rec["r2_key"])
-            pdf_bytes = obj["Body"].read()
+            pdf_bytes = await _r2_get_bytes(rec["r2_key"])
         except Exception:
             pdf_bytes = None
     if pdf_bytes is None:
         cert = await certificates_collection.find_one({"intern_id": intern_id, "type": "internship"})
         verify_url = _verify_url(cert["certificate_number"]) if cert else None
         cert_number = cert["certificate_number"] if cert else None
-        pdf_bytes = generate_completion_letter_pdf(intern, verify_url=verify_url, certificate_number=cert_number)
+        pdf_bytes = await asyncio.to_thread(generate_completion_letter_pdf, intern, verify_url=verify_url, certificate_number=cert_number)
 
     filename = f"Completion_Letter_{intern['name'].replace(' ', '_')}.pdf"
     return StreamingResponse(io.BytesIO(pdf_bytes), media_type="application/pdf", headers={"Content-Disposition": f'inline; filename="{filename}"'})
@@ -534,13 +548,13 @@ async def _ensure_intern_certificate(intern_id: str, intern: dict, admin_id: str
         "department": intern["department"], "issue_date": issue_date, "duration_label": duration_label,
         "custom_detail": None,
     }
-    pdf_bytes = generate_certificate_pdf(cert_data, _verify_url(cert_number))
+    pdf_bytes = await asyncio.to_thread(generate_certificate_pdf, cert_data, _verify_url(cert_number))
 
     cert_id = str(uuid.uuid4())
     r2_key = None
     if r2_enabled():
         r2_key = f"certificates/{cert_id}.pdf"
-        upload_bytes(r2_key, pdf_bytes, "application/pdf")
+        await asyncio.to_thread(upload_bytes, r2_key, pdf_bytes, "application/pdf")
 
     cert_doc = {
         "id": cert_id, "certificate_number": cert_number, "person_name": intern["name"], "type": "internship",
@@ -573,7 +587,7 @@ async def get_completion_letter(intern_id: str, data: GenerateLetterIn = Generat
     verify_url = _verify_url(cert["certificate_number"])
     cert_number = cert["certificate_number"]
 
-    pdf_bytes = generate_completion_letter_pdf(intern, custom_body=data.custom_body, verify_url=verify_url, certificate_number=cert_number)
+    pdf_bytes = await asyncio.to_thread(generate_completion_letter_pdf, intern, custom_body=data.custom_body, verify_url=verify_url, certificate_number=cert_number)
     await _persist_letter_record(intern, "completion_letter", pdf_bytes, admin["sub"])
     await interns_collection.update_one({"id": intern_id}, {"$set": {"completion_letter_generated_at": datetime.now(timezone.utc).isoformat()}})
     await log_activity(admin["sub"], "completion_letter_generated", f"Generated completion letter for {intern['name']}", link="/portal/admin/certificates")
@@ -617,13 +631,13 @@ async def create_intern_certificate(intern_id: str, data: GenerateCertificateIn 
         "department": intern["department"], "issue_date": issue_date, "duration_label": duration_label,
         "custom_detail": data.custom_detail,
     }
-    pdf_bytes = generate_certificate_pdf(cert_data, _verify_url(cert_number))
+    pdf_bytes = await asyncio.to_thread(generate_certificate_pdf, cert_data, _verify_url(cert_number))
 
     cert_id = str(uuid.uuid4())
     r2_key = None
     if r2_enabled():
         r2_key = f"certificates/{cert_id}.pdf"
-        upload_bytes(r2_key, pdf_bytes, "application/pdf")
+        await asyncio.to_thread(upload_bytes, r2_key, pdf_bytes, "application/pdf")
 
     cert_doc = {
         "id": cert_id,
@@ -674,13 +688,13 @@ async def create_employee_certificate(data: EmployeeCertificateCreate, admin: di
         "designation": emp.get("designation") or "Team Member",
         "start_date": data.start_date, "ongoing": data.end_date is None,
     }
-    pdf_bytes = generate_certificate_pdf(cert_data, _verify_url(cert_number))
+    pdf_bytes = await asyncio.to_thread(generate_certificate_pdf, cert_data, _verify_url(cert_number))
 
     cert_id = str(uuid.uuid4())
     r2_key = None
     if r2_enabled():
         r2_key = f"certificates/{cert_id}.pdf"
-        upload_bytes(r2_key, pdf_bytes, "application/pdf")
+        await asyncio.to_thread(upload_bytes, r2_key, pdf_bytes, "application/pdf")
 
     cert_doc = {
         "id": cert_id, "certificate_number": cert_number, "person_name": emp["name"], "type": "employee",
@@ -717,13 +731,13 @@ async def create_achievement(data: AchievementCreate, admin: dict = Depends(requ
         "certificate_number": cert_number, "person_name": emp["name"], "cert_type": "achievement",
         "department": emp.get("designation") or "General", "issue_date": issue_date, "duration_label": data.title,
     }
-    pdf_bytes = generate_certificate_pdf(cert_data, _verify_url(cert_number))
+    pdf_bytes = await asyncio.to_thread(generate_certificate_pdf, cert_data, _verify_url(cert_number))
 
     cert_id = str(uuid.uuid4())
     r2_key = None
     if r2_enabled():
         r2_key = f"certificates/{cert_id}.pdf"
-        upload_bytes(r2_key, pdf_bytes, "application/pdf")
+        await asyncio.to_thread(upload_bytes, r2_key, pdf_bytes, "application/pdf")
 
     cert_doc = {
         "id": cert_id, "certificate_number": cert_number, "person_name": emp["name"], "type": "achievement",
@@ -791,9 +805,7 @@ async def download_certificate(cert_id: str, payload: dict = Depends(get_current
     pdf_bytes = None
     if doc.get("r2_key"):
         try:
-            from storage_r2 import get_client, R2_BUCKET_NAME
-            obj = get_client().get_object(Bucket=R2_BUCKET_NAME, Key=doc["r2_key"])
-            pdf_bytes = obj["Body"].read()
+            pdf_bytes = await _r2_get_bytes(doc["r2_key"])
         except Exception:
             pdf_bytes = None
     if pdf_bytes is None:
@@ -804,8 +816,8 @@ async def download_certificate(cert_id: str, payload: dict = Depends(get_current
                 "start_date": doc.get("start_date"), "end_date": doc.get("end_date"),
                 "tenure_months": _tenure_months(doc["start_date"], doc["end_date"]) if doc.get("start_date") and doc.get("end_date") else None,
             }
-            pdf_bytes = generate_experience_letter_pdf(
-                letter_data, verify_url=f"{SITE_URL}/verify/{doc.get('linked_employee_id')}",
+            pdf_bytes = await asyncio.to_thread(
+                generate_experience_letter_pdf, letter_data, verify_url=f"{SITE_URL}/verify/{doc.get('linked_employee_id')}",
                 certificate_number=doc.get("linked_employee_id"),
             )
         else:
@@ -815,7 +827,7 @@ async def download_certificate(cert_id: str, payload: dict = Depends(get_current
                 "issue_date": doc["issue_date"], "duration_label": doc.get("duration_label"),
                 "designation": doc.get("designation"), "start_date": doc.get("start_date"), "ongoing": doc.get("ongoing"),
             }
-            pdf_bytes = generate_certificate_pdf(cert_data, _verify_url(doc["certificate_number"]))
+            pdf_bytes = await asyncio.to_thread(generate_certificate_pdf, cert_data, _verify_url(doc["certificate_number"]))
 
     filename = f"Certificate_{doc['certificate_number'].replace('/', '_')}.pdf"
     return StreamingResponse(io.BytesIO(pdf_bytes), media_type="application/pdf", headers={"Content-Disposition": f'inline; filename="{filename}"'})
@@ -848,18 +860,17 @@ async def email_certificate(cert_id: str, data: EmailCertificateIn, admin: dict 
     if not doc.get("r2_key"):
         raise HTTPException(status_code=400, detail="No PDF stored for this certificate")
 
-    from storage_r2 import get_client, R2_BUCKET_NAME
-    obj = get_client().get_object(Bucket=R2_BUCKET_NAME, Key=doc["r2_key"])
+    pdf_bytes = await _r2_get_bytes(doc["r2_key"])
     is_experience_letter = doc.get("type") == "experience_letter"
     filename_prefix = "Experience_Letter" if is_experience_letter else "Certificate"
-    attachments = [(f"{filename_prefix}_{doc['certificate_number'].replace('/', '_')}.pdf", obj["Body"].read())]
+    attachments = [(f"{filename_prefix}_{doc['certificate_number'].replace('/', '_')}.pdf", pdf_bytes)]
     doc_labels = [f"Experience Letter ({doc['certificate_number']})" if is_experience_letter else f"Certificate ({doc['certificate_number']})"]
 
     is_internship = doc.get("type") == "internship" and doc.get("intern_id")
     if is_internship:
         intern = await interns_collection.find_one({"id": doc["intern_id"]})
         if intern:
-            completion_pdf = generate_completion_letter_pdf(intern, verify_url=_verify_url(doc["certificate_number"]), certificate_number=doc["certificate_number"])
+            completion_pdf = await asyncio.to_thread(generate_completion_letter_pdf, intern, verify_url=_verify_url(doc["certificate_number"]), certificate_number=doc["certificate_number"])
             attachments.append((f"Completion_Letter_{intern['name'].replace(' ', '_')}.pdf", completion_pdf))
             doc_labels.append("Internship Completion Letter")
 
@@ -907,20 +918,20 @@ async def email_intern_documents(intern_id: str, data: InternEmailIn, admin: dic
     name_safe = intern["name"].replace(" ", "_")
 
     if "offer_letter" in wanted:
-        attachments.append((f"Offer_Letter_{name_safe}.pdf", generate_offer_letter_pdf(intern)))
+        offer_pdf = await asyncio.to_thread(generate_offer_letter_pdf, intern)
+        attachments.append((f"Offer_Letter_{name_safe}.pdf", offer_pdf))
         doc_labels.append("Internship Offer Letter")
     if "completion_letter" in wanted or "certificate" in wanted:
         cert = await _ensure_intern_certificate(intern_id, intern, admin["sub"])
         if "completion_letter" in wanted:
-            completion_pdf = generate_completion_letter_pdf(intern, verify_url=_verify_url(cert["certificate_number"]), certificate_number=cert["certificate_number"])
+            completion_pdf = await asyncio.to_thread(generate_completion_letter_pdf, intern, verify_url=_verify_url(cert["certificate_number"]), certificate_number=cert["certificate_number"])
             attachments.append((f"Completion_Letter_{name_safe}.pdf", completion_pdf))
             doc_labels.append("Internship Completion Letter")
     if "certificate" in wanted:
         if not cert.get("r2_key"):
             raise HTTPException(status_code=400, detail="Certificate PDF not found")
-        from storage_r2 import get_client, R2_BUCKET_NAME
-        obj = get_client().get_object(Bucket=R2_BUCKET_NAME, Key=cert["r2_key"])
-        attachments.append((f"Certificate_{cert['certificate_number'].replace('/', '_')}.pdf", obj["Body"].read()))
+        cert_pdf = await _r2_get_bytes(cert["r2_key"])
+        attachments.append((f"Certificate_{cert['certificate_number'].replace('/', '_')}.pdf", cert_pdf))
         doc_labels.append(f"Certificate ({cert['certificate_number']})")
 
     if "certificate" in wanted:
