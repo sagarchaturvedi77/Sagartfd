@@ -8,6 +8,7 @@ import StatusBadge from "../components/portal/StatusBadge";
 import { Button } from "../components/ui/button";
 import { Upload, Search } from "lucide-react";
 import { codeFieldLabel } from "../lib/utils";
+import { useSubmitOnce } from "../lib/useSubmitOnce";
 import MyLeadsTab from "./leads/MyLeadsTab";
 import EmployeeLeadsTab from "./leads/EmployeeLeadsTab";
 import WebsiteLeadsTab from "./leads/WebsiteLeadsTab";
@@ -37,7 +38,6 @@ export default function AdminLeads() {
   const [tab, setTab] = useState("my_leads");
   const [webLeads, setWebLeads] = useState([]);
   const [careerLeads, setCareerLeads] = useState([]);
-  const [importing, setImporting] = useState(false);
   const [pipelineStatuses, setPipelineStatuses] = useState([]);
   const [newStatus, setNewStatus] = useState("");
   const [services, setServices] = useState([]);
@@ -64,7 +64,6 @@ export default function AdminLeads() {
   const [detailCareerLead, setDetailCareerLead] = useState(null);
 
   const [form, setForm] = useState({ name: "", phone: "", email: "", city: "", source: "manual", service_interest: "", notes: "", assigned_to: "" });
-  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     if (user?.id) setForm((f) => (f.assigned_to ? f : { ...f, assigned_to: user.id }));
@@ -147,13 +146,12 @@ export default function AdminLeads() {
     }
   }, [searchParams, leads, myLeads, setSearchParams]);
 
-  const addLead = async (e) => {
+  const [addLead, saving] = useSubmitOnce(async (e) => {
     e.preventDefault();
     if (!form.assigned_to) {
       alert("Assign this lead to yourself or an employee before saving.");
       return;
     }
-    setSaving(true);
     try {
       const res = await fetch(`${API_BASE}/api/leads/`, {
         method: "POST", headers,
@@ -165,10 +163,9 @@ export default function AdminLeads() {
         load(); loadMyLeads();
       }
     } catch { /* silent */ }
-    setSaving(false);
-  };
+  });
 
-  const assignLead = async (leadId, empId) => {
+  const [assignLead, assigning] = useSubmitOnce(async (leadId, empId) => {
     const res = await fetch(`${API_BASE}/api/leads/${leadId}/assign?assigned_to=${empId}`, { method: "POST", headers });
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
@@ -182,13 +179,13 @@ export default function AdminLeads() {
         : `${API_BASE}/api/leads/batches/${openBatch.batch_id}`;
       fetch(url, { headers }).then((r) => (r.ok ? r.json() : null)).then((data) => data && setBatchLeads(data));
     }
-  };
+  });
 
-  const deleteLead = async (leadId) => {
+  const [deleteLead, deletingLead] = useSubmitOnce(async (leadId) => {
     if (!window.confirm("Delete this lead?")) return;
     await fetch(`${API_BASE}/api/leads/${leadId}`, { method: "DELETE", headers });
     load(); loadMyLeads();
-  };
+  });
 
   const handleFileSelect = async (file) => {
     if (!file) return;
@@ -237,13 +234,12 @@ export default function AdminLeads() {
     setShowAssignDialog(true);
   };
 
-  const executeImport = async () => {
+  const [executeImport, importing] = useSubmitOnce(async () => {
     if (!importFile) return;
     if (assignMode === "selected" && selectedAssignEmps.length === 0) {
       alert("Select at least one employee to assign these leads to.");
       return;
     }
-    setImporting(true);
     setShowAssignDialog(false);
     const fd = new FormData();
     fd.append("file", importFile);
@@ -279,14 +275,13 @@ export default function AdminLeads() {
         alert(err.detail || "Import failed");
       }
     } catch { alert("Import failed"); }
-    setImporting(false);
     setImportFile(null);
     setAssignMode("self");
     setIncludeExistingDuplicates(false);
     setSelectedAssignEmps([]);
     setImportPreview(null);
     setColMap({ name: "", phone: "", email: "", source: "", service_interest: "", city: "" });
-  };
+  });
 
   const openBatchDetail = async (batch) => {
     setOpenBatch(batch);
@@ -312,36 +307,36 @@ export default function AdminLeads() {
     setBatchLoading(false);
   };
 
-  const convertWebLead = async (id, empId) => {
+  const [convertWebLead, convertingWebLead] = useSubmitOnce(async (id, empId) => {
     const url = `${API_BASE}/api/leads/website/${id}/convert${empId ? `?assign_to=${empId}` : ""}`;
     await fetch(url, { method: "POST", headers });
     loadWebLeads(); load(); loadMyLeads();
-  };
+  });
 
-  const deleteWebLead = async (id) => {
+  const [deleteWebLead, deletingWebLead] = useSubmitOnce(async (id) => {
     if (!window.confirm("Delete this website lead?")) return;
     await fetch(`${API_BASE}/api/leads/website/${id}`, { method: "DELETE", headers });
     loadWebLeads();
-  };
+  });
 
-  const updateCareerStatus = async (id, status) => {
+  const [updateCareerStatus, updatingCareerStatus] = useSubmitOnce(async (id, status) => {
     await fetch(`${API_BASE}/api/leads/career/${id}/status?status=${status}`, { method: "PUT", headers });
     loadCareerLeads();
-  };
+  });
 
-  const convertCareerLead = async (id, empId) => {
+  const [convertCareerLead, convertingCareerLead] = useSubmitOnce(async (id, empId) => {
     const url = `${API_BASE}/api/leads/career/${id}/convert${empId ? `?assign_to=${empId}` : ""}`;
     await fetch(url, { method: "POST", headers });
     loadCareerLeads(); load(); loadMyLeads();
-  };
+  });
 
-  const deleteCareerLead = async (id) => {
+  const [deleteCareerLead, deletingCareerLead] = useSubmitOnce(async (id) => {
     if (!window.confirm("Delete this career application?")) return;
     await fetch(`${API_BASE}/api/leads/career/${id}`, { method: "DELETE", headers });
     loadCareerLeads();
-  };
+  });
 
-  const downloadBatchReport = async (batchId) => {
+  const [downloadBatchReport, downloadingBatchReport] = useSubmitOnce(async (batchId) => {
     try {
       const res = await fetch(`${API_BASE}/api/leads/batches/${batchId}/report`, {
         headers: { Authorization: `Bearer ${token}` },
@@ -357,22 +352,25 @@ export default function AdminLeads() {
       a.remove();
       window.URL.revokeObjectURL(url);
     } catch { alert("Failed to generate report"); }
-  };
+  });
 
-  const deleteBatch = async (batchId) => {
+  // High blast radius (wipes an entire batch's leads) — the useSubmitOnce
+  // ref guard is what actually prevents a rapid double-click firing two
+  // concurrent DELETE requests here, not just the confirm() dialog.
+  const [deleteBatch, deletingBatch] = useSubmitOnce(async (batchId) => {
     if (!window.confirm("Delete this entire batch? All leads imported in it will be permanently removed.")) return;
     await fetch(`${API_BASE}/api/leads/batches/${batchId}`, { method: "DELETE", headers });
     setOpenBatch(null); setBatchLeads([]);
     loadBatches(); load();
-  };
+  });
 
-  const savePipeline = async () => {
+  const [savePipeline, savingPipeline] = useSubmitOnce(async () => {
     await fetch(`${API_BASE}/api/lead-pipeline`, {
       method: "PUT", headers,
       body: JSON.stringify({ statuses: pipelineStatuses }),
     });
     alert("Pipeline updated!");
-  };
+  });
 
   const field = "w-full border border-[#E2D8C2] dark:border-white/15 dark:bg-white/5 dark:text-[#F1EDE3] rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#024396]/30";
 
@@ -568,7 +566,9 @@ export default function AdminLeads() {
 
           <div className="flex gap-3 pt-2">
             <Button variant="outline" className="flex-1" onClick={() => { setShowAssignDialog(false); setImportFile(null); }}>Cancel</Button>
-            <Button className="flex-1 bg-gradient-to-r from-[#024396] to-[#0356c4]" onClick={executeImport}>Import</Button>
+            <Button className="flex-1 bg-gradient-to-r from-[#024396] to-[#0356c4]" onClick={executeImport} disabled={importing}>
+              {importing ? "Importing..." : "Import"}
+            </Button>
           </div>
         </PortalModal>
 
@@ -739,7 +739,8 @@ export default function AdminLeads() {
         {tab === "my_leads" && (
           <MyLeadsTab
             myLeads={myLeads} stats={stats} filter={filter} setFilter={setFilter}
-            employees={employees} assignLead={assignLead} deleteLead={deleteLead} setDetailLead={setDetailLead}
+            employees={employees} assignLead={assignLead} assigning={assigning}
+            deleteLead={deleteLead} deletingLead={deletingLead} setDetailLead={setDetailLead}
           />
         )}
 
@@ -747,27 +748,35 @@ export default function AdminLeads() {
           <EmployeeLeadsTab
             batches={batches} openBatch={openBatch} batchLeads={batchLeads} batchEmpFilter={batchEmpFilter}
             batchLoading={batchLoading} employees={employees} openBatchDetail={openBatchDetail}
-            filterBatchByEmp={filterBatchByEmp} deleteBatch={deleteBatch} assignLead={assignLead}
+            filterBatchByEmp={filterBatchByEmp} deleteBatch={deleteBatch} deletingBatch={deletingBatch}
+            assignLead={assignLead} assigning={assigning}
             setOpenBatch={setOpenBatch} setBatchLeads={setBatchLeads} setDetailLead={setDetailLead}
-            downloadBatchReport={downloadBatchReport}
+            downloadBatchReport={downloadBatchReport} downloadingBatchReport={downloadingBatchReport}
           />
         )}
 
         {tab === "website" && (
-          <WebsiteLeadsTab webLeads={webLeads} employees={employees} convertWebLead={convertWebLead} deleteWebLead={deleteWebLead} />
+          <WebsiteLeadsTab
+            webLeads={webLeads} employees={employees}
+            convertWebLead={convertWebLead} convertingWebLead={convertingWebLead}
+            deleteWebLead={deleteWebLead} deletingWebLead={deletingWebLead}
+          />
         )}
 
         {tab === "career" && (
           <CareerLeadsTab
-            careerLeads={careerLeads} employees={employees} updateCareerStatus={updateCareerStatus}
-            convertCareerLead={convertCareerLead} deleteCareerLead={deleteCareerLead} setDetailCareerLead={setDetailCareerLead}
+            careerLeads={careerLeads} employees={employees}
+            updateCareerStatus={updateCareerStatus} updatingCareerStatus={updatingCareerStatus}
+            convertCareerLead={convertCareerLead} convertingCareerLead={convertingCareerLead}
+            deleteCareerLead={deleteCareerLead} deletingCareerLead={deletingCareerLead}
+            setDetailCareerLead={setDetailCareerLead}
           />
         )}
 
         {tab === "pipeline" && (
           <PipelineConfigTab
             pipelineStatuses={pipelineStatuses} setPipelineStatuses={setPipelineStatuses}
-            newStatus={newStatus} setNewStatus={setNewStatus} savePipeline={savePipeline}
+            newStatus={newStatus} setNewStatus={setNewStatus} savePipeline={savePipeline} savingPipeline={savingPipeline}
           />
         )}
       </div>

@@ -4,6 +4,7 @@ import { useAuth } from "../context/AuthContext";
 import { DashboardCustomizerPanel } from "../components/DashboardCustomizer";
 import PageHeader from "../components/portal/PageHeader";
 import { Button } from "../components/ui/button";
+import { useSubmitOnce } from "../lib/useSubmitOnce";
 
 const API_BASE = process.env.REACT_APP_BACKEND_URL || "";
 
@@ -13,7 +14,6 @@ export default function AdminSettings() {
   const [pwForm, setPwForm] = useState({ current: "", newPw: "", confirm: "" });
   const [pwMsg, setPwMsg] = useState("");
   const [pwErr, setPwErr] = useState("");
-  const [saving, setSaving] = useState(false);
   const [officeForm, setOfficeForm] = useState({ lat: "", lng: "", radius_m: 200, enforce: false });
   const [officeMsg, setOfficeMsg] = useState("");
   const [officeLoaded, setOfficeLoaded] = useState(false);
@@ -40,12 +40,11 @@ export default function AdminSettings() {
     })();
   }, [token]);
 
-  const changePassword = async (e) => {
+  const [changePassword, saving] = useSubmitOnce(async (e) => {
     e.preventDefault();
     setPwMsg(""); setPwErr("");
     if (pwForm.newPw !== pwForm.confirm) { setPwErr("Passwords don't match!"); return; }
     if (pwForm.newPw.length < 6) { setPwErr("Min 6 characters required."); return; }
-    setSaving(true);
     try {
       const res = await fetch(`${API_BASE}/api/auth/change-password`, {
         method: "POST",
@@ -55,10 +54,9 @@ export default function AdminSettings() {
       if (res.ok) { setPwMsg("✅ Password changed!"); setPwForm({ current: "", newPw: "", confirm: "" }); }
       else { const err = await res.json().catch(() => ({})); setPwErr(err.detail || "Failed. Check current password."); }
     } catch { setPwErr("Network error."); }
-    setSaving(false);
-  };
+  });
 
-  const saveOffice = async (e) => {
+  const [saveOffice, savingOffice] = useSubmitOnce(async (e) => {
     e.preventDefault();
     setOfficeMsg("");
     const lat = parseFloat(officeForm.lat);
@@ -81,7 +79,7 @@ export default function AdminSettings() {
       if (res.ok) setOfficeMsg("✅ Office location saved!");
       else setOfficeMsg("❌ Failed to save.");
     } catch { setOfficeMsg("❌ Network error."); }
-  };
+  });
 
   const field = "w-full border border-[#E2D8C2] dark:border-white/15 dark:bg-white/5 dark:text-[#F1EDE3] rounded-xl px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-[#024396]/30";
 
@@ -147,8 +145,8 @@ export default function AdminSettings() {
               Geofence Enforce Karo (OFF karne se sab jagah se punch-in hogi)
             </label>
             {officeMsg && <p className={`text-xs ${officeMsg.includes("✅") ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"}`}>{officeMsg}</p>}
-            <Button type="submit" disabled={!officeLoaded} className="bg-gradient-to-r from-[#024396] to-[#0356c4]">
-              {officeLoaded ? "Save Office Location" : "Loading current settings…"}
+            <Button type="submit" disabled={!officeLoaded || savingOffice} className="bg-gradient-to-r from-[#024396] to-[#0356c4]">
+              {!officeLoaded ? "Loading current settings…" : savingOffice ? "Saving..." : "Save Office Location"}
             </Button>
           </form>
         </div>

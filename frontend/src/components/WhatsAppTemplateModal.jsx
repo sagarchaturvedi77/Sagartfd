@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { X, MessageCircle, Plus, Trash2 } from "lucide-react";
 import ProtectedText from "./portal/ProtectedText";
+import { useSubmitOnce } from "../lib/useSubmitOnce";
 
 const API_BASE = process.env.REACT_APP_BACKEND_URL || "";
 const field = "w-full border border-[#E2D8C2] rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#024396]/30";
@@ -39,7 +40,7 @@ export default function WhatsAppTemplateModal({ lead, token, onClose }) {
     onClose();
   };
 
-  const createTemplate = async (e) => {
+  const [createTemplate, savingTemplate] = useSubmitOnce(async (e) => {
     e.preventDefault();
     if (!newTpl.name.trim() || !newTpl.body.trim()) return;
     const res = await fetch(`${API_BASE}/api/pipelines/templates/`, {
@@ -50,12 +51,12 @@ export default function WhatsAppTemplateModal({ lead, token, onClose }) {
       setCreating(false);
       load();
     }
-  };
+  });
 
-  const deleteTemplate = async (id) => {
+  const [deleteTemplate, deletingTemplate] = useSubmitOnce(async (id) => {
     await fetch(`${API_BASE}/api/pipelines/templates/${id}`, { method: "DELETE", headers });
     load();
-  };
+  });
 
   return (
     <div className="fixed inset-0 z-[110] flex items-center justify-center bg-black/55 backdrop-blur-sm px-4">
@@ -88,7 +89,7 @@ export default function WhatsAppTemplateModal({ lead, token, onClose }) {
                   <span className="font-medium">{t.name}</span>
                   <span className="block text-[11px] text-[#2A364B]/40 truncate">{t.body}</span>
                 </button>
-                <button onClick={() => deleteTemplate(t.id)} className="p-2 text-[#C7102E]/50 hover:text-[#C7102E]" title="Delete template">
+                <button onClick={() => deleteTemplate(t.id)} disabled={deletingTemplate} className="p-2 text-[#C7102E]/50 hover:text-[#C7102E] disabled:opacity-40" title="Delete template">
                   <Trash2 size={13} />
                 </button>
               </div>
@@ -108,7 +109,9 @@ export default function WhatsAppTemplateModal({ lead, token, onClose }) {
             />
             <div className="flex gap-2">
               <button type="button" onClick={() => setCreating(false)} className="flex-1 py-2 rounded-xl text-xs font-medium text-[#2A364B]/70 border border-[#E2D8C2]">Cancel</button>
-              <button type="submit" className="flex-1 py-2 rounded-xl text-xs font-semibold text-white bg-[#024396]">Save Template</button>
+              <button type="submit" disabled={savingTemplate} className="flex-1 py-2 rounded-xl text-xs font-semibold text-white bg-[#024396] disabled:opacity-60">
+                {savingTemplate ? "Saving…" : "Save Template"}
+              </button>
             </div>
           </form>
         ) : (

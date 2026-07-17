@@ -33,7 +33,7 @@ DEMO_EMAIL = "aditya.demo@thefinancialdoctor.in"
 DEMO_COLLEGE = "Demo Public College"
 DEMO_COURSE_YEAR = "BBA 2nd Year"
 DEMO_TRACK = "marketing"
-DEMO_DURATION = 45
+DEMO_DURATION = 90
 
 
 async def seed():

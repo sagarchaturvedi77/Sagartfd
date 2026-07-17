@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { ArrowLeft, Mail } from "lucide-react";
 import { toast } from "sonner";
+import { useSubmitOnce } from "../lib/useSubmitOnce";
 
 const MAIN_LOGO_URL = "/assets/logos/TFD-MAIN-LOGO.png";
 const INTERNSHIP_LOGO_URL = "/assets/logos/TFD-INTERNSHIP-LOGO.png";
@@ -10,14 +11,15 @@ const API_BASE = process.env.REACT_APP_BACKEND_URL || "";
 export default function InternshipForgotPassword() {
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
-  const [submitting, setSubmitting] = useState(false);
   const [sent, setSent] = useState(false);
 
   const field = "w-full bg-white/5 border border-white/15 rounded-xl px-4 py-2.5 text-sm text-white placeholder:text-white/30 focus:outline-none focus:border-[#14E0A0]/60 focus:ring-2 focus:ring-[#14E0A0]/20 transition-shadow";
 
-  const handleSubmit = async (e) => {
+  // useSubmitOnce's ref guard stops a rapid double-click/laggy re-render
+  // from firing two concurrent requests, same pattern as CallFlowPopup /
+  // EmployeeAgreement / EmployeeAttendance.
+  const [handleSubmit, submitting] = useSubmitOnce(async (e) => {
     e.preventDefault();
-    setSubmitting(true);
     try {
       const res = await fetch(`${API_BASE}/api/internship/forgot-password`, {
         method: "POST",
@@ -30,8 +32,7 @@ export default function InternshipForgotPassword() {
     } catch (err) {
       toast.error(err.message || "Something went wrong");
     }
-    setSubmitting(false);
-  };
+  });
 
   return (
     <div className="min-h-screen bg-[#050B16] text-white px-4 py-10 flex flex-col">

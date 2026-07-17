@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import PortalLayout from "../components/PortalLayout";
 import { useAuth } from "../context/AuthContext";
+import { useSubmitOnce } from "../lib/useSubmitOnce";
 
 const API_BASE = process.env.REACT_APP_BACKEND_URL || "";
 const POLL_MS = 4000;
@@ -103,7 +104,6 @@ export default function AdminChat() {
   const { token, user } = useAuth();
   const [msgs, setMsgs] = useState([]);
   const [text, setText] = useState("");
-  const [sending, setSending] = useState(false);
   const bottomRef = useRef(null);
   const headers = { Authorization: `Bearer ${token}`, "Content-Type": "application/json" };
 
@@ -116,21 +116,19 @@ export default function AdminChat() {
   useEffect(() => { const t = setInterval(load, POLL_MS); return () => clearInterval(t); }, [load]);
   useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: "smooth" }); }, [msgs]);
 
-  const send = async (e) => {
+  const [send, sending] = useSubmitOnce(async (e) => {
     e.preventDefault();
     if (!text.trim()) return;
-    setSending(true);
     await fetch(`${API_BASE}/api/chat/`, { method: "POST", headers, body: JSON.stringify({ text: text.trim(), room: "general" }) });
     setText("");
     await load();
-    setSending(false);
-  };
+  });
 
-  const del = async (id) => {
+  const [del, deleting] = useSubmitOnce(async (id) => {
     if (!window.confirm("Delete this message?")) return;
     await fetch(`${API_BASE}/api/chat/${id}`, { method: "DELETE", headers });
     setMsgs((m) => m.filter((x) => x.id !== id));
-  };
+  });
 
   return (
     <PortalLayout>
@@ -150,8 +148,8 @@ export default function AdminChat() {
             <div key={m.id} className="relative">
               <MessageBubble m={m} isMe={m.sender_id === user?.id} />
               {(m.sender_id === user?.id || user?.role === "admin") && (
-                <button onClick={() => del(m.id)} title="Delete message"
-                  className="absolute top-0 right-0 bg-red-100 dark:bg-red-900/40 border-none rounded-full w-[18px] h-[18px] text-[10px] text-red-600 dark:text-red-400 flex items-center justify-center opacity-70 hover:opacity-100">
+                <button onClick={() => del(m.id)} disabled={deleting} title="Delete message"
+                  className="absolute top-0 right-0 bg-red-100 dark:bg-red-900/40 border-none rounded-full w-[18px] h-[18px] text-[10px] text-red-600 dark:text-red-400 flex items-center justify-center opacity-70 hover:opacity-100 disabled:opacity-40">
                   ×
                 </button>
               )}

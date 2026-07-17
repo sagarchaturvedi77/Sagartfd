@@ -5,6 +5,7 @@ import PageHeader from "../components/portal/PageHeader";
 import EmptyState from "../components/portal/EmptyState";
 import PortalModal from "../components/portal/PortalModal";
 import { Button } from "../components/ui/button";
+import { useSubmitOnce } from "../lib/useSubmitOnce";
 
 const API_BASE = process.env.REACT_APP_BACKEND_URL || "";
 
@@ -15,7 +16,6 @@ export default function AdminServices() {
   const [showAdd, setShowAdd] = useState(false);
   const [editId, setEditId] = useState(null);
   const [form, setForm] = useState({ name: "", description: "", category: "" });
-  const [saving, setSaving] = useState(false);
 
   const headers = { Authorization: `Bearer ${token}`, "Content-Type": "application/json" };
 
@@ -29,10 +29,9 @@ export default function AdminServices() {
 
   useEffect(() => { load(); }, [load]);
 
-  const save = async (e) => {
+  const [save, saving] = useSubmitOnce(async (e) => {
     e.preventDefault();
     if (!form.name.trim()) return;
-    setSaving(true);
     try {
       if (editId) {
         await fetch(`${API_BASE}/api/services/${editId}`, { method: "PUT", headers, body: JSON.stringify(form) });
@@ -44,14 +43,13 @@ export default function AdminServices() {
       setForm({ name: "", description: "", category: "" });
       load();
     } catch { /* silent */ }
-    setSaving(false);
-  };
+  });
 
-  const deleteService = async (id) => {
+  const [deleteService, deleting] = useSubmitOnce(async (id) => {
     if (!window.confirm("Delete this service?")) return;
     await fetch(`${API_BASE}/api/services/${id}`, { method: "DELETE", headers });
     load();
-  };
+  });
 
   const startEdit = (s) => {
     setEditId(s.id);
@@ -115,7 +113,7 @@ export default function AdminServices() {
                 </div>
                 <div className="flex gap-2 mt-3">
                   <button onClick={() => startEdit(s)} className="px-3 py-1.5 rounded-lg text-xs font-medium text-[#024396] dark:text-[#7CB0FF] bg-[#024396]/5 dark:bg-white/5 hover:bg-[#024396]/10 dark:hover:bg-white/10">Edit</button>
-                  <button onClick={() => deleteService(s.id)} className="px-3 py-1.5 rounded-lg text-xs font-medium text-red-500 dark:text-red-400 bg-red-50 dark:bg-red-900/20 hover:bg-red-100 dark:hover:bg-red-900/40">Delete</button>
+                  <button onClick={() => deleteService(s.id)} disabled={deleting} className="px-3 py-1.5 rounded-lg text-xs font-medium text-red-500 dark:text-red-400 bg-red-50 dark:bg-red-900/20 hover:bg-red-100 dark:hover:bg-red-900/40 disabled:opacity-50">Delete</button>
                 </div>
               </div>
             ))}

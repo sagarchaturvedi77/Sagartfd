@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { X, ArrowRightLeft } from "lucide-react";
 import ProtectedText from "./portal/ProtectedText";
+import { useSubmitOnce } from "../lib/useSubmitOnce";
 
 const API_BASE = process.env.REACT_APP_BACKEND_URL || "";
 const field = "w-full border border-[#E2D8C2] rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#024396]/30";
@@ -9,7 +10,6 @@ export default function TransferLeadModal({ lead, token, onClose, onSaved }) {
   const [employees, setEmployees] = useState([]);
   const [toEmployee, setToEmployee] = useState("");
   const [note, setNote] = useState("");
-  const [saving, setSaving] = useState(false);
 
   const headers = { Authorization: `Bearer ${token}`, "Content-Type": "application/json" };
 
@@ -21,20 +21,15 @@ export default function TransferLeadModal({ lead, token, onClose, onSaved }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const submit = async (e) => {
+  const [submit, saving] = useSubmitOnce(async (e) => {
     e.preventDefault();
     if (!toEmployee) return;
-    setSaving(true);
-    try {
-      const res = await fetch(`${API_BASE}/api/leads/${lead.id}/transfer`, {
-        method: "POST", headers,
-        body: JSON.stringify({ to_employee_id: toEmployee, reference_note: note || null }),
-      });
-      if (res.ok) { onSaved?.(); onClose(); }
-    } finally {
-      setSaving(false);
-    }
-  };
+    const res = await fetch(`${API_BASE}/api/leads/${lead.id}/transfer`, {
+      method: "POST", headers,
+      body: JSON.stringify({ to_employee_id: toEmployee, reference_note: note || null }),
+    });
+    if (res.ok) { onSaved?.(); onClose(); }
+  });
 
   return (
     <div className="fixed inset-0 z-[110] flex items-center justify-center bg-black/55 backdrop-blur-sm px-4">

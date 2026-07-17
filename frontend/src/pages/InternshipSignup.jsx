@@ -4,6 +4,7 @@ import { ArrowLeft, ArrowUpRight, TrendingUp, Heart, Megaphone, Landmark, Video 
 import { toast } from "sonner";
 import { useInternshipAuth } from "../portal/student/InternshipAuthContext";
 import { openCashfreeCheckout } from "../lib/cashfree";
+import { useSubmitOnce } from "../lib/useSubmitOnce";
 
 const API_BASE = process.env.REACT_APP_BACKEND_URL || "";
 const MAIN_LOGO_URL = "/assets/logos/TFD-MAIN-LOGO.png";
@@ -16,24 +17,28 @@ const TRACKS = [
   { value: "hr", label: "HR", icon: Heart },
 ];
 
-const DURATIONS = [
-  { days: 45, price: 2000 },
-  { days: 60, price: 3000 },
-  { days: 90, price: 5000 },
-];
+// Only one program length now (90 days, ₹5,000) — the backend's
+// DurationDays type narrowed from Literal[45,60,90] to Literal[90], so any
+// signup sent with 45/60 would now be rejected. Kept as a small array (not
+// a bare constant) since the price lookup below still reads from it.
+const DURATIONS = [{ days: 90, price: 5000 }];
 
 export default function InternshipSignup() {
   const navigate = useNavigate();
   const { setSession } = useInternshipAuth();
   const [form, setForm] = useState({
-    name: "", phone: "", email: "", password: "", college: "", course_year: "", track: "", duration_days: 45,
+    name: "", phone: "", email: "", password: "", college: "", course_year: "", track: "", duration_days: 90,
   });
   const [videoConsent, setVideoConsent] = useState(null); // null = not yet chosen, forces an explicit answer
-  const [submitting, setSubmitting] = useState(false);
 
   const field = "w-full bg-white/5 border border-white/15 rounded-xl px-4 py-2.5 text-sm text-white placeholder:text-white/30 focus:outline-none focus:border-[#14E0A0]/60 focus:ring-2 focus:ring-[#14E0A0]/20 transition-shadow";
 
-  const handleSubmit = async (e) => {
+  // useSubmitOnce's ref-based guard is critical here — this handler both
+  // creates the student account AND creates a Cashfree payment order, so a
+  // duplicate call from a double-click/laggy re-render risks a duplicate
+  // account or a duplicate pending payment order (real money on the line),
+  // same concern as StudentDashboard's startPayment.
+  const [handleSubmit, submitting] = useSubmitOnce(async (e) => {
     e.preventDefault();
     if (!form.track) {
       toast.error("Please choose a track to continue.");
@@ -43,7 +48,6 @@ export default function InternshipSignup() {
       toast.error("Please answer the video review consent question to continue.");
       return;
     }
-    setSubmitting(true);
     try {
       const res = await fetch(`${API_BASE}/api/internship/signup`, {
         method: "POST",
@@ -53,7 +57,6 @@ export default function InternshipSignup() {
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
         toast.error(data.detail || "Signup failed. Please try again.");
-        setSubmitting(false);
         return;
       }
       // Signup returns a token directly; lock in the chosen track right after.
@@ -86,9 +89,8 @@ export default function InternshipSignup() {
       }
     } catch {
       toast.error("Something went wrong. Please try again.");
-      setSubmitting(false);
     }
-  };
+  });
 
   return (
     <div className="min-h-screen bg-[#050B16] text-white px-4 py-8 sm:py-14">
@@ -161,23 +163,10 @@ export default function InternshipSignup() {
           </div>
 
           <div>
-            <label className="block text-[11px] font-semibold text-white/50 uppercase tracking-wide mb-2">Choose Your Duration *</label>
-            <div className="grid grid-cols-3 gap-2.5">
-              {DURATIONS.map((d) => (
-                <button
-                  type="button"
-                  key={d.days}
-                  onClick={() => setForm({ ...form, duration_days: d.days })}
-                  className={`flex flex-col items-center gap-0.5 px-3 py-2.5 rounded-xl text-xs font-medium border transition-colors ${
-                    form.duration_days === d.days
-                      ? "bg-[#14E0A0]/15 border-[#14E0A0] text-[#14E0A0]"
-                      : "bg-white/[0.03] border-white/10 text-white/60 hover:border-white/25"
-                  }`}
-                >
-                  <span className="font-bold">{d.days} Days</span>
-                  <span className="text-[10px] opacity-75">₹{d.price}</span>
-                </button>
-              ))}
+            <label className="block text-[11px] font-semibold text-white/50 uppercase tracking-wide mb-2">Program Duration</label>
+            <div className="flex items-center justify-between px-4 py-3 rounded-xl border border-[#14E0A0]/40 bg-[#14E0A0]/[0.08]">
+              <span className="text-sm font-bold text-white">90-Day Program</span>
+              <span className="text-sm font-bold text-[#14E0A0]">₹5,000</span>
             </div>
           </div>
 

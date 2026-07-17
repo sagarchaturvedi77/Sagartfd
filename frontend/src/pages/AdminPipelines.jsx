@@ -4,6 +4,7 @@ import PortalLayout from "../components/PortalLayout";
 import { useAuth } from "../context/AuthContext";
 import { Plus, X, Trash2, Users, Pencil, PhoneCall, PhoneOff, ChevronRight, GripVertical, LayoutGrid } from "lucide-react";
 import PageHeader from "../components/portal/PageHeader";
+import { useSubmitOnce } from "../lib/useSubmitOnce";
 
 const API_BASE = process.env.REACT_APP_BACKEND_URL || "";
 
@@ -53,7 +54,6 @@ export default function AdminPipelines() {
 
   const [editingPipeline, setEditingPipeline] = useState(null); // null = closed, {} = new, {...} = edit
   const [assigningPipeline, setAssigningPipeline] = useState(null);
-  const [saving, setSaving] = useState(false);
 
   const load = useCallback(async () => {
     try {
@@ -69,11 +69,11 @@ export default function AdminPipelines() {
 
   useEffect(() => { load(); }, [load]);
 
-  const handleDelete = async (pipeline) => {
+  const [handleDelete, deleting] = useSubmitOnce(async (pipeline) => {
     if (!window.confirm(`Delete pipeline "${pipeline.name}"? This cannot be undone.`)) return;
     const res = await fetch(`${API_BASE}/api/pipelines/${pipeline.id}`, { method: "DELETE", headers });
     if (res.ok) load();
-  };
+  });
 
   const countStages = (stages = []) =>
     stages.reduce((sum, s) => sum + 1 + countStages(s.children || []), 0);
@@ -153,7 +153,7 @@ export default function AdminPipelines() {
                 <button onClick={() => setAssigningPipeline(p)} title="Assign" className="p-2 text-[#2A364B] dark:text-[#8E99AC] bg-[#2A364B]/5 hover:bg-[#2A364B]/10 rounded-lg">
                   <Users size={13} />
                 </button>
-                <button onClick={() => handleDelete(p)} title="Delete" className="p-2 text-[#C7102E]/70 hover:text-[#C7102E] hover:bg-[#C7102E]/10 rounded-lg">
+                <button onClick={() => handleDelete(p)} disabled={deleting} title="Delete" className="p-2 text-[#C7102E]/70 hover:text-[#C7102E] hover:bg-[#C7102E]/10 rounded-lg disabled:opacity-50">
                   <Trash2 size={15} />
                 </button>
               </div>
@@ -168,8 +168,6 @@ export default function AdminPipelines() {
           onClose={() => setEditingPipeline(null)}
           onSaved={() => { setEditingPipeline(null); load(); }}
           headers={headers}
-          saving={saving}
-          setSaving={setSaving}
         />
       )}
 
@@ -189,7 +187,7 @@ export default function AdminPipelines() {
 /* ============================================================
    PIPELINE CREATE / EDIT MODAL
    ============================================================ */
-function PipelineModal({ pipeline, onClose, onSaved, headers, saving, setSaving }) {
+function PipelineModal({ pipeline, onClose, onSaved, headers }) {
   const isNew = !pipeline.id;
   const [name, setName] = useState(pipeline.name || "");
   const [description, setDescription] = useState(pipeline.description || "");
@@ -197,10 +195,9 @@ function PipelineModal({ pipeline, onClose, onSaved, headers, saving, setSaving 
   const [notConnected, setNotConnected] = useState(pipeline.not_connected_stages?.length ? pipeline.not_connected_stages : []);
   const [error, setError] = useState("");
 
-  const handleSave = async () => {
+  const [handleSave, saving] = useSubmitOnce(async () => {
     if (!name.trim()) { setError("Give the pipeline a name."); return; }
     setError("");
-    setSaving(true);
     const payload = {
       name: name.trim(),
       description: description.trim() || null,
@@ -214,10 +211,8 @@ function PipelineModal({ pipeline, onClose, onSaved, headers, saving, setSaving 
       else setError("Couldn't save the pipeline. Please try again.");
     } catch {
       setError("Couldn't reach the server. Please try again.");
-    } finally {
-      setSaving(false);
     }
-  };
+  });
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm px-4 py-6">
@@ -430,23 +425,17 @@ const StageNode = memo(function StageNode({ stage, depth, outcomeOptions, onChan
    ============================================================ */
 function AssignModal({ pipeline, employees, onClose, onSaved, headers }) {
   const [selected, setSelected] = useState(pipeline.assigned_to || []);
-  const [saving, setSaving] = useState(false);
 
   const toggle = (id) => setSelected((s) => (s.includes(id) ? s.filter((x) => x !== id) : [...s, id]));
 
-  const handleSave = async () => {
-    setSaving(true);
-    try {
-      const res = await fetch(`${API_BASE}/api/pipelines/${pipeline.id}/assign`, {
-        method: "POST",
-        headers,
-        body: JSON.stringify({ employee_ids: selected }),
-      });
-      if (res.ok) onSaved();
-    } finally {
-      setSaving(false);
-    }
-  };
+  const [handleSave, saving] = useSubmitOnce(async () => {
+    const res = await fetch(`${API_BASE}/api/pipelines/${pipeline.id}/assign`, {
+      method: "POST",
+      headers,
+      body: JSON.stringify({ employee_ids: selected }),
+    });
+    if (res.ok) onSaved();
+  });
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm px-4">

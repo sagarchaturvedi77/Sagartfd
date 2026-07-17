@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from "react";
 import { useSearchParams } from "react-router-dom";
 import PortalLayout from "../components/PortalLayout";
 import { useAuth } from "../context/AuthContext";
+import { useSubmitOnce } from "../lib/useSubmitOnce";
 
 const API_BASE = process.env.REACT_APP_BACKEND_URL || "";
 const STATUS_COLOR = {
@@ -47,14 +48,14 @@ export default function EmployeeTasks({ wrapInLayout = true }) {
     }
   }, [searchParams, tasks, setSearchParams]);
 
-  const updateStatus = async (id, status) => {
+  const [updateStatus, updatingStatus] = useSubmitOnce(async (id, status) => {
     // update_task() is PUT, not POST /status (that route never existed either).
     await fetch(`${API_BASE}/api/tasks/${id}`, {
       method: "PUT", headers,
       body: JSON.stringify({ status }),
     });
     load();
-  };
+  });
 
   const content = (
     <div className="space-y-5">
@@ -91,7 +92,8 @@ export default function EmployeeTasks({ wrapInLayout = true }) {
                 <select
                   value={task.status || "pending"}
                   onChange={(e) => updateStatus(task.id, e.target.value)}
-                  className="text-xs border border-[#E2D8C2] dark:border-white/10 rounded-lg px-2 py-1.5 outline-none shrink-0"
+                  disabled={updatingStatus}
+                  className="text-xs border border-[#E2D8C2] dark:border-white/10 rounded-lg px-2 py-1.5 outline-none shrink-0 disabled:opacity-60"
                 >
                   <option value="pending">Pending</option>
                   <option value="in_progress">In Progress</option>

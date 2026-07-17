@@ -3,6 +3,7 @@ import { toast } from "sonner";
 import { NotebookPen, Pencil, Trash2, Save, X, Calendar } from "lucide-react";
 import StudentLayout from "../portal/student/StudentLayout";
 import { useInternshipAuth } from "../portal/student/InternshipAuthContext";
+import { useSubmitOnce } from "../lib/useSubmitOnce";
 
 const API_BASE = process.env.REACT_APP_BACKEND_URL || "";
 
@@ -18,7 +19,6 @@ export default function StudentReport() {
   const { token } = useInternshipAuth();
   const [entries, setEntries] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
 
   const [form, setForm] = useState({ date: todayStr(), what_learned: "", what_did: "" });
   const [editingId, setEditingId] = useState(null);
@@ -46,12 +46,14 @@ export default function StudentReport() {
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
-  const save = async () => {
+  // useSubmitOnce's ref guard stops a rapid double-click/laggy re-render
+  // from firing two concurrent requests, same pattern as CallFlowPopup /
+  // EmployeeAgreement / EmployeeAttendance.
+  const [save, saving] = useSubmitOnce(async () => {
     if (!form.what_learned.trim() && !form.what_did.trim()) {
       toast.error("Write at least one of the two fields before saving.");
       return;
     }
-    setSaving(true);
     try {
       const url = editingId ? `${API_BASE}/api/internship/reports/${editingId}` : `${API_BASE}/api/internship/reports`;
       const method = editingId ? "PUT" : "POST";
@@ -67,10 +69,11 @@ export default function StudentReport() {
     } catch (err) {
       toast.error(err.message);
     }
-    setSaving(false);
-  };
+  });
 
-  const remove = async (id) => {
+  // No guard existed before — added fresh since this fires a DELETE call
+  // that a rapid double-click/tap could otherwise send twice.
+  const [remove, removing] = useSubmitOnce(async (id) => {
     if (!window.confirm("Delete this report entry?")) return;
     try {
       const res = await fetch(`${API_BASE}/api/internship/reports/${id}`, { method: "DELETE", headers: { Authorization: `Bearer ${token}` } });
@@ -81,7 +84,7 @@ export default function StudentReport() {
     } catch (err) {
       toast.error(err.message);
     }
-  };
+  });
 
   return (
     <StudentLayout activeKey="missions">
@@ -162,7 +165,7 @@ export default function StudentReport() {
                       <button onClick={() => startEdit(e)} className="w-7 h-7 rounded-lg bg-white/5 hover:bg-white/10 flex items-center justify-center text-white/50 hover:text-white">
                         <Pencil size={12} />
                       </button>
-                      <button onClick={() => remove(e.id)} className="w-7 h-7 rounded-lg bg-red-500/10 hover:bg-red-500/20 flex items-center justify-center text-red-400">
+                      <button onClick={() => remove(e.id)} disabled={removing} className="w-7 h-7 rounded-lg bg-red-500/10 hover:bg-red-500/20 flex items-center justify-center text-red-400 disabled:opacity-50">
                         <Trash2 size={12} />
                       </button>
                     </div>

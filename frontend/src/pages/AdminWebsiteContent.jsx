@@ -3,6 +3,7 @@ import { useAuth } from "../context/AuthContext";
 import PortalLayout from "../components/PortalLayout";
 import PageHeader from "../components/portal/PageHeader";
 import { Button } from "../components/ui/button";
+import { useSubmitOnce } from "../lib/useSubmitOnce";
 
 const API_BASE = process.env.REACT_APP_BACKEND_URL || "";
 
@@ -10,7 +11,6 @@ export default function AdminWebsiteContent() {
   const { token } = useAuth();
   const [content, setContent] = useState({ top_banner: null, popup: null });
   const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
   const [banner, setBanner] = useState({ text: "", link: "", enabled: false });
   const [popup, setPopup] = useState({ title: "", body: "", link: "", enabled: false });
 
@@ -31,25 +31,23 @@ export default function AdminWebsiteContent() {
 
   useEffect(() => { load(); }, [load]);
 
-  const saveBanner = async () => {
-    setSaving(true);
+  const [saveBanner, savingBanner] = useSubmitOnce(async () => {
     await fetch(`${API_BASE}/api/website-content`, {
       method: "PUT", headers,
       body: JSON.stringify({ top_banner: banner }),
     });
-    setSaving(false);
     load();
-  };
+  });
 
-  const savePopup = async () => {
-    setSaving(true);
+  const [savePopup, savingPopup] = useSubmitOnce(async () => {
     await fetch(`${API_BASE}/api/website-content`, {
       method: "PUT", headers,
       body: JSON.stringify({ popup }),
     });
-    setSaving(false);
     load();
-  };
+  });
+
+  const saving = savingBanner || savingPopup;
 
   const field = "w-full border border-[#E2D8C2] dark:border-white/15 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#024396]/30 bg-white dark:bg-white/5 dark:text-[#F1EDE3]";
 

@@ -5,6 +5,7 @@ import { useAuth } from "../context/AuthContext";
 import PageHeader from "../components/portal/PageHeader";
 import StatusBadge from "../components/portal/StatusBadge";
 import EmptyState from "../components/portal/EmptyState";
+import { useSubmitOnce } from "../lib/useSubmitOnce";
 
 const API_BASE = process.env.REACT_APP_BACKEND_URL || "";
 const LEAVE_LABEL = { casual: "Casual Leave", sick: "Sick Leave", earned: "Earned Leave", half_day: "Half Day", wfh: "Work From Home", other: "Other" };
@@ -42,20 +43,20 @@ export default function AdminLeaveManagement() {
     }
   }, [searchParams, leaves, setSearchParams]);
 
-  const updateStatus = async (id, status) => {
+  const [updateStatus, updatingStatus] = useSubmitOnce(async (id, status) => {
     await fetch(`${API_BASE}/api/leaves/${id}`, {
       method: "PUT", headers,
       body: JSON.stringify({ status, admin_note: actionNote[id] || null }),
     });
     setActionNote((prev) => { const n = { ...prev }; delete n[id]; return n; });
     load();
-  };
+  });
 
-  const del = async (id) => {
+  const [del, deleting] = useSubmitOnce(async (id) => {
     if (!window.confirm("Delete this leave record?")) return;
     await fetch(`${API_BASE}/api/leaves/${id}`, { method: "DELETE", headers });
     load();
-  };
+  });
 
   return (
     <PortalLayout>
@@ -115,19 +116,19 @@ export default function AdminLeaveManagement() {
                           className="text-xs border border-[#E2D8C2] dark:border-white/15 dark:bg-white/5 dark:text-[#F1EDE3] rounded-lg px-2 py-1.5 outline-none"
                         />
                         <div className="flex gap-2">
-                          <button onClick={() => updateStatus(lv.id, "approved")}
-                            className="flex-1 py-1.5 rounded-lg text-xs font-semibold text-white bg-green-600 hover:bg-green-700">
+                          <button onClick={() => updateStatus(lv.id, "approved")} disabled={updatingStatus}
+                            className="flex-1 py-1.5 rounded-lg text-xs font-semibold text-white bg-green-600 hover:bg-green-700 disabled:opacity-50">
                             ✓ Approve
                           </button>
-                          <button onClick={() => updateStatus(lv.id, "rejected")}
-                            className="flex-1 py-1.5 rounded-lg text-xs font-semibold text-white bg-red-500 hover:bg-red-600">
+                          <button onClick={() => updateStatus(lv.id, "rejected")} disabled={updatingStatus}
+                            className="flex-1 py-1.5 rounded-lg text-xs font-semibold text-white bg-red-500 hover:bg-red-600 disabled:opacity-50">
                             ✗ Reject
                           </button>
                         </div>
                       </>
                     )}
-                    <button onClick={() => del(lv.id)}
-                      className="w-full py-1 rounded-lg text-xs text-[#2A364B]/40 dark:text-[#8E99AC]/70 hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 border border-[#E2D8C2] dark:border-white/10">
+                    <button onClick={() => del(lv.id)} disabled={deleting}
+                      className="w-full py-1 rounded-lg text-xs text-[#2A364B]/40 dark:text-[#8E99AC]/70 hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 border border-[#E2D8C2] dark:border-white/10 disabled:opacity-50">
                       Delete
                     </button>
                   </div>

@@ -6,6 +6,7 @@ import {
 import StudentLayout from "../portal/student/StudentLayout";
 import { useInternshipAuth } from "../portal/student/InternshipAuthContext";
 import { getCurrentLocation } from "../portal/api";
+import { useSubmitOnce } from "../lib/useSubmitOnce";
 
 const API_BASE = process.env.REACT_APP_BACKEND_URL || "";
 
@@ -44,7 +45,6 @@ function formatPan(raw) {
 export default function StudentOnboarding() {
   const { student, token, refreshMe } = useInternshipAuth();
   const [step, setStep] = useState(1);
-  const [saving, setSaving] = useState(false);
 
   const [kyc, setKyc] = useState({
     dob: student?.dob || "", gender: student?.gender || "", aadhar_number: student?.aadhar_number || "",
@@ -52,15 +52,13 @@ export default function StudentOnboarding() {
     college_id_number: student?.college_id_number || "",
   });
   const [photoUploaded, setPhotoUploaded] = useState(!!student?.photo_url);
-  const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const [signatureFile, setSignatureFile] = useState(null);
-  const [uploadingSignature, setUploadingSignature] = useState(false);
   const [signatureUploaded, setSignatureUploaded] = useState(false);
-  const [signing, setSigning] = useState(false);
 
-  if (!student) return null;
-
-  const saveKyc = async () => {
+  // useSubmitOnce's ref guard stops a rapid double-click/laggy re-render
+  // from firing two concurrent onboarding-step requests, same pattern as
+  // CallFlowPopup / EmployeeAgreement / EmployeeAttendance.
+  const [saveKyc, saving] = useSubmitOnce(async () => {
     if (!kyc.dob || !kyc.gender || !kyc.aadhar_number || !kyc.college_id_number) {
       toast.error("Please fill in all required fields.");
       return;
@@ -77,7 +75,6 @@ export default function StudentOnboarding() {
       toast.error("PAN must be in the format ABCDE1234F.");
       return;
     }
-    setSaving(true);
     try {
       const res = await fetch(`${API_BASE}/api/internship/me/kyc`, {
         method: "POST",
@@ -91,13 +88,11 @@ export default function StudentOnboarding() {
     } catch (err) {
       toast.error(err.message);
     }
-    setSaving(false);
-  };
+  });
 
-  const handlePhotoChange = async (e) => {
+  const [handlePhotoChange, uploadingPhoto] = useSubmitOnce(async (e) => {
     const file = e.target.files[0];
     if (!file) return;
-    setUploadingPhoto(true);
     try {
       const form = new FormData();
       form.append("photo", file);
@@ -111,12 +106,10 @@ export default function StudentOnboarding() {
     } catch (err) {
       toast.error(err.message);
     }
-    setUploadingPhoto(false);
-  };
+  });
 
-  const uploadSignature = async () => {
+  const [uploadSignature, uploadingSignature] = useSubmitOnce(async () => {
     if (!signatureFile) return;
-    setUploadingSignature(true);
     try {
       const form = new FormData();
       form.append("signature", signatureFile);
@@ -129,21 +122,18 @@ export default function StudentOnboarding() {
     } catch (err) {
       toast.error(err.message);
     }
-    setUploadingSignature(false);
-  };
+  });
 
-  const signAndFinish = async () => {
+  const [signAndFinish, signing] = useSubmitOnce(async () => {
     if (!signatureUploaded) {
       toast.error("Please upload your signature first.");
       return;
     }
-    setSigning(true);
     const toastId = toast.loading("Getting your location — please allow access when prompted...");
     try {
       const loc = await getCurrentLocation(15000);
       if (!loc) {
         toast.error("Location access is required to sign the agreement. Please enable location and try again.", { id: toastId });
-        setSigning(false);
         return;
       }
       toast.loading("Signing agreement...", { id: toastId });
@@ -160,8 +150,9 @@ export default function StudentOnboarding() {
     } catch (err) {
       toast.error(err.message || "Something went wrong", { id: toastId });
     }
-    setSigning(false);
-  };
+  });
+
+  if (!student) return null;
 
   const StepDot = ({ n, label }) => (
     <div className="flex items-center gap-1.5">

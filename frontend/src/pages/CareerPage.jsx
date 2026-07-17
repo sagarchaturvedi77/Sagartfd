@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { Upload, CheckCircle, Briefcase, Award, ArrowUpRight, ArrowLeft, ChevronLeft, Users, ShieldCheck, TrendingUp, Clock, Check } from "lucide-react";
 import { toast } from "sonner";
+import { useSubmitOnce } from "../lib/useSubmitOnce";
 
 const LOGO_URL = "https://customer-assets.emergentagent.com/job_advisor-phase4-build/artifacts/buhrts3f_IMG_2870.png";
 
@@ -73,7 +74,6 @@ function Row({ label, value }) {
 
 export default function CareerPage() {
   const [step, setStep] = useState("form"); // "form" | "review" | "done"
-  const [submitting, setSubmitting] = useState(false);
   const [photoFile, setPhotoFile] = useState(null);
   const [resumeFile, setResumeFile] = useState(null);
   const [formData, setFormData] = useState({
@@ -142,10 +142,9 @@ export default function CareerPage() {
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
-  const handleConfirmSubmit = async () => {
-    if (!formData.declaration1 || !formData.declaration2 || submitting) return;
+  const [handleConfirmSubmit, submitting] = useSubmitOnce(async () => {
+    if (!formData.declaration1 || !formData.declaration2) return;
 
-    setSubmitting(true);
     const toastId = toast.loading("Uploading documents...");
 
     try {
@@ -233,10 +232,8 @@ export default function CareerPage() {
     } catch (err) {
       console.error(err);
       toast.error("Submission failed. Please check your data and try again.", { id: toastId });
-    } finally {
-      setSubmitting(false);
     }
-  };
+  });
 
   return (
     <div className="min-h-screen bg-[#FBF7EE] py-8 px-4 sm:px-6 lg:px-8">

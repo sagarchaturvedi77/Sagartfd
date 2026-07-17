@@ -6,6 +6,7 @@ import { useAuth } from "../context/AuthContext";
 import PageHeader from "../components/portal/PageHeader";
 import { Button } from "../components/ui/button";
 import { LINKS } from "../lib/links";
+import { useSubmitOnce } from "../lib/useSubmitOnce";
 
 const API_BASE = process.env.REACT_APP_BACKEND_URL || "";
 // Same-origin asset — the external CDN URL previously here sends no CORS
@@ -25,7 +26,6 @@ export default function EmployeeIDCardPage() {
   const [tab, setTab] = useState("id");
   const [editingPhone, setEditingPhone] = useState(false);
   const [phoneInput, setPhoneInput] = useState("");
-  const [savingPhone, setSavingPhone] = useState(false);
   const cardRef = useRef(null);
 
   const loadAll = async () => {
@@ -61,6 +61,68 @@ export default function EmployeeIDCardPage() {
   useEffect(() => { loadAll(); }, [token]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => () => { if (photoObjectUrl) URL.revokeObjectURL(photoObjectUrl); }, [photoObjectUrl]);
 
+  // useSubmitOnce is a hook (useRef + useState inside), so it must be called
+  // unconditionally on every render — declared here, above the `if (loading)
+  // return` below, rather than beside the data it touches (like `emp`,
+  // computed further down). The action bodies still see `emp`/`tab`
+  // correctly once actually invoked, since by click-time this render's full
+  // body (including `const emp = ...`) has already run.
+  const [savePhone, savingPhone] = useSubmitOnce(async () => {
+    if (!phoneInput.trim()) return;
+    try {
+      const res = await fetch(`${API_BASE}/api/profile`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ contact_no: phoneInput.trim() }),
+      });
+      if (res.ok) {
+        setProfile((p) => ({ ...p, contact_no: phoneInput.trim() }));
+        setEditingPhone(false);
+      } else {
+        alert("Could not update phone number. Try again.");
+      }
+    } catch {
+      alert("Network error — could not update phone number.");
+    }
+  });
+
+  const [handleDownload, downloading] = useSubmitOnce(async () => {
+    const element = cardRef.current;
+    if (!element) return;
+
+    try {
+      const originalScrollY = window.scrollY;
+      window.scrollTo(0, 0);
+
+      const canvas = await html2canvas(element, {
+        scale: 3,
+        useCORS: true,
+        backgroundColor: "#ffffff",
+        logging: false
+      });
+
+      window.scrollTo(0, originalScrollY);
+
+      const imgData = canvas.toDataURL("image/png");
+      const isId = tab === "id";
+
+      const pdfWidthInches = isId ? 2 : 3.5;
+      const pdfHeightInches = isId ? 3.5 : 2;
+
+      const pdf = new jsPDF({
+        orientation: isId ? "p" : "l",
+        unit: "in",
+        format: [pdfWidthInches, pdfHeightInches],
+      });
+
+      pdf.addImage(imgData, "PNG", 0, 0, pdfWidthInches, pdfHeightInches);
+      pdf.save(`${emp.name || "TFD_Employee"}_${isId ? "IDCard" : "VisitingCard"}.pdf`);
+    } catch (error) {
+      console.error("PDF generation failed:", error);
+      alert("Download failed. Please try again.");
+    }
+  });
+
   if (loading) return <PortalLayout><div className="py-20 text-center text-[#2A364B]/50 dark:text-[#8E99AC]">Loading...</div></PortalLayout>;
 
   const emp = profile || user || {};
@@ -78,64 +140,6 @@ export default function EmployeeIDCardPage() {
   const startEditPhone = () => {
     setPhoneInput(displayPhone === "—" ? "" : displayPhone);
     setEditingPhone(true);
-  };
-
-  const savePhone = async () => {
-    if (!phoneInput.trim()) return;
-    setSavingPhone(true);
-    try {
-      const res = await fetch(`${API_BASE}/api/profile`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ contact_no: phoneInput.trim() }),
-      });
-      if (res.ok) {
-        setProfile((p) => ({ ...p, contact_no: phoneInput.trim() }));
-        setEditingPhone(false);
-      } else {
-        alert("Could not update phone number. Try again.");
-      }
-    } catch {
-      alert("Network error — could not update phone number.");
-    }
-    setSavingPhone(false);
-  };
-
-  const handleDownload = async () => {
-    const element = cardRef.current;
-    if (!element) return;
-
-    try {
-      const originalScrollY = window.scrollY;
-      window.scrollTo(0, 0);
-
-      const canvas = await html2canvas(element, { 
-        scale: 3, 
-        useCORS: true, 
-        backgroundColor: "#ffffff",
-        logging: false
-      });
-
-      window.scrollTo(0, originalScrollY);
-
-      const imgData = canvas.toDataURL("image/png");
-      const isId = tab === "id";
-      
-      const pdfWidthInches = isId ? 2 : 3.5;
-      const pdfHeightInches = isId ? 3.5 : 2;
-
-      const pdf = new jsPDF({
-        orientation: isId ? "p" : "l",
-        unit: "in",
-        format: [pdfWidthInches, pdfHeightInches],
-      });
-
-      pdf.addImage(imgData, "PNG", 0, 0, pdfWidthInches, pdfHeightInches);
-      pdf.save(`${emp.name || "TFD_Employee"}_${isId ? "IDCard" : "VisitingCard"}.pdf`);
-    } catch (error) {
-      console.error("PDF generation failed:", error);
-      alert("Download failed. Please try again.");
-    }
   };
 
   const handleShare = async () => {

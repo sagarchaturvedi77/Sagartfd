@@ -3,6 +3,7 @@ import { toast } from "sonner";
 import { Award, Download, Share2, Lock, Video, Send, CheckCircle2, FileText, NotebookText, Eye } from "lucide-react";
 import StudentLayout from "../portal/student/StudentLayout";
 import { useInternshipAuth } from "../portal/student/InternshipAuthContext";
+import { useSubmitOnce } from "../lib/useSubmitOnce";
 
 const API_BASE = process.env.REACT_APP_BACKEND_URL || "";
 
@@ -26,15 +27,16 @@ async function downloadBlob(res, filename) {
 function VideoReviewCard({ student, token, refreshMe }) {
   const [videoUrl, setVideoUrl] = useState(student?.video_review_url || "");
   const [consent, setConsent] = useState(!!student?.video_consent);
-  const [saving, setSaving] = useState(false);
   const [editing, setEditing] = useState(!student?.video_review_url);
 
-  const submit = async () => {
+  // useSubmitOnce's ref guard stops a rapid double-click/laggy re-render
+  // from firing two concurrent requests, same pattern as CallFlowPopup /
+  // EmployeeAgreement / EmployeeAttendance.
+  const [submit, saving] = useSubmitOnce(async () => {
     if (!videoUrl.trim() || !/^https?:\/\//i.test(videoUrl.trim())) {
       toast.error("Please paste a valid video link (starting with http:// or https://).");
       return;
     }
-    setSaving(true);
     try {
       const res = await fetch(`${API_BASE}/api/internship/me/video-review`, {
         method: "PUT",
@@ -48,8 +50,7 @@ function VideoReviewCard({ student, token, refreshMe }) {
     } catch (err) {
       toast.error(err.message);
     }
-    setSaving(false);
-  };
+  });
 
   return (
     <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-5">
@@ -119,7 +120,6 @@ export default function StudentCertificate() {
   const { token, student, refreshMe } = useInternshipAuth();
   const [cert, setCert] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [downloading, setDownloading] = useState(false);
   const [downloadingDoc, setDownloadingDoc] = useState(null); // "letter" | "report" | null
 
   const load = useCallback(async () => {
@@ -134,8 +134,10 @@ export default function StudentCertificate() {
 
   useEffect(() => { load(); }, [load]);
 
-  const handleDownload = async () => {
-    setDownloading(true);
+  // useSubmitOnce's ref guard stops a rapid double-click on Download from
+  // firing two concurrent PDF-generation requests, same pattern as
+  // EmployeeAgreement's download/share buttons.
+  const [handleDownload, downloading] = useSubmitOnce(async () => {
     try {
       const res = await fetch(`${API_BASE}/api/internship/me/certificate/download`, { headers: { Authorization: `Bearer ${token}` } });
       if (res.ok) await downloadBlob(res, `TFD_Internship_Certificate_${(student?.name || "Certificate").replace(/\s+/g, "_")}.pdf`);
@@ -143,10 +145,14 @@ export default function StudentCertificate() {
     } catch {
       toast.error("Download failed. Please try again.");
     }
-    setDownloading(false);
-  };
+  });
 
-  const handleDownloadDoc = async (kind) => {
+  // This handler serves two buttons (letter/report) that each need their
+  // own independent "which one is loading" label, so it keeps driving the
+  // existing `downloadingDoc` kind-tracking state rather than consuming
+  // useSubmitOnce's own single isSubmitting flag — the ref guard underneath
+  // still blocks a rapid double-click from firing a second request.
+  const [handleDownloadDoc] = useSubmitOnce(async (kind) => {
     setDownloadingDoc(kind);
     try {
       const res = await fetch(`${API_BASE}/api/internship/me/${kind}/download`, { headers: { Authorization: `Bearer ${token}` } });
@@ -156,7 +162,7 @@ export default function StudentCertificate() {
       toast.error("Download failed. Please try again.");
     }
     setDownloadingDoc(null);
-  };
+  });
 
   const handleShare = async () => {
     if (!cert?.certificate_number) return;

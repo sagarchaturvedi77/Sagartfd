@@ -7,6 +7,7 @@ import PortalModal from "../components/portal/PortalModal";
 import StatusBadge from "../components/portal/StatusBadge";
 import EmptyState from "../components/portal/EmptyState";
 import { Button } from "../components/ui/button";
+import { useSubmitOnce } from "../lib/useSubmitOnce";
 
 const API_BASE = process.env.REACT_APP_BACKEND_URL || "";
 
@@ -26,7 +27,6 @@ export default function AdminEmployeeProfile() {
   const [loading, setLoading] = useState(true);
   const [noteFor, setNoteFor] = useState(null); // lead being annotated
   const [noteText, setNoteText] = useState("");
-  const [saving, setSaving] = useState(false);
 
   const load = useCallback(async () => {
     try {
@@ -43,19 +43,14 @@ export default function AdminEmployeeProfile() {
 
   useEffect(() => { load(); }, [load]);
 
-  const submitNote = async (e) => {
+  const [submitNote, saving] = useSubmitOnce(async (e) => {
     e.preventDefault();
     if (!noteText.trim()) return;
-    setSaving(true);
-    try {
-      const res = await fetch(`${API_BASE}/api/leads/${noteFor.id}/note`, {
-        method: "POST", headers, body: JSON.stringify({ note: noteText.trim() }),
-      });
-      if (res.ok) { setNoteFor(null); setNoteText(""); load(); }
-    } finally {
-      setSaving(false);
-    }
-  };
+    const res = await fetch(`${API_BASE}/api/leads/${noteFor.id}/note`, {
+      method: "POST", headers, body: JSON.stringify({ note: noteText.trim() }),
+    });
+    if (res.ok) { setNoteFor(null); setNoteText(""); load(); }
+  });
 
   if (loading) {
     return (

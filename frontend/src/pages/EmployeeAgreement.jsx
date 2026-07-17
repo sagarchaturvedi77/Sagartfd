@@ -3,6 +3,7 @@ import PortalLayout from '../components/PortalLayout';
 import { useAuth } from '../context/AuthContext';
 import PageHeader from '../components/portal/PageHeader';
 import { Button } from '../components/ui/button';
+import { useSubmitOnce } from '../lib/useSubmitOnce';
 
 const API_BASE = process.env.REACT_APP_BACKEND_URL || "";
 
@@ -25,8 +26,6 @@ export default function EmployeeAgreement() {
   const [status, setStatus] = useState(null); // { signed, signed_at, location } | null while loading
   const [signing, setSigning] = useState(false);
   const [signError, setSignError] = useState("");
-  const [downloading, setDownloading] = useState(false);
-  const [sharing, setSharing] = useState(false);
   const [error, setError] = useState("");
 
   const loadStatus = useCallback(async () => {
@@ -73,23 +72,23 @@ export default function EmployeeAgreement() {
   const filename = `Employment_Agreement_${(user?.name || "Employee").replace(/\s+/g, "_")}.pdf`;
   const fetchAgreement = () => fetch(`${API_BASE}/api/employees/${user.id}/agreement/download`, { headers });
 
-  const handleDownload = async () => {
+  // useSubmitOnce's ref guard stops a rapid double-click on Download/Share
+  // from firing two concurrent PDF-generation requests — the old
+  // state-only `disabled={downloading}` guard had a render-timing window
+  // where a fast second click could still slip through.
+  const [handleDownload, downloading] = useSubmitOnce(async () => {
     setError("");
-    setDownloading(true);
     try {
       const res = await fetchAgreement();
       if (!res.ok) throw new Error("Could not generate your agreement. Please try again or contact HR.");
       await downloadBlob(res, filename);
     } catch (e) {
       setError(e.message);
-    } finally {
-      setDownloading(false);
     }
-  };
+  });
 
-  const handleShare = async () => {
+  const [handleShare, sharing] = useSubmitOnce(async () => {
     setError("");
-    setSharing(true);
     try {
       const res = await fetchAgreement();
       if (!res.ok) throw new Error("Could not generate your agreement. Please try again or contact HR.");
@@ -100,10 +99,8 @@ export default function EmployeeAgreement() {
       );
     } catch (e) {
       setError(e.message);
-    } finally {
-      setSharing(false);
     }
-  };
+  });
 
   return (
     <PortalLayout>

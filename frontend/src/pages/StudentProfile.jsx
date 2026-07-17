@@ -4,6 +4,7 @@ import { toast } from "sonner";
 import { User, Phone, Mail, GraduationCap, Briefcase, CalendarDays, BadgeCheck, Cake, Camera, IdCard, ArrowUpRight } from "lucide-react";
 import StudentLayout from "../portal/student/StudentLayout";
 import { useInternshipAuth } from "../portal/student/InternshipAuthContext";
+import { useSubmitOnce } from "../lib/useSubmitOnce";
 
 const API_BASE = process.env.REACT_APP_BACKEND_URL || "";
 
@@ -40,24 +41,15 @@ export default function StudentProfile() {
   const { student, loading, token, refreshMe } = useInternshipAuth();
   const navigate = useNavigate();
   const fileRef = useRef(null);
-  const [uploading, setUploading] = useState(false);
   const [editingDob, setEditingDob] = useState(false);
   const [dobInput, setDobInput] = useState("");
-  const [savingDob, setSavingDob] = useState(false);
 
-  if (loading) {
-    return (
-      <StudentLayout activeKey="profile">
-        <div className="text-white/50 text-sm">Loading your profile...</div>
-      </StudentLayout>
-    );
-  }
-  if (!student) return null;
-
-  const handlePhotoChange = async (e) => {
+  // useSubmitOnce's ref guard stops a rapid double-click/laggy re-render
+  // from firing two concurrent requests, same pattern as CallFlowPopup /
+  // EmployeeAgreement / EmployeeAttendance.
+  const [handlePhotoChange, uploading] = useSubmitOnce(async (e) => {
     const file = e.target.files[0];
     if (!file) return;
-    setUploading(true);
     try {
       const form = new FormData();
       form.append("photo", file);
@@ -72,17 +64,10 @@ export default function StudentProfile() {
     } catch (err) {
       toast.error(err.message || "Upload failed");
     }
-    setUploading(false);
-  };
+  });
 
-  const startEditDob = () => {
-    setDobInput(student.dob || "");
-    setEditingDob(true);
-  };
-
-  const saveDob = async () => {
+  const [saveDob, savingDob] = useSubmitOnce(async () => {
     if (!dobInput) return;
-    setSavingDob(true);
     try {
       const res = await fetch(`${API_BASE}/api/internship/me/dob`, {
         method: "PUT",
@@ -96,7 +81,20 @@ export default function StudentProfile() {
     } catch (err) {
       toast.error(err.message);
     }
-    setSavingDob(false);
+  });
+
+  if (loading) {
+    return (
+      <StudentLayout activeKey="profile">
+        <div className="text-white/50 text-sm">Loading your profile...</div>
+      </StudentLayout>
+    );
+  }
+  if (!student) return null;
+
+  const startEditDob = () => {
+    setDobInput(student.dob || "");
+    setEditingDob(true);
   };
 
   return (

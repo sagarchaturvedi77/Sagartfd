@@ -28,12 +28,295 @@ from datetime import datetime, timezone
 
 from database import internship_task_pool_collection
 
-# deliverable_type: "text" | "photo" | "text_and_photo"
+# deliverable_type: "text" | "photo" | "text_and_photo" | "spreadsheet" | "text_and_spreadsheet"
 # requires_geotag only matters for photo/text_and_photo deliverables.
-TASKS = [
-    # ════════════════════════════════════════════════════════════════════
-    # FINANCE (50) — general finance/accounting skills, any industry
-    # ════════════════════════════════════════════════════════════════════
+# phase: 1 = guided (Day 1-30), 2 = independent (Day 31-60), 3 = capstone
+# (Day 61-90) — see backend/internship_routes.py's _phase_for_week. Only
+# set on tracks that have been reworked onto the curated pool (Finance is
+# the first); tracks with no phase field keep the old whole-pool behavior.
+# spreadsheet_template/spreadsheet_answer_key back the in-browser mini
+# spreadsheet tool (frontend/src/components/SpreadsheetGrid.jsx) — see
+# _col_letter/_grid below for how these are built.
+
+def _col_letter(idx: int) -> str:
+    """0-based column index -> spreadsheet letter (0->A, 25->Z, 26->AA...)."""
+    letters = ""
+    idx += 1
+    while idx > 0:
+        idx, rem = divmod(idx - 1, 26)
+        letters = chr(65 + rem) + letters
+    return letters
+
+
+def _grid(rows: int, cols: int, headers: list, prefilled: dict, locked: list) -> dict:
+    return {"rows": rows, "cols": cols, "headers": headers, "prefilled": prefilled, "locked_cells": locked}
+
+
+# ── FINANCE — 8 tasks, realistic 90-day corporate simulation ─────────────
+# Generic/fictional mock company data ("Bright Retail Traders", "Meridian
+# Textiles Ltd") — deliberately not TFD's own business. Every task pairs
+# the spreadsheet tool with a written-reasoning component (deliverable_type
+# "text_and_spreadsheet"): the numbers alone aren't graded as "the point" —
+# explaining them is.
+
+_TB_ROWS = [
+    ("Cash", 85000, None), ("Accounts Receivable", 45000, None), ("Inventory", 120000, None),
+    ("Furniture & Fixtures", 60000, None), ("Accounts Payable", None, 38000), ("Bank Loan", None, 100000),
+    ("Owner's Capital", None, 150000), ("Sales Revenue", None, 340000), ("Cost of Goods Sold", 210000, None),
+    ("Rent Expense", 36000, None), ("Salaries Expense", 60000, None), ("Owner's Drawings", 12000, None),
+]
+_TB_PREFILLED = {"A1": "Item", "B1": "Debit", "C1": "Credit"}
+_TB_LOCKED = ["A1", "B1", "C1"]
+for _i, (_label, _debit, _credit) in enumerate(_TB_ROWS):
+    _r = _i + 2
+    _TB_PREFILLED[f"A{_r}"] = _label
+    _TB_LOCKED.append(f"A{_r}")
+    if _debit is not None:
+        _TB_PREFILLED[f"B{_r}"] = _debit
+        _TB_LOCKED.append(f"B{_r}")
+    if _credit is not None:
+        _TB_PREFILLED[f"C{_r}"] = _credit
+        _TB_LOCKED.append(f"C{_r}")
+_TB_PREFILLED.update({
+    "A15": "Net Profit (Revenue - COGS - Rent - Salaries)",
+    "A17": "BALANCE SHEET", "A18": "Total Assets (Cash+AR+Inventory+Furniture)",
+    "A19": "Total Liabilities (AP+Bank Loan)", "A20": "Closing Capital (Capital+Net Profit-Drawings)",
+    "A21": "Total Liabilities + Equity",
+})
+_TB_LOCKED += ["A15", "A17", "A18", "A19", "A20", "A21"]
+_TASK1_TEMPLATE = _grid(22, 3, ["Item", "Debit", "Credit"], _TB_PREFILLED, _TB_LOCKED)
+_TASK1_ANSWER_KEY = {
+    "cells": {
+        "B15": {"expected": 34000, "tolerance": 1}, "B18": {"expected": 310000, "tolerance": 1},
+        "B19": {"expected": 138000, "tolerance": 1}, "B20": {"expected": 172000, "tolerance": 1},
+        "B21": {"expected": 310000, "tolerance": 1},
+    },
+    "checks": [{"left": "B18", "right": "B21", "tolerance": 1, "label": "Total Assets should equal Total Liabilities + Equity"}],
+}
+
+_PL_PREFILLED = {
+    "A1": "Item", "B1": "Amount",
+    "A2": "Product Sales", "B2": 280000, "A3": "Service Income", "B3": 45000,
+    "A4": "Total Revenue",
+    "A6": "Cost of Goods Sold", "B6": 165000, "A7": "Rent", "B7": 30000, "A8": "Salaries", "B8": 55000,
+    "A9": "Utilities", "B9": 8000, "A10": "Marketing", "B10": 12000, "A11": "Misc Admin", "B11": 5000,
+    "A12": "Total Expenses",
+    "A14": "Net Profit / Loss", "A15": "Net Profit Margin %",
+}
+_TASK2_TEMPLATE = _grid(16, 2, ["Item", "Amount"], _PL_PREFILLED, [
+    "A1", "B1", "A2", "B2", "A3", "B3", "A4", "A6", "B6", "A7", "B7", "A8", "B8",
+    "A9", "B9", "A10", "B10", "A11", "B11", "A12", "A14", "A15",
+])
+_TASK2_ANSWER_KEY = {"cells": {
+    "B4": {"expected": 325000, "tolerance": 1}, "B12": {"expected": 275000, "tolerance": 1},
+    "B14": {"expected": 50000, "tolerance": 1}, "B15": {"expected": 15.38, "tolerance": 0.5},
+}}
+
+_INV_ROWS = [
+    ("Client A", "Consulting Services", 1, 50000), ("Client B", "Software License", 0, 118000),
+    ("Client C", "Design Services", 1, 25000), ("Client D", "Maintenance Contract", 0, 35400),
+    ("Client E", "Training Workshop", 1, 80000),
+]
+_INV_PREFILLED = {"A1": "Client", "B1": "Description", "C1": "Type (1=Excl,0=Incl)", "D1": "Given Amount", "E1": "Base Amount", "F1": "GST (18%)", "G1": "Total Amount"}
+_INV_LOCKED = ["A1", "B1", "C1", "D1", "E1", "F1", "G1"]
+for _i, (_client, _desc, _typ, _amt) in enumerate(_INV_ROWS):
+    _r = _i + 2
+    _INV_PREFILLED.update({f"A{_r}": _client, f"B{_r}": _desc, f"C{_r}": _typ, f"D{_r}": _amt})
+    _INV_LOCKED += [f"A{_r}", f"B{_r}", f"C{_r}", f"D{_r}"]
+_INV_PREFILLED["A7"] = "Total GST Collected"
+_INV_LOCKED.append("A7")
+_TASK3_TEMPLATE = _grid(8, 7, ["Client", "Description", "Type (1=Excl,0=Incl)", "Given Amount", "Base Amount", "GST (18%)", "Total Amount"], _INV_PREFILLED, _INV_LOCKED)
+_TASK3_ANSWER_KEY = {"cells": {"F7": {"expected": 51300, "tolerance": 5}}}
+
+_BR_PREFILLED = {
+    "A1": "Item", "B1": "Amount", "C1": "Sign (+1 Add / -1 Subtract)",
+    "A2": "Cash Book Closing Balance (starting point)", "B2": 124500,
+    "A3": "Uncleared cheque (issued, not yet presented to bank)", "B3": 8000,
+    "A4": "Bank charges not yet recorded in cash book", "B4": 450,
+    "A5": "Duplicate payment entry error in cash book", "B5": 1200,
+    "A6": "Deposit in transit (cheque deposited, not yet credited)", "B6": 2050,
+    "A8": "Adjusted Cash Book Balance", "A9": "Bank Statement Balance (given)", "B9": 131200,
+    "A10": "Difference (should be 0 if correctly reconciled)",
+}
+_TASK4_TEMPLATE = _grid(11, 3, ["Item", "Amount", "Sign (+1 Add / -1 Subtract)"], _BR_PREFILLED, [
+    "A1", "B1", "C1", "A2", "B2", "A3", "B3", "A4", "B4", "A5", "B5", "A6", "B6", "A8", "A9", "B9", "A10",
+])
+_TASK4_ANSWER_KEY = {"cells": {"B8": {"expected": 131200, "tolerance": 1}, "B10": {"expected": 0, "tolerance": 1}}}
+
+_EXPENSE_ROWS = [
+    ("05-Mar", "Ola Cabs - Client Meeting", 850), ("05-Mar", "Ola Cabs - Client Meeting", 850),
+    ("06-Mar", "IndiGo Flight - Mumbai Trip", 6200), ("08-Mar", "Uber - Airport Transfer", 650),
+    ("12-Mar", "Hotel Stay - Mumbai (2 nights)", 4800),
+    ("02-Mar", "Stationery World - Printer Paper & Pens", 1200), ("07-Mar", "Amazon Business - Toner Cartridges", 3400),
+    ("14-Mar", "Local Vendor - Whiteboard Markers", 350), ("18-Mar", "Office Depot - Filing Cabinets", 5600),
+    ("22-Mar", "Amazon Business - Desk Organizers", 800),
+    ("04-Mar", "Client Lunch - Taj Restaurant", 3200), ("09-Mar", "Team Lunch - Office Order", 1800),
+    ("15-Mar", "Client Dinner - Business Meeting", 4500), ("19-Mar", "Coffee with Vendor", 450),
+    ("25-Mar", "Team Celebration Lunch", 2200),
+    ("01-Mar", "Electricity Bill - March", 12000), ("01-Mar", "Internet & Broadband - March", 2500),
+    ("01-Mar", "Water Bill - March", 800), ("15-Mar", "Mobile/Phone Bill - Office Lines", 3200),
+    ("28-Mar", "Generator Fuel/Diesel", 1500),
+    ("03-Mar", "Facebook Ads - March Campaign", 8000), ("10-Mar", "Local Newspaper Ad", 4500),
+    ("16-Mar", "Printing - Flyers & Banners", 2800), ("20-Mar", "Instagram Influencer Collab", 6000),
+    ("27-Mar", "Google Ads - March Campaign", 7500),
+    ("05-Mar", "Courier Charges", 400), ("11-Mar", "Bank Processing Fees", 250),
+    ("17-Mar", "Cash Advance - Field Staff (no receipt attached)", 10000), ("23-Mar", "Office Cleaning Service", 1500),
+    ("29-Mar", "Miscellaneous Repairs", 900),
+]
+_EXPENSE_PREFILLED = {"A1": "Date", "B1": "Vendor / Description", "C1": "Amount", "D1": "Category Code (1-6)", "E1": "Flag (1=duplicate/suspicious)", "F1": "Adjusted Amount"}
+_EXPENSE_LOCKED = ["A1", "B1", "C1", "D1", "E1", "F1"]
+for _i, (_date, _desc, _amt) in enumerate(_EXPENSE_ROWS):
+    _r = _i + 2
+    _EXPENSE_PREFILLED.update({f"A{_r}": _date, f"B{_r}": _desc, f"C{_r}": _amt})
+    _EXPENSE_LOCKED += [f"A{_r}", f"B{_r}", f"C{_r}"]
+_EXPENSE_PREFILLED.update({
+    "A33": "CATEGORY TOTALS (using Adjusted Amount, excluding flagged entries)",
+    "A34": "Travel Total", "A35": "Office Supplies Total", "A36": "Meals & Entertainment Total",
+    "A37": "Utilities Total", "A38": "Marketing Total", "A39": "Misc/Admin Total", "A40": "Grand Total (Adjusted)",
+})
+_EXPENSE_LOCKED += ["A33", "A34", "A35", "A36", "A37", "A38", "A39", "A40"]
+_TASK5_TEMPLATE = _grid(41, 6, ["Date", "Vendor / Description", "Amount", "Category Code (1-6)", "Flag (1=duplicate/suspicious)", "Adjusted Amount"], _EXPENSE_PREFILLED, _EXPENSE_LOCKED)
+_TASK5_ANSWER_KEY = {"cells": {
+    "B34": {"expected": 12500, "tolerance": 1}, "B35": {"expected": 11350, "tolerance": 1},
+    "B36": {"expected": 12150, "tolerance": 1}, "B37": {"expected": 20000, "tolerance": 1},
+    "B38": {"expected": 28800, "tolerance": 1}, "B39": {"expected": 3050, "tolerance": 1},
+    "B40": {"expected": 87850, "tolerance": 1},
+}}
+
+_BUDGET_ROWS = [
+    ("Marketing", 300000, 365000), ("Sales", 450000, 470000), ("Operations", 600000, 615000),
+    ("HR", 150000, 142000), ("IT", 200000, 258000), ("Admin", 100000, 96000),
+]
+_BUDGET_PREFILLED = {"A1": "Department", "B1": "Budgeted", "C1": "Actual", "D1": "Variance (Actual-Budgeted)", "E1": "Variance %"}
+_BUDGET_LOCKED = ["A1", "B1", "C1", "D1", "E1"]
+for _i, (_dept, _bud, _act) in enumerate(_BUDGET_ROWS):
+    _r = _i + 2
+    _BUDGET_PREFILLED.update({f"A{_r}": _dept, f"B{_r}": _bud, f"C{_r}": _act})
+    _BUDGET_LOCKED += [f"A{_r}", f"B{_r}", f"C{_r}"]
+_BUDGET_PREFILLED.update({"A9": "Total Budgeted", "A10": "Total Actual", "A11": "Total Variance"})
+_BUDGET_LOCKED += ["A9", "A10", "A11"]
+_TASK6_TEMPLATE = _grid(12, 5, ["Department", "Budgeted", "Actual", "Variance (Actual-Budgeted)", "Variance %"], _BUDGET_PREFILLED, _BUDGET_LOCKED)
+_TASK6_ANSWER_KEY = {"cells": {
+    "D2": {"expected": 65000, "tolerance": 1}, "E2": {"expected": 21.67, "tolerance": 0.5},
+    "D3": {"expected": 20000, "tolerance": 1}, "E3": {"expected": 4.44, "tolerance": 0.5},
+    "D4": {"expected": 15000, "tolerance": 1}, "E4": {"expected": 2.5, "tolerance": 0.5},
+    "D5": {"expected": -8000, "tolerance": 1}, "E5": {"expected": -5.33, "tolerance": 0.5},
+    "D6": {"expected": 58000, "tolerance": 1}, "E6": {"expected": 29, "tolerance": 0.5},
+    "D7": {"expected": -4000, "tolerance": 1}, "E7": {"expected": -4, "tolerance": 0.5},
+    "B9": {"expected": 1800000, "tolerance": 1}, "B10": {"expected": 1946000, "tolerance": 1}, "B11": {"expected": 146000, "tolerance": 1},
+}}
+
+_RATIO_PREFILLED = {
+    "A1": "Item", "B1": "Amount",
+    "A2": "Cash", "B2": 180000, "A3": "Accounts Receivable", "B3": 220000, "A4": "Inventory", "B4": 300000,
+    "A5": "Fixed Assets", "B5": 950000, "A6": "Accounts Payable", "B6": 250000, "A7": "Short-term Loan", "B7": 150000,
+    "A8": "Long-term Debt", "B8": 500000, "A9": "Shareholders' Equity", "B9": 750000,
+    "A10": "Revenue", "B10": 2400000, "A11": "Net Profit", "B11": 216000,
+    "A13": "RATIO CALCULATIONS",
+    "A14": "Current Ratio (Current Assets ÷ Current Liabilities)",
+    "A15": "Quick Ratio ((Current Assets - Inventory) ÷ Current Liabilities)",
+    "A16": "Net Profit Margin %", "A17": "ROI % (Net Profit ÷ Equity)",
+}
+_TASK7_TEMPLATE = _grid(18, 2, ["Item", "Amount"], _RATIO_PREFILLED, [
+    "A1", "B1", "A2", "B2", "A3", "B3", "A4", "B4", "A5", "B5", "A6", "B6", "A7", "B7", "A8", "B8", "A9", "B9",
+    "A10", "B10", "A11", "B11", "A13", "A14", "A15", "A16", "A17",
+])
+_TASK7_ANSWER_KEY = {"cells": {
+    "B14": {"expected": 1.75, "tolerance": 0.05}, "B15": {"expected": 1.0, "tolerance": 0.05},
+    "B16": {"expected": 9, "tolerance": 0.2}, "B17": {"expected": 28.8, "tolerance": 0.5},
+}}
+
+# 110 fictional transactions, generated deterministically (fixed formula,
+# not random — reproducible, and the answer key below was computed from
+# this exact same sequence) so re-running this seed script always produces
+# the same dataset and the same correct totals.
+_DASH_CATEGORIES = ["Office Rent", "Vendor Payment", "Software Subscription", "Utility Bill", "Staff Reimbursement", "Marketing Spend", "Courier Charges", "Maintenance"]
+_DASH_PREFILLED = {"A1": "Date", "B1": "Description", "C1": "Type (1=Income,0=Expense)", "D1": "Amount", "E1": "Income (if Type=1)", "F1": "Expense (if Type=0)"}
+_DASH_LOCKED = ["A1", "B1", "C1", "D1", "E1", "F1"]
+for _i in range(1, 111):
+    _r = _i + 1
+    _is_income = (_i % 3 == 0)
+    _day = (_i % 28) + 1
+    _date = f"{_day:02d}-Apr"
+    if _is_income:
+        _amount = 15000 + (_i * 137) % 20000
+        _desc = f"Client Payment - Invoice #{1000 + _i}"
+    else:
+        _amount = 500 + (_i * 53) % 8000
+        _desc = f"{_DASH_CATEGORIES[_i % 8]} - Ref{_i:03d}"
+    _DASH_PREFILLED.update({f"A{_r}": _date, f"B{_r}": _desc, f"C{_r}": 1 if _is_income else 0, f"D{_r}": _amount})
+    _DASH_LOCKED += [f"A{_r}", f"B{_r}", f"C{_r}", f"D{_r}"]
+_DASH_PREFILLED.update({
+    "A113": "MONTHLY DASHBOARD", "A114": "Total Income", "A115": "Total Expenses",
+    "A116": "Net Cash Flow", "A117": "Average Transaction Size",
+})
+_DASH_LOCKED += ["A113", "A114", "A115", "A116", "A117"]
+_TASK8_TEMPLATE = _grid(118, 6, ["Date", "Description", "Type (1=Income,0=Expense)", "Amount", "Income (if Type=1)", "Expense (if Type=0)"], _DASH_PREFILLED, _DASH_LOCKED)
+_TASK8_ANSWER_KEY = {"cells": {
+    "B114": {"expected": 813726, "tolerance": 5}, "B115": {"expected": 254671, "tolerance": 5},
+    "B116": {"expected": 559055, "tolerance": 5}, "B117": {"expected": 9712.7, "tolerance": 5},
+}}
+
+FINANCE_TASKS = [
+    {"track": "finance", "title": "Trial Balance to Balance Sheet", "phase": 1, "difficulty": "medium",
+     "points_value": 90, "deliverable_type": "text_and_spreadsheet", "requires_geotag": False, "estimated_duration": "2-3 hours",
+     "brief": "You've been given Bright Retail Traders' trial balance for the month. Build a proper Balance Sheet from it in the spreadsheet below — classify each item as an Asset, a Liability, or part of Equity, and make sure your numbers actually balance (Assets = Liabilities + Equity, always).",
+     "why_it_matters": "Every accountant's first real job is turning a raw trial balance into a Balance Sheet — this is the single most common finance task in any company, in any industry.",
+     "instructions": "Step 1: Look at the 12 trial balance line items already filled in for you (rows 2-13).\nStep 2: In row 15, calculate Net Profit using the formula shown — reference the Sales Revenue, COGS, Rent, and Salaries cells directly (e.g. =C9-B10-B11-B12) rather than retyping numbers.\nStep 3: In rows 18-21, build the Balance Sheet — Total Assets, Total Liabilities, Closing Capital (Capital + Net Profit - Drawings), and Total Liabilities + Equity. Use cell-reference formulas throughout, not hand-typed totals.\nStep 4: Confirm B18 and B21 come out equal — if they don't, you've misclassified something.\nStep 5: In the text box, explain in 100+ words why Assets must always equal Liabilities + Equity, and what it would mean (practically) if a real company's books didn't balance.",
+     "spreadsheet_template": _TASK1_TEMPLATE, "spreadsheet_answer_key": _TASK1_ANSWER_KEY},
+
+    {"track": "finance", "title": "Monthly P&L Statement", "phase": 1, "difficulty": "medium",
+     "points_value": 85, "deliverable_type": "text_and_spreadsheet", "requires_geotag": False, "estimated_duration": "1.5-2.5 hours",
+     "brief": "Bright Retail Traders' March revenue and expense figures are given below. Build a Profit & Loss statement — total revenue, total expenses, and the net profit or loss for the month.",
+     "why_it_matters": "A monthly P&L is the single most-requested report from any finance team — this is exactly the shape of report you'll build (by hand or in Excel) in almost any junior finance role.",
+     "instructions": "Step 1: In B4, calculate Total Revenue by summing the two revenue lines (Product Sales + Service Income).\nStep 2: In B12, calculate Total Expenses using SUM() across all 6 expense lines (rows 6-11).\nStep 3: In B14, calculate Net Profit/Loss = Total Revenue - Total Expenses.\nStep 4: In B15, calculate the Net Profit Margin % = (Net Profit ÷ Total Revenue) × 100.\nStep 5: In the text box, write 150+ words: is a ~15% net margin healthy for a retail business, and what could Bright Retail Traders realistically do next month to improve it?",
+     "spreadsheet_template": _TASK2_TEMPLATE, "spreadsheet_answer_key": _TASK2_ANSWER_KEY},
+
+    {"track": "finance", "title": "Invoice & GST Calculation", "phase": 1, "difficulty": "easy",
+     "points_value": 80, "deliverable_type": "text_and_spreadsheet", "requires_geotag": False, "estimated_duration": "1.5-2 hours",
+     "brief": "5 mock service invoices are listed below — some quote a GST-exclusive amount (18% GST needs to be added), others quote a GST-inclusive amount (the 18% GST is already baked in and needs to be extracted). Work out the Base Amount, GST, and Total for each.",
+     "why_it_matters": "Getting inclusive vs exclusive GST wrong is one of the most common real invoicing mistakes — every business that raises invoices deals with this distinction constantly.",
+     "instructions": "Step 1: Column C tells you the type — 1 means the Given Amount (column D) is GST-exclusive (add 18%), 0 means it's already GST-inclusive (extract the 18%).\nStep 2: In column E (Base Amount), use an IF formula: =IF(C2=1,D2,D2/1.18) — same pattern for each row.\nStep 3: In column G (Total Amount), use =IF(C2=1,D2*1.18,D2).\nStep 4: In column F (GST), just subtract: =G2-E2.\nStep 5: In F7, total up all 5 rows' GST with SUM().\nStep 6: In the text box, explain in 100+ words the difference between GST-inclusive and GST-exclusive pricing, and why a business needs to track this correctly for its GST filing.",
+     "spreadsheet_template": _TASK3_TEMPLATE, "spreadsheet_answer_key": _TASK3_ANSWER_KEY},
+
+    {"track": "finance", "title": "Bank Reconciliation Statement", "phase": 2, "difficulty": "medium",
+     "points_value": 95, "deliverable_type": "text_and_spreadsheet", "requires_geotag": False, "estimated_duration": "2-3 hours",
+     "brief": "Bright Retail Traders' Cash Book shows a closing balance of ₹1,24,500, but the Bank Statement shows ₹1,31,200. Reconcile the two using the 4 reconciling items given — figure out whether each one should be added or subtracted, and confirm your adjusted balance matches the bank.",
+     "why_it_matters": "A cash book and a bank statement almost never match on any given day for entirely normal reasons — reconciling them is a routine, expected finance task, not a sign something's wrong.",
+     "instructions": "For each of the 4 reconciling items, decide the correct sign (+1 to add, -1 to subtract) in column C based on your own understanding of why that item causes a difference — this isn't given to you. Then in B8, calculate the Adjusted Cash Book Balance: =B2+B3*C3+B4*C4+B5*C5+B6*C6. In B10, calculate the Difference: =B8-B9 (this should land on 0 if your signs are right). In the text box, explain in 150+ words WHY each of the 4 items causes a difference between the cash book and the bank statement — this is the real point of the exercise, not just getting the numbers to match.",
+     "spreadsheet_template": _TASK4_TEMPLATE, "spreadsheet_answer_key": _TASK4_ANSWER_KEY},
+
+    {"track": "finance", "title": "Expense Audit", "phase": 2, "difficulty": "hard",
+     "points_value": 100, "deliverable_type": "text_and_spreadsheet", "requires_geotag": False, "estimated_duration": "2.5-3.5 hours",
+     "brief": "30 raw expense entries for March are listed below, exactly as messy as a real company's actual expense sheet — mixed categories, at least one exact duplicate, and at least one suspicious round-number entry with no real detail. Categorize everything, flag anything that looks wrong, and produce category-wise totals.",
+     "why_it_matters": "Reviewing real expense claims for duplicates and suspicious entries — not just data-entry — is genuine, everyday finance-team work, and the single biggest source of quiet cost leakage in most small companies.",
+     "instructions": "The 30 entries are pre-grouped into 6 categories of 5 rows each (Travel, Office Supplies, Meals & Entertainment, Utilities, Marketing, Misc/Admin — in that row order). For each row: fill in a Category Code 1-6 in column D (for your own reference), and set the Flag in column E to 1 if you think the entry is a duplicate or suspicious, 0 otherwise (look carefully — there's more than one entry worth flagging). In column F (Adjusted Amount), use =IF(E2=1,0,C2) so flagged entries get excluded from totals. In rows 34-39, calculate each category's total using SUM() over that category's 5-row range in column F. In row 40, calculate the Grand Total. In the text box (150+ words): which entries did you flag and why, and what process would you recommend to prevent duplicate/suspicious claims like these in the future?",
+     "spreadsheet_template": _TASK5_TEMPLATE, "spreadsheet_answer_key": _TASK5_ANSWER_KEY},
+
+    {"track": "finance", "title": "Budget Variance Analysis", "phase": 2, "difficulty": "medium",
+     "points_value": 95, "deliverable_type": "text_and_spreadsheet", "requires_geotag": False, "estimated_duration": "2-2.5 hours",
+     "brief": "Q1 budgeted vs actual spend for 6 departments is given below. Calculate the variance and variance % for each, then total everything up.",
+     "why_it_matters": "Explaining WHY a department overspent — not just flagging that it did — is what separates a junior analyst who fills in a template from one who actually gets asked into the budget review meeting.",
+     "instructions": "Step 1: In column D, calculate Variance = Actual - Budgeted for each department.\nStep 2: In column E, calculate Variance % = (Variance ÷ Budgeted) × 100.\nStep 3: In row 9-11, total up Budgeted, Actual, and Variance across all 6 departments using SUM().\nStep 4: In the text box, identify the top 3 overspend departments by variance %, and write 150+ words on why each might have overspent and what corrective action you'd suggest for each.",
+     "spreadsheet_template": _TASK6_TEMPLATE, "spreadsheet_answer_key": _TASK6_ANSWER_KEY},
+
+    {"track": "finance", "title": "Ratio Analysis Report", "phase": 3, "difficulty": "hard",
+     "points_value": 110, "deliverable_type": "text_and_spreadsheet", "requires_geotag": False, "estimated_duration": "2.5-3.5 hours",
+     "brief": "You've been handed Meridian Textiles Ltd's full Balance Sheet + P&L snapshot for the year. Calculate the 4 standard health-check ratios and form your own judgment on whether this company is financially healthy.",
+     "why_it_matters": "This is the exact exercise a credit analyst, an investor, or a lender runs before deciding whether to trust a company with money — a capstone-level, judgment-heavy task, not a formula-filling exercise.",
+     "instructions": "No step-by-step this time — you're given the raw financial data (rows 2-11) and need to work out the 4 ratios yourself in rows 14-17: Current Ratio, Quick Ratio, Net Profit Margin %, and ROI % (using Shareholders' Equity as the investment base). Then write a 200-word summary: is Meridian Textiles Ltd financially healthy? Use all 4 ratios you calculated to support your answer, and call out at least one risk or concern if you see one.",
+     "spreadsheet_template": _TASK7_TEMPLATE, "spreadsheet_answer_key": _TASK7_ANSWER_KEY},
+
+    {"track": "finance", "title": "Build a Monthly Financial Dashboard", "phase": 3, "difficulty": "hard",
+     "points_value": 130, "deliverable_type": "text_and_spreadsheet", "requires_geotag": False, "estimated_duration": "3-4 hours",
+     "brief": "110 raw transactions for the month are listed below — a mix of client payments (income) and vendor/operational payments (expenses), completely unsorted, exactly like a real bulk transaction export. Build a summary dashboard from it: total income, total expenses, net cash flow, and average transaction size — using formulas, not manual counting.",
+     "why_it_matters": "This is literally what a finance analyst delivers every single month at almost any company — a clean summary dashboard built from a messy raw export. It's the closing, capstone-level task of the Finance track for a reason.",
+     "instructions": "No hand-holding here — you have 110 raw rows (columns A-D, already filled in) and an empty Dashboard section starting at row 113. Column C tells you the type for each row (1=Income, 0=Expense). Build columns E and F yourself (Income/Expense helper columns, using IF formulas), then use SUM()/AVERAGE() to fill in Total Income (B114), Total Expenses (B115), Net Cash Flow (B116), and Average Transaction Size (B117, across all 110 transactions regardless of type). In the text box, write 150+ words summarizing what this month's cash flow tells you about the business, and flag anything in the data that looks worth a closer look.",
+     "spreadsheet_template": _TASK8_TEMPLATE, "spreadsheet_answer_key": _TASK8_ANSWER_KEY},
+]
+
+
+TASKS = FINANCE_TASKS + [
     {"track": "finance", "title": "Read a Company's Balance Sheet", "difficulty": "medium", "points_value": 80, "deliverable_type": "text", "requires_geotag": False, "estimated_duration": "3-4 hours",
      "brief": "A balance sheet shows what a company owns (assets), what it owes (liabilities), and what's left for owners (equity). Pick any public company and read its balance sheet.",
      "why_it_matters": "This task builds your ability to read and interpret real financial data, a skill valued far beyond just finance jobs. This is exactly the kind of skill employers look for, regardless of which company or industry you end up joining.",
@@ -865,6 +1148,9 @@ async def seed():
             "difficulty": t["difficulty"],
             "estimated_duration": t.get("estimated_duration"),
             "is_active": True,
+            "phase": t.get("phase"),
+            "spreadsheet_template": t.get("spreadsheet_template"),
+            "spreadsheet_answer_key": t.get("spreadsheet_answer_key"),
             "created_by": "seed_script",
             "created_at": datetime.now(timezone.utc),
         }

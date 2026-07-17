@@ -5,6 +5,7 @@ import PortalLayout from "../components/PortalLayout";
 import AdminTasks from "./AdminTasks";
 import PageHeader from "../components/portal/PageHeader";
 import { Trash2 } from "lucide-react";
+import { useSubmitOnce } from "../lib/useSubmitOnce";
 
 const API_BASE = process.env.REACT_APP_BACKEND_URL || "";
 
@@ -74,7 +75,7 @@ export default function AdminTargets() {
     }
   }, [searchParams, targets, setSearchParams]);
 
-  const handleSetTarget = async (e) => {
+  const [handleSetTarget, settingTarget] = useSubmitOnce(async (e) => {
     e.preventDefault();
     const res = await fetch(`${API_BASE}/api/targets/set`, {
       method: "POST", headers,
@@ -91,9 +92,9 @@ export default function AdminTargets() {
       setForm({ employee_id: "", target_amount: "", unit: "amount", target_type: "SIP", target_description: "" });
       fetchTargets();
     }
-  };
+  });
 
-  const handleUpdateProgress = async (targetId) => {
+  const [handleUpdateProgress, updatingProgress] = useSubmitOnce(async (targetId) => {
     const res = await fetch(`${API_BASE}/api/targets/${targetId}/progress`, {
       method: "PATCH", headers,
       body: JSON.stringify({ achieved_amount: Number(editAmt) }),
@@ -103,13 +104,13 @@ export default function AdminTargets() {
       setEditAmt("");
       fetchTargets();
     }
-  };
+  });
 
-  const handleDeleteTarget = async (targetId) => {
+  const [handleDeleteTarget, deletingTarget] = useSubmitOnce(async (targetId) => {
     if (!window.confirm("Remove this target?")) return;
     const res = await fetch(`${API_BASE}/api/targets/${targetId}`, { method: "DELETE", headers });
     if (res.ok) fetchTargets();
-  };
+  });
 
   const monthNames = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
   const field = "w-full border border-[#E2D8C2] dark:border-white/10 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#024396]/30";
@@ -185,8 +186,8 @@ export default function AdminTargets() {
               value={form.target_description} onChange={e => setForm({...form, target_description: e.target.value})}
               className={`${field} resize-none sm:col-span-2`} />
           </div>
-          <button type="submit" className="mt-4 bg-[#024396] text-white py-2.5 px-8 rounded-xl text-sm font-medium hover:bg-[#023580] shadow-md shadow-[#024396]/20">
-            Add Target
+          <button type="submit" disabled={settingTarget} className="mt-4 bg-[#024396] text-white py-2.5 px-8 rounded-xl text-sm font-medium hover:bg-[#023580] shadow-md shadow-[#024396]/20 disabled:opacity-50">
+            {settingTarget ? "Adding..." : "Add Target"}
           </button>
         </form>
       )}
@@ -222,7 +223,7 @@ export default function AdminTargets() {
                             {viewId === t.id ? "Hide" : "Details"}
                           </button>
                         )}
-                        <button onClick={() => handleDeleteTarget(t.id)} className="text-[#2A364B]/30 dark:text-[#8E99AC]/40 hover:text-red-500 dark:hover:text-red-400">
+                        <button onClick={() => handleDeleteTarget(t.id)} disabled={deletingTarget} className="text-[#2A364B]/30 dark:text-[#8E99AC]/40 hover:text-red-500 dark:hover:text-red-400 disabled:opacity-50">
                           <Trash2 size={13} />
                         </button>
                       </div>
@@ -272,7 +273,7 @@ export default function AdminTargets() {
                       <div className="flex gap-2">
                         <input type="number" placeholder="Achieved" value={editAmt} onChange={e => setEditAmt(e.target.value)}
                           className="flex-1 border border-[#E2D8C2] dark:border-white/10 dark:bg-white/5 dark:text-[#F1EDE3] rounded-lg px-3 py-1.5 text-sm" />
-                        <button onClick={() => handleUpdateProgress(t.id)} className="bg-[#024396] text-white px-3 py-1.5 rounded-lg text-xs font-medium">Save</button>
+                        <button onClick={() => handleUpdateProgress(t.id)} disabled={updatingProgress} className="bg-[#024396] text-white px-3 py-1.5 rounded-lg text-xs font-medium disabled:opacity-50">{updatingProgress ? "Saving..." : "Save"}</button>
                         <button onClick={() => setEditId(null)} className="text-[#2A364B]/50 dark:text-[#8E99AC]/50 text-xs">Cancel</button>
                       </div>
                     ) : (

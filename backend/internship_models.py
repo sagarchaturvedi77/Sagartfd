@@ -19,10 +19,10 @@ TRACK_LABELS: dict[str, str] = {
 ProgramStatus = Literal["pending_payment", "active", "graduated", "banned", "dropped"]
 PaymentStatus = Literal["pending", "paid", "waived"]
 
-DurationDays = Literal[45, 60, 90]
-ALLOWED_DURATIONS = (45, 60, 90)
-DEFAULT_DURATION_DAYS = 45
-DURATION_PRICING: dict[int, int] = {45: 2000, 60: 3000, 90: 5000}
+DurationDays = Literal[90]
+ALLOWED_DURATIONS = (90,)
+DEFAULT_DURATION_DAYS = 90
+DURATION_PRICING: dict[int, int] = {90: 5000}
 
 
 class StudentSignupIn(BaseModel):
@@ -32,7 +32,7 @@ class StudentSignupIn(BaseModel):
     password: str = Field(min_length=6)
     college: Optional[str] = None
     course_year: Optional[str] = None
-    duration_days: DurationDays = 45
+    duration_days: DurationDays = 90
     # Disclosed and captured at signup: every student is told upfront that a
     # short video review of their internship experience will be asked for
     # near the end of the program, and asked whether TFD may feature that
@@ -133,7 +133,7 @@ class InternshipStudentInDB(BaseModel):
     agreement_signed_at: Optional[datetime] = None
     agreement_signed_location: Optional[str] = None  # "lat, lng" string, same format as the employee agreement
     profile_completed: bool = False  # KYC + agreement both done — gates the rest of the portal
-    duration_days: DurationDays = 45
+    duration_days: DurationDays = 90
     track: Optional[Track] = None
     track_locked_at: Optional[datetime] = None
     payment_status: PaymentStatus = "pending"
@@ -178,7 +178,7 @@ class StudentOut(BaseModel):
     agreement_signed_at: Optional[datetime] = None
     agreement_signed_location: Optional[str] = None
     profile_completed: bool = False
-    duration_days: int = 45
+    duration_days: int = 90
     track: Optional[str] = None
     track_label: Optional[str] = None
     payment_status: PaymentStatus
@@ -206,10 +206,15 @@ class StudentOut(BaseModel):
 # progress score only (used later for the leaderboard/radar chart), never
 # paid out.
 
-DeliverableType = Literal["text", "photo", "text_and_photo"]
+DeliverableType = Literal["text", "photo", "text_and_photo", "spreadsheet", "text_and_spreadsheet"]
 Difficulty = Literal["easy", "medium", "hard"]
 SubmissionStatus = Literal["draft", "pending", "approved", "rejected"]
 VerifiedBy = Literal["ai", "admin"]
+# 1 = guided (Day 1-30), 2 = independent (Day 31-60), 3 = capstone (Day 61-90+)
+# — mirrors a real career progression. Optional/nullable so tracks not yet
+# reworked onto the curated pool (see _assign_week_tasks's phase_tagged
+# check) keep behaving exactly as before.
+TaskPhase = Literal[1, 2, 3]
 
 
 class TaskPoolIn(BaseModel):
@@ -224,6 +229,15 @@ class TaskPoolIn(BaseModel):
     difficulty: Difficulty = "medium"
     estimated_duration: Optional[str] = None  # e.g. "20-30 mins", "1-2 hours"
     is_active: bool = True
+    phase: Optional[TaskPhase] = None
+    # Starter grid data (rows/cols/headers/prefilled/locked_cells) for
+    # "spreadsheet"/"text_and_spreadsheet" tasks — see SpreadsheetGrid.jsx.
+    spreadsheet_template: Optional[dict] = None
+    # Grading key (expected cell values + structural checks) — admin/server
+    # only, never sent to students. Input-only: TaskPoolIn is what an admin
+    # POSTs, TaskPoolOut is what a student receives (see TaskPoolAdminOut
+    # below for the admin-facing read model that also carries this).
+    spreadsheet_answer_key: Optional[dict] = None
 
 
 class TaskPoolOut(BaseModel):
@@ -241,6 +255,15 @@ class TaskPoolOut(BaseModel):
     estimated_duration: Optional[str] = None
     is_active: bool
     created_at: datetime
+    phase: Optional[TaskPhase] = None
+    spreadsheet_template: Optional[dict] = None
+
+
+class TaskPoolAdminOut(TaskPoolOut):
+    """Same reasoning as QuizQuestionOut/QuizQuestionAdminOut (see below) —
+    spreadsheet_answer_key must never reach the student-facing TaskPoolOut,
+    only the admin task-management screens."""
+    spreadsheet_answer_key: Optional[dict] = None
 
 
 class SubmissionIn(BaseModel):
@@ -261,6 +284,7 @@ class SubmissionDraftIn(BaseModel):
     task_id: str
     week_number: int
     text_answer: str = ""
+    spreadsheet_data: Optional[str] = None  # JSON string of {cellId: {input, value}}
 
 
 class SubmissionReviewIn(BaseModel):
@@ -279,6 +303,7 @@ class SubmissionOut(BaseModel):
     week_number: int
     text_answer: Optional[str] = None
     photo_url: Optional[str] = None
+    spreadsheet_data: Optional[dict] = None
     gps: Optional[dict] = None
     client_timestamp: Optional[str] = None
     submitted_at: datetime

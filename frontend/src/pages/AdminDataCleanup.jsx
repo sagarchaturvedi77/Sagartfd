@@ -5,6 +5,7 @@ import PageHeader from "../components/portal/PageHeader";
 import PortalModal from "../components/portal/PortalModal";
 import { Button } from "../components/ui/button";
 import { AlertTriangle, ShieldCheck } from "lucide-react";
+import { useSubmitOnce } from "../lib/useSubmitOnce";
 
 const API_BASE = process.env.REACT_APP_BACKEND_URL || "";
 
@@ -23,11 +24,9 @@ export default function AdminDataCleanup() {
   const [cutoffDate, setCutoffDate] = useState("");
   const [selected, setSelected] = useState([]);
   const [previewResult, setPreviewResult] = useState(null);
-  const [previewing, setPreviewing] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
   const [confirmText, setConfirmText] = useState("");
   const [confirmLarge, setConfirmLarge] = useState(false);
-  const [executing, setExecuting] = useState(false);
   const [executeResult, setExecuteResult] = useState(null);
 
   const toggleCategory = (key) => {
@@ -35,47 +34,41 @@ export default function AdminDataCleanup() {
     setSelected((prev) => (prev.includes(key) ? prev.filter((k) => k !== key) : [...prev, key]));
   };
 
-  const runPreview = async () => {
+  const [runPreview, previewing] = useSubmitOnce(async () => {
     if (!cutoffDate || selected.length === 0) return;
-    setPreviewing(true);
     setExecuteResult(null);
-    try {
-      const res = await fetch(`${API_BASE}/api/cleanup/preview`, {
-        method: "POST", headers,
-        body: JSON.stringify({ categories: selected, cutoff_date: cutoffDate }),
-      });
-      if (res.ok) setPreviewResult(await res.json());
-    } finally {
-      setPreviewing(false);
-    }
-  };
+    const res = await fetch(`${API_BASE}/api/cleanup/preview`, {
+      method: "POST", headers,
+      body: JSON.stringify({ categories: selected, cutoff_date: cutoffDate }),
+    });
+    if (res.ok) setPreviewResult(await res.json());
+  });
 
-  const runExecute = async () => {
+  // This is the highest-blast-radius action in the app — a PERMANENT bulk
+  // delete. useSubmitOnce's ref-based guard (synchronous, not React state)
+  // is what actually closes the double-click/laggy-render window that could
+  // otherwise fire this DELETE request twice.
+  const [runExecute, executing] = useSubmitOnce(async () => {
     if (confirmText !== "DELETE") return;
     if (previewResult?.requires_extra_warning && !confirmLarge) return;
-    setExecuting(true);
-    try {
-      const res = await fetch(`${API_BASE}/api/cleanup/execute`, {
-        method: "POST", headers,
-        body: JSON.stringify({
-          categories: selected, cutoff_date: cutoffDate,
-          confirm_text: confirmText, confirm_large: confirmLarge,
-        }),
-      });
-      if (res.ok) {
-        setExecuteResult(await res.json());
-        setShowConfirm(false);
-        setConfirmText("");
-        setConfirmLarge(false);
-        setPreviewResult(null);
-      } else {
-        const err = await res.json().catch(() => ({}));
-        alert(err.detail || "Cleanup failed");
-      }
-    } finally {
-      setExecuting(false);
+    const res = await fetch(`${API_BASE}/api/cleanup/execute`, {
+      method: "POST", headers,
+      body: JSON.stringify({
+        categories: selected, cutoff_date: cutoffDate,
+        confirm_text: confirmText, confirm_large: confirmLarge,
+      }),
+    });
+    if (res.ok) {
+      setExecuteResult(await res.json());
+      setShowConfirm(false);
+      setConfirmText("");
+      setConfirmLarge(false);
+      setPreviewResult(null);
+    } else {
+      const err = await res.json().catch(() => ({}));
+      alert(err.detail || "Cleanup failed");
     }
-  };
+  });
 
   const field = "w-full border border-[#E2D8C2] dark:border-white/15 dark:bg-white/5 dark:text-[#F1EDE3] rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#024396]/30";
 

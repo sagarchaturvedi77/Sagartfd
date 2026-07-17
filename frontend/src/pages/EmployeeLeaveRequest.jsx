@@ -6,6 +6,7 @@ import PageHeader from "../components/portal/PageHeader";
 import StatusBadge from "../components/portal/StatusBadge";
 import EmptyState from "../components/portal/EmptyState";
 import { Button } from "../components/ui/button";
+import { useSubmitOnce } from "../lib/useSubmitOnce";
 
 const API_BASE = process.env.REACT_APP_BACKEND_URL || "";
 const LEAVE_TYPES = [
@@ -23,7 +24,6 @@ export default function EmployeeLeaveRequest() {
   const [leaves, setLeaves] = useState([]);
   const [loading, setLoading] = useState(true);
   const [form, setForm] = useState({ leave_type: "casual", from_date: "", to_date: "", reason: "", half_day_session: "" });
-  const [submitting, setSubmitting] = useState(false);
   const [showForm, setShowForm] = useState(false);
   const [highlightId, setHighlightId] = useState(null);
   const headers = { Authorization: `Bearer ${token}`, "Content-Type": "application/json" };
@@ -51,10 +51,9 @@ export default function EmployeeLeaveRequest() {
     }
   }, [searchParams, leaves, setSearchParams]);
 
-  const submit = async (e) => {
+  const [submit, submitting] = useSubmitOnce(async (e) => {
     e.preventDefault();
     if (!form.from_date || !form.to_date) return alert("Please select dates.");
-    setSubmitting(true);
     const body = { leave_type: form.leave_type, from_date: form.from_date, to_date: form.to_date, reason: form.reason || null };
     if (form.leave_type === "half_day") body.half_day_session = form.half_day_session || "morning";
     const res = await fetch(`${API_BASE}/api/leaves/`, { method: "POST", headers, body: JSON.stringify(body) });
@@ -65,8 +64,7 @@ export default function EmployeeLeaveRequest() {
     } else {
       alert("Failed to apply. Please try again.");
     }
-    setSubmitting(false);
-  };
+  });
 
   const field = "w-full border border-[#E2D8C2] dark:border-white/15 dark:bg-white/5 dark:text-[#F1EDE3] rounded-xl px-3 py-2 text-sm outline-none focus:border-[#024396] dark:focus:border-[#7CB0FF]";
 

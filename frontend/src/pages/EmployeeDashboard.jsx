@@ -3,6 +3,7 @@ import { useAuth } from "../context/AuthContext";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import PortalLayout from "../components/PortalLayout";
 import { getCurrentLocation } from "../portal/api";
+import { useSubmitOnce } from "../lib/useSubmitOnce";
 import { Search } from "lucide-react";
 import { useWidgets } from "../components/DashboardCustomizer";
 import PageHeader from "../components/portal/PageHeader";
@@ -35,7 +36,6 @@ export default function EmployeeDashboard() {
   const [today, setToday] = useState(null);
   const [leads, setLeads] = useState([]);
   const [services, setServices] = useState([]);
-  const [actionLoading, setActionLoading] = useState(false);
   const [profileStatus, setProfileStatus] = useState(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [filterStatus, setFilterStatus] = useState("");
@@ -110,8 +110,7 @@ export default function EmployeeDashboard() {
     return () => window.removeEventListener("tfd:lead-updated", fetchLeads);
   }, [fetchLeads]);
 
-  const punch = async (action) => {
-    setActionLoading(true);
+  const [punch, actionLoading] = useSubmitOnce(async (action) => {
     const loc = await getCurrentLocation();
     const res = await fetch(`${API_BASE}/api/attendance/${action}`, {
       method: "POST",
@@ -119,8 +118,7 @@ export default function EmployeeDashboard() {
       body: JSON.stringify(loc || {}),
     });
     if (res.ok) { await fetchToday(); }
-    setActionLoading(false);
-  };
+  });
 
   const hasClockedIn = today && today.clock_in;
   const hasClockedOut = today && today.clock_out;

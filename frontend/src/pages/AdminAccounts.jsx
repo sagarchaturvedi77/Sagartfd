@@ -3,6 +3,7 @@ import PortalLayout from "../components/PortalLayout";
 import { useAuth } from "../context/AuthContext";
 import { Plus, Trash2, TrendingUp, TrendingDown, DollarSign, Building2 } from "lucide-react";
 import PageHeader from "../components/portal/PageHeader";
+import { useSubmitOnce } from "../lib/useSubmitOnce";
 
 const API = process.env.REACT_APP_BACKEND_URL || "";
 
@@ -61,7 +62,7 @@ export default function AdminAccounts() {
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
-  const handleSubmit = async (e) => {
+  const [handleSubmit, saving] = useSubmitOnce(async (e) => {
     e.preventDefault();
     if (!form.amount || !form.category) return;
     await fetch(`${API}/api/accounts/transactions`, {
@@ -72,13 +73,13 @@ export default function AdminAccounts() {
     setShowAdd(false);
     setForm({ date: new Date().toISOString().split("T")[0], type: "expense", category: "Rent", description: "", amount: "", payment_mode: "Bank Transfer", reference: "" });
     fetchData();
-  };
+  });
 
-  const handleDelete = async (id) => {
+  const [handleDelete, deleting] = useSubmitOnce(async (id) => {
     if (!window.confirm("Delete this entry?")) return;
     await fetch(`${API}/api/accounts/transactions/${id}`, { method: "DELETE", headers: { Authorization: `Bearer ${token}` } });
     fetchData();
-  };
+  });
 
   const typeColor = { income: "text-green-600 bg-green-50", expense: "text-red-600 bg-red-50", loan: "text-orange-600 bg-orange-50", asset: "text-blue-600 bg-blue-50", liability: "text-purple-600 bg-purple-50" };
 
@@ -201,7 +202,7 @@ export default function AdminAccounts() {
                         <p className={`text-sm font-semibold ${txn.type === "income" || txn.type === "asset" ? "text-green-600" : "text-red-600"}`}>
                           {txn.type === "income" || txn.type === "asset" ? "+" : "-"}{fmtINR(txn.amount)}
                         </p>
-                        <button onClick={() => handleDelete(txn.id)} className="p-1.5 rounded-lg text-red-400 hover:bg-red-50"><Trash2 size={14} /></button>
+                        <button onClick={() => handleDelete(txn.id)} disabled={deleting} className="p-1.5 rounded-lg text-red-400 hover:bg-red-50 disabled:opacity-50"><Trash2 size={14} /></button>
                       </div>
                     ))}
                   </div>
@@ -313,7 +314,7 @@ export default function AdminAccounts() {
 
               <div className="flex gap-3 pt-1">
                 <button type="button" onClick={() => setShowAdd(false)} className="flex-1 py-2.5 rounded-xl border border-[#E2D8C2] dark:border-white/10 text-sm">Cancel</button>
-                <button type="submit" disabled={!form.amount} className="flex-1 py-2.5 rounded-xl bg-[#024396] text-white text-sm font-semibold disabled:opacity-50">Save</button>
+                <button type="submit" disabled={!form.amount || saving} className="flex-1 py-2.5 rounded-xl bg-[#024396] text-white text-sm font-semibold disabled:opacity-50">{saving ? "Saving..." : "Save"}</button>
               </div>
             </form>
           </div>

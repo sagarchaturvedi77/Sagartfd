@@ -3,7 +3,7 @@ import { Button } from "../../components/ui/button";
 
 const field = "w-full border border-[#E2D8C2] dark:border-white/15 dark:bg-white/5 dark:text-[#F1EDE3] rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#024396]/30";
 
-export default function PipelineConfigTab({ pipelineStatuses, setPipelineStatuses, newStatus, setNewStatus, savePipeline }) {
+export default function PipelineConfigTab({ pipelineStatuses, setPipelineStatuses, newStatus, setNewStatus, savePipeline, savingPipeline }) {
   return (
     <div className="bg-white dark:bg-[#101D2E] rounded-2xl border border-[#E2D8C2] dark:border-white/10 p-6 shadow-sm space-y-4">
       <h3 className="text-sm font-semibold text-[#0E1B2C] dark:text-[#F1EDE3]">Pipeline Stages</h3>
@@ -31,7 +31,9 @@ export default function PipelineConfigTab({ pipelineStatuses, setPipelineStatuse
           Add
         </button>
       </div>
-      <Button onClick={savePipeline} className="bg-gradient-to-r from-[#024396] to-[#0356c4]">Save Pipeline</Button>
+      <Button onClick={savePipeline} disabled={savingPipeline} className="bg-gradient-to-r from-[#024396] to-[#0356c4]">
+        {savingPipeline ? "Saving..." : "Save Pipeline"}
+      </Button>
     </div>
   );
 }

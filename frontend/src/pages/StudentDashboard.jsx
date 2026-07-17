@@ -5,6 +5,7 @@ import { Rocket, PlayCircle, Award, CheckCircle2, Clock3, ArrowUpRight, Notebook
 import StudentLayout from "../portal/student/StudentLayout";
 import { useInternshipAuth } from "../portal/student/InternshipAuthContext";
 import { openCashfreeCheckout } from "../lib/cashfree";
+import { useSubmitOnce } from "../lib/useSubmitOnce";
 
 const API_BASE = process.env.REACT_APP_BACKEND_URL || "";
 
@@ -38,7 +39,6 @@ export default function StudentDashboard() {
   const [searchParams, setSearchParams] = useSearchParams();
   const orderId = searchParams.get("order_id");
   const [checkingPayment, setCheckingPayment] = useState(!!orderId);
-  const [startingPayment, setStartingPayment] = useState(false);
 
   // One extra refresh on mount so a just-confirmed payment (marked paid by
   // an admin in a different tab/session) shows up without a manual reload.
@@ -87,8 +87,11 @@ export default function StudentDashboard() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [orderId, token]);
 
-  const startPayment = async () => {
-    setStartingPayment(true);
+  // useSubmitOnce's ref guard is critical here — this creates a Cashfree
+  // payment order, so a double-click firing two concurrent requests would
+  // mean duplicate pending orders (and a real risk of a duplicate charge),
+  // not just a duplicate no-op like most other guarded handlers.
+  const [startPayment, startingPayment] = useSubmitOnce(async () => {
     try {
       const res = await fetch(`${API_BASE}/api/internship/payment/create-order`, {
         method: "POST",
@@ -99,9 +102,8 @@ export default function StudentDashboard() {
       await openCashfreeCheckout(data.payment_session_id, data.cashfree_env);
     } catch (err) {
       toast.error(err.message || "Could not start payment — please try again.");
-      setStartingPayment(false);
     }
-  };
+  });
 
   if (loading) {
     return (
@@ -120,7 +122,7 @@ export default function StudentDashboard() {
   }
 
   const pendingPayment = student.payment_status !== "paid" && student.payment_status !== "waived";
-  const programDays = student.duration_days || 45;
+  const programDays = student.duration_days || 90;
   const progressPct = Math.round((student.current_day / programDays) * 100);
 
   return (

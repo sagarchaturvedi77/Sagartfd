@@ -7,6 +7,7 @@ import PageHeader from "../components/portal/PageHeader";
 import EmptyState from "../components/portal/EmptyState";
 import PortalModal from "../components/portal/PortalModal";
 import { Button } from "../components/ui/button";
+import { useSubmitOnce } from "../lib/useSubmitOnce";
 
 const API_BASE = process.env.REACT_APP_BACKEND_URL || "";
 const monthNames = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
@@ -34,7 +35,6 @@ export default function EmployeeTargets() {
   const [updateTarget, setUpdateTarget] = useState(null);
   const [achieved, setAchieved] = useState("");
   const [note, setNote] = useState("");
-  const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState("");
 
   // Re-check on every searchParams change, not just on mount — a
@@ -63,9 +63,8 @@ export default function EmployeeTargets() {
     setMsg("");
   };
 
-  const submitProgress = async (e) => {
+  const [submitProgress, saving] = useSubmitOnce(async (e) => {
     e.preventDefault();
-    setSaving(true);
     setMsg("");
     try {
       const res = await fetch(`${API_BASE}/api/targets/my/${updateTarget.id}/progress`, {
@@ -81,10 +80,8 @@ export default function EmployeeTargets() {
       setUpdateTarget(null);
     } catch (err) {
       setMsg(err.message);
-    } finally {
-      setSaving(false);
     }
-  };
+  });
 
   return (
     <PortalLayout>

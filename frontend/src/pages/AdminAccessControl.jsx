@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import PortalLayout from "../components/PortalLayout";
 import { useAuth } from "../context/AuthContext";
 import PageHeader from "../components/portal/PageHeader";
@@ -19,6 +19,13 @@ export default function AdminAccessControl() {
   const [employees, setEmployees] = useState([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState({});
+  // Per-key ref guard (Set of "empId_section" strings currently in flight) —
+  // same reasoning as useSubmitOnce's inFlightRef, just keyed, since this
+  // page has many independent toggle buttons rather than one single action.
+  // The `saving` state dict alone can't close the double-click race (setState
+  // is async/batched); this ref updates synchronously so a rapid double-click
+  // on the same toggle can't fire two concurrent PUTs.
+  const inFlightRef = useRef(new Set());
   const headers = { Authorization: `Bearer ${token}`, "Content-Type": "application/json" };
 
   const load = useCallback(async () => {
@@ -31,16 +38,23 @@ export default function AdminAccessControl() {
   useEffect(() => { load(); }, [load]);
 
   const toggle = async (empId, section, current) => {
+    const key = `${empId}_${section}`;
+    if (inFlightRef.current.has(key)) return;
     const emp = employees.find((e) => e.id === empId);
     if (!emp) return;
+    inFlightRef.current.add(key);
     const newAccess = { ...emp.access, [section]: !current };
-    setSaving((s) => ({ ...s, [`${empId}_${section}`]: true }));
-    await fetch(`${API_BASE}/api/access/${empId}`, {
-      method: "PUT", headers,
-      body: JSON.stringify({ access: newAccess }),
-    });
-    setEmployees((prev) => prev.map((e) => e.id === empId ? { ...e, access: newAccess } : e));
-    setSaving((s) => { const n = { ...s }; delete n[`${empId}_${section}`]; return n; });
+    setSaving((s) => ({ ...s, [key]: true }));
+    try {
+      await fetch(`${API_BASE}/api/access/${empId}`, {
+        method: "PUT", headers,
+        body: JSON.stringify({ access: newAccess }),
+      });
+      setEmployees((prev) => prev.map((e) => e.id === empId ? { ...e, access: newAccess } : e));
+    } finally {
+      inFlightRef.current.delete(key);
+      setSaving((s) => { const n = { ...s }; delete n[key]; return n; });
+    }
   };
 
   return (

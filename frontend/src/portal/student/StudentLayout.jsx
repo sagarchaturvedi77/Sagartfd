@@ -6,6 +6,7 @@ import {
   Sparkles, Landmark, Megaphone, TrendingUp, Heart, RefreshCw,
 } from "lucide-react";
 import { toast } from "sonner";
+import { useSubmitOnce } from "../../lib/useSubmitOnce";
 
 const API_BASE = process.env.REACT_APP_BACKEND_URL || "";
 const MAIN_LOGO_URL = "/assets/logos/TFD-MAIN-LOGO.png";
@@ -24,11 +25,12 @@ function SupportWidget({ open, onClose }) {
   const { token } = useInternshipAuth();
   const [message, setMessage] = useState("");
   const [answer, setAnswer] = useState("");
-  const [asking, setAsking] = useState(false);
 
-  const ask = async () => {
+  // useSubmitOnce's ref guard stops a rapid double-click/laggy re-render
+  // from firing two concurrent requests, same pattern as CallFlowPopup /
+  // EmployeeAgreement / EmployeeAttendance.
+  const [ask, asking] = useSubmitOnce(async () => {
     if (!message.trim()) return;
-    setAsking(true);
     setAnswer("");
     try {
       const res = await fetch(`${API_BASE}/api/internship/support`, {
@@ -42,8 +44,7 @@ function SupportWidget({ open, onClose }) {
     } catch (err) {
       toast.error(err.message || "Something went wrong.");
     }
-    setAsking(false);
-  };
+  });
 
   if (!open) return null;
 
@@ -104,10 +105,13 @@ function DemoGuideWidget({ open, onClose }) {
   const { student, token, refreshMe } = useInternshipAuth();
   const navigate = useNavigate();
   const [switching, setSwitching] = useState(null);
-  const [advancing, setAdvancing] = useState(false);
-  const [graduating, setGraduating] = useState(false);
 
-  const switchTrack = async (track) => {
+  // useSubmitOnce's ref guard stops a rapid double-click/laggy re-render
+  // from firing two concurrent requests, same pattern as CallFlowPopup /
+  // EmployeeAgreement / EmployeeAttendance. switchTrack keeps its own
+  // `switching` state (which track is mid-switch) for the per-button label,
+  // rather than the hook's single isSubmitting flag.
+  const [switchTrack] = useSubmitOnce(async (track) => {
     if (track === student?.track) return;
     setSwitching(track);
     try {
@@ -124,10 +128,9 @@ function DemoGuideWidget({ open, onClose }) {
       toast.error(err.message);
       setSwitching(null);
     }
-  };
+  });
 
-  const advanceDays = async (days) => {
-    setAdvancing(true);
+  const [advanceDays, advancing] = useSubmitOnce(async (days) => {
     try {
       const res = await fetch(`${API_BASE}/api/internship/demo/advance?days=${days}`, {
         method: "POST",
@@ -139,12 +142,10 @@ function DemoGuideWidget({ open, onClose }) {
       setTimeout(() => window.location.reload(), 600);
     } catch (err) {
       toast.error(err.message);
-      setAdvancing(false);
     }
-  };
+  });
 
-  const graduateNow = async () => {
-    setGraduating(true);
+  const [graduateNow, graduating] = useSubmitOnce(async () => {
     try {
       const res = await fetch(`${API_BASE}/api/internship/demo/graduate`, {
         method: "POST",
@@ -159,8 +160,7 @@ function DemoGuideWidget({ open, onClose }) {
     } catch (err) {
       toast.error(err.message);
     }
-    setGraduating(false);
-  };
+  });
 
   if (!open) return null;
 

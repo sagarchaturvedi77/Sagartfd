@@ -4,6 +4,7 @@ import BrandLogo from "../components/BrandLogo";
 import { Input } from "../components/ui/input";
 import { Label } from "../components/ui/label";
 import { Button } from "../components/ui/button";
+import { useSubmitOnce } from "../lib/useSubmitOnce";
 
 const API_BASE = process.env.REACT_APP_BACKEND_URL || "";
 
@@ -12,17 +13,15 @@ export default function ResetPassword() {
   const token = searchParams.get("token") || "";
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-  const [submitting, setSubmitting] = useState(false);
   const [done, setDone] = useState(false);
   const [error, setError] = useState("");
 
-  const handleSubmit = async (e) => {
+  const [handleSubmit, submitting] = useSubmitOnce(async (e) => {
     e.preventDefault();
     setError("");
     if (password.length < 6) return setError("Password must be at least 6 characters.");
     if (password !== confirmPassword) return setError("Passwords don't match.");
 
-    setSubmitting(true);
     try {
       const res = await fetch(`${API_BASE}/api/auth/reset-password`, {
         method: "POST",
@@ -37,10 +36,8 @@ export default function ResetPassword() {
       }
     } catch {
       setError("Something went wrong. Please try again.");
-    } finally {
-      setSubmitting(false);
     }
-  };
+  });
 
   return (
     <div className="min-h-screen flex bg-[#F5F1EB] dark:bg-[#0B1420] transition-colors">

@@ -19,6 +19,7 @@ import { CALC_RECOMMENDATIONS } from "@/lib/recommendations";
 import { useModal } from "../context/ModalContext";
 import { trackEvent } from "./AnalyticsTracker";
 import { QRCodeCanvas } from "qrcode.react";
+import { useSubmitOnce } from "../lib/useSubmitOnce";
 
 const TFD_BRAND_URL = "https://www.assetplus.in/mfd/ARN-290298";
 const TFD_WEBSITE_URL = "https://thefinancialdoctor.in/";
@@ -543,7 +544,10 @@ const qrCanvasWrapRef = useRef(null);
 const [qrDataUrl, setQrDataUrl] = useState(null);
 const qrDataUrlRef = useRef(null);
 
-    const downloadSnapshot = async () => {
+    // downloadSnapshot/downloadingSnapshot: no button currently calls this legacy function,
+    // but it's kept wrapped as a double-click-safe pair per the useSubmitOnce rollout.
+    // eslint-disable-next-line no-unused-vars
+    const [downloadSnapshot, downloadingSnapshot] = useSubmitOnce(async () => {
         if (!snapRef.current) return;
         try {
             toast.loading("Generating your snapshot…", { id: "snap" });
@@ -564,10 +568,10 @@ const qrDataUrlRef = useRef(null);
             console.error(e);
             toast.error("Could not generate snapshot. Try again.", { id: "snap" });
         }
-    };
+    });
 
     // 🆕 Employee-mode: generate proposal image, then show a Download/Share popup
-    const generateSnapshot = async () => {
+    const [generateSnapshot, generatingProposal] = useSubmitOnce(async () => {
     try {
         toast.loading("Generating your proposal…", { id: "snap" });
         // Ensure QR data URL is ready before capturing pages
@@ -673,8 +677,8 @@ const qrDataUrlRef = useRef(null);
         console.error(e);
         toast.error("Could not generate proposal. Try again.", { id: "snap" });
     }
-};
-           
+});
+
     const handleDownloadClick = () => {
     const hasSavedLead = variant !== "employee" && clientInfo.name && clientInfo.phone;
     if (hasSavedLead) {
@@ -684,7 +688,7 @@ const qrDataUrlRef = useRef(null);
     }
 };
 
-    const handleDownloadImage = () => {
+    const [handleDownloadImage, downloadingImage] = useSubmitOnce(async () => {
         if (!generatedImage) return;
         const safeName = (clientInfo.name || tab).replace(/[^a-zA-Z0-9]+/g, "-");
         const ext = generatedImage.isPdf ? "pdf" : "png";
@@ -693,9 +697,9 @@ const qrDataUrlRef = useRef(null);
         link.download = `TFD-Proposal-${safeName}.${ext}`;
         link.href = generatedImage.isPdf ? URL.createObjectURL(new Blob([generatedImage.blob], { type: mime })) : generatedImage.dataUrl;
         link.click();
-    };
+    });
 
-    const handleShareImage = async () => {
+    const [handleShareImage, sharingImage] = useSubmitOnce(async () => {
         if (!generatedImage) return;
         try {
             const isPdf = !!generatedImage.isPdf;
@@ -709,18 +713,18 @@ const qrDataUrlRef = useRef(null);
                     return;
                 }
                 await navigator.share({ text: shareMessage, title: "Financial Proposal" });
-                handleDownloadImage();
+                await handleDownloadImage();
                 return;
             }
             if (navigator.clipboard) {
                 await navigator.clipboard.writeText(shareMessage);
                 toast.info("Message copied — file downloading, paste the message while sharing.");
             }
-            handleDownloadImage();
+            await handleDownloadImage();
         } catch (e) {
             console.warn(e);
         }
-    };
+    });
 
     return (
         <CalcVariantContext.Provider value={variant}>
@@ -1104,9 +1108,10 @@ const qrDataUrlRef = useRef(null);
                                 {variant === "employee" && (
                                     <button
                                         onClick={() => { setShowClientModal(false); setClientInfo({ name: "", phone: "" }); generateSnapshot(); }}
-                                        className="flex-1 py-2.5 rounded-xl bg-[#F6F1E8] text-[#0E1B2C] text-xs font-semibold"
+                                        disabled={generatingProposal}
+                                        className="flex-1 py-2.5 rounded-xl bg-[#F6F1E8] text-[#0E1B2C] text-xs font-semibold disabled:opacity-60"
                                     >
-                                        Skip
+                                        {generatingProposal ? "Generating…" : "Skip"}
                                     </button>
                                 )}
                                 <button
@@ -1131,9 +1136,10 @@ const qrDataUrlRef = useRef(null);
                                         setShowClientModal(false);
                                         generateSnapshot();
                                     }}
-                                    className="flex-1 py-2.5 rounded-xl bg-[#024396] text-white text-sm font-semibold"
+                                    disabled={generatingProposal}
+                                    className="flex-1 py-2.5 rounded-xl bg-[#024396] text-white text-sm font-semibold disabled:opacity-60"
                                 >
-                                    Generate Proposal
+                                    {generatingProposal ? "Generating…" : "Generate Proposal"}
                                 </button>
                             </div>
                         </div>
@@ -1182,9 +1188,10 @@ const qrDataUrlRef = useRef(null);
     setShowReturningModal(false);
     generateSnapshot();
 }}
-                                    className="flex-1 py-2.5 rounded-xl bg-[#024396] text-white text-sm font-semibold"
+                                    disabled={generatingProposal}
+                                    className="flex-1 py-2.5 rounded-xl bg-[#024396] text-white text-sm font-semibold disabled:opacity-60"
                                 >
-                                    Generate Proposal
+                                    {generatingProposal ? "Generating…" : "Generate Proposal"}
                                 </button>
                             </div>
                         </div>
@@ -1239,8 +1246,8 @@ const qrDataUrlRef = useRef(null);
                             )}
 
                             <div className="flex gap-3">
-                                <button onClick={handleDownloadImage} className="flex-1 py-2.5 rounded-xl bg-[#0E1B2C] text-white text-sm font-semibold">⬇️ Download</button>
-                                <button onClick={handleShareImage} className="flex-1 py-2.5 rounded-xl bg-green-600 text-white text-sm font-semibold">📤 Share</button>
+                                <button onClick={handleDownloadImage} disabled={downloadingImage} className="flex-1 py-2.5 rounded-xl bg-[#0E1B2C] text-white text-sm font-semibold disabled:opacity-60">{downloadingImage ? "Downloading…" : "⬇️ Download"}</button>
+                                <button onClick={handleShareImage} disabled={sharingImage} className="flex-1 py-2.5 rounded-xl bg-green-600 text-white text-sm font-semibold disabled:opacity-60">{sharingImage ? "Sharing…" : "📤 Share"}</button>
                             </div>
                             <button onClick={() => setShowSharePopup(false)} className="w-full text-xs text-[#5C677D] text-center pt-1">Close</button>
                         </div>

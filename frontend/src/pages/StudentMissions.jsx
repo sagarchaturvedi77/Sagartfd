@@ -9,6 +9,7 @@ import {
 import StudentLayout from "../portal/student/StudentLayout";
 import { useInternshipAuth } from "../portal/student/InternshipAuthContext";
 import { getCurrentLocation } from "../portal/api";
+import { useSubmitOnce } from "../lib/useSubmitOnce";
 
 const API_BASE = process.env.REACT_APP_BACKEND_URL || "";
 
@@ -180,8 +181,6 @@ function TaskDetailModal({ task, weekNumber, onClose, onSubmitted }) {
   const { token } = useInternshipAuth();
   const [textAnswer, setTextAnswer] = useState(task.draft_text || "");
   const [photoFile, setPhotoFile] = useState(null);
-  const [submitting, setSubmitting] = useState(false);
-  const [savingDraft, setSavingDraft] = useState(false);
   const [draftSavedAt, setDraftSavedAt] = useState(null);
 
   const needsText = task.deliverable_type === "text" || task.deliverable_type === "text_and_photo";
@@ -195,7 +194,10 @@ function TaskDetailModal({ task, weekNumber, onClose, onSubmitted }) {
     ...(task.requires_geotag ? ["Your location wasn't captured — make sure you allow location access when your browser asks"] : []),
   ];
 
-  const handleSubmit = async () => {
+  // useSubmitOnce's ref guard stops a rapid double-click/laggy re-render
+  // from firing two concurrent submission requests, same pattern as
+  // CallFlowPopup / EmployeeAgreement / EmployeeAttendance.
+  const [handleSubmit, submitting] = useSubmitOnce(async () => {
     if (needsText && !textAnswer.trim()) {
       toast.error("Please type your answer.");
       return;
@@ -204,7 +206,6 @@ function TaskDetailModal({ task, weekNumber, onClose, onSubmitted }) {
       toast.error("Please attach a photo taken live from your camera.");
       return;
     }
-    setSubmitting(true);
     const toastId = toast.loading("Getting your location...");
     try {
       const loc = task.requires_geotag ? await getCurrentLocation() : null;
@@ -240,11 +241,9 @@ function TaskDetailModal({ task, weekNumber, onClose, onSubmitted }) {
     } catch (err) {
       toast.error(err.message || "Submission failed", { id: toastId });
     }
-    setSubmitting(false);
-  };
+  });
 
-  const handleSaveDraft = async () => {
-    setSavingDraft(true);
+  const [handleSaveDraft, savingDraft] = useSubmitOnce(async () => {
     try {
       const res = await fetch(`${API_BASE}/api/internship/submissions/draft`, {
         method: "PUT",
@@ -259,8 +258,7 @@ function TaskDetailModal({ task, weekNumber, onClose, onSubmitted }) {
     } catch (err) {
       toast.error(err.message || "Could not save draft");
     }
-    setSavingDraft(false);
-  };
+  });
 
   return (
     <div className="fixed inset-0 z-[100] bg-black/70 flex items-end sm:items-center justify-center p-0 sm:p-4" onClick={onClose}>

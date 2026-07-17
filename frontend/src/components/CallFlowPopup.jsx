@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { PhoneCall, PhoneOff, X, CheckCircle2, XCircle, Trophy, Clock, PhoneMissed, PhoneOff as SwitchOffIcon, Ban, WifiOff, Voicemail, ArrowRightLeft } from "lucide-react";
 import { codeFieldLabel } from "../lib/utils";
+import { useSubmitOnce } from "../lib/useSubmitOnce";
 import ProtectedText from "./portal/ProtectedText";
 
 const API_BASE = process.env.REACT_APP_BACKEND_URL || "";
@@ -59,7 +60,6 @@ export default function CallFlowPopup({ lead, token, onClose, onSaved }) {
     notes: "", service_interest: "", code_name: "", service_duration_months: "", service_price: "",
     follow_up_date: "", follow_up_time: "", reassign_to: "",
   });
-  const [saving, setSaving] = useState(false);
   const [result, setResult] = useState(null); // server response after save
   const [employees, setEmployees] = useState([]);
 
@@ -90,33 +90,33 @@ export default function CallFlowPopup({ lead, token, onClose, onSaved }) {
     setPickedStageId(opt.stageId || null);
   };
 
-  const submit = async () => {
-    setSaving(true);
-    try {
-      const payload = {
-        connection_status: connectionStatus,
-        sub_stage: subStage,
-        pipeline_stage_id: pickedStageId,
-        notes: form.notes || null,
-        service_interest: form.service_interest || null,
-        code_name: form.code_name || null,
-        service_price: form.service_price ? Number(form.service_price) : null,
-        service_duration_months: form.service_duration_months ? Number(form.service_duration_months) : null,
-        follow_up_date: form.follow_up_date || null,
-        follow_up_time: form.follow_up_time || null,
-        reassign_to: subStage === "not_interested" ? (form.reassign_to || null) : null,
-      };
-      const res = await fetch(`${API_BASE}/api/leads/${lead.id}/call-outcome`, {
-        method: "POST", headers, body: JSON.stringify(payload),
-      });
-      if (res.ok) {
-        const data = await res.json();
-        setResult(data);
-      }
-    } finally {
-      setSaving(false);
+  // useSubmitOnce's ref-based guard (not just the disabled= prop) is what
+  // actually stops a rapid double-click/laggy-render from firing this
+  // status-update twice — a real incident: a slow/loaded server + this
+  // button's old React-state-only guard produced 15-20 duplicate "Lead
+  // marked Lost" notifications for a single click.
+  const [submit, saving] = useSubmitOnce(async () => {
+    const payload = {
+      connection_status: connectionStatus,
+      sub_stage: subStage,
+      pipeline_stage_id: pickedStageId,
+      notes: form.notes || null,
+      service_interest: form.service_interest || null,
+      code_name: form.code_name || null,
+      service_price: form.service_price ? Number(form.service_price) : null,
+      service_duration_months: form.service_duration_months ? Number(form.service_duration_months) : null,
+      follow_up_date: form.follow_up_date || null,
+      follow_up_time: form.follow_up_time || null,
+      reassign_to: subStage === "not_interested" ? (form.reassign_to || null) : null,
+    };
+    const res = await fetch(`${API_BASE}/api/leads/${lead.id}/call-outcome`, {
+      method: "POST", headers, body: JSON.stringify(payload),
+    });
+    if (res.ok) {
+      const data = await res.json();
+      setResult(data);
     }
-  };
+  });
 
   const finish = () => { onSaved?.(); onClose(); };
 

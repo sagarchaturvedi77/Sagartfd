@@ -2,7 +2,7 @@ import React from "react";
 import { X } from "lucide-react";
 import EmptyState from "../../components/portal/EmptyState";
 
-export default function WebsiteLeadsTab({ webLeads, employees, convertWebLead, deleteWebLead }) {
+export default function WebsiteLeadsTab({ webLeads, employees, convertWebLead, convertingWebLead, deleteWebLead, deletingWebLead }) {
   return (
     <div className="space-y-4">
       <p className="text-sm text-[#2A364B]/60 dark:text-[#8E99AC]">Leads from website contact form & popup</p>
@@ -30,7 +30,8 @@ export default function WebsiteLeadsTab({ webLeads, employees, convertWebLead, d
                       <select
                         defaultValue=""
                         onChange={(e) => convertWebLead(wl.id, e.target.value || undefined)}
-                        className="text-xs border border-[#E2D8C2] dark:border-white/15 dark:bg-white/5 dark:text-[#F1EDE3] rounded-lg px-2 py-1.5 text-[#024396] dark:text-[#7CB0FF] bg-white max-w-[140px]"
+                        disabled={convertingWebLead}
+                        className="text-xs border border-[#E2D8C2] dark:border-white/15 dark:bg-white/5 dark:text-[#F1EDE3] rounded-lg px-2 py-1.5 text-[#024396] dark:text-[#7CB0FF] bg-white max-w-[140px] disabled:opacity-60"
                       >
                         <option value="" disabled>Assign to...</option>
                         {employees.filter((emp) => emp.is_active !== false).map((emp) => (
@@ -39,13 +40,14 @@ export default function WebsiteLeadsTab({ webLeads, employees, convertWebLead, d
                       </select>
                       <button
                         onClick={() => convertWebLead(wl.id)}
-                        className="px-3 py-1.5 rounded-lg text-xs font-medium text-white bg-[#024396] hover:bg-[#023580] whitespace-nowrap"
+                        disabled={convertingWebLead}
+                        className="px-3 py-1.5 rounded-lg text-xs font-medium text-white bg-[#024396] hover:bg-[#023580] whitespace-nowrap disabled:opacity-60"
                       >
-                        Convert Only
+                        {convertingWebLead ? "Converting..." : "Convert Only"}
                       </button>
                     </>
                   )}
-                  <button onClick={() => deleteWebLead(wl.id)} className="w-7 h-7 rounded-lg bg-red-50 dark:bg-red-900/30 flex items-center justify-center text-red-400 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/50">
+                  <button onClick={() => deleteWebLead(wl.id)} disabled={deletingWebLead} className="w-7 h-7 rounded-lg bg-red-50 dark:bg-red-900/30 flex items-center justify-center text-red-400 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/50 disabled:opacity-60">
                     <X size={14} />
                   </button>
                 </div>

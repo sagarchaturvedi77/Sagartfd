@@ -1,6 +1,7 @@
 """Employee onboarding, profile, file uploads, ID card, agreement PDF, and
 admin website content management routes."""
 
+import asyncio
 import io
 import uuid
 import base64
@@ -245,10 +246,18 @@ async def download_employee_agreement(employee_id: str, payload: dict = Depends(
     uploads = {}
     async for doc in db.uploads.find({"user_id": employee_id}):
         uploads[doc["field"]] = doc
-    photo_bytes = _upload_bytes_sync(uploads.get("photo"))
-    signature_bytes = _upload_bytes_sync(uploads.get("signature"))
-    aadhar_front_bytes = _upload_bytes_sync(uploads.get("aadhar_front"))
-    aadhar_back_bytes = _upload_bytes_sync(uploads.get("aadhar_back"))
+    # _upload_bytes_sync does blocking network I/O (R2 GETs) — running it
+    # directly here would stall the whole server's event loop for every
+    # concurrent request while these 4 fetches complete one after another.
+    # Offloading each to a thread, run concurrently, keeps this route from
+    # blocking anything else and is faster too (4 round-trips in parallel
+    # instead of sequential).
+    photo_bytes, signature_bytes, aadhar_front_bytes, aadhar_back_bytes = await asyncio.gather(
+        asyncio.to_thread(_upload_bytes_sync, uploads.get("photo")),
+        asyncio.to_thread(_upload_bytes_sync, uploads.get("signature")),
+        asyncio.to_thread(_upload_bytes_sync, uploads.get("aadhar_front")),
+        asyncio.to_thread(_upload_bytes_sync, uploads.get("aadhar_back")),
+    )
 
     aadhar_number = profile.get("aadhar_number")
     aadhar_masked = f"XXXX-XXXX-{aadhar_number[-4:]}" if aadhar_number else None
@@ -276,14 +285,23 @@ async def download_employee_agreement(employee_id: str, payload: dict = Depends(
         "signed_date": signed_date,
         "signed_time": signed_time,
     }
-    pdf_bytes = generate_employee_agreement_pdf(
-        agreement_data, photo_bytes=photo_bytes, signature_bytes=signature_bytes,
-        aadhar_front_bytes=aadhar_front_bytes, aadhar_back_bytes=aadhar_back_bytes,
+    # reportlab rendering + PIL image processing is synchronous CPU work —
+    # offloading it keeps a heavy multi-image agreement PDF from stalling
+    # the event loop for other requests while it renders.
+    pdf_bytes = await asyncio.to_thread(
+        generate_employee_agreement_pdf, agreement_data, photo_bytes=photo_bytes,
+        signature_bytes=signature_bytes, aadhar_front_bytes=aadhar_front_bytes, aadhar_back_bytes=aadhar_back_bytes,
     )
 
     safe_name = (agreement_data["name"] or employee_id).replace(" ", "_")
     filename = f"Employment_Agreement_{safe_name}.pdf"
-    return StreamingResponse(io.BytesIO(pdf_bytes), media_type="application/pdf", headers={"Content-Disposition": f'inline; filename="{filename}"'})
+    response = StreamingResponse(io.BytesIO(pdf_bytes), media_type="application/pdf", headers={"Content-Disposition": f'inline; filename="{filename}"'})
+    # The in-memory bytes are now handed off to StreamingResponse's own
+    # BytesIO wrapper — dropping our reference lets them be GC'd as soon as
+    # the response finishes streaming instead of lingering for the life of
+    # whatever else holds this function's locals.
+    del pdf_bytes
+    return response
 
 
 # ── Admin: edit an employee's core + profile details ───────────────────────

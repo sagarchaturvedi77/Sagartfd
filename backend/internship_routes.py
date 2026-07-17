@@ -1,9 +1,9 @@
-"""TFD Internship — gamified 45-day program.
+"""TFD Internship — gamified 90-day program.
 
 Deliberately separate from the existing interns_collection (KYC-application
--> offer-letter pipeline in certificate_routes.py). Only Day-45 graduation
-(a later phase) reaches into the existing certificate/QR-verification
-system; nothing here touches interns_collection or certificates_collection.
+-> offer-letter pipeline in certificate_routes.py). Only graduation (a later
+phase) reaches into the existing certificate/QR-verification system;
+nothing here touches interns_collection or certificates_collection.
 
 Auth is ALSO fully separate from TFD Workspace (staff CRM) login: students
 are not stored in users_collection and have no Role — this program is
@@ -92,6 +92,7 @@ from internship_models import (
     SubmissionOut,
     SubmissionReviewIn,
     SupportQueryIn,
+    TaskPoolAdminOut,
     TaskPoolIn,
     TaskPoolOut,
     TrackSelectIn,
@@ -132,7 +133,7 @@ async def get_current_student_payload(token: str = Depends(_student_oauth2_schem
 def _compute_progress(doc: dict) -> tuple[int, int]:
     """(current_day, current_week), both 0 until payment unlocks Day 1."""
     start = doc.get("program_start_date")
-    duration = doc.get("duration_days", 45)
+    duration = doc.get("duration_days", 90)
     if not start:
         return 0, 0
     if start.tzinfo is None:
@@ -141,6 +142,20 @@ def _compute_progress(doc: dict) -> tuple[int, int]:
     current_day = max(1, min(elapsed, duration))
     current_week = ceil(current_day / 7)
     return current_day, current_week
+
+
+def _phase_for_week(week_number: int) -> int:
+    """1 = guided (Day 1-30), 2 = independent (Day 31-60), 3 = capstone
+    (Day 61-90+) — mirrors a real career progression. Based on the calendar
+    day the week starts on, so it works for any week_number/duration; a
+    week that starts past day 90 (shouldn't normally happen for a 90-day
+    program) still safely falls into phase 3 rather than erroring."""
+    start_day = (week_number - 1) * 7 + 1
+    if start_day <= 30:
+        return 1
+    if start_day <= 60:
+        return 2
+    return 3
 
 
 async def _gen_intern_id() -> str:
@@ -161,7 +176,7 @@ def _to_student_out(doc: dict) -> StudentOut:
     if start:
         if start.tzinfo is None:
             start = start.replace(tzinfo=timezone.utc)
-        program_end_date = start + timedelta(days=doc.get("duration_days", 45) - 1)
+        program_end_date = start + timedelta(days=doc.get("duration_days", 90) - 1)
     photo_url = presigned_url(doc["photo_r2_key"]) if doc.get("photo_r2_key") else None
     return StudentOut(
         id=doc["id"], intern_id=doc.get("intern_id", ""), name=doc["name"], phone=doc["phone"], email=doc["email"],
@@ -170,7 +185,7 @@ def _to_student_out(doc: dict) -> StudentOut:
         no_pan=doc.get("no_pan", False), college_id_number=doc.get("college_id_number"),
         agreement_signed_at=doc.get("agreement_signed_at"), agreement_signed_location=doc.get("agreement_signed_location"),
         profile_completed=doc.get("profile_completed", False),
-        duration_days=doc.get("duration_days", 45),
+        duration_days=doc.get("duration_days", 90),
         track=doc.get("track"), track_label=TRACK_LABELS.get(doc.get("track")) if doc.get("track") else None,
         payment_status=doc.get("payment_status", "pending"), payment_amount=doc.get("payment_amount", 2000),
         program_start_date=doc.get("program_start_date"), program_end_date=program_end_date,
@@ -212,7 +227,7 @@ async def signup(request: Request, data: StudentSignupIn):
         intern_id=await _gen_intern_id(),
         name=data.name, phone=data.phone, email=data.email, password_hash=hash_password(data.password),
         college=data.college, course_year=data.course_year, duration_days=data.duration_days,
-        payment_amount=DURATION_PRICING.get(data.duration_days, 2000),
+        payment_amount=DURATION_PRICING.get(data.duration_days, 5000),
         video_consent=data.video_consent,
     )
     doc = student.dict()
@@ -500,7 +515,7 @@ async def sign_agreement(data: AgreementSignIn, payload: dict = Depends(get_curr
 
 
 def _internship_agreement_pdf_data(doc: dict) -> dict:
-    duration_days = doc.get("duration_days", 45)
+    duration_days = doc.get("duration_days", 90)
     start = doc.get("program_start_date")
     start_label = start.date().isoformat() if start else None
     return {
@@ -921,7 +936,13 @@ async def _to_task_pool_out(doc: dict) -> TaskPoolOut:
         points_value=doc.get("points_value", 50), difficulty=doc.get("difficulty", "medium"),
         estimated_duration=doc.get("estimated_duration"),
         is_active=doc.get("is_active", True), created_at=doc["created_at"],
+        phase=doc.get("phase"), spreadsheet_template=doc.get("spreadsheet_template"),
     )
+
+
+async def _to_task_pool_admin_out(doc: dict) -> TaskPoolAdminOut:
+    base = await _to_task_pool_out(doc)
+    return TaskPoolAdminOut(**base.dict(), spreadsheet_answer_key=doc.get("spreadsheet_answer_key"))
 
 
 async def _assign_week_tasks(student: dict, week_number: int) -> list[dict]:
@@ -953,13 +974,33 @@ async def _assign_week_tasks(student: dict, week_number: int) -> list[dict]:
         return []
     rng = random.Random(f"{student['id']}:{week_number}")
 
-    field_tasks = [t for t in pool if t.get("requires_geotag")]
+    # Curated, phase-tagged pools (see backend/internship_models.py's
+    # TaskPhase) restrict each week to phase-appropriate tasks — guided
+    # work only in weeks 1-5, independent in 6-9, capstone in 10+. Tracks
+    # not yet reworked onto a curated pool (no task has a `phase` at all)
+    # fall straight through to the original whole-pool behavior, unchanged.
+    phase_tagged = any(t.get("phase") is not None for t in pool)
+    if phase_tagged:
+        phase = _phase_for_week(week_number)
+        phase_pool = [t for t in pool if t.get("phase") == phase]
+        working_pool = phase_pool or pool  # safety net; shouldn't normally trigger
+    else:
+        working_pool = pool
+
+    # Deliberately capped at the phase pool's own size, never topped up
+    # from another phase — a curated phase may have as few as 2-3 distinct
+    # tasks spread across several weeks, and the same set is meant to
+    # repeat identically within a phase rather than leak later-phase
+    # (harder) work into an earlier week. See plan notes / PRD.
+    target_count = min(TASKS_PER_WEEK, len(working_pool))
+
+    field_tasks = [t for t in working_pool if t.get("requires_geotag")]
     sample = []
     if field_tasks:
         sample.append(rng.choice(field_tasks))
-    remaining_pool = [t for t in pool if t["id"] not in {s["id"] for s in sample}]
+    remaining_pool = [t for t in working_pool if t["id"] not in {s["id"] for s in sample}]
     rng.shuffle(remaining_pool)
-    sample.extend(remaining_pool[: max(0, TASKS_PER_WEEK - len(sample))])
+    sample.extend(remaining_pool[: max(0, target_count - len(sample))])
 
     task_ids = [t["id"] for t in sample]
     await internship_students_collection.update_one(
@@ -1026,6 +1067,7 @@ async def get_current_tasks(payload: dict = Depends(get_current_student_payload)
             "submission_id": sub["id"] if sub else None,
             "submission_note": sub.get("admin_note") if sub else None,
             "draft_text": sub.get("text_answer") if sub and sub.get("status") == "draft" else None,
+            "draft_spreadsheet_data": sub.get("spreadsheet_data") if sub and sub.get("status") == "draft" else None,
         })
 
     quiz_passed_this_week = await _week_quiz_passed(student["id"], effective_week)
@@ -1080,6 +1122,7 @@ async def get_all_assigned_tasks(payload: dict = Depends(get_current_student_pay
                 "submission_id": sub["id"] if sub else None,
                 "submission_note": sub.get("admin_note") if sub else None,
                 "draft_text": sub.get("text_answer") if sub and sub.get("status") == "draft" else None,
+                "draft_spreadsheet_data": sub.get("spreadsheet_data") if sub and sub.get("status") == "draft" else None,
             })
         approved = sum(1 for t in tasks_with_status if t["submission_status"] == "approved")
         weeks_out.append({
@@ -1164,6 +1207,31 @@ async def _auto_verify_text(task: dict, text_answer: str) -> tuple[bool, str, st
 
     ok = len(text_answer.strip()) >= 15
     return ok, "Auto-checked (AI grading unavailable — basic check used)", "ai"
+
+
+def _auto_verify_spreadsheet(task: dict, spreadsheet_data: dict) -> tuple[bool, str]:
+    """(approved, reason). Trusts the client's computed per-cell values
+    rather than re-running formulas server-side — the same trust boundary
+    already extended elsewhere in this grading pipeline (AntiCheatTextarea
+    is a soft deterrent, not real DRM; photo-only field tasks are
+    presence-based, not content-quality-verified — see _auto_verify_text's
+    neighbors). This is a non-proctored training program, not an exam."""
+    answer_key = task.get("spreadsheet_answer_key") or {}
+    failures = []
+    for cell_id, spec in (answer_key.get("cells") or {}).items():
+        cell = spreadsheet_data.get(cell_id) or {}
+        value = cell.get("value")
+        if not isinstance(value, (int, float)) or abs(value - spec["expected"]) > spec.get("tolerance", 0.01):
+            failures.append(f"{cell_id} looks off")
+    for chk in answer_key.get("checks") or []:
+        left = (spreadsheet_data.get(chk["left"]) or {}).get("value")
+        right = (spreadsheet_data.get(chk["right"]) or {}).get("value")
+        if left is None or right is None or not isinstance(left, (int, float)) or not isinstance(right, (int, float)) \
+                or abs(left - right) > chk.get("tolerance", 0.01):
+            failures.append(chk.get("label", f"{chk['left']} vs {chk['right']}"))
+    if failures:
+        return False, "These don't check out yet: " + "; ".join(failures[:3])
+    return True, "Spreadsheet values check out"
 
 
 # ── Voice explain (Hindi + English) ─────────────────────────────────────
@@ -1297,12 +1365,20 @@ async def save_submission_draft(data: SubmissionDraftIn, payload: dict = Depends
     if existing and existing.get("status") in ("pending", "approved"):
         raise HTTPException(status_code=409, detail="This task has already been submitted for review")
 
+    spreadsheet_data = None
+    if data.spreadsheet_data:
+        try:
+            spreadsheet_data = json.loads(data.spreadsheet_data)
+        except (ValueError, TypeError):
+            spreadsheet_data = None
+
     now = datetime.now(timezone.utc)
     doc = {
         "id": existing["id"] if existing else str(uuid.uuid4()),
         "student_id": student["id"], "student_name": student["name"],
         "task_id": data.task_id, "task_title": task["title"], "track": task["track"], "week_number": data.week_number,
         "text_answer": data.text_answer.strip() or None,
+        "spreadsheet_data": spreadsheet_data if spreadsheet_data is not None else (existing.get("spreadsheet_data") if existing else None),
         "photo_r2_key": existing.get("photo_r2_key") if existing else None,
         "gps": existing.get("gps") if existing else None, "client_timestamp": existing.get("client_timestamp") if existing else None,
         "submitted_at": now, "status": "draft",
@@ -1321,6 +1397,7 @@ async def create_submission(
     task_id: str = Form(...),
     week_number: int = Form(...),
     text_answer: str = Form(default=""),
+    spreadsheet_data: str = Form(default=""),
     gps_lat: float = Form(default=None),
     gps_lng: float = Form(default=None),
     gps_accuracy: float = Form(default=None),
@@ -1340,10 +1417,19 @@ async def create_submission(
     if task_id not in assigned:
         raise HTTPException(status_code=400, detail="This task isn't assigned to you for this week")
 
-    if task["deliverable_type"] in ("text", "text_and_photo") and not text_answer.strip():
+    if task["deliverable_type"] in ("text", "text_and_photo", "text_and_spreadsheet") and not text_answer.strip():
         raise HTTPException(status_code=400, detail="A written answer is required for this task")
     if task["deliverable_type"] in ("photo", "text_and_photo") and not photo:
         raise HTTPException(status_code=400, detail="A photo is required for this task")
+    if task["deliverable_type"] in ("spreadsheet", "text_and_spreadsheet") and not spreadsheet_data.strip():
+        raise HTTPException(status_code=400, detail="Please fill in the spreadsheet before submitting")
+
+    parsed_spreadsheet_data = None
+    if spreadsheet_data.strip():
+        try:
+            parsed_spreadsheet_data = json.loads(spreadsheet_data)
+        except (ValueError, TypeError):
+            raise HTTPException(status_code=400, detail="Spreadsheet data was malformed — please try again")
 
     # A prior pending/approved submission for this task blocks resubmission;
     # a rejected one can be resubmitted (overwritten) once.
@@ -1370,11 +1456,24 @@ async def create_submission(
     # photo (and GPS, if the task requires it) is actually present — real
     # photo-content verification would need vision AI and isn't built here,
     # so this is presence-based, not content-quality-based (see PRD notes).
-    needs_text = task["deliverable_type"] in ("text", "text_and_photo")
-    approved, reason, verified_by = (
-        await _auto_verify_text(task, text_answer) if needs_text
-        else (True, "Field task auto-verified: photo received" + (" with location" if gps else ""), "ai")
-    )
+    # Spreadsheet tasks additionally run _auto_verify_spreadsheet — see its
+    # own docstring for the client-trust design note.
+    needs_text = task["deliverable_type"] in ("text", "text_and_photo", "text_and_spreadsheet")
+    needs_spreadsheet = task["deliverable_type"] in ("spreadsheet", "text_and_spreadsheet")
+    if needs_text:
+        text_approved, text_reason, verified_by = await _auto_verify_text(task, text_answer)
+    else:
+        text_approved, text_reason, verified_by = True, "Field task auto-verified: photo received" + (" with location" if gps else ""), "ai"
+
+    if needs_spreadsheet:
+        sheet_approved, sheet_reason = _auto_verify_spreadsheet(task, parsed_spreadsheet_data or {})
+    else:
+        sheet_approved, sheet_reason = True, None
+
+    approved = text_approved and sheet_approved
+    failure_reasons = [r for ok, r in ((text_approved, text_reason), (sheet_approved, sheet_reason)) if not ok and r]
+    reason = " | ".join(failure_reasons) if failure_reasons else text_reason
+
     if task.get("requires_geotag") and not gps:
         approved, reason = False, "Location wasn't captured with this submission — please allow location access and resubmit."
 
@@ -1383,6 +1482,7 @@ async def create_submission(
         "student_id": student["id"], "student_name": student["name"],
         "task_id": task_id, "task_title": task["title"], "track": task["track"], "week_number": week_number,
         "text_answer": text_answer.strip() or None,
+        "spreadsheet_data": parsed_spreadsheet_data if parsed_spreadsheet_data is not None else (existing.get("spreadsheet_data") if existing else None),
         "photo_r2_key": photo_r2_key or (existing.get("photo_r2_key") if existing else None),
         "gps": gps, "client_timestamp": client_timestamp or None,
         "submitted_at": now, "status": "approved" if approved else "rejected",
@@ -1601,13 +1701,21 @@ def _verify_url(certificate_number: str) -> str:
 
 
 async def _graduation_eligibility(student: dict) -> GraduationCheckOut:
-    duration_days = student.get("duration_days", 45)
+    duration_days = student.get("duration_days", 90)
     total_weeks = ceil(duration_days / 7)
 
-    total_points = 0
+    # Deduped by task_id, not summed per-week — with curated phase-tagged
+    # pools, the same task is deliberately served across every week of its
+    # phase (see _assign_week_tasks), but a submission can only ever be
+    # approved once per task_id, so summing per-week would count a task's
+    # weight once for every week it was served while it can only ever be
+    # *earned* once, artificially deflating the percentage.
+    task_points_by_id: dict[str, int] = {}
     for week_num in range(1, total_weeks + 1):
         tasks = await _assign_week_tasks(student, week_num)
-        total_points += sum(t.get("points_value", 0) for t in tasks)
+        for t in tasks:
+            task_points_by_id[t["id"]] = t.get("points_value", 0)
+    total_points = sum(task_points_by_id.values())
 
     earned_points = 0
     async for sub in internship_submissions_collection.find(
@@ -1659,7 +1767,7 @@ async def _generate_graduation_documents(student: dict, check: GraduationCheckOu
     graduate endpoint and the demo account's self-service instant-graduate
     shortcut — same real documents either way, just a different caller."""
     track_label = TRACK_LABELS.get(student.get("track"), student.get("track") or "General")
-    duration_days = student.get("duration_days", 45)
+    duration_days = student.get("duration_days", 90)
     issue_date = date.today().isoformat()
     year = date.today().year
     cert_number = await _next_sequence("internship_program", year)
@@ -1945,31 +2053,31 @@ async def get_sample_certificate(request: Request):
 
 # ── Admin: task pool management ────────────────────────────────────────
 
-@router.get("/admin/tasks", response_model=list[TaskPoolOut])
+@router.get("/admin/tasks", response_model=list[TaskPoolAdminOut])
 async def admin_list_tasks(track: str = Query(default=None), _admin: dict = Depends(require_admin)):
     query = {"track": track} if track else {}
     cursor = internship_task_pool_collection.find(query).sort("created_at", -1)
-    return [await _to_task_pool_out(doc) async for doc in cursor]
+    return [await _to_task_pool_admin_out(doc) async for doc in cursor]
 
 
-@router.post("/admin/tasks", response_model=TaskPoolOut)
+@router.post("/admin/tasks", response_model=TaskPoolAdminOut)
 async def admin_create_task(data: TaskPoolIn, admin: dict = Depends(require_admin)):
     doc = {
         "id": str(uuid.uuid4()), **data.dict(),
         "created_by": admin["sub"], "created_at": datetime.now(timezone.utc),
     }
     await internship_task_pool_collection.insert_one(doc)
-    return await _to_task_pool_out(doc)
+    return await _to_task_pool_admin_out(doc)
 
 
-@router.put("/admin/tasks/{task_id}", response_model=TaskPoolOut)
+@router.put("/admin/tasks/{task_id}", response_model=TaskPoolAdminOut)
 async def admin_update_task(task_id: str, data: TaskPoolIn, _admin: dict = Depends(require_admin)):
     existing = await internship_task_pool_collection.find_one({"id": task_id})
     if not existing:
         raise HTTPException(status_code=404, detail="Task not found")
     await internship_task_pool_collection.update_one({"id": task_id}, {"$set": data.dict()})
     updated = await internship_task_pool_collection.find_one({"id": task_id})
-    return await _to_task_pool_out(updated)
+    return await _to_task_pool_admin_out(updated)
 
 
 @router.delete("/admin/tasks/{task_id}")

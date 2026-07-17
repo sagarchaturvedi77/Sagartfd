@@ -5,6 +5,7 @@ import jsPDF from "jspdf";
 import { QRCodeCanvas } from "qrcode.react";
 import { toast } from "sonner";
 import { AI_PLAN_RECOMMENDATIONS } from "@/lib/recommendations";
+import { useSubmitOnce } from "../lib/useSubmitOnce";
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const CHAT_API_URL = BACKEND_URL ? `${BACKEND_URL}/api/ai/chat` : "/api/ai/chat";
@@ -68,7 +69,6 @@ export default function AIChat() {
         },
     ]);
     const [input, setInput] = useState("");
-    const [streaming, setStreaming] = useState(false);
     const scrollRef = useRef(null);
     const snapRef = useRef(null);
 
@@ -84,16 +84,15 @@ export default function AIChat() {
         }
     }, [messages, streaming]);
 
-    const send = async (text) => {
+    const [send, streaming] = useSubmitOnce(async (text) => {
         const msg = (text ?? input).trim();
-        if (!msg || streaming) return;
+        if (!msg) return;
         setInput("");
         setMessages((m) => [
             ...m,
             { id: genMessageId(), role: "user", content: msg },
             { id: genMessageId(), role: "assistant", content: "" },
         ]);
-        setStreaming(true);
 
         try {
             const resp = await fetch(CHAT_API_URL, {
@@ -155,10 +154,8 @@ export default function AIChat() {
                 copy[lastIdx] = updated;
                 return copy;
             });
-        } finally {
-            setStreaming(false);
         }
-    };
+    });
 
     // Generates the html2canvas of the snapshot DOM. Reused by PNG and PDF flows.
     const _renderSnapshotCanvas = async () => {
@@ -189,7 +186,7 @@ export default function AIChat() {
         return true;
     };
 
-    const downloadPlanning = async () => {
+    const [downloadPlanning, downloadingPng] = useSubmitOnce(async () => {
         if (!_ensurePlanReady()) return;
         try {
             toast.loading("Generating your planning PNG…", { id: "ai-snap" });
@@ -207,9 +204,9 @@ export default function AIChat() {
             console.error(e);
             toast.error("Could not generate snapshot. Try again.", { id: "ai-snap" });
         }
-    };
+    });
 
-    const downloadPlanningPdf = async () => {
+    const [downloadPlanningPdf, downloadingPdf] = useSubmitOnce(async () => {
         if (!_ensurePlanReady()) return;
         try {
             toast.loading("Generating your planning PDF…", { id: "ai-pdf" });
@@ -246,7 +243,7 @@ export default function AIChat() {
             console.error(e);
             toast.error("Could not generate PDF. Try again.", { id: "ai-pdf" });
         }
-    };
+    });
 
     const hasPlan = messages.filter((m) => m.role === "assistant").length > 1;
 
@@ -281,19 +278,21 @@ export default function AIChat() {
                                     <>
                                         <button
                                             onClick={downloadPlanning}
-                                            className="hidden sm:inline-flex items-center gap-1.5 text-[12px] bg-[#C7102E] hover:bg-[#9B0D24] text-white px-3 py-1.5 rounded-full"
+                                            disabled={downloadingPng}
+                                            className="hidden sm:inline-flex items-center gap-1.5 text-[12px] bg-[#C7102E] hover:bg-[#9B0D24] text-white px-3 py-1.5 rounded-full disabled:opacity-60"
                                             data-testid="ai-chat-download-header"
                                             title="Download as PNG"
                                         >
-                                            <Download size={13} /> PNG
+                                            <Download size={13} /> {downloadingPng ? "…" : "PNG"}
                                         </button>
                                         <button
                                             onClick={downloadPlanningPdf}
-                                            className="hidden sm:inline-flex items-center gap-1.5 text-[12px] bg-[#024396] hover:bg-[#012E6B] text-white px-3 py-1.5 rounded-full"
+                                            disabled={downloadingPdf}
+                                            className="hidden sm:inline-flex items-center gap-1.5 text-[12px] bg-[#024396] hover:bg-[#012E6B] text-white px-3 py-1.5 rounded-full disabled:opacity-60"
                                             data-testid="ai-chat-download-pdf-header"
                                             title="Download as PDF"
                                         >
-                                            <FileText size={13} /> PDF
+                                            <FileText size={13} /> {downloadingPdf ? "…" : "PDF"}
                                         </button>
                                     </>
                                 )}
@@ -348,17 +347,19 @@ export default function AIChat() {
                                     <div className="flex flex-wrap gap-2">
                                         <button
                                             onClick={downloadPlanning}
+                                            disabled={downloadingPng}
                                             data-testid="ai-chat-download"
-                                            className="inline-flex items-center gap-2 text-[12px] font-medium bg-[#024396] hover:bg-[#012E6B] text-[#F6F1E8] px-4 py-2 rounded-full"
+                                            className="inline-flex items-center gap-2 text-[12px] font-medium bg-[#024396] hover:bg-[#012E6B] text-[#F6F1E8] px-4 py-2 rounded-full disabled:opacity-60"
                                         >
-                                            <Download size={13} /> Download as PNG
+                                            <Download size={13} /> {downloadingPng ? "Generating…" : "Download as PNG"}
                                         </button>
                                         <button
                                             onClick={downloadPlanningPdf}
+                                            disabled={downloadingPdf}
                                             data-testid="ai-chat-download-pdf"
-                                            className="inline-flex items-center gap-2 text-[12px] font-medium bg-[#C7102E] hover:bg-[#9B0D24] text-white px-4 py-2 rounded-full"
+                                            className="inline-flex items-center gap-2 text-[12px] font-medium bg-[#C7102E] hover:bg-[#9B0D24] text-white px-4 py-2 rounded-full disabled:opacity-60"
                                         >
-                                            <FileText size={13} /> Download as PDF
+                                            <FileText size={13} /> {downloadingPdf ? "Generating…" : "Download as PDF"}
                                         </button>
                                     </div>
                                     <div className="text-[10px] text-[#5C677D] mt-1.5">

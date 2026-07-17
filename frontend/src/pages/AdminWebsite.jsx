@@ -4,6 +4,7 @@ import PortalLayout from "../components/PortalLayout";
 import PageHeader from "../components/portal/PageHeader";
 import StatCard from "../components/portal/StatCard";
 import { Button } from "../components/ui/button";
+import { useSubmitOnce } from "../lib/useSubmitOnce";
 
 const API_BASE = process.env.REACT_APP_BACKEND_URL || "";
 
@@ -16,7 +17,6 @@ export default function AdminWebsite() {
   const [title, setTitle] = useState("");
   const [body, setBody] = useState("");
   const [url, setUrl] = useState("");
-  const [sending, setSending] = useState(false);
   const [sendMsg, setSendMsg] = useState(null);
 
   const loadStats = useCallback(async () => {
@@ -31,10 +31,12 @@ export default function AdminWebsite() {
 
   useEffect(() => { loadStats(); }, [loadStats]);
 
-  const sendBroadcast = async (e) => {
+  // useSubmitOnce's ref guard is critical here — this pushes a notification
+  // to every subscribed website visitor, so a rapid double-click/laggy
+  // re-render must never be able to send it twice.
+  const [sendBroadcast, sending] = useSubmitOnce(async (e) => {
     e.preventDefault();
     setSendMsg(null);
-    setSending(true);
     try {
       const res = await fetch(`${API_BASE}/api/analytics/web-push/broadcast`, {
         method: "POST",
@@ -48,10 +50,8 @@ export default function AdminWebsite() {
       loadStats();
     } catch (err) {
       setSendMsg({ type: "err", text: err.message });
-    } finally {
-      setSending(false);
     }
-  };
+  });
 
   const field = "w-full border border-[#E2D8C2] dark:border-white/15 dark:bg-white/5 dark:text-[#F1EDE3] rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#024396]/30";
 

@@ -6,6 +6,7 @@ import PortalModal from "./PortalModal";
 import ProtectedText from "./ProtectedText";
 import CallFlowPopup from "../CallFlowPopup";
 import { useCallReturnContext } from "../../context/CallReturnContext";
+import { useSubmitOnce } from "../../lib/useSubmitOnce";
 
 const API_BASE = process.env.REACT_APP_BACKEND_URL || "";
 
@@ -109,22 +110,16 @@ function saveToContacts(lead) {
 
 function NameEditor({ lead, token, onSaved }) {
   const [name, setName] = useState("");
-  const [saving, setSaving] = useState(false);
 
-  const save = async () => {
-    if (!name.trim() || saving) return;
-    setSaving(true);
-    try {
-      const res = await fetch(`${API_BASE}/api/leads/${lead.id}/name`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ name: name.trim() }),
-      });
-      if (res.ok) onSaved?.();
-    } finally {
-      setSaving(false);
-    }
-  };
+  const [save, saving] = useSubmitOnce(async () => {
+    if (!name.trim()) return;
+    const res = await fetch(`${API_BASE}/api/leads/${lead.id}/name`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ name: name.trim() }),
+    });
+    if (res.ok) onSaved?.();
+  });
 
   return (
     <div className="flex items-center gap-1.5 flex-1 min-w-0">

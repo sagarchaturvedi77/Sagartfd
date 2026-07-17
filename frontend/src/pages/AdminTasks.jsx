@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { useAuth } from "../context/AuthContext";
 import PortalLayout from "../components/PortalLayout";
+import { useSubmitOnce } from "../lib/useSubmitOnce";
 
 const API_BASE = process.env.REACT_APP_BACKEND_URL || "";
 
@@ -23,7 +24,6 @@ export default function AdminTasks({ wrapInLayout = true }) {
   const [filter, setFilter] = useState("active"); // active, completed, all
   const [employees, setEmployees] = useState([]);
   const [form, setForm] = useState({ title: "", description: "", priority: "medium", due_date: "", category: "general", assigned_to: "" });
-  const [saving, setSaving] = useState(false);
 
   const headers = { Authorization: `Bearer ${token}`, "Content-Type": "application/json" };
 
@@ -43,9 +43,8 @@ export default function AdminTasks({ wrapInLayout = true }) {
 
   useEffect(() => { load(); }, [load]);
 
-  const addTask = async (e) => {
+  const [addTask, saving] = useSubmitOnce(async (e) => {
     e.preventDefault();
-    setSaving(true);
     const res = await fetch(`${API_BASE}/api/tasks/`, {
       method: "POST", headers,
       body: JSON.stringify({ ...form, due_date: form.due_date || null, assigned_to: form.assigned_to || null }),
@@ -55,21 +54,20 @@ export default function AdminTasks({ wrapInLayout = true }) {
       setForm({ title: "", description: "", priority: "medium", due_date: "", category: "general", assigned_to: "" });
       load();
     }
-    setSaving(false);
-  };
+  });
 
-  const updateStatus = async (taskId, status) => {
+  const [updateStatus, updatingStatus] = useSubmitOnce(async (taskId, status) => {
     await fetch(`${API_BASE}/api/tasks/${taskId}`, {
       method: "PUT", headers,
       body: JSON.stringify({ status }),
     });
     load();
-  };
+  });
 
-  const deleteTask = async (taskId) => {
+  const [deleteTask, deletingTask] = useSubmitOnce(async (taskId) => {
     await fetch(`${API_BASE}/api/tasks/${taskId}`, { method: "DELETE", headers });
     load();
-  };
+  });
 
   const filtered = tasks.filter(t => {
     if (filter === "active") return !["completed", "cancelled"].includes(t.status);
@@ -187,7 +185,7 @@ export default function AdminTasks({ wrapInLayout = true }) {
                 <div key={task.id} className={`bg-white dark:bg-[#101D2E] rounded-2xl border shadow-sm p-4 flex items-start gap-4 ${isOverdue ? "border-red-300" : "border-[#E2D8C2] dark:border-white/10"}`}>
                   {/* Checkbox */}
                   <button onClick={() => !readOnly && updateStatus(task.id, task.status === "completed" ? "pending" : "completed")}
-                    disabled={readOnly}
+                    disabled={readOnly || updatingStatus}
                     title={readOnly ? "Only the assigned employee can update this" : undefined}
                     className={`w-6 h-6 shrink-0 rounded-lg border-2 flex items-center justify-center mt-0.5 transition-all ${task.status === "completed" ? "bg-emerald-500 border-emerald-500 text-white" : "border-[#E2D8C2] dark:border-white/10 hover:border-[#024396] dark:border-[#4C8DFF]"} ${readOnly ? "opacity-40 cursor-not-allowed" : ""}`}>
                     {task.status === "completed" && (
@@ -219,12 +217,12 @@ export default function AdminTasks({ wrapInLayout = true }) {
 
                   <div className="flex items-center gap-1 shrink-0">
                     {task.status === "pending" && !readOnly && (
-                      <button onClick={() => updateStatus(task.id, "in_progress")}
-                        className="text-[10px] text-blue-600 hover:underline px-2 py-1">Start</button>
+                      <button onClick={() => updateStatus(task.id, "in_progress")} disabled={updatingStatus}
+                        className="text-[10px] text-blue-600 hover:underline px-2 py-1 disabled:opacity-50">Start</button>
                     )}
                     {!readOnly && (
-                      <button onClick={() => deleteTask(task.id)}
-                        className="w-7 h-7 rounded-lg bg-red-50 flex items-center justify-center text-red-400 hover:bg-red-100 transition-colors">
+                      <button onClick={() => deleteTask(task.id)} disabled={deletingTask}
+                        className="w-7 h-7 rounded-lg bg-red-50 flex items-center justify-center text-red-400 hover:bg-red-100 transition-colors disabled:opacity-50">
                         <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
                         </svg>

@@ -9,7 +9,7 @@ const STATUS_LABELS = {
   interested: "Interested", converted: "Converted", lost: "Lost",
 };
 
-export default function MyLeadsTab({ myLeads, stats, filter, setFilter, employees, assignLead, deleteLead, setDetailLead }) {
+export default function MyLeadsTab({ myLeads, stats, filter, setFilter, employees, assignLead, assigning, deleteLead, deletingLead, setDetailLead }) {
   const countFor = (key) => key === "follow_up"
     ? myLeads.filter((l) => l.follow_up_date && !["lost", "converted"].includes(l.status)).length
     : myLeads.filter((l) => l.status === key).length;
@@ -40,16 +40,18 @@ export default function MyLeadsTab({ myLeads, stats, filter, setFilter, employee
           <select
             value=""
             onChange={(e) => e.target.value && assignLead(lead.id, e.target.value)}
-            className="text-xs border border-[#E2D8C2] dark:border-white/15 dark:bg-white/5 dark:text-[#F1EDE3] rounded-lg px-2 py-1.5 text-[#024396] dark:text-[#7CB0FF] bg-white max-w-[140px]"
+            disabled={assigning}
+            className="text-xs border border-[#E2D8C2] dark:border-white/15 dark:bg-white/5 dark:text-[#F1EDE3] rounded-lg px-2 py-1.5 text-[#024396] dark:text-[#7CB0FF] bg-white max-w-[140px] disabled:opacity-60"
           >
-            <option value="">Reassign to...</option>
+            <option value="">{assigning ? "Assigning..." : "Reassign to..."}</option>
             {employees.filter((emp) => emp.is_active !== false).map((emp) => (
               <option key={emp.id} value={emp.id}>{emp.name}</option>
             ))}
           </select>
           <button
             onClick={() => deleteLead(lead.id)}
-            className="w-8 h-8 shrink-0 rounded-lg bg-red-50 dark:bg-red-900/30 flex items-center justify-center text-red-500 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/50"
+            disabled={deletingLead}
+            className="w-8 h-8 shrink-0 rounded-lg bg-red-50 dark:bg-red-900/30 flex items-center justify-center text-red-500 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/50 disabled:opacity-60"
           >
             <Trash2 size={15} />
           </button>

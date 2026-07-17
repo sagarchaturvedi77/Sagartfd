@@ -14,6 +14,7 @@ import EmptyState from "../components/portal/EmptyState";
 import PortalModal from "../components/portal/PortalModal";
 import { Button } from "../components/ui/button";
 import { codeFieldLabel } from "../lib/utils";
+import { useSubmitOnce } from "../lib/useSubmitOnce";
 
 const API_BASE = process.env.REACT_APP_BACKEND_URL || "";
 
@@ -44,19 +45,16 @@ export default function EmployeeLeads() {
   const [newLead, setNewLead] = useState({ name: "", phone: "", city: "", service_interest: "", reference_note: "" });
   const [addLeadError, setAddLeadError] = useState("");
   const [duplicateLead, setDuplicateLead] = useState(null); // { message, existing_lead }
-  const [merging, setMerging] = useState(false);
 
   const [detailLead, setDetailLead] = useState(null);
   const [editingContact, setEditingContact] = useState(false);
   const [editName, setEditName] = useState("");
   const [editAltPhone, setEditAltPhone] = useState("");
-  const [savingContact, setSavingContact] = useState(false);
   const [addServiceLead, setAddServiceLead] = useState(null);
   const [newServiceValue, setNewServiceValue] = useState("");
 
   const [referralLead, setReferralLead] = useState(null);
   const [newReferral, setNewReferral] = useState({ name: "", phone: "", city: "", service_interest: "" });
-  const [savingReferral, setSavingReferral] = useState(false);
 
   const [statusLead, setStatusLead] = useState(null);
   const [statusForm, setStatusForm] = useState({ status: "", follow_up_note: "", follow_up_date: "", service_interest: "", code_name: "", service_price: "", service_duration_months: "" });
@@ -134,7 +132,7 @@ export default function EmployeeLeads() {
     } finally { setSearching(false); }
   };
 
-  const submitNewLead = async (e) => {
+  const [submitNewLead, addingLeadSaving] = useSubmitOnce(async (e) => {
     e.preventDefault();
     if (!newLead.name.trim() || !newLead.phone.trim()) return;
     setAddLeadError("");
@@ -153,45 +151,35 @@ export default function EmployeeLeads() {
     } else {
       setAddLeadError(typeof err.detail === "string" ? err.detail : "Could not add lead — check the details and try again.");
     }
-  };
+  });
 
-  const confirmMergeLead = async () => {
-    setMerging(true);
-    try {
-      const res = await fetch(`${API_BASE}/api/leads/my?confirm_merge=true`, {
-        method: "POST", headers, body: JSON.stringify(newLead),
-      });
-      if (res.ok) {
-        setDuplicateLead(null);
-        setAddingLead(false);
-        setNewLead({ name: "", phone: "", city: "", service_interest: "", reference_note: "" });
-        load();
-      }
-    } finally {
-      setMerging(false);
+  const [confirmMergeLead, merging] = useSubmitOnce(async () => {
+    const res = await fetch(`${API_BASE}/api/leads/my?confirm_merge=true`, {
+      method: "POST", headers, body: JSON.stringify(newLead),
+    });
+    if (res.ok) {
+      setDuplicateLead(null);
+      setAddingLead(false);
+      setNewLead({ name: "", phone: "", city: "", service_interest: "", reference_note: "" });
+      load();
     }
-  };
+  });
 
-  const submitReferral = async (e) => {
+  const [submitReferral, savingReferral] = useSubmitOnce(async (e) => {
     e.preventDefault();
     if (!referralLead || !newReferral.name.trim() || !newReferral.phone.trim()) return;
-    setSavingReferral(true);
-    try {
-      const res = await fetch(`${API_BASE}/api/leads/my`, {
-        method: "POST", headers,
-        body: JSON.stringify({ ...newReferral, referred_by_lead_id: referralLead.id }),
-      });
-      if (res.ok) {
-        setReferralLead(null);
-        setNewReferral({ name: "", phone: "", city: "", service_interest: "" });
-        load();
-      }
-    } finally {
-      setSavingReferral(false);
+    const res = await fetch(`${API_BASE}/api/leads/my`, {
+      method: "POST", headers,
+      body: JSON.stringify({ ...newReferral, referred_by_lead_id: referralLead.id }),
+    });
+    if (res.ok) {
+      setReferralLead(null);
+      setNewReferral({ name: "", phone: "", city: "", service_interest: "" });
+      load();
     }
-  };
+  });
 
-  const updateLeadStatus = async () => {
+  const [updateLeadStatus, updatingStatus] = useSubmitOnce(async () => {
     if (!statusLead || !statusForm.status) return;
     const payload = {
       status: statusForm.status,
@@ -208,9 +196,9 @@ export default function EmployeeLeads() {
     });
     if (res.ok) { setStatusLead(null); setStatusForm({ status: "", follow_up_note: "", follow_up_date: "", service_interest: "", code_name: "", service_price: "", service_duration_months: "" }); load(); loadSummary(); loadDates(); }
     else { const err = await res.json().catch(() => ({})); alert(err.detail || "Failed to update status"); }
-  };
+  });
 
-  const addNewService = async () => {
+  const [addNewService, addingService] = useSubmitOnce(async () => {
     if (!addServiceLead || !newServiceValue.trim()) return;
     const currentService = addServiceLead.service_interest || "";
     const updated = currentService ? `${currentService}, ${newServiceValue.trim()}` : newServiceValue.trim();
@@ -218,7 +206,7 @@ export default function EmployeeLeads() {
       method: "PUT", headers, body: JSON.stringify({ service_interest: updated }),
     });
     if (res.ok) { setAddServiceLead(null); setNewServiceValue(""); load(); }
-  };
+  });
 
   const startEditContact = (lead) => {
     setEditName(lead.name || "");
@@ -226,9 +214,8 @@ export default function EmployeeLeads() {
     setEditingContact(true);
   };
 
-  const saveContact = async () => {
+  const [saveContact, savingContact] = useSubmitOnce(async () => {
     if (!detailLead) return;
-    setSavingContact(true);
     try {
       const calls = [];
       const name = editName.trim();
@@ -248,8 +235,7 @@ export default function EmployeeLeads() {
       setDetailLead((prev) => prev && { ...prev, name: name || prev.name, alternate_phone: altPhone || prev.alternate_phone });
       load();
     } catch { /* silent */ }
-    setSavingContact(false);
-  };
+  });
 
   // A lead with a scheduled follow-up date should show in the Follow Up tab
   // even if its status is "interested" (not just the literal "follow_up"
@@ -432,7 +418,9 @@ export default function EmployeeLeads() {
               <option value="">Service interest (optional)</option>
               {services.map((s) => <option key={s.id} value={s.name}>{s.name}</option>)}
             </select>
-            <Button type="submit" className="w-full bg-[#024396] hover:bg-[#023580]">Add Lead</Button>
+            <Button type="submit" disabled={addingLeadSaving} className="w-full bg-[#024396] hover:bg-[#023580]">
+              {addingLeadSaving ? "Adding..." : "Add Lead"}
+            </Button>
           </form>
         </PortalModal>
 
@@ -542,7 +530,9 @@ export default function EmployeeLeads() {
               )}
               <div className="flex gap-2">
                 <Button variant="outline" className="flex-1" onClick={() => setStatusLead(null)}>Cancel</Button>
-                <Button className="flex-1 bg-[#024396] hover:bg-[#023580]" disabled={!statusForm.status} onClick={updateLeadStatus}>Update</Button>
+                <Button className="flex-1 bg-[#024396] hover:bg-[#023580]" disabled={!statusForm.status || updatingStatus} onClick={updateLeadStatus}>
+                  {updatingStatus ? "Updating..." : "Update"}
+                </Button>
               </div>
             </div>
           )}
@@ -559,7 +549,9 @@ export default function EmployeeLeads() {
               </select>
               <div className="flex gap-2 mt-3">
                 <Button variant="outline" className="flex-1" onClick={() => setAddServiceLead(null)}>Cancel</Button>
-                <Button className="flex-1 bg-[#024396] hover:bg-[#023580]" disabled={!newServiceValue} onClick={addNewService}>Add</Button>
+                <Button className="flex-1 bg-[#024396] hover:bg-[#023580]" disabled={!newServiceValue || addingService} onClick={addNewService}>
+                  {addingService ? "Adding..." : "Add"}
+                </Button>
               </div>
             </>
           )}

@@ -95,10 +95,11 @@ def send_push_to_user(uid: str, title: str, body: str, url: str | None = None, n
             except WebPushException as e:
                 resp = getattr(e, "response", None)
                 # 404/410 = subscription gone; 401/403 = VAPID key mismatch
-                # (subscribed against a different server key) — neither is
+                # (subscribed against a different server key); 400 =
+                # malformed/expired subscription encoding — none of these are
                 # worth retrying, so prune and stop instead of burning
                 # MAX_RETRIES on a request that can never succeed.
-                if resp is not None and resp.status_code in (401, 403, 404, 410):
+                if resp is not None and resp.status_code in (400, 401, 403, 404, 410):
                     push_subscriptions.delete_one({"_id": sub["_id"]})
                     break
                 attempt += 1

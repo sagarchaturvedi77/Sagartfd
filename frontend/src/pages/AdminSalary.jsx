@@ -5,6 +5,7 @@ import PageHeader from "../components/portal/PageHeader";
 import DataTable from "../components/portal/DataTable";
 import PortalModal from "../components/portal/PortalModal";
 import { Button } from "../components/ui/button";
+import { useSubmitOnce } from "../lib/useSubmitOnce";
 
 const API_BASE = process.env.REACT_APP_BACKEND_URL || "";
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
@@ -19,11 +20,9 @@ export default function AdminSalary() {
   const [slips, setSlips] = useState([]);
   const [employees, setEmployees] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [generating, setGenerating] = useState(false);
 
   const [configEmp, setConfigEmp] = useState(null);
   const [cfg, setCfg] = useState({});
-  const [savingCfg, setSavingCfg] = useState(false);
 
   const headers = { Authorization: `Bearer ${token}`, "Content-Type": "application/json" };
 
@@ -41,20 +40,18 @@ export default function AdminSalary() {
 
   useEffect(() => { load(); }, [load]);
 
-  const generateSlips = async () => {
-    setGenerating(true);
+  const [generateSlips, generating] = useSubmitOnce(async () => {
     await fetch(`${API_BASE}/api/salary/generate`, {
       method: "POST", headers,
       body: JSON.stringify({ month, year }),
     });
     await load();
-    setGenerating(false);
-  };
+  });
 
-  const finalizeSlip = async (slipId) => {
+  const [finalizeSlip, finalizing] = useSubmitOnce(async (slipId) => {
     await fetch(`${API_BASE}/api/salary/slips/${slipId}/finalize`, { method: "POST", headers });
     load();
-  };
+  });
 
   const openConfig = async (emp) => {
     setConfigEmp(emp);
@@ -65,15 +62,13 @@ export default function AdminSalary() {
     } catch { setCfg({}); }
   };
 
-  const saveConfig = async (e) => {
+  const [saveConfig, savingCfg] = useSubmitOnce(async (e) => {
     e.preventDefault();
-    setSavingCfg(true);
     await fetch(`${API_BASE}/api/salary/config/${configEmp.id}`, {
       method: "POST", headers, body: JSON.stringify(cfg),
     });
-    setSavingCfg(false);
     setConfigEmp(null);
-  };
+  });
 
   const field = "w-full border border-[#E2D8C2] dark:border-white/15 dark:bg-white/5 dark:text-[#F1EDE3] rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#024396]/30";
 
@@ -105,7 +100,7 @@ export default function AdminSalary() {
     {
       key: "action", label: "Action",
       render: (s) => s.status !== "finalized" && (
-        <button onClick={() => finalizeSlip(s.id)} className="text-xs text-[#024396] dark:text-[#7CB0FF] hover:underline">Finalize</button>
+        <button onClick={() => finalizeSlip(s.id)} disabled={finalizing} className="text-xs text-[#024396] dark:text-[#7CB0FF] hover:underline disabled:opacity-50">{finalizing ? "Finalizing..." : "Finalize"}</button>
       ),
     },
   ];

@@ -6,6 +6,7 @@ import PageHeader from "../components/portal/PageHeader";
 import PortalModal from "../components/portal/PortalModal";
 import { Button } from "../components/ui/button";
 import { RefreshCw, ChevronDown, ChevronUp, ExternalLink, Pencil, FileDown, Trash2 } from "lucide-react";
+import { useSubmitOnce } from "../lib/useSubmitOnce";
 
 const API_BASE = process.env.REACT_APP_BACKEND_URL || "";
 
@@ -34,7 +35,7 @@ function tierFor(percent) {
   return "ok";
 }
 
-function ServiceCard({ svc, onEdit, onMarkUpgraded }) {
+function ServiceCard({ svc, onEdit, onMarkUpgraded, markingUpgraded }) {
   const [expanded, setExpanded] = useState(false);
   const tier = tierFor(svc.percent || 0);
   const colors = tierColor(tier);
@@ -98,7 +99,7 @@ function ServiceCard({ svc, onEdit, onMarkUpgraded }) {
             <Pencil size={13} />
           </button>
         )}
-        <button onClick={() => onMarkUpgraded(svc)} className="text-[11px] text-[#2A364B]/50 dark:text-[#8E99AC] hover:underline shrink-0">
+        <button onClick={() => onMarkUpgraded(svc)} disabled={markingUpgraded} className="text-[11px] text-[#2A364B]/50 dark:text-[#8E99AC] hover:underline shrink-0 disabled:opacity-50">
           Mark as Upgraded
         </button>
       </div>
@@ -111,8 +112,6 @@ export default function AdminStorageStatus() {
   const headers = { Authorization: `Bearer ${token}`, "Content-Type": "application/json" };
   const [status, setStatus] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
-  const [downloadingReport, setDownloadingReport] = useState(false);
   const [editService, setEditService] = useState(null);
   const [editForm, setEditForm] = useState({ account_email: "", plan: "", limit_mb: "", used_mb: "" });
 
@@ -127,15 +126,10 @@ export default function AdminStorageStatus() {
 
   useEffect(() => { load(); }, [load]);
 
-  const refresh = async () => {
-    setRefreshing(true);
-    try {
-      const res = await fetch(`${API_BASE}/api/storage/refresh`, { method: "POST", headers });
-      if (res.ok) setStatus(await res.json());
-    } finally {
-      setRefreshing(false);
-    }
-  };
+  const [refresh, refreshing] = useSubmitOnce(async () => {
+    const res = await fetch(`${API_BASE}/api/storage/refresh`, { method: "POST", headers });
+    if (res.ok) setStatus(await res.json());
+  });
 
   const openEdit = (service) => {
     const svc = status.services[service];
@@ -148,7 +142,7 @@ export default function AdminStorageStatus() {
     setEditService(service);
   };
 
-  const saveEdit = async (e) => {
+  const [saveEdit, savingEdit] = useSubmitOnce(async (e) => {
     e.preventDefault();
     const res = await fetch(`${API_BASE}/api/storage/settings/${editService}`, {
       method: "PUT", headers,
@@ -163,10 +157,9 @@ export default function AdminStorageStatus() {
       setStatus(await res.json());
       setEditService(null);
     }
-  };
+  });
 
-  const downloadReport = async () => {
-    setDownloadingReport(true);
+  const [downloadReport, downloadingReport] = useSubmitOnce(async () => {
     try {
       const res = await fetch(`${API_BASE}/api/storage/report`, {
         headers: { Authorization: `Bearer ${token}` },
@@ -183,19 +176,17 @@ export default function AdminStorageStatus() {
       window.URL.revokeObjectURL(url);
     } catch {
       alert("Failed to generate report");
-    } finally {
-      setDownloadingReport(false);
     }
-  };
+  });
 
-  const markUpgraded = async (svc) => {
+  const [markUpgraded, markingUpgraded] = useSubmitOnce(async (svc) => {
     const newLimit = window.prompt(`New limit for ${svc.label} in MB (e.g. 1024 for 1 GB):`, svc.limit_mb || "");
     if (!newLimit || isNaN(Number(newLimit))) return;
     const res = await fetch(`${API_BASE}/api/storage/mark-upgraded/${svc.service}?new_limit_mb=${Number(newLimit)}`, {
       method: "POST", headers,
     });
     if (res.ok) setStatus(await res.json());
-  };
+  });
 
   const field = "w-full border border-[#E2D8C2] dark:border-white/15 dark:bg-white/5 dark:text-[#F1EDE3] rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#024396]/30";
 
@@ -227,7 +218,7 @@ export default function AdminStorageStatus() {
       ) : status ? (
         <div className="grid sm:grid-cols-2 gap-4">
           {Object.values(status.services).map((svc) => (
-            <ServiceCard key={svc.service} svc={svc} onEdit={openEdit} onMarkUpgraded={markUpgraded} />
+            <ServiceCard key={svc.service} svc={svc} onEdit={openEdit} onMarkUpgraded={markUpgraded} markingUpgraded={markingUpgraded} />
           ))}
         </div>
       ) : (
@@ -241,7 +232,7 @@ export default function AdminStorageStatus() {
           <input placeholder="Plan (e.g. Free, Starter)" value={editForm.plan} onChange={(e) => setEditForm({ ...editForm, plan: e.target.value })} className={field} />
           <input type="number" placeholder="Limit (MB)" value={editForm.limit_mb} onChange={(e) => setEditForm({ ...editForm, limit_mb: e.target.value })} className={field} />
           <input type="number" placeholder="Used (MB)" value={editForm.used_mb} onChange={(e) => setEditForm({ ...editForm, used_mb: e.target.value })} className={field} />
-          <Button type="submit" className="w-full bg-[#024396] hover:bg-[#023580]">Save</Button>
+          <Button type="submit" disabled={savingEdit} className="w-full bg-[#024396] hover:bg-[#023580]">{savingEdit ? "Saving..." : "Save"}</Button>
         </form>
       </PortalModal>
     </PortalLayout>

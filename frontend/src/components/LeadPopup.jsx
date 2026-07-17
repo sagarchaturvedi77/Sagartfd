@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { X, Stethoscope, Phone, User, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import { api } from "@/lib/api";
+import { useSubmitOnce } from "../lib/useSubmitOnce";
 
 const STORAGE_KEY = "tfd_lead_popup_v1";
 const SHOW_AFTER_MS = 5000;
@@ -11,7 +12,6 @@ export default function LeadPopup() {
     const [submitted, setSubmitted] = useState(false);
     const [name, setName] = useState("");
     const [phone, setPhone] = useState("");
-    const [loading, setLoading] = useState(false);
 
     useEffect(() => {
         // If user has previously dismissed/submitted, don't show again
@@ -25,7 +25,7 @@ export default function LeadPopup() {
         setOpen(false);
     };
 
-    const submit = async (e) => {
+    const [submit, loading] = useSubmitOnce(async (e) => {
         e.preventDefault();
         if (!name.trim() || !phone.trim()) {
             toast.error("Name aur phone — dono bharein.");
@@ -35,7 +35,6 @@ export default function LeadPopup() {
             toast.error("Phone number 10 digits ka hona chahiye.");
             return;
         }
-        setLoading(true);
         try {
             await api.submitContact({
                 full_name: name.trim(),
@@ -48,10 +47,8 @@ export default function LeadPopup() {
             toast.success("Thank you! Sagar ji will reach out within 24 hours.");
         } catch (err) {
             toast.error("Submit failed. Please WhatsApp +91 77738 05794.");
-        } finally {
-            setLoading(false);
         }
-    };
+    });
 
     if (!open) return null;
 

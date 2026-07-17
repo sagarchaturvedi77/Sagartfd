@@ -3,6 +3,7 @@ import { useAuth } from "../context/AuthContext";
 import PortalLayout from "../components/PortalLayout";
 import PageHeader from "../components/portal/PageHeader";
 import { Button } from "../components/ui/button";
+import { useSubmitOnce } from "../lib/useSubmitOnce";
 
 const API_BASE = process.env.REACT_APP_BACKEND_URL || "";
 
@@ -18,13 +19,14 @@ export default function AdminAnnounce() {
   const [title, setTitle] = useState("");
   const [body, setBody] = useState("");
   const [type, setType] = useState("announcement");
-  const [sending, setSending] = useState(false);
   const [msg, setMsg] = useState(null); // {type, text}
 
-  const submit = async (e) => {
+  // useSubmitOnce's ref guard is critical here — this fires a broadcast
+  // notification to every employee, so a rapid double-click/laggy re-render
+  // must never be able to send it twice.
+  const [submit, sending] = useSubmitOnce(async (e) => {
     e.preventDefault();
     setMsg(null);
-    setSending(true);
     try {
       const res = await fetch(`${API_BASE}/api/notifications/broadcast`, {
         method: "POST",
@@ -40,10 +42,8 @@ export default function AdminAnnounce() {
       setTitle(""); setBody("");
     } catch (err) {
       setMsg({ type: "err", text: err.message });
-    } finally {
-      setSending(false);
     }
-  };
+  });
 
   const field = "w-full border border-[#E2D8C2] dark:border-white/15 dark:bg-white/5 dark:text-[#F1EDE3] rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#024396]/30";
 

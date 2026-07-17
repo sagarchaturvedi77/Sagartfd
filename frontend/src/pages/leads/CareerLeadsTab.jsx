@@ -2,7 +2,13 @@ import React from "react";
 import { X, Eye } from "lucide-react";
 import EmptyState from "../../components/portal/EmptyState";
 
-export default function CareerLeadsTab({ careerLeads, employees, updateCareerStatus, convertCareerLead, deleteCareerLead, setDetailCareerLead }) {
+export default function CareerLeadsTab({
+  careerLeads, employees,
+  updateCareerStatus, updatingCareerStatus,
+  convertCareerLead, convertingCareerLead,
+  deleteCareerLead, deletingCareerLead,
+  setDetailCareerLead,
+}) {
   return (
     <div className="space-y-4">
       <p className="text-sm text-[#2A364B]/60 dark:text-[#8E99AC]">Applications from the Career page</p>
@@ -28,7 +34,12 @@ export default function CareerLeadsTab({ careerLeads, employees, updateCareerSta
                   >
                     <Eye size={13} /> View
                   </button>
-                  <select value={cl.status || "new"} onChange={(e) => updateCareerStatus(cl.id, e.target.value)} className="text-xs border border-[#E2D8C2] dark:border-white/15 dark:bg-white/5 dark:text-[#F1EDE3] rounded-lg px-2 py-1.5">
+                  <select
+                    value={cl.status || "new"}
+                    onChange={(e) => updateCareerStatus(cl.id, e.target.value)}
+                    disabled={updatingCareerStatus}
+                    className="text-xs border border-[#E2D8C2] dark:border-white/15 dark:bg-white/5 dark:text-[#F1EDE3] rounded-lg px-2 py-1.5 disabled:opacity-60"
+                  >
                     <option value="new">New</option>
                     <option value="shortlisted">Shortlisted</option>
                     <option value="interview">Interview</option>
@@ -42,7 +53,8 @@ export default function CareerLeadsTab({ careerLeads, employees, updateCareerSta
                       <select
                         defaultValue=""
                         onChange={(e) => convertCareerLead(cl.id, e.target.value || undefined)}
-                        className="text-xs border border-[#E2D8C2] dark:border-white/15 dark:bg-white/5 dark:text-[#F1EDE3] rounded-lg px-2 py-1.5 text-[#024396] dark:text-[#7CB0FF] bg-white max-w-[140px]"
+                        disabled={convertingCareerLead}
+                        className="text-xs border border-[#E2D8C2] dark:border-white/15 dark:bg-white/5 dark:text-[#F1EDE3] rounded-lg px-2 py-1.5 text-[#024396] dark:text-[#7CB0FF] bg-white max-w-[140px] disabled:opacity-60"
                       >
                         <option value="" disabled>Assign to...</option>
                         {employees.filter((emp) => emp.is_active !== false).map((emp) => (
@@ -51,13 +63,14 @@ export default function CareerLeadsTab({ careerLeads, employees, updateCareerSta
                       </select>
                       <button
                         onClick={() => convertCareerLead(cl.id)}
-                        className="px-3 py-1.5 rounded-lg text-xs font-medium text-white bg-[#024396] hover:bg-[#023580] whitespace-nowrap"
+                        disabled={convertingCareerLead}
+                        className="px-3 py-1.5 rounded-lg text-xs font-medium text-white bg-[#024396] hover:bg-[#023580] whitespace-nowrap disabled:opacity-60"
                       >
-                        Convert Only
+                        {convertingCareerLead ? "Converting..." : "Convert Only"}
                       </button>
                     </>
                   )}
-                  <button onClick={() => deleteCareerLead(cl.id)} className="w-7 h-7 rounded-lg bg-red-50 dark:bg-red-900/30 flex items-center justify-center text-red-400 hover:bg-red-100 dark:hover:bg-red-900/50">
+                  <button onClick={() => deleteCareerLead(cl.id)} disabled={deletingCareerLead} className="w-7 h-7 rounded-lg bg-red-50 dark:bg-red-900/30 flex items-center justify-center text-red-400 hover:bg-red-100 dark:hover:bg-red-900/50 disabled:opacity-60">
                     <X size={14} />
                   </button>
                 </div>

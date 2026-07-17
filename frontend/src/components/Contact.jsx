@@ -3,6 +3,7 @@ import { Phone, Mail, MapPin, Send, MessageCircle } from "lucide-react";
 import { toast } from "sonner";
 import { api } from "@/lib/api";
 import { IDS } from "@/constants/testIds";
+import { useSubmitOnce } from "../lib/useSubmitOnce";
 
 const SERVICES = [
     "Mutual Funds / SIP",
@@ -23,25 +24,20 @@ export default function Contact() {
         service: "",
         message: "",
     });
-    const [loading, setLoading] = useState(false);
-
-    const onSubmit = async (e) => {
+    const [onSubmit, loading] = useSubmitOnce(async (e) => {
         e.preventDefault();
         if (!form.full_name || !form.phone) {
             toast.error("Name & phone zaroori hain.");
             return;
         }
-        setLoading(true);
         try {
             await api.submitContact(form);
             toast.success("Request received! We'll connect within 24 hours.");
             setForm({ full_name: "", phone: "", email: "", service: "", message: "" });
         } catch (e) {
             toast.error("Submit failed. Please try WhatsApp instead.");
-        } finally {
-            setLoading(false);
         }
-    };
+    });
 
     return (
         <section id="contact" className="section">

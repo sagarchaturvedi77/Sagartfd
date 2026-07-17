@@ -6,6 +6,7 @@ import PageHeader from "../components/portal/PageHeader";
 import EmptyState from "../components/portal/EmptyState";
 import PortalModal from "../components/portal/PortalModal";
 import { Button } from "../components/ui/button";
+import { useSubmitOnce } from "../lib/useSubmitOnce";
 
 const API = process.env.REACT_APP_BACKEND_URL || "";
 
@@ -18,7 +19,6 @@ export default function AdminDocuments() {
   const [showAdd, setShowAdd] = useState(false);
   const [form, setForm] = useState({ title: "", category: "General", description: "" });
   const [selectedFile, setSelectedFile] = useState(null);
-  const [uploading, setUploading] = useState(false);
   const [filterCat, setFilterCat] = useState("All");
 
   const fetchDocs = useCallback(async () => {
@@ -35,10 +35,9 @@ export default function AdminDocuments() {
     setSelectedFile(e.target.files[0] || null);
   };
 
-  const handleSubmit = async (e) => {
+  const [handleSubmit, uploading] = useSubmitOnce(async (e) => {
     e.preventDefault();
     if (!form.title.trim()) return;
-    setUploading(true);
     try {
       let r;
       if (selectedFile) {
@@ -66,17 +65,16 @@ export default function AdminDocuments() {
         fetchDocs();
       }
     } catch { /* ignore */ }
-    setUploading(false);
-  };
+  });
 
-  const handleDelete = async (id) => {
+  const [handleDelete, deleting] = useSubmitOnce(async (id) => {
     if (!window.confirm("Delete this document?")) return;
     await fetch(`${API}/api/documents/${id}`, {
       method: "DELETE",
       headers: { Authorization: `Bearer ${token}` },
     });
     fetchDocs();
-  };
+  });
 
   const filtered = filterCat === "All" ? docs : docs.filter(d => d.category === filterCat);
   const field = "w-full border border-[#E2D8C2] dark:border-white/15 dark:bg-white/5 dark:text-[#F1EDE3] rounded-xl px-3 py-2 text-sm outline-none focus:border-[#024396] dark:focus:border-[#7CB0FF]";
@@ -137,7 +135,7 @@ export default function AdminDocuments() {
                       <Upload size={14} />
                     </a>
                   )}
-                  <button onClick={() => handleDelete(doc.id)} className="p-2 rounded-lg bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/40">
+                  <button onClick={() => handleDelete(doc.id)} disabled={deleting} className="p-2 rounded-lg bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/40 disabled:opacity-50">
                     <Trash2 size={14} />
                   </button>
                 </div>

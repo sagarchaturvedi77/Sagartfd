@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback, useRef } from "react";
 import { useAuth } from "../context/AuthContext";
 import PortalLayout from "../components/PortalLayout";
 import { Button } from "../components/ui/button";
+import { useSubmitOnce } from "../lib/useSubmitOnce";
 
 const API_BASE = process.env.REACT_APP_BACKEND_URL || "";
 
@@ -16,7 +17,6 @@ export default function EmployeeOnboarding() {
   const { token, user } = useAuth();
   const [form, setForm] = useState({ ...INITIAL, full_name: user?.name || "", email: user?.email || "" });
   const [uploads, setUploads] = useState({});
-  const [saving, setSaving] = useState(false);
   const [step, setStep] = useState(1); // 1=personal, 2=documents, 3=bank, 4=review+sign
   const [done, setDone] = useState(false);
   const fileRef = useRef(null);
@@ -41,7 +41,12 @@ export default function EmployeeOnboarding() {
 
   useEffect(() => { load(); }, [load]);
 
-  const handleUpload = async (field, file) => {
+  // useSubmitOnce's ref guard blocks a rapid double-fire of this same call
+  // (e.g. a fast double-tap on the file picker); the per-field "which file is
+  // uploading" label still comes from uploadingField below, set/cleared
+  // manually inside the action since the hook only tracks one shared
+  // in-flight flag, not which field it's for.
+  const [handleUpload] = useSubmitOnce(async (field, file) => {
     if (!file) return;
     setUploadingField(field);
     const fd = new FormData();
@@ -58,19 +63,17 @@ export default function EmployeeOnboarding() {
       if (uRes.ok) setUploads(await uRes.json());
     }
     setUploadingField(null);
-  };
+  });
 
-  const saveProfile = async () => {
-    setSaving(true);
+  const [saveProfile, saving] = useSubmitOnce(async () => {
     await fetch(`${API_BASE}/api/profile`, {
       method: "PUT",
       headers,
       body: JSON.stringify(form),
     });
-    setSaving(false);
     setDone(true);
     window.location.reload();
-  };
+  });
 
   const set = (k, v) => setForm(prev => ({ ...prev, [k]: v }));
   const field = "w-full border border-[#E2D8C2] dark:border-white/15 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#024396]/30 bg-white dark:bg-white/5 dark:text-[#F1EDE3]";

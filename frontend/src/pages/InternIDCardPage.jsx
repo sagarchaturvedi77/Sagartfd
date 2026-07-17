@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import { Download, Share2 } from "lucide-react";
 import StudentLayout from "../portal/student/StudentLayout";
 import { useInternshipAuth } from "../portal/student/InternshipAuthContext";
+import { useSubmitOnce } from "../lib/useSubmitOnce";
 
 const API_BASE = process.env.REACT_APP_BACKEND_URL || "";
 // Same-origin assets — an external CDN URL sends no CORS headers, which
@@ -52,18 +53,16 @@ export default function InternIDCardPage() {
     return () => { if (revoke) URL.revokeObjectURL(revoke); };
   }, [student?.photo_url, token]);
 
-  if (!student) {
-    return (
-      <StudentLayout activeKey="profile">
-        <div className="text-white/50 text-sm">Loading...</div>
-      </StudentLayout>
-    );
-  }
-
-  const verifyUrl = `${window.location.origin}/verify/intern/${student.intern_id}`;
-  const qrUrl = `${QR_BASE}${encodeURIComponent(verifyUrl)}`;
-
-  const handleDownload = async () => {
+  // useSubmitOnce is a hook, so it must be called unconditionally on every
+  // render — declared here, above the `if (!student) return` below, rather
+  // than beside `verifyUrl`/`qrUrl` further down. The action body still
+  // sees `student` correctly once actually invoked (by click-time this
+  // render has already finished and `student` is loaded, since the button
+  // that triggers this doesn't render until then anyway). No guard existed
+  // before this — added fresh since this fires html2canvas + PDF
+  // generation, and a rapid double-click could otherwise fire it twice
+  // concurrently.
+  const [handleDownload, downloading] = useSubmitOnce(async () => {
     const element = cardRef.current;
     if (!element) return;
     try {
@@ -74,12 +73,23 @@ export default function InternIDCardPage() {
       const imgData = canvas.toDataURL("image/png");
       const pdf = new jsPDF({ orientation: "p", unit: "in", format: [2, 3.5] });
       pdf.addImage(imgData, "PNG", 0, 0, 2, 3.5);
-      pdf.save(`${student.name || "TFD_Intern"}_IDCard.pdf`);
+      pdf.save(`${student?.name || "TFD_Intern"}_IDCard.pdf`);
     } catch (err) {
       console.error(err);
       toast.error("Download failed. Please try again.");
     }
-  };
+  });
+
+  if (!student) {
+    return (
+      <StudentLayout activeKey="profile">
+        <div className="text-white/50 text-sm">Loading...</div>
+      </StudentLayout>
+    );
+  }
+
+  const verifyUrl = `${window.location.origin}/verify/intern/${student.intern_id}`;
+  const qrUrl = `${QR_BASE}${encodeURIComponent(verifyUrl)}`;
 
   const handleShare = async () => {
     if (navigator.share) {
@@ -188,8 +198,8 @@ export default function InternIDCardPage() {
         </div>
 
         <div className="flex gap-3 justify-center flex-wrap pt-2">
-          <button onClick={handleDownload} className="flex items-center gap-1.5 bg-[#14E0A0] hover:bg-[#0FCB8F] text-[#050B16] font-bold text-sm px-5 py-2.5 rounded-xl transition-colors">
-            <Download size={15} /> Download PDF
+          <button onClick={handleDownload} disabled={downloading} className="flex items-center gap-1.5 bg-[#14E0A0] hover:bg-[#0FCB8F] disabled:opacity-50 text-[#050B16] font-bold text-sm px-5 py-2.5 rounded-xl transition-colors">
+            <Download size={15} /> {downloading ? "Downloading..." : "Download PDF"}
           </button>
           <button onClick={handleShare} className="flex items-center gap-1.5 bg-white/10 hover:bg-white/15 text-white font-semibold text-sm px-5 py-2.5 rounded-xl transition-colors">
             <Share2 size={15} /> Share Verify Link

@@ -20,7 +20,7 @@ const NETWORK_KEYWORDS = [
   "TRUSTED", "SAFE", "SECURE", "INDIAN", "BEST", "GENUINE", "STUDENT-FIRST",
   "NO COPY-PASTE", "GPS VERIFIED", "QR CERTIFICATE", "REAL TASKS", "WEEKLY QUIZZES",
   "SKILL RADAR", "LEADERBOARD", "MENTORSHIP", "RECOMMENDATION LETTER", "CORPORATE EXPOSURE",
-  "INSTANT FEEDBACK", "45-90 DAYS",
+  "INSTANT FEEDBACK", "90 DAYS",
 ];
 
 // A drifting particle network (spiderweb effect), viewport-anchored so the
@@ -141,7 +141,7 @@ function NetworkBackground() {
 }
 
 const STATS = [
-  { value: "45-90", label: "Days, Your Choice" },
+  { value: "90", label: "Day Program" },
   { value: "4", label: "Career Tracks" },
   { value: "100%", label: "Verified, Not Just Printed" },
   { value: "0", label: "Chances to Fake It" },
@@ -166,7 +166,7 @@ const VALUE_PROPS = [
 ];
 
 const HOW_WE_WORK = [
-  { icon: ClipboardCheck, title: "Apply & Secure Your Slot", text: "Sign up, pick your track and duration (45, 60, or 90 days), and reserve your seat for the next batch." },
+  { icon: ClipboardCheck, title: "Apply & Secure Your Slot", text: "Sign up, pick your track, and reserve your seat for the next 90-day batch." },
   { icon: Users2, title: "Get Matched With Real Work", text: "Every intern gets their own set of practical, domain-specific tasks — no two journeys are identical." },
   { icon: GraduationCap, title: "Learn, Execute, Get Evaluated", text: "Short practical lessons, real fieldwork, and weekly quizzes keep you progressing day by day." },
   { icon: BadgeCheck, title: "Graduate With a Verified Certificate", text: "Finish your program and receive a certificate with a public QR audit trail employers can verify instantly." },
@@ -187,10 +187,10 @@ const TRACKS = [
   { value: "hr", label: "HR", icon: Heart },
 ];
 
+// One program length now (90 days, ₹5,000) — kept as an array since the
+// pricing card below still maps over it.
 const DURATIONS = [
-  { days: 45, price: 2000, tagline: "A focused sprint — perfect if you're testing the waters." },
-  { days: 60, price: 3000, tagline: "The sweet spot — enough time to go from tasks to real ownership.", popular: true },
-  { days: 90, price: 5000, tagline: "Maximum depth — the strongest resume line and certificate weight." },
+  { days: 90, price: 5000, tagline: "Guided fundamentals, independent execution, and a real capstone project — the full arc, not a shortened preview.", popular: true },
 ];
 
 const SKILLS = [
@@ -213,9 +213,9 @@ const GROWTH_BENEFITS = [
 
 const TIMELINE_MARKERS = [
   { day: 1, label: "Onboarding & Track Selection" },
-  { day: 15, label: "Week 1-2: Core Fundamentals" },
-  { day: 30, label: "Week 3-4: Live Field Missions" },
-  { day: 45, label: "Graduation & Certificate" },
+  { day: 30, label: "Phase 1 Complete: Guided Fundamentals" },
+  { day: 60, label: "Phase 2 Complete: Independent Execution" },
+  { day: 90, label: "Capstone Project, Graduation & Certificate" },
 ];
 
 const MOBILE_SCREENS = [
@@ -330,7 +330,7 @@ function MobileScreenContent({ screen }) {
       <div className="p-3.5 space-y-3">
         <div className="rounded-xl bg-gradient-to-br from-[#14E0A0]/15 to-transparent border border-[#14E0A0]/20 p-3">
           <p className="text-[9px] text-white/50">Program Progress</p>
-          <p className="text-lg font-bold text-white">Day 18 <span className="text-[10px] text-white/40 font-normal">of 45</span></p>
+          <p className="text-lg font-bold text-white">Day 36 <span className="text-[10px] text-white/40 font-normal">of 90</span></p>
           <div className="h-1.5 rounded-full bg-white/10 mt-2 overflow-hidden"><div className="h-full w-[40%] bg-[#14E0A0] rounded-full" /></div>
         </div>
         <div className="grid grid-cols-2 gap-2">
@@ -456,7 +456,7 @@ export default function InternshipLandingPage() {
               transition={{ duration: 0.5, delay: 0.05 }}
               className="inline-block text-[11px] font-bold uppercase tracking-[0.2em] text-[#14E0A0] bg-[#14E0A0]/10 border border-[#14E0A0]/30 rounded-full px-4 py-1.5 mb-6"
             >
-              India's Best Internship Program &middot; 45 / 60 / 90-Day Tracks
+              India's Best Internship Program &middot; 90-Day Program
             </motion.span>
             <motion.h1
               initial={{ opacity: 0, y: 16 }}
@@ -622,7 +622,7 @@ export default function InternshipLandingPage() {
           <div className="max-w-4xl mx-auto">
             <motion.div variants={fadeUp} className="text-center mb-12">
               <h2 className="font-display text-xl sm:text-2xl font-bold mb-2">Your Journey, Mapped Out</h2>
-              <p className="text-white/45 text-xs sm:text-sm">Shown for the 45-day track — the same structure scales up for 60 and 90 days.</p>
+              <p className="text-white/45 text-xs sm:text-sm">Guided fundamentals, independent execution, then a real capstone project — the full 90-day arc.</p>
             </motion.div>
             <div className="relative">
               <div className="absolute left-0 right-0 top-4 h-[3px] bg-white/10 rounded-full hidden sm:block" />
@@ -648,14 +648,14 @@ export default function InternshipLandingPage() {
           </div>
         </Section>
 
-        {/* Choose your duration */}
+        {/* Program duration */}
         <Section>
           <div className="max-w-4xl mx-auto">
             <motion.div variants={fadeUp} className="text-center mb-10">
-              <h2 className="font-display text-xl sm:text-2xl font-bold mb-2">Choose Your Duration</h2>
-              <p className="text-white/45 text-xs sm:text-sm max-w-xl mx-auto">Whatever fits your semester — go deeper the longer you stay.</p>
+              <h2 className="font-display text-xl sm:text-2xl font-bold mb-2">One Program, Done Properly</h2>
+              <p className="text-white/45 text-xs sm:text-sm max-w-xl mx-auto">90 days — enough time to go from guided basics to a real, capstone-level project.</p>
             </motion.div>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
+            <div className="grid grid-cols-1 max-w-xs mx-auto gap-5">
               {DURATIONS.map((d, i) => (
                 <motion.div
                   key={d.days}
@@ -822,7 +822,7 @@ export default function InternshipLandingPage() {
                   <div className="w-11 h-11 rounded-full bg-[#14E0A0]/15 flex items-center justify-center text-[#14E0A0] font-bold text-sm">AS</div>
                   <div>
                     <p className="font-bold text-sm">Aditya Sharma</p>
-                    <p className="text-white/40 text-[11px]">HR Track &middot; 45-Day Program &middot; TFD/INTP/2026/851840</p>
+                    <p className="text-white/40 text-[11px]">HR Track &middot; 90-Day Program &middot; TFD/INTP/2026/851840</p>
                   </div>
                 </div>
                 <div className="mb-1 flex justify-between text-[11px]"><span className="text-white/50">Program Score</span><span className="text-[#14E0A0] font-bold">88.2%</span></div>

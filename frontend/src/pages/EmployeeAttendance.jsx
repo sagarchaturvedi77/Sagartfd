@@ -9,6 +9,7 @@ import StatusBadge from "../components/portal/StatusBadge";
 import PortalModal from "../components/portal/PortalModal";
 import { Button } from "../components/ui/button";
 import { MapPin } from "lucide-react";
+import { useSubmitOnce } from "../lib/useSubmitOnce";
 
 const API_BASE = process.env.REACT_APP_BACKEND_URL || "";
 
@@ -31,7 +32,6 @@ export default function EmployeeAttendance() {
   const [history, setHistory] = useState([]);
   const [month, setMonth] = useState(now.getMonth() + 1);
   const [year, setYear] = useState(now.getFullYear());
-  const [actionLoading, setActionLoading] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
   const [locStatus, setLocStatus] = useState("checking"); // checking | ok | wrong | denied
   const [locMsg, setLocMsg] = useState("");
@@ -91,13 +91,16 @@ export default function EmployeeAttendance() {
     }
   };
 
-  const confirmPunchIn = async () => {
+  // useSubmitOnce guards both punch actions against rapid double-tap —
+  // a duplicate clock-in/out POST hitting the backend twice from a fast
+  // second tap is exactly the kind of double-submit this hook exists to
+  // prevent, same as the lead-status-update and PDF-download fixes.
+  const [confirmPunchIn, punchingIn] = useSubmitOnce(async () => {
     if (locStatus === "wrong" || locStatus === "denied") {
       setShowConfirm(false);
       return;
     }
     setShowConfirm(false);
-    setActionLoading(true);
     const res = await fetch(`${API_BASE}/api/attendance/clock-in`, {
       method: "POST",
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
@@ -109,11 +112,9 @@ export default function EmployeeAttendance() {
     }
     await fetchToday();
     await fetchHistory();
-    setActionLoading(false);
-  };
+  });
 
-  const handleClockOut = async () => {
-    setActionLoading(true);
+  const [handleClockOut, punchingOut] = useSubmitOnce(async () => {
     const loc = await getCurrentLocation();
     const res = await fetch(`${API_BASE}/api/attendance/clock-out`, {
       method: "POST",
@@ -121,8 +122,9 @@ export default function EmployeeAttendance() {
       body: JSON.stringify(loc || {}),
     });
     if (res.ok) { await fetchToday(); await fetchHistory(); }
-    setActionLoading(false);
-  };
+  });
+
+  const actionLoading = punchingIn || punchingOut;
 
   const hasClockedIn = today && today.clock_in;
   const hasClockedOut = today && today.clock_out;
@@ -170,7 +172,9 @@ export default function EmployeeAttendance() {
         <div className="flex gap-3 pt-1">
           <Button variant="outline" className="flex-1" onClick={() => setShowConfirm(false)}>Cancel</Button>
           {locStatus === "ok" && (
-            <Button className="flex-1 bg-[#024396] hover:bg-[#023580]" onClick={confirmPunchIn}>Yes, Punch In</Button>
+            <Button className="flex-1 bg-[#024396] hover:bg-[#023580]" onClick={confirmPunchIn} disabled={punchingIn}>
+              {punchingIn ? "Punching In..." : "Yes, Punch In"}
+            </Button>
           )}
           {(locStatus === "wrong" || locStatus === "denied") && (
             <Button variant="destructive" className="flex-1" onClick={() => setShowConfirm(false)}>OK, Got it</Button>

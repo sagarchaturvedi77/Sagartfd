@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { getVisitorId } from "./AnalyticsTracker";
+import { useSubmitOnce } from "../lib/useSubmitOnce";
 
 const API_BASE = process.env.REACT_APP_BACKEND_URL || "";
 
@@ -58,14 +59,14 @@ export default function WebsiteNotificationPrompt() {
     return () => clearTimeout(timer);
   }, []);
 
-  const allow = async () => {
+  const [allow, isSubmitting] = useSubmitOnce(async () => {
     setShow(false);
     localStorage.setItem("tfd_web_notif_dismissed", "1");
     const perm = await Notification.requestPermission();
     if (perm === "granted") {
       await subscribeWebPush();
     }
-  };
+  });
 
   const dismiss = () => {
     setShow(false);
@@ -95,9 +96,9 @@ export default function WebsiteNotificationPrompt() {
             className="flex-1 py-2 rounded-xl text-xs font-medium text-white/50 border border-white/20 hover:bg-white/5 transition-all">
             Not now
           </button>
-          <button onClick={allow}
-            className="flex-1 py-2 rounded-xl text-xs font-semibold text-white bg-gradient-to-r from-[#024396] to-[#0356c4] hover:from-[#023580] transition-all shadow-lg shadow-[#024396]/25">
-            Allow
+          <button onClick={allow} disabled={isSubmitting}
+            className="flex-1 py-2 rounded-xl text-xs font-semibold text-white bg-gradient-to-r from-[#024396] to-[#0356c4] hover:from-[#023580] transition-all shadow-lg shadow-[#024396]/25 disabled:opacity-60">
+            {isSubmitting ? "Allowing…" : "Allow"}
           </button>
         </div>
       </div>

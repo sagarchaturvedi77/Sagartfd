@@ -12,8 +12,9 @@ const STATUS_LABELS = {
 
 export default function EmployeeLeadsTab({
   batches, openBatch, batchLeads, batchEmpFilter, batchLoading, employees,
-  openBatchDetail, filterBatchByEmp, deleteBatch, assignLead, setOpenBatch, setBatchLeads, setDetailLead,
-  downloadBatchReport,
+  openBatchDetail, filterBatchByEmp, deleteBatch, deletingBatch, assignLead, assigning,
+  setOpenBatch, setBatchLeads, setDetailLead,
+  downloadBatchReport, downloadingBatchReport,
 }) {
   if (openBatch) {
     const columns = [
@@ -26,9 +27,10 @@ export default function EmployeeLeadsTab({
             <select
               value={lead.assigned_to || ""}
               onChange={(e) => e.target.value && assignLead(lead.id, e.target.value)}
-              className="text-xs border border-[#E2D8C2] dark:border-white/15 dark:bg-white/5 dark:text-[#F1EDE3] rounded-lg px-2 py-1.5 text-[#024396] dark:text-[#7CB0FF] bg-white max-w-[160px]"
+              disabled={assigning}
+              className="text-xs border border-[#E2D8C2] dark:border-white/15 dark:bg-white/5 dark:text-[#F1EDE3] rounded-lg px-2 py-1.5 text-[#024396] dark:text-[#7CB0FF] bg-white max-w-[160px] disabled:opacity-60"
             >
-              {!lead.assigned_to && <option value="" disabled>Choose employee</option>}
+              {!lead.assigned_to && <option value="" disabled>{assigning ? "Assigning..." : "Choose employee"}</option>}
               {employees.filter((emp) => emp.is_active !== false).map((emp) => (
                 <option key={emp.id} value={emp.id}>{emp.name}</option>
               ))}
@@ -56,11 +58,11 @@ export default function EmployeeLeadsTab({
               <option value="">All Employees</option>
               {employees.map((emp) => <option key={emp.id} value={emp.id}>{emp.name}</option>)}
             </select>
-            <Button variant="outline" size="sm" onClick={() => downloadBatchReport(openBatch.batch_id)}>
-              <Download size={13} className="mr-1" /> Report
+            <Button variant="outline" size="sm" onClick={() => downloadBatchReport(openBatch.batch_id)} disabled={downloadingBatchReport}>
+              <Download size={13} className="mr-1" /> {downloadingBatchReport ? "Preparing..." : "Report"}
             </Button>
-            <Button variant="destructive" size="sm" onClick={() => deleteBatch(openBatch.batch_id)}>
-              <Trash2 size={13} className="mr-1" /> Delete Batch
+            <Button variant="destructive" size="sm" onClick={() => deleteBatch(openBatch.batch_id)} disabled={deletingBatch}>
+              <Trash2 size={13} className="mr-1" /> {deletingBatch ? "Deleting..." : "Delete Batch"}
             </Button>
           </div>
         </div>
@@ -110,11 +112,11 @@ export default function EmployeeLeadsTab({
                 )}
               </div>
               <div className="flex items-center gap-3 mt-3">
-                <button onClick={() => downloadBatchReport(batch.batch_id)} className="text-[11px] font-medium text-[#024396] dark:text-[#7CB0FF] hover:underline">
-                  ⬇️ Download report
+                <button onClick={() => downloadBatchReport(batch.batch_id)} disabled={downloadingBatchReport} className="text-[11px] font-medium text-[#024396] dark:text-[#7CB0FF] hover:underline disabled:opacity-60">
+                  ⬇️ {downloadingBatchReport ? "Preparing..." : "Download report"}
                 </button>
-                <button onClick={() => deleteBatch(batch.batch_id)} className="text-[11px] font-medium text-red-500 dark:text-red-400 hover:underline">
-                  🗑️ Delete this batch
+                <button onClick={() => deleteBatch(batch.batch_id)} disabled={deletingBatch} className="text-[11px] font-medium text-red-500 dark:text-red-400 hover:underline disabled:opacity-60">
+                  🗑️ {deletingBatch ? "Deleting..." : "Delete this batch"}
                 </button>
               </div>
             </div>

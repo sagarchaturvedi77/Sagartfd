@@ -6,6 +6,7 @@ import DataTable from "../components/portal/DataTable";
 import PortalModal from "../components/portal/PortalModal";
 import { Button } from "../components/ui/button";
 import { Search, Award, FileText, Download, Mail } from "lucide-react";
+import { useSubmitOnce } from "../lib/useSubmitOnce";
 
 const API_BASE = process.env.REACT_APP_BACKEND_URL || "";
 const DEPARTMENTS = ["HR", "Sales", "Marketing", "Accounts"];
@@ -33,7 +34,6 @@ export default function AdminEmployeeList() {
   const [empDetail, setEmpDetail] = useState(null);
   const [editingEmp, setEditingEmp] = useState(false);
   const [empEditForm, setEmpEditForm] = useState({});
-  const [savingEmp, setSavingEmp] = useState(false);
   const [createdCreds, setCreatedCreds] = useState(null); // show credentials after creation
   const [emailState, setEmailState] = useState("idle"); // idle | sending | sent | error
 
@@ -47,7 +47,6 @@ export default function AdminEmployeeList() {
   const [achievementForm, setAchievementForm] = useState({ employee_id: "", title: "", description: "" });
   const [emailCertTarget, setEmailCertTarget] = useState(null);
   const [emailCertAddress, setEmailCertAddress] = useState("");
-  const [sendingCertEmail, setSendingCertEmail] = useState(false);
 
   const fetchCertificates = useCallback(async () => {
     const res = await fetch(`${API_BASE}/api/certificates`, { headers: { Authorization: `Bearer ${token}` } });
@@ -59,7 +58,7 @@ export default function AdminEmployeeList() {
 
   useEffect(() => { fetchCertificates(); }, [fetchCertificates]);
 
-  const submitEmpCert = async (e) => {
+  const [submitEmpCert, submittingEmpCert] = useSubmitOnce(async (e) => {
     e.preventDefault();
     const res = await fetch(`${API_BASE}/api/certificates/employee`, {
       method: "POST",
@@ -71,9 +70,9 @@ export default function AdminEmployeeList() {
       setEmpCertForm({ employee_id: "", department: "Sales", start_date: "", end_date: "" });
       fetchCertificates();
     }
-  };
+  });
 
-  const submitAchievement = async (e) => {
+  const [submitAchievement, submittingAchievement] = useSubmitOnce(async (e) => {
     e.preventDefault();
     const res = await fetch(`${API_BASE}/api/certificates/achievement`, {
       method: "POST",
@@ -85,24 +84,19 @@ export default function AdminEmployeeList() {
       setAchievementForm({ employee_id: "", title: "", description: "" });
       fetchCertificates();
     }
-  };
+  });
 
-  const sendCertEmail = async () => {
-    if (!emailCertAddress.trim() || sendingCertEmail) return;
+  const [sendCertEmail, sendingCertEmail] = useSubmitOnce(async () => {
+    if (!emailCertAddress.trim()) return;
     if (!window.confirm(`Send certificate email to ${emailCertAddress.trim()}?`)) return;
-    setSendingCertEmail(true);
-    try {
-      const res = await fetch(`${API_BASE}/api/certificates/${emailCertTarget.id}/email`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ to_email: emailCertAddress.trim() }),
-      });
-      if (res.ok) { alert("Emailed!"); setEmailCertTarget(null); setEmailCertAddress(""); }
-      else { const err = await res.json().catch(() => ({})); alert(err.detail || "Failed to send"); }
-    } finally {
-      setSendingCertEmail(false);
-    }
-  };
+    const res = await fetch(`${API_BASE}/api/certificates/${emailCertTarget.id}/email`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ to_email: emailCertAddress.trim() }),
+    });
+    if (res.ok) { alert("Emailed!"); setEmailCertTarget(null); setEmailCertAddress(""); }
+    else { const err = await res.json().catch(() => ({})); alert(err.detail || "Failed to send"); }
+  });
 
   const fetchEmployees = useCallback(async () => {
     setLoading(true);
@@ -136,7 +130,7 @@ export default function AdminEmployeeList() {
     });
   }, [employees, search, designationFilter]);
 
-  const handleAddEmployee = async (e) => {
+  const [handleAddEmployee, creating] = useSubmitOnce(async (e) => {
     e.preventDefault();
     setError("");
     const payload = {
@@ -161,7 +155,7 @@ export default function AdminEmployeeList() {
     setForm({ name: "", phone: "", email: "", designation: "", base_salary: "", training_days: "", training_salary: false });
     setShowAddForm(false);
     fetchEmployees();
-  };
+  });
 
   const shareCredsText = () => createdCreds
     ? `TFD Workspace — Welcome ${createdCreds.name}!\n\nUser ID: ${createdCreds.phone}\nPassword: ${createdCreds.password}\n\nLogin here: https://thefinancialdoctor.in/portal/login`
@@ -176,7 +170,11 @@ export default function AdminEmployeeList() {
     alert("Credentials copied!");
   };
 
-  const sendWelcomeEmail = async () => {
+  // emailState ("idle"|"sending"|"sent"|"error") already drives the button's
+  // label/disabled below; the useSubmitOnce ref guard here just closes the
+  // render-timing window so a rapid double-click can't fire two welcome
+  // emails before that first setEmailState("sending") commits.
+  const [sendWelcomeEmail] = useSubmitOnce(async () => {
     if (!createdCreds?.email) return;
     setEmailState("sending");
     try {
@@ -192,9 +190,9 @@ export default function AdminEmployeeList() {
     } catch {
       setEmailState("error");
     }
-  };
+  });
 
-  const resetPassword = async (emp) => {
+  const [resetPassword, resettingPassword] = useSubmitOnce(async (emp) => {
     if (!window.confirm(`Reset password for ${emp.name}?`)) return;
     const res = await fetch(`${API_BASE}/api/auth/employees/${emp.id}/reset-password`, {
       method: "POST",
@@ -204,9 +202,9 @@ export default function AdminEmployeeList() {
       const data = await res.json();
       setCreatedCreds({ phone: data.phone, password: data.new_password, name: data.name });
     }
-  };
+  });
 
-  const toggleLoginAccess = async (emp) => {
+  const [toggleLoginAccess, togglingLogin] = useSubmitOnce(async (emp) => {
     const disabling = emp.is_active !== false;
     const msg = disabling
       ? `Disable login for ${emp.name}? They'll be signed out and won't be able to log back in until you re-enable it.`
@@ -221,9 +219,11 @@ export default function AdminEmployeeList() {
       fetchEmployees();
       if (viewEmp?.id === emp.id) viewEmployee({ ...emp, is_active: !disabling });
     }
-  };
+  });
 
-  const resignEmployee = async (emp) => {
+  // Marks an employee resigned + auto-generates their Experience Letter —
+  // a meaningful, hard-to-undo side effect, so the ref guard matters here.
+  const [resignEmployee, resigning] = useSubmitOnce(async (emp) => {
     if (!window.confirm(
       `Mark ${emp.name} as resigned? This disables their login immediately. An Experience Letter will be ` +
       `auto-generated if they've completed 6+ months with us.`
@@ -244,7 +244,7 @@ export default function AdminEmployeeList() {
       const err = await res.json().catch(() => ({}));
       alert(err.detail || "Failed to mark as resigned");
     }
-  };
+  });
 
   const downloadExperienceLetter = async (cert) => {
     const res = await fetch(`${API_BASE}/api/certificates/${cert.id}/download`, { headers: { Authorization: `Bearer ${token}` } });
@@ -280,28 +280,23 @@ export default function AdminEmployeeList() {
     setEditingEmp(true);
   };
 
-  const saveEmployeeEdit = async () => {
-    if (!viewEmp || savingEmp) return;
-    setSavingEmp(true);
-    try {
-      const res = await fetch(`${API_BASE}/api/employees/${viewEmp.id}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify(empEditForm),
-      });
-      if (res.ok) {
-        const data = await res.json();
-        setEmpDetail((prev) => ({ ...prev, user: data.user, profile: data.profile }));
-        setEditingEmp(false);
-        fetchEmployees();
-      } else {
-        const err = await res.json().catch(() => ({}));
-        alert(err.detail || "Failed to save changes");
-      }
-    } finally {
-      setSavingEmp(false);
+  const [saveEmployeeEdit, savingEmp] = useSubmitOnce(async () => {
+    if (!viewEmp) return;
+    const res = await fetch(`${API_BASE}/api/employees/${viewEmp.id}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+      body: JSON.stringify(empEditForm),
+    });
+    if (res.ok) {
+      const data = await res.json();
+      setEmpDetail((prev) => ({ ...prev, user: data.user, profile: data.profile }));
+      setEditingEmp(false);
+      fetchEmployees();
+    } else {
+      const err = await res.json().catch(() => ({}));
+      alert(err.detail || "Failed to save changes");
     }
-  };
+  });
 
   const formatCurrency = (v) => v ? new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR", maximumFractionDigits: 0 }).format(v) : "-";
   const field = "w-full border border-[#E2D8C2] dark:border-white/15 dark:bg-white/5 dark:text-[#F1EDE3] rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#024396]/30";
@@ -341,7 +336,9 @@ export default function AdminEmployeeList() {
       render: (emp) => (
         <div className="flex items-center gap-3">
           <button onClick={() => viewEmployee(emp)} className="text-xs text-[#024396] hover:underline font-medium">View</button>
-          <button onClick={() => resetPassword(emp)} className="text-xs text-orange-600 hover:underline font-medium">Reset PW</button>
+          <button onClick={() => resetPassword(emp)} disabled={resettingPassword} className="text-xs text-orange-600 hover:underline font-medium disabled:opacity-60">
+            {resettingPassword ? "Resetting..." : "Reset PW"}
+          </button>
         </div>
       ),
     },
@@ -420,8 +417,8 @@ export default function AdminEmployeeList() {
                 {error}
               </p>
             )}
-            <Button type="submit" className="mt-4 bg-[#024396] hover:bg-[#023580] shadow-md shadow-[#024396]/20">
-              Create Employee Account
+            <Button type="submit" disabled={creating} className="mt-4 bg-[#024396] hover:bg-[#023580] shadow-md shadow-[#024396]/20">
+              {creating ? "Creating..." : "Create Employee Account"}
             </Button>
           </form>
         )}
@@ -478,7 +475,9 @@ export default function AdminEmployeeList() {
             <div><label className="text-xs text-[#2A364B]/60 dark:text-[#8E99AC] mb-1 block">Start Date</label><input required type="date" value={empCertForm.start_date} onChange={(e) => setEmpCertForm({ ...empCertForm, start_date: e.target.value })} className={field} /></div>
             <div><label className="text-xs text-[#2A364B]/60 dark:text-[#8E99AC] mb-1 block">End Date (blank = ongoing)</label><input type="date" value={empCertForm.end_date} onChange={(e) => setEmpCertForm({ ...empCertForm, end_date: e.target.value })} className={field} /></div>
           </div>
-          <Button type="submit" className="w-full bg-[#024396] hover:bg-[#023580]">Generate Certificate</Button>
+          <Button type="submit" disabled={submittingEmpCert} className="w-full bg-[#024396] hover:bg-[#023580]">
+            {submittingEmpCert ? "Generating..." : "Generate Certificate"}
+          </Button>
         </form>
       </PortalModal>
 
@@ -490,7 +489,9 @@ export default function AdminEmployeeList() {
           </select>
           <input required placeholder="Title (e.g. Employee of the Month — June 2026) *" value={achievementForm.title} onChange={(e) => setAchievementForm({ ...achievementForm, title: e.target.value })} className={field} />
           <textarea placeholder="Description (optional)" rows={2} value={achievementForm.description} onChange={(e) => setAchievementForm({ ...achievementForm, description: e.target.value })} className={`${field} resize-none`} />
-          <Button type="submit" className="w-full bg-[#024396] hover:bg-[#023580]">Add Achievement</Button>
+          <Button type="submit" disabled={submittingAchievement} className="w-full bg-[#024396] hover:bg-[#023580]">
+            {submittingAchievement ? "Adding..." : "Add Achievement"}
+          </Button>
         </form>
       </PortalModal>
 
@@ -578,9 +579,10 @@ export default function AdminEmployeeList() {
                   size="sm"
                   variant="outline"
                   onClick={() => toggleLoginAccess({ id: viewEmp.id, name: viewEmp.name, is_active: empDetail.user?.is_active })}
+                  disabled={togglingLogin}
                   className={empDetail.user?.is_active === false ? "text-emerald-600 border-emerald-200 hover:bg-emerald-50" : "text-red-600 border-red-200 hover:bg-red-50"}
                 >
-                  {empDetail.user?.is_active === false ? "Enable Login" : "Disable Login"}
+                  {togglingLogin ? "Updating..." : empDetail.user?.is_active === false ? "Enable Login" : "Disable Login"}
                 </Button>
               </div>
               {empDetail.user?.is_active !== false && (
@@ -588,9 +590,10 @@ export default function AdminEmployeeList() {
                   size="sm"
                   variant="outline"
                   onClick={() => resignEmployee({ id: viewEmp.id, name: viewEmp.name })}
+                  disabled={resigning}
                   className="w-full text-orange-600 border-orange-200 hover:bg-orange-50"
                 >
-                  Mark as Resigned
+                  {resigning ? "Processing..." : "Mark as Resigned"}
                 </Button>
               )}
             </div>
