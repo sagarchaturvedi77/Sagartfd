@@ -21,6 +21,16 @@ export const STATUS_BADGE = {
   draft: { label: "Draft Saved", icon: FileEdit, cls: "bg-white/10 text-white/60 border-white/20" },
 };
 
+// Soft, best-effort deterrent only (same posture as AntiCheatTextarea below)
+// — blocks copy/cut/right-click-copy/drag-out of the task's read-only
+// content (brief, instructions, why-it-matters, etc.), not just the answer
+// inputs. Spread onto a wrapper div alongside the `select-none` Tailwind
+// class; browsers already exempt <input>/<textarea> descendants from an
+// ancestor's user-select:none, so typing in AntiCheatTextarea/SpreadsheetGrid
+// underneath is unaffected.
+const _blockCopy = (e) => e.preventDefault();
+export const NO_COPY_PROPS = { onCopy: _blockCopy, onCut: _blockCopy, onContextMenu: _blockCopy, onDragStart: _blockCopy };
+
 // Soft, best-effort deterrent only — not real DRM. See PRD notes: a
 // determined user can still bypass this by typing pasted text manually.
 export function AntiCheatTextarea({ value, onChange, placeholder, rows = 5 }) {
@@ -104,7 +114,7 @@ export function LanguageToggle({ taskId, token, englishText, disabled }) {
             lang === "hindi" ? "bg-[#14E0A0]/20 border-[#14E0A0] text-[#14E0A0]" : "bg-white/5 border-white/15 text-white/60 hover:border-white/30"
           }`}
         >
-          <Languages size={11} /> {loading ? "Loading..." : "हिंग्लिश"}
+          <Languages size={11} /> {loading ? "Loading..." : "Hinglish"}
         </button>
       </div>
       <p className="text-white/75 text-sm leading-relaxed whitespace-pre-line">{lang === "hindi" && hindiText ? hindiText : englishText}</p>

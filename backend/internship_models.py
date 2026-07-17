@@ -213,7 +213,11 @@ VerifiedBy = Literal["ai", "admin"]
 # 1 = guided (Day 1-30), 2 = independent (Day 31-60), 3 = capstone (Day 61-90+)
 # — mirrors a real career progression. Optional/nullable so tracks not yet
 # reworked onto the curated pool (see _assign_week_tasks's phase_tagged
-# check) keep behaving exactly as before.
+# check) keep behaving exactly as before. Phase 3 has two flavours,
+# distinguished by the separate `is_blindfold` flag below rather than a 4th
+# phase number — "3B / Grand Finale" is still phase 3 (same day range), just
+# with hints/sample-solution/Hinglish stripped and a moderately (not
+# perfectionist-ly) higher grading bar. See _phase_for_week.
 TaskPhase = Literal[1, 2, 3]
 
 
@@ -230,6 +234,11 @@ class TaskPoolIn(BaseModel):
     estimated_duration: Optional[str] = None  # e.g. "20-30 mins", "1-2 hours"
     is_active: bool = True
     phase: Optional[TaskPhase] = None
+    # "Grand Finale / Blindfold" — a phase-3 task done independently with no
+    # hints, no sample solution, and English-locked (see _to_task_pool_out,
+    # LanguageToggle's disabled prop). Grading is moderately stricter, not
+    # perfectionist — see _auto_verify_spreadsheet/_auto_verify_text.
+    is_blindfold: bool = False
     # Starter grid data (rows/cols/headers/prefilled/locked_cells) for
     # "spreadsheet"/"text_and_spreadsheet" tasks — see SpreadsheetGrid.jsx.
     spreadsheet_template: Optional[dict] = None
@@ -247,6 +256,13 @@ class TaskPoolIn(BaseModel):
     # the auto-grader's own reason — not just a score, an explanation of
     # what actually goes wrong in a real job if this mistake ships.
     mistake_explanation: Optional[str] = None
+    # 2-3 progressively-revealing hints, admin-authored — stripped from the
+    # student-facing TaskPoolOut for blindfold tasks (see _to_task_pool_out).
+    hints: Optional[list[str]] = None
+    # A worked-example explanation students can peek at on demand — same
+    # blindfold-stripping as hints. Not a graded field; free text, can
+    # reference formulas/values in prose for spreadsheet tasks.
+    sample_solution: Optional[str] = None
 
 
 class TaskPoolOut(BaseModel):
@@ -265,8 +281,13 @@ class TaskPoolOut(BaseModel):
     is_active: bool
     created_at: datetime
     phase: Optional[TaskPhase] = None
+    is_blindfold: bool = False
     spreadsheet_template: Optional[dict] = None
     mistake_explanation: Optional[str] = None
+    # Both stripped to None for blindfold tasks before this reaches the
+    # student — see _to_task_pool_out in internship_routes.py.
+    hints: Optional[list[str]] = None
+    sample_solution: Optional[str] = None
 
 
 class TaskPoolAdminOut(TaskPoolOut):

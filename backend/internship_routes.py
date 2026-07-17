@@ -1311,26 +1311,24 @@ def _auto_verify_spreadsheet(task: dict, spreadsheet_data: dict) -> tuple[bool, 
 # — generated once per task via Gemini and cached on the task_pool doc, not
 # regenerated on every request.
 
-_VOICE_EXPLAIN_SYSTEM_PROMPT = """You are creating a short spoken audio-script explanation of a task for a
-college-age intern, in two languages, so it can be read aloud by a text-to-speech engine.
+_VOICE_EXPLAIN_SYSTEM_PROMPT = """You are writing a short, easy-to-read explanation of a task for a
+college-age intern, in two versions: plain English, and Hinglish.
 
 Respond in EXACTLY this format, nothing else — two lines, each starting with the exact label shown:
-ENGLISH: <a short spoken-style English explanation, 70-110 words>
-HINDI: <a short spoken-style Hindi explanation, 90-140 words, written in Devanagari script>
+ENGLISH: <a short, clear English explanation, 70-110 words>
+HINDI: <a short Hinglish explanation, 90-140 words — Hindi written in ROMAN/ENGLISH LETTERS, NOT Devanagari script>
 
 Rules for both:
 - Cover: what this task is about, exactly what the student needs to do, and roughly how to submit it.
-- Write it as natural spoken sentences a mentor would say out loud — NOT bullet points, NOT "Step 1/Step 2"
-  headers, no markdown.
-- Keep sentences short and simple so a TTS engine reads them clearly.
+- Write it as natural, friendly sentences — NOT bullet points, NOT "Step 1/Step 2" headers, no markdown.
 
-Rules for the Hindi version specifically:
-- Use simple, everyday conversational Hindi — the kind actually spoken by a non-fluent-in-English Indian
-  college student, not formal/literary/Sanskritized Hindi.
-- It's completely fine to naturally mix in common English words the way people actually talk (Hinglish),
-  especially for technical terms (e.g. "task", "submit", "photo", "location") — don't force awkward pure-Hindi
-  translations of these.
-- The goal is maximum easy understanding, not linguistic purity.
+Rules for the Hinglish version specifically:
+- MUST be written entirely in Roman/English letters (e.g. "Aapko yeh task karna hai..."), never in Devanagari
+  (हिन्दी) script — this is Hinglish, the way Indian college students actually text each other, not Hindi.
+- Use simple, everyday conversational Hindi words spelled phonetically in English, freely mixed with common
+  English words the way people actually talk, especially for technical terms (e.g. "task", "submit", "photo",
+  "location") — don't force awkward pure-Hindi translations of these.
+- The goal is maximum easy understanding for a non-fluent-in-English student, not linguistic purity.
 """
 
 

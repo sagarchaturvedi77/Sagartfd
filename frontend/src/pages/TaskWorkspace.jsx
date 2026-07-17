@@ -9,7 +9,7 @@ import StudentLayout from "../portal/student/StudentLayout";
 import { useInternshipAuth } from "../portal/student/InternshipAuthContext";
 import { getCurrentLocation } from "../portal/api";
 import { useSubmitOnce } from "../lib/useSubmitOnce";
-import { DIFFICULTY_STYLES, AntiCheatTextarea, Section, LanguageToggle } from "../portal/student/taskUi";
+import { DIFFICULTY_STYLES, AntiCheatTextarea, Section, LanguageToggle, NO_COPY_PROPS } from "../portal/student/taskUi";
 import SpreadsheetGrid from "../components/SpreadsheetGrid";
 import { buildSubmissionPayload } from "../lib/miniSpreadsheet";
 
@@ -225,7 +225,7 @@ export default function TaskWorkspace() {
 
   return (
     <StudentLayout activeKey="missions">
-      <div className="max-w-3xl mx-auto space-y-5 pb-10">
+      <div className="max-w-3xl mx-auto space-y-5 pb-10 select-none" {...NO_COPY_PROPS}>
         <button onClick={() => navigate("/portal/student/missions")} className="flex items-center gap-1.5 text-xs font-semibold text-white/50 hover:text-white transition-colors">
           <ArrowLeft size={14} /> Back to Missions
         </button>
