@@ -2,8 +2,7 @@ import React from "react";
 import { Award, BadgeCheck } from "lucide-react";
 import Reveal from "@/components/Reveal";
 
-const AWARD =
-    "https://customer-assets.emergentagent.com/job_wealth-advisor-111/artifacts/xqwjwi4k_IMG_9401.jpeg";
+const AWARD = "/assets/founder/sagar-award.webp";
 
 const bullets = [
     "AMFI-registered Mutual Fund Distributor (ARN-290298)",
@@ -26,6 +25,8 @@ export default function About() {
                                 src={AWARD}
                                 alt="Sagar Chaturvedi receiving the Investment Awareness Excellence Award"
                                 className="w-full h-auto object-cover"
+                                width={900}
+                                height={883}
                                 loading="lazy"
                             />
                             <div className="absolute top-4 right-4 inline-flex items-center gap-1.5 bg-[#C7102E] text-white px-3 py-1.5 rounded-full text-xs font-medium">

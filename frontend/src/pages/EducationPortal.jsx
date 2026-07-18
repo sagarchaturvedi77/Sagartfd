@@ -10,8 +10,7 @@ import SEO from "@/components/SEO";
    - NO backend / payment API calls yet — everything is frontend-only on purpose.
    ============================================================ */
 
-const TFD_LOGO =
-    "https://customer-assets.emergentagent.com/job_advisor-phase4-build/artifacts/buhrts3f_IMG_2870.png";
+const TFD_LOGO = "/assets/logos/TFD-MAIN-LOGO.webp";
 
 const PLANS = [
     {
@@ -196,7 +195,7 @@ export default function EducationPortal() {
             <header className="border-b border-white/10">
                 <div className="max-w-6xl mx-auto px-5 py-6 flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                        <img src={TFD_LOGO} alt="TFD" className="h-10 w-auto bg-white rounded-md p-1" />
+                        <img src={TFD_LOGO} alt="TFD" width={900} height={235} loading="lazy" className="h-10 w-auto bg-white rounded-md p-1" />
                         <div>
                             <div className="font-semibold text-lg leading-tight">The Financial Doctor</div>
                             <div className="text-[11px] tracking-[0.18em] uppercase text-[#9AA4B2]">

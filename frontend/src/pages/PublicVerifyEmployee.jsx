@@ -7,7 +7,7 @@ import React, { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 
 const API_BASE = process.env.REACT_APP_BACKEND_URL || "";
-const LOGO_URL = "https://customer-assets.emergentagent.com/job_advisor-phase4-build/artifacts/buhrts3f_IMG_2870.png";
+const LOGO_URL = "/assets/logos/TFD-MAIN-LOGO.webp";
 
 export default function PublicVerifyEmployee() {
   const { employee_id } = useParams();

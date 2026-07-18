@@ -4,7 +4,7 @@ import { toast } from "sonner";
 import { useSubmitOnce } from "../lib/useSubmitOnce";
 import SEO from "../components/SEO";
 
-const LOGO_URL = "https://customer-assets.emergentagent.com/job_advisor-phase4-build/artifacts/buhrts3f_IMG_2870.png";
+const LOGO_URL = "/assets/logos/TFD-MAIN-LOGO.webp";
 
 // Cloudinary config (unsigned upload preset — safe for client-side use)
 const CLOUDINARY_CLOUD_NAME = "dq6g81hma";
@@ -251,6 +251,9 @@ export default function CareerPage() {
             <img
               src={LOGO_URL}
               alt="The Financial Doctor"
+              width={900}
+              height={235}
+              loading="lazy"
               className="h-12 sm:h-14 w-auto object-contain shrink-0 bg-white p-1 rounded-xl border border-[#E2D8C2]"
             />
             <div>

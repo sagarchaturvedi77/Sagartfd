@@ -9,7 +9,7 @@ import { toast } from "sonner";
 import { useSubmitOnce } from "../../lib/useSubmitOnce";
 
 const API_BASE = process.env.REACT_APP_BACKEND_URL || "";
-const MAIN_LOGO_URL = "/assets/logos/TFD-MAIN-LOGO.png";
+const MAIN_LOGO_URL = "/assets/logos/TFD-MAIN-LOGO.webp";
 const INTERNSHIP_LOGO_URL = "/assets/logos/TFD-INTERNSHIP-LOGO.png";
 
 const NAV_ITEMS = [

@@ -17,8 +17,8 @@ self.addEventListener("push", (event) => {
   event.waitUntil(
     self.registration.showNotification(title, {
       body: payload.body || "",
-      icon: "/tfd-workspace-logo.png",
-      badge: "/tfd-workspace-logo.png",
+      icon: "/assets/logos/TFD-WORKSPACE-ICON-192.png",
+      badge: "/assets/logos/TFD-WORKSPACE-ICON-192.png",
       data: { url: payload.url || "/" },
     })
   );

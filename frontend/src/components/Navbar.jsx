@@ -4,7 +4,7 @@ import { Menu, X } from "lucide-react";
 import { IDS } from "../constants/testIds";
 import { useModal } from "../context/ModalContext";
 
-const LOGO_URL = "https://customer-assets.emergentagent.com/job_advisor-phase4-build/artifacts/buhrts3f_IMG_2870.png";
+const LOGO_URL = "/assets/logos/TFD-MAIN-LOGO.webp";
 
 // 🎯 Every section now has its own dedicated page + URL
 const links = [
@@ -56,6 +56,9 @@ export default function Navbar() {
             src={LOGO_URL}
             alt="The Financial Doctor"
             className="h-12 sm:h-14 w-auto object-contain shrink-0"
+            width={900}
+            height={235}
+            fetchpriority="high"
           />
         </a>
 

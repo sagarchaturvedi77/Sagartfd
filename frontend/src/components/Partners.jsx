@@ -42,10 +42,13 @@ export default function Partners() {
           {amcList.map((amc, idx) => (
             <div key={`amc-1-${idx}`} className="flex items-center gap-4 bg-white px-6 py-3 rounded-xl shadow-sm border border-[#E2D8C2] min-w-[260px]">
               <div className="w-10 h-10 rounded-lg overflow-hidden flex items-center justify-center bg-white p-1 border border-[#F0EAE1]">
-                <img 
-                  src={amc.logo} 
+                <img
+                  src={amc.logo}
                   alt={amc.name}
                   className="w-full h-full object-contain"
+                  width={40}
+                  height={40}
+                  loading="lazy"
                   onError={(e) => {
                     // Fallback agar koi image network slow hone se load na ho
                     e.target.style.display = 'none';
@@ -64,10 +67,13 @@ export default function Partners() {
           {amcList.map((amc, idx) => (
             <div key={`amc-2-${idx}`} className="flex items-center gap-4 bg-white px-6 py-3 rounded-xl shadow-sm border border-[#E2D8C2] min-w-[260px]" aria-hidden="true">
               <div className="w-10 h-10 rounded-lg overflow-hidden flex items-center justify-center bg-white p-1 border border-[#F0EAE1]">
-                <img 
-                  src={amc.logo} 
+                <img
+                  src={amc.logo}
                   alt={amc.name}
                   className="w-full h-full object-contain"
+                  width={40}
+                  height={40}
+                  loading="lazy"
                   onError={(e) => {
                     e.target.style.display = 'none';
                     e.target.nextSibling.style.display = 'flex';

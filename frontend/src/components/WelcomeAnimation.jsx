@@ -24,8 +24,10 @@ export default function WelcomeAnimation({ userName, onComplete }) {
           className={`transition-all duration-700 ease-out ${phase >= 0 ? "opacity-100 scale-100 translate-y-0" : "opacity-0 scale-75 translate-y-4"}`}
         >
           <img
-            src="/tfd-workspace-logo.png"
+            src="/assets/logos/TFD-WORKSPACE-LOGO.webp"
             alt="TFD Workspace"
+            width={700}
+            height={482}
             className="h-32 sm:h-40 mx-auto object-contain drop-shadow-2xl"
           />
         </div>

@@ -2,8 +2,8 @@ import React from "react";
 import { Link } from "react-router-dom";
 import { Instagram, Youtube, Linkedin, MessageCircle, Sparkles, ShieldCheck } from "lucide-react";
 
-const LOGO_URL = "/assets/logos/TFD-MAIN-LOGO.png";
-const WORKSPACE_LOGO_URL = "/assets/logos/TFD-WORKSPACE-LOGO.png";
+const LOGO_URL = "/assets/logos/TFD-MAIN-LOGO.webp";
+const WORKSPACE_LOGO_URL = "/assets/logos/TFD-WORKSPACE-LOGO.webp";
 const PARTNER_LOGO_URL = "/assets/logos/TFD-PARTNERHUB-LOGO.png";
 const INTERNSHIP_LOGO_URL = "/assets/logos/TFD-INTERNSHIP-LOGO.png";
 
@@ -17,6 +17,9 @@ export default function Footer() {
                             src={LOGO_URL}
                             alt="The Financial Doctor"
                             className="h-14 w-auto object-contain bg-[#F6F1E8] rounded-lg p-1.5"
+                            width={900}
+                            height={235}
+                            loading="lazy"
                         />
                         <div>
                             <div className="font-display text-[#F6F1E8] text-lg leading-none">

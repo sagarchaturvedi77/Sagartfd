@@ -14,12 +14,14 @@ export default function BrandLogo({ className = "h-10", rounded = false, variant
     );
   }
 
-  const src = variant === "workspace" ? "/tfd-workspace-logo.png" : "/tfd-logo.png";
+  const src = variant === "workspace" ? "/assets/logos/TFD-WORKSPACE-LOGO.webp" : "/assets/logos/TFD-MAIN-LOGO.webp";
 
   return (
     <img
       src={src}
       alt="TFD Workspace"
+      width={700}
+      height={482}
       onError={() => setFailed(true)}
       className={`${className} object-contain ${rounded ? "rounded-xl" : ""} ${
         animate ? "animate-in fade-in-0 zoom-in-95 slide-in-from-top-2 duration-700 ease-out drop-shadow-[0_4px_18px_rgba(2,67,150,0.35)]" : ""

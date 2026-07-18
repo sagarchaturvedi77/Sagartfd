@@ -4,7 +4,7 @@ import { IDS } from "@/constants/testIds";
 // 🛠️ Step 1: Hook Import
 import { useModal } from "../context/ModalContext";
 
-const SAGAR_PHOTO = "https://customer-assets.emergentagent.com/job_wealth-advisor-111/artifacts/1dwkpp48_D3037D99-4115-4778-83D8-907655A401FD.png";
+const SAGAR_PHOTO = "/assets/founder/sagar-photo.webp";
 
 export default function Hero() {
   // 🛠️ Step 2: Open function extract kiya
@@ -59,7 +59,15 @@ export default function Hero() {
             <div className="absolute -inset-6 rounded-[2.5rem] bg-[#024396]/10 -rotate-2" />
             <div className="absolute -inset-4 rounded-[2.5rem] bg-[#C7102E]/10 rotate-1" />
             <div className="relative rounded-[2.5rem] overflow-hidden border border-[#E2D8C2] bg-[#FBF7EE]">
-              <img src={SAGAR_PHOTO} alt="Sagar Chaturvedi — Founder, The Financial Doctor" className="w-full h-auto object-cover" loading="eager" />
+              <img
+                src={SAGAR_PHOTO}
+                alt="Sagar Chaturvedi — Founder, The Financial Doctor"
+                className="w-full h-auto object-cover"
+                width={920}
+                height={1264}
+                loading="eager"
+                fetchpriority="high"
+              />
               <div className="absolute top-4 left-4 inline-flex items-center gap-2 bg-[#0E1B2C]/85 backdrop-blur text-[#F6F1E8] px-3 py-1.5 rounded-full text-xs">
                 <Stethoscope size={12} /> Founder
               </div>
