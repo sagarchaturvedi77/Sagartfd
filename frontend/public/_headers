@@ -15,3 +15,22 @@
 # what keeps the site fast; only the HTML shell above needs to stay fresh.
 /static/*
   Cache-Control: public, max-age=31536000, immutable
+
+# Service worker scripts must never be cached and must be served as JavaScript
+# (not the SPA index.html the "/*" _redirects fallback would otherwise return).
+# The old-path workers (sw.js / service-worker.js / firebase-messaging-sw.js)
+# are self-destruct kill switches for orphaned workers from earlier iterations;
+# web-push-sw.js is the current, active push worker. All must be revalidated on
+# every update check so returning visitors always get the latest script.
+/sw.js
+  Content-Type: application/javascript
+  Cache-Control: no-cache, no-store, must-revalidate
+/service-worker.js
+  Content-Type: application/javascript
+  Cache-Control: no-cache, no-store, must-revalidate
+/firebase-messaging-sw.js
+  Content-Type: application/javascript
+  Cache-Control: no-cache, no-store, must-revalidate
+/web-push-sw.js
+  Content-Type: application/javascript
+  Cache-Control: no-cache, no-store, must-revalidate
