@@ -78,12 +78,6 @@ export default function AIChat() {
         return () => window.removeEventListener("tfd:open-ai-chat", onOpen);
     }, []);
 
-    useEffect(() => {
-        if (scrollRef.current) {
-            scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
-        }
-    }, [messages, streaming]);
-
     const [send, streaming] = useSubmitOnce(async (text) => {
         const msg = (text ?? input).trim();
         if (!msg) return;
@@ -156,6 +150,12 @@ export default function AIChat() {
             });
         }
     });
+
+    useEffect(() => {
+        if (scrollRef.current) {
+            scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+        }
+    }, [messages, streaming]);
 
     // Generates the html2canvas of the snapshot DOM. Reused by PNG and PDF flows.
     const _renderSnapshotCanvas = async () => {
