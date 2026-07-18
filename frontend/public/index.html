@@ -14,7 +14,19 @@
         <meta name="apple-mobile-web-app-title" content="TFD WorkSpace" />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+
+        <!-- Preload the two latin-charset font files actually used above the
+             fold (Fraunces 500 for headings, DM Sans 400 for body) so the
+             browser fetches them in parallel with the Google Fonts CSS
+             instead of waiting to discover them after it parses that CSS. -->
+        <link rel="preload" as="font" type="font/woff2" crossorigin href="https://fonts.gstatic.com/s/fraunces/v38/6NU78FyLNQOQZAnv9bYEvDiIdE9Ea92uemAk_WBq8U_9v0c2Wa0KxC9TeP2Xz5c.woff2" />
+        <link rel="preload" as="font" type="font/woff2" crossorigin href="https://fonts.gstatic.com/s/dmsans/v17/rP2Hp2ywxg089UriCZOIHTWEBlw.woff2" />
         <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Instrument+Serif:ital@0;1&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&display=swap" rel="stylesheet" />
+
+        <!-- LCP element on the homepage is the hero founder photo — preload it
+             so the browser fetches it immediately while parsing this document,
+             instead of waiting for React to mount and discover the <img> tag. -->
+        <link rel="preload" as="image" href="/assets/founder/sagar-photo.webp" fetchpriority="high" />
         <title>The Financial Doctor | Mutual Fund, SIP &amp; Insurance Plans</title>
 
         <!-- Open Graph / Twitter — static baseline for link-preview bots
@@ -65,13 +77,22 @@
         }
         </script>
 
-        <!-- Google Analytics GA4 -->
-        <script async src="https://www.googletagmanager.com/gtag/js?id=G-BSMNKJ97HM"></script>
+        <!-- Google Analytics GA4 — loaded after window "load" instead of
+             eagerly in <head>, so it doesn't compete for bandwidth with the
+             hero image/fonts/JS bundle during the critical rendering path.
+             dataLayer.push still queues calls correctly however late the
+             actual gtag.js script arrives. -->
         <script>
           window.dataLayer = window.dataLayer || [];
           function gtag(){dataLayer.push(arguments);}
           gtag('js', new Date());
           gtag('config', 'G-BSMNKJ97HM');
+          window.addEventListener("load", function () {
+            var s = document.createElement("script");
+            s.async = true;
+            s.src = "https://www.googletagmanager.com/gtag/js?id=G-BSMNKJ97HM";
+            document.head.appendChild(s);
+          });
         </script>
 
         <script>window.addEventListener("error",function(e){if(e.error instanceof DOMException&&e.error.name==="DataCloneError"&&e.message&&e.message.includes("PerformanceServerTiming")){e.stopImmediatePropagation();e.preventDefault()}},true);</script>
