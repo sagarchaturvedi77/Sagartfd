@@ -69,7 +69,7 @@ const MOBILE_PRIMARY_KEYS = {
 };
 
 const API_BASE = process.env.REACT_APP_BACKEND_URL || "";
-const POLL_MS = 5000;
+const POLL_MS = 15000;
 
 export default function PortalLayout({ children }) {
   const { user, logout, token } = useAuth();
@@ -147,8 +147,34 @@ export default function PortalLayout({ children }) {
 
   useEffect(() => {
     loadPopupChat();
-    const t = setInterval(loadPopupChat, POLL_MS);
-    return () => clearInterval(t);
+    // Only poll while the tab is actually visible — a backgrounded tab
+    // gains nothing from a chat refresh nobody's looking at, and this was
+    // previously running every 5s on every portal page, all day, whether
+    // the tab was in front of the user or not.
+    let t = null;
+    const startPolling = () => {
+      if (t) return;
+      t = setInterval(loadPopupChat, POLL_MS);
+    };
+    const stopPolling = () => {
+      if (!t) return;
+      clearInterval(t);
+      t = null;
+    };
+    const handleVisibility = () => {
+      if (document.visibilityState === "visible") {
+        loadPopupChat();
+        startPolling();
+      } else {
+        stopPolling();
+      }
+    };
+    if (document.visibilityState === "visible") startPolling();
+    document.addEventListener("visibilitychange", handleVisibility);
+    return () => {
+      stopPolling();
+      document.removeEventListener("visibilitychange", handleVisibility);
+    };
   }, [loadPopupChat]);
 
   useEffect(() => {

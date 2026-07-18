@@ -1,4 +1,4 @@
-import React, { createContext, useState, useContext } from "react";
+import React, { createContext, useState, useContext, useCallback, useMemo } from "react";
 import { LogIn, UserPlus, X, ShieldCheck } from "lucide-react";
 
 const ModalContext = createContext();
@@ -6,11 +6,15 @@ const ModalContext = createContext();
 export function ModalProvider({ children }) {
   const [isOpen, setIsOpen] = useState(false);
 
-  const openGateway = () => setIsOpen(true);
-  const closeGateway = () => setIsOpen(false);
+  const openGateway = useCallback(() => setIsOpen(true), []);
+  const closeGateway = useCallback(() => setIsOpen(false), []);
+  // ModalProvider wraps the entire public site (see App.js) — an unstable
+  // value object here meant every page using useModal() (Navbar, Hero, ...)
+  // re-rendered whenever ModalProvider did, for no functional reason.
+  const value = useMemo(() => ({ openGateway }), [openGateway]);
 
   return (
-    <ModalContext.Provider value={{ openGateway }}>
+    <ModalContext.Provider value={value}>
       {children}
       
       {/* 🎯 Central Custom Popup Gateway Panel */}

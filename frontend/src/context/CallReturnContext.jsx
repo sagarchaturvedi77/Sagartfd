@@ -84,8 +84,10 @@ export function CallReturnProvider({ children }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  const value = React.useMemo(() => ({ startCall }), [startCall]);
+
   return (
-    <CallReturnContext.Provider value={{ startCall }}>
+    <CallReturnContext.Provider value={value}>
       {children}
       {outcomeLead && token && (
         <CallFlowPopup

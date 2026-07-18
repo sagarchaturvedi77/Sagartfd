@@ -105,7 +105,7 @@ export function AuthProvider({ children }) {
     return () => clearInterval(interval);
   }, [token]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const login = async (phone, password) => {
+  const login = React.useCallback(async (phone, password) => {
     const res = await fetch(`${API_BASE}/api/auth/login`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -135,19 +135,26 @@ export function AuthProvider({ children }) {
     setToken(data.access_token);
     setUser(data.user);
     return data.user;
-  };
+  }, []);
 
-  const logout = () => {
+  const logout = React.useCallback(() => {
     localStorage.removeItem("tfd_token");
     setToken(null);
     setUser(null);
-  };
+  }, []);
 
-  return (
-    <AuthContext.Provider value={{ user, token, loading, login, logout, profileCompleted, profileChecked, refreshProfileStatus }}>
-      {children}
-    </AuthContext.Provider>
+  // Memoized so this object's reference only changes when one of its actual
+  // values does — without this, every re-render of AuthProvider (which
+  // wraps the entire staff portal) handed every single useAuth() consumer a
+  // brand-new value object, forcing all of them to re-render too, even when
+  // nothing they actually use had changed. login/logout/refreshProfileStatus
+  // are themselves stable via useCallback above for the same reason.
+  const value = React.useMemo(
+    () => ({ user, token, loading, login, logout, profileCompleted, profileChecked, refreshProfileStatus }),
+    [user, token, loading, login, logout, profileCompleted, profileChecked, refreshProfileStatus]
   );
+
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 
 export function useAuth() {

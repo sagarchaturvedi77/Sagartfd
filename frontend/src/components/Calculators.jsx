@@ -459,34 +459,25 @@ function isCanvasActuallyDrawn(canvasEl) {
             if (data[i] < 240 || data[i + 1] < 240 || data[i + 2] < 240) return true;
         }
         return false;
-    } catch (e) {
-        console.log("[QR-DEBUG] getImageData error:", e);
+    } catch {
         return false;
     }
 }
 
 useEffect(() => {
-    console.log("[QR-DEBUG] effect started, wrapper ref:", qrCanvasWrapRef.current);
     let attempts = 0;
     const interval = setInterval(() => {
         attempts++;
         const wrapper = qrCanvasWrapRef.current;
         const canvasEl = wrapper ? wrapper.querySelector("canvas") : null;
-        console.log("[QR-DEBUG] attempt", attempts, "wrapper:", !!wrapper, "canvas found:", !!canvasEl, canvasEl ? `${canvasEl.width}x${canvasEl.height}` : "");
-        if (canvasEl) {
-            const drawn = isCanvasActuallyDrawn(canvasEl);
-            console.log("[QR-DEBUG] isDrawn:", drawn);
-            if (drawn) {
-                const url = buildQrBadgeDataUrl(canvasEl);
-                console.log("[QR-DEBUG] SUCCESS, url length:", url.length);
-                qrDataUrlRef.current = url;
-                setQrDataUrl(url);
-                clearInterval(interval);
-                return;
-            }
+        if (canvasEl && isCanvasActuallyDrawn(canvasEl)) {
+            const url = buildQrBadgeDataUrl(canvasEl);
+            qrDataUrlRef.current = url;
+            setQrDataUrl(url);
+            clearInterval(interval);
+            return;
         }
         if (attempts >= 25) {
-            console.log("[QR-DEBUG] GAVE UP after 25 attempts");
             clearInterval(interval);
         }
     }, 200);

@@ -6,8 +6,9 @@ const LanguageContext = createContext();
 
 export function LanguageProvider({ children }) {
   const [lang, setLang] = useState("en"); // "en" | "hi" | "hinglish"
+  const value = React.useMemo(() => ({ lang, setLang }), [lang]);
   return (
-    <LanguageContext.Provider value={{ lang, setLang }}>
+    <LanguageContext.Provider value={value}>
       {children}
     </LanguageContext.Provider>
   );
