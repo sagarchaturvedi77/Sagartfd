@@ -66,13 +66,13 @@ export function InternshipAuthProvider({ children }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token]);
 
-  const setSession = (accessToken, studentObj) => {
+  const setSession = React.useCallback((accessToken, studentObj) => {
     localStorage.setItem(TOKEN_KEY, accessToken);
     setToken(accessToken);
     setStudent(studentObj);
-  };
+  }, []);
 
-  const login = async (phone, password) => {
+  const login = React.useCallback(async (phone, password) => {
     const res = await fetch(`${API_BASE}/api/internship/login`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -82,19 +82,27 @@ export function InternshipAuthProvider({ children }) {
     if (!res.ok) throw new Error(data.detail || "Login failed");
     setSession(data.access_token, data.student);
     return data.student;
-  };
+  }, [setSession]);
 
-  const logout = () => {
+  const logout = React.useCallback(() => {
     localStorage.removeItem(TOKEN_KEY);
     setToken(null);
     setStudent(null);
-  };
+  }, []);
 
-  return (
-    <InternshipAuthContext.Provider value={{ token, student, loading, login, logout, setSession, refreshMe }}>
-      {children}
-    </InternshipAuthContext.Provider>
+  // Memoized for the same reason as context/AuthContext.jsx's value — this
+  // provider wraps the entire student portal, so an unstable value object
+  // here forced every page/widget calling useInternshipAuth() to re-render
+  // on every InternshipAuthProvider render, not just when auth state
+  // actually changed. That's the kind of thing weaker mobile CPUs feel far
+  // more than desktop, which lines up with reports of the portal being
+  // especially slow on mobile.
+  const value = React.useMemo(
+    () => ({ token, student, loading, login, logout, setSession, refreshMe }),
+    [token, student, loading, login, logout, setSession, refreshMe]
   );
+
+  return <InternshipAuthContext.Provider value={value}>{children}</InternshipAuthContext.Provider>;
 }
 
 export function useInternshipAuth() {

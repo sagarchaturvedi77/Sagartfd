@@ -46,6 +46,7 @@ from email_service import (
     email_configured,
     send_email_with_pdfs,
     send_internship_password_reset_email,
+    send_internship_signup_received_email,
     send_internship_welcome_email,
     INTERNSHIP_RESET_PASSWORD_URL,
 )
@@ -87,6 +88,8 @@ from internship_models import (
     RegenerateSearchIn,
     RegenerateSearchOut,
     ResetPasswordIn,
+    ResumePaymentOut,
+    ResumePaymentUpdateIn,
     StudentLoginIn,
     StudentOut,
     StudentSignupIn,
@@ -236,6 +239,7 @@ async def signup(request: Request, data: StudentSignupIn):
         college=data.college, course_year=data.course_year, duration_days=data.duration_days,
         payment_amount=DURATION_PRICING.get(data.duration_days, 5000),
         video_consent=data.video_consent,
+        payment_resume_token=secrets.token_urlsafe(32),
     )
     doc = student.dict()
     await internship_students_collection.insert_one(doc)
@@ -243,14 +247,24 @@ async def signup(request: Request, data: StudentSignupIn):
 
     try:
         # Track isn't chosen until the immediately-following PUT /track call
-        # in the real signup flow, so this is deliberately generic here.
-        send_internship_welcome_email(
+        # in the real signup flow, so this is deliberately generic here. This
+        # email deliberately has no login link — the account isn't active
+        # until payment clears (see login()'s payment_status gate below and
+        # _mark_student_paid's own welcome email, sent once that's true).
+        send_internship_signup_received_email(
             student.email, student.name, student.intern_id,
             TRACK_LABELS.get(student.track, "your chosen"), student.duration_days, student.payment_amount,
+            f"{SITE_URL}/internship/resume-payment/{student.payment_resume_token}",
         )
     except Exception:
-        logger.exception("Internship welcome email failed for %s", student.email)  # never block signup on email failure
+        logger.exception("Internship signup-received email failed for %s", student.email)  # never block signup on email failure
 
+    # This token is intentionally scoped to a single job: letting the
+    # frontend immediately call POST /payment/create-order and redirect to
+    # Cashfree checkout right after signup. It is NOT a substitute for
+    # logging in — login() below rejects unpaid accounts outright, and the
+    # student portal's own client-side payment gate (StudentDashboard.jsx)
+    # keeps this same token from exposing real program content either way.
     token = create_access_token(student.id, "internship_student")
     return {"access_token": token, "token_type": "bearer", "student": _to_student_out(doc)}
 
@@ -293,6 +307,15 @@ async def login(request: Request, data: StudentLoginIn):
         raise HTTPException(status_code=401, detail="Invalid phone or password")
     if doc.get("status") == "banned" and not doc.get("is_demo"):
         raise HTTPException(status_code=403, detail="Your account has been suspended")
+    if not doc.get("is_demo") and doc.get("payment_status") not in ("paid", "waived"):
+        # Account exists but was never activated — no dashboard/task access
+        # until payment clears. resume_token lets them finish paying without
+        # re-filling the signup form.
+        detail = "Your payment hasn't been completed yet, so your account isn't active. Check your email for a payment link to finish signing up."
+        resume_token = doc.get("payment_resume_token")
+        if resume_token:
+            detail += f" Or use this link: {SITE_URL}/internship/resume-payment/{resume_token}"
+        raise HTTPException(status_code=403, detail=detail)
     if doc.get("is_demo"):
         doc = await _reset_demo_student(doc["id"])
     token = create_access_token(doc["id"], "internship_student")
@@ -661,9 +684,23 @@ async def _mark_student_paid(student_id: str, marked_by: str) -> dict:
             "payment_status": "paid", "payment_marked_by": marked_by, "payment_marked_at": now,
             "program_start_date": doc.get("program_start_date") or now,
             "status": "active", "updated_at": now,
-        }},
+        },
+        "$unset": {"payment_resume_token": ""}},  # no longer needed — login works normally now
     )
-    return await internship_students_collection.find_one({"id": student_id})
+    updated = await internship_students_collection.find_one({"id": student_id})
+
+    if not doc.get("is_demo"):
+        try:
+            # The real welcome/login email — signup's own email deliberately
+            # never included a login link, since the account wasn't active.
+            send_internship_welcome_email(
+                updated["email"], updated["name"], updated["intern_id"],
+                TRACK_LABELS.get(updated.get("track"), "your chosen"), updated["duration_days"], updated["payment_amount"],
+            )
+        except Exception:
+            logger.exception("Internship post-payment welcome email failed for %s", updated.get("email"))
+
+    return updated
 
 
 @router.patch("/admin/students/{student_id}/payment")
@@ -677,20 +714,18 @@ async def mark_paid(student_id: str, data: PaymentOverrideIn, admin: dict = Depe
 
 # ── Cashfree payment — signup fee (₹2000/3000/5000 by duration) ─────────
 
-@router.post("/payment/create-order", response_model=PaymentOrderOut)
-@limiter.limit("10/minute")
-async def create_payment_order(request: Request, payload: dict = Depends(get_current_student_payload)):
+async def _create_or_reuse_signup_order(student: dict, return_url: str) -> PaymentOrderOut:
+    """Shared by the logged-in-flow (POST /payment/create-order, right after
+    signup) and the token-authenticated resume-payment flow below — same
+    order-dedup logic either way, so a student re-opening either path within
+    15 minutes doesn't spam Cashfree with fresh orders. return_url differs
+    per caller (the resume-payment flow has no active session to land back
+    into, so it can't reuse /portal/student like the normal flow does)."""
     if not cashfree_configured():
         raise HTTPException(status_code=503, detail="Payments aren't configured yet — please contact support.")
-    student = await internship_students_collection.find_one({"id": payload["sub"]})
-    if not student:
-        raise HTTPException(status_code=404, detail="Student profile not found")
     if student.get("payment_status") == "paid":
         raise HTTPException(status_code=409, detail="Your payment is already confirmed.")
 
-    # Reuse a still-fresh order instead of minting a new one on every click
-    # (e.g. the student re-opens the checkout modal) — Cashfree sessions are
-    # valid for a while, no need to spam new orders.
     recent_cutoff = datetime.now(timezone.utc) - timedelta(minutes=15)
     existing = await payment_orders_collection.find_one(
         {"linked_id": student["id"], "payment_type": "internship_signup", "status": "created", "created_at": {"$gte": recent_cutoff}},
@@ -704,7 +739,6 @@ async def create_payment_order(request: Request, payload: dict = Depends(get_cur
 
     order_id = new_order_id(f"INT{student.get('intern_id', '')}")
     amount = student.get("payment_amount", 2000)
-    return_url = f"{SITE_URL}/portal/student?order_id={{order_id}}"
     notify_url = f"{os.environ.get('BACKEND_PUBLIC_URL', '').rstrip('/')}/api/internship/payment/webhook"
 
     try:
@@ -730,6 +764,64 @@ async def create_payment_order(request: Request, payload: dict = Depends(get_cur
         order_id=order_id, payment_session_id=cf_resp.get("payment_session_id"),
         amount=amount, cashfree_env=os.environ.get("CASHFREE_ENV", "sandbox"),
     )
+
+
+@router.post("/payment/create-order", response_model=PaymentOrderOut)
+@limiter.limit("10/minute")
+async def create_payment_order(request: Request, payload: dict = Depends(get_current_student_payload)):
+    student = await internship_students_collection.find_one({"id": payload["sub"]})
+    if not student:
+        raise HTTPException(status_code=404, detail="Student profile not found")
+    return await _create_or_reuse_signup_order(student, return_url=f"{SITE_URL}/portal/student?order_id={{order_id}}")
+
+
+# ── Resume payment — public, token-authenticated (no login/JWT) ─────────
+# Reached from the signup-confirmation and 30-min reminder emails. Lets an
+# unpaid signup review/edit their basic details and pay, without needing an
+# active login (which is intentionally blocked pre-payment — see login()).
+
+async def _get_student_by_resume_token(token: str) -> dict:
+    student = await internship_students_collection.find_one({"payment_resume_token": token})
+    if not student:
+        raise HTTPException(status_code=404, detail="This payment link is invalid or has expired.")
+    if student.get("payment_status") == "paid":
+        raise HTTPException(status_code=409, detail="This payment is already confirmed — you can log in now.")
+    return student
+
+
+@router.get("/resume-payment/{token}", response_model=ResumePaymentOut)
+@limiter.limit("20/minute")
+async def get_resume_payment(request: Request, token: str):
+    student = await _get_student_by_resume_token(token)
+    return ResumePaymentOut(
+        name=student["name"], college=student.get("college"), course_year=student.get("course_year"),
+        track=student.get("track"), duration_days=student["duration_days"],
+        payment_amount=student["payment_amount"], intern_id=student["intern_id"],
+    )
+
+
+@router.put("/resume-payment/{token}", response_model=ResumePaymentOut)
+@limiter.limit("20/minute")
+async def update_resume_payment(request: Request, token: str, data: ResumePaymentUpdateIn):
+    student = await _get_student_by_resume_token(token)
+    updates = {k: v for k, v in data.dict(exclude_unset=True).items() if v is not None}
+    if updates:
+        updates["updated_at"] = datetime.now(timezone.utc)
+        await internship_students_collection.update_one({"id": student["id"]}, {"$set": updates})
+        student = await internship_students_collection.find_one({"id": student["id"]})
+    return ResumePaymentOut(
+        name=student["name"], college=student.get("college"), course_year=student.get("course_year"),
+        track=student.get("track"), duration_days=student["duration_days"],
+        payment_amount=student["payment_amount"], intern_id=student["intern_id"],
+    )
+
+
+@router.post("/resume-payment/{token}/pay", response_model=PaymentOrderOut)
+@limiter.limit("10/minute")
+async def pay_resume_payment(request: Request, token: str):
+    student = await _get_student_by_resume_token(token)
+    return_url = f"{SITE_URL}/internship/login?paid=1&order_id={{order_id}}"
+    return await _create_or_reuse_signup_order(student, return_url=return_url)
 
 
 @router.get("/payment/status/{order_id}", response_model=PaymentStatusOut)

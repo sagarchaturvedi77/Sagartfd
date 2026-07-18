@@ -48,7 +48,7 @@ class _IPv4SMTP_SSL(smtplib.SMTP_SSL):
         return self.context.wrap_socket(new_socket, server_hostname=self._host)
 
 TFD_LOGO_URL = "https://thefinancialdoctor.in/assets/logos/TFD-MAIN-LOGO.png"
-WORKSPACE_LOGO_URL = "https://thefinancialdoctor.in/tfd-workspace-logo.png"
+WORKSPACE_LOGO_URL = "https://thefinancialdoctor.in/assets/logos/TFD-WORKSPACE-LOGO.png"
 LOGIN_URL = "https://thefinancialdoctor.in/portal/login"
 RESET_PASSWORD_URL = "https://thefinancialdoctor.in/portal/reset-password"
 ANDROID_APK_URL = "https://thefinancialdoctor.in/TFD-Workspace.apk"
@@ -220,17 +220,21 @@ def send_password_reset_email(to_email: str, name: str, reset_url: str) -> tuple
 
 
 def _internship_welcome_html(name: str, intern_id: str, track_label: str, duration_days: int, payment_amount: int) -> str:
+    """Sent once — right after payment is actually confirmed (see
+    internship_routes.py's _mark_student_paid), never at signup. The account
+    is genuinely active by the time this lands, so the login CTA here is
+    always true, not a promise."""
     return f"""
     <div style="font-family:'Segoe UI',Arial,sans-serif;max-width:540px;margin:0 auto;background:#050B16;padding:24px;">
       <div style="text-align:center;margin-bottom:20px;">
         <img src="{INTERNSHIP_LOGO_URL}" alt="TFD Internship" style="height:48px;object-fit:contain;" />
       </div>
       <div style="background:#0E1B2C;border-radius:16px;padding:28px;border:1px solid #1F2E44;">
-        <h2 style="color:#F6F1E8;margin:0 0 4px;font-size:21px;">Welcome to TFD Internship, {name}! 🎓</h2>
+        <h2 style="color:#F6F1E8;margin:0 0 4px;font-size:21px;">Payment confirmed — welcome, {name}! 🎓</h2>
         <p style="color:#9AA5B4;font-size:13.5px;line-height:1.6;margin:10px 0 22px;">
-          Thanks for applying to <strong style="color:#F6F1E8;">The Financial Doctor's</strong> internship program. Your
-          seat in the <strong style="color:#14E0A0;">{track_label}</strong> track ({duration_days} days) is reserved —
-          Day 1 begins automatically the moment your payment of &#8377;{payment_amount} is confirmed.
+          Your seat in <strong style="color:#F6F1E8;">The Financial Doctor's</strong> internship program is now
+          active. Your <strong style="color:#14E0A0;">{track_label}</strong> track ({duration_days} days) has
+          started — Day 1 begins today.
         </p>
 
         <table role="presentation" width="100%" style="border-collapse:collapse;margin-bottom:22px;">
@@ -252,6 +256,86 @@ def _internship_welcome_html(name: str, intern_id: str, track_label: str, durati
       </div>
     </div>
     """
+
+
+def _internship_signup_received_html(name: str, intern_id: str, track_label: str, duration_days: int, payment_amount: int, payment_link: str) -> str:
+    """Sent immediately at signup, before any payment — deliberately has NO
+    login link/CTA, since the account isn't active yet. The only action
+    offered is completing payment."""
+    return f"""
+    <div style="font-family:'Segoe UI',Arial,sans-serif;max-width:540px;margin:0 auto;background:#050B16;padding:24px;">
+      <div style="text-align:center;margin-bottom:20px;">
+        <img src="{INTERNSHIP_LOGO_URL}" alt="TFD Internship" style="height:48px;object-fit:contain;" />
+      </div>
+      <div style="background:#0E1B2C;border-radius:16px;padding:28px;border:1px solid #1F2E44;">
+        <h2 style="color:#F6F1E8;margin:0 0 4px;font-size:21px;">You're almost in, {name} 👋</h2>
+        <p style="color:#9AA5B4;font-size:13.5px;line-height:1.6;margin:10px 0 22px;">
+          We've reserved a seat for you in the <strong style="color:#14E0A0;">{track_label}</strong> track
+          ({duration_days} days) at <strong style="color:#F6F1E8;">The Financial Doctor's</strong> internship
+          program. Your account isn't active yet — complete payment of &#8377;{payment_amount} to unlock it and
+          start Day 1.
+        </p>
+
+        <table role="presentation" width="100%" style="border-collapse:collapse;margin-bottom:22px;">
+          <tr>
+            <td style="background:#050B16;border:1px solid #1F2E44;border-radius:10px;padding:14px 16px;">
+              <p style="margin:0 0 4px;font-size:10.5px;text-transform:uppercase;letter-spacing:0.05em;color:#6B7280;font-weight:600;">Your Intern ID</p>
+              <p style="margin:0;font-size:15px;font-family:'Courier New',monospace;color:#14E0A0;font-weight:700;">{intern_id}</p>
+            </td>
+          </tr>
+        </table>
+
+        <div style="text-align:center;margin-bottom:8px;">
+          <a href="{payment_link}" style="display:inline-block;background:#14E0A0;color:#050B16;text-decoration:none;padding:13px 32px;border-radius:10px;font-weight:700;font-size:14.5px;">Complete Payment →</a>
+        </div>
+        <p style="color:#6B7280;font-size:11.5px;text-align:center;margin:8px 0 0;">You can review or edit your details before paying — no need to sign up again.</p>
+      </div>
+      <div style="text-align:center;margin-top:18px;">
+        <p style="font-size:10.5px;color:#6B7280;">The Financial Doctor &middot; TFD Internship &middot; thefinancialdoctor.in</p>
+      </div>
+    </div>
+    """
+
+
+def send_internship_signup_received_email(to_email: str, name: str, intern_id: str, track_label: str, duration_days: int, payment_amount: int, payment_link: str) -> tuple[bool, str]:
+    if not email_configured():
+        return False, "Email sending not configured — set RESEND_API_KEY (recommended) or SMTP_USERNAME/SMTP_PASSWORD in backend/.env"
+    return _send_email(
+        to_email, "Complete your TFD Internship signup",
+        _internship_signup_received_html(name, intern_id, track_label, duration_days, payment_amount, payment_link),
+    )
+
+
+def _internship_payment_reminder_html(name: str, payment_link: str) -> str:
+    return f"""
+    <div style="font-family:'Segoe UI',Arial,sans-serif;max-width:520px;margin:0 auto;background:#050B16;padding:24px;">
+      <div style="text-align:center;margin-bottom:20px;">
+        <img src="{INTERNSHIP_LOGO_URL}" alt="TFD Internship" style="height:44px;object-fit:contain;" />
+      </div>
+      <div style="background:#0E1B2C;border-radius:16px;padding:28px;border:1px solid #1F2E44;">
+        <h2 style="color:#F6F1E8;margin:0 0 4px;font-size:20px;">You're just one step away, {name}</h2>
+        <p style="color:#9AA5B4;font-size:13px;line-height:1.6;margin:12px 0 22px;">
+          Your TFD Internship seat is still reserved, but payment hasn't gone through yet — your account won't
+          activate until it does. Pick up right where you left off, no need to fill the form again.
+        </p>
+        <div style="text-align:center;margin:24px 0;">
+          <a href="{payment_link}" style="display:inline-block;background:#14E0A0;color:#050B16;text-decoration:none;padding:12px 28px;border-radius:10px;font-weight:700;font-size:14px;">Pay & Start Your Internship →</a>
+        </div>
+        <p style="color:#6B7280;font-size:12.5px;margin:0;">
+          You can review or edit your details on that page before paying.
+        </p>
+      </div>
+      <div style="text-align:center;margin-top:18px;">
+        <p style="font-size:10.5px;color:#6B7280;">The Financial Doctor &middot; TFD Internship &middot; thefinancialdoctor.in</p>
+      </div>
+    </div>
+    """
+
+
+def send_internship_payment_reminder_email(to_email: str, name: str, payment_link: str) -> tuple[bool, str]:
+    if not email_configured():
+        return False, "Email sending not configured — set RESEND_API_KEY (recommended) or SMTP_USERNAME/SMTP_PASSWORD in backend/.env"
+    return _send_email(to_email, "You're one step away from starting your TFD Internship", _internship_payment_reminder_html(name, payment_link))
 
 
 def send_internship_welcome_email(to_email: str, name: str, intern_id: str, track_label: str, duration_days: int, payment_amount: int) -> tuple[bool, str]:

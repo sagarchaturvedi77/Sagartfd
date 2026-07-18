@@ -156,8 +156,30 @@ class InternshipStudentInDB(BaseModel):
     video_review_url: Optional[str] = None
     video_review_submitted_at: Optional[datetime] = None
     is_demo: bool = False  # a fixed, always-available walkthrough account — see seed_demo_student.py
+    payment_resume_token: Optional[str] = None  # lets an unpaid signup finish payment without logging in — see /resume-payment/{token}
+    payment_reminder_sent_at: Optional[datetime] = None  # idempotency guard for the 30-min-later reminder email
     created_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: datetime = Field(default_factory=datetime.utcnow)
+
+
+class ResumePaymentOut(BaseModel):
+    """Public (token-authenticated, not login-authenticated) view of an
+    unpaid signup's editable details — deliberately excludes phone/email/
+    password, which stay fixed once set at signup."""
+    name: str
+    college: Optional[str] = None
+    course_year: Optional[str] = None
+    track: Optional[str] = None
+    duration_days: int
+    payment_amount: int
+    intern_id: str
+
+
+class ResumePaymentUpdateIn(BaseModel):
+    name: Optional[str] = None
+    college: Optional[str] = None
+    course_year: Optional[str] = None
+    track: Optional[Track] = None
 
 
 class StudentOut(BaseModel):

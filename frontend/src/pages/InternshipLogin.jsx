@@ -1,6 +1,6 @@
 import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { ArrowLeft, ArrowUpRight } from "lucide-react";
+import { useNavigate, useSearchParams } from "react-router-dom";
+import { ArrowLeft, ArrowUpRight, CheckCircle2 } from "lucide-react";
 import { toast } from "sonner";
 import { useInternshipAuth } from "../portal/student/InternshipAuthContext";
 
@@ -10,6 +10,8 @@ const INTERNSHIP_LOGO_URL = "/assets/logos/TFD-INTERNSHIP-LOGO.png";
 export default function InternshipLogin() {
   const navigate = useNavigate();
   const { login } = useInternshipAuth();
+  const [searchParams] = useSearchParams();
+  const justPaid = searchParams.get("paid") === "1";
   const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -41,6 +43,16 @@ export default function InternshipLogin() {
 
         <h1 className="font-display text-xl font-bold text-center mb-1">Student Login</h1>
         <p className="text-white/45 text-sm text-center mb-8">TFD Internship Portal</p>
+
+        {justPaid && (
+          <div className="flex items-start gap-2.5 rounded-2xl border border-[#14E0A0]/30 bg-[#14E0A0]/[0.08] p-4 mb-4">
+            <CheckCircle2 size={16} className="text-[#14E0A0] shrink-0 mt-0.5" />
+            <p className="text-white/70 text-xs leading-relaxed">
+              Payment received! Your account may take a few seconds to activate — log in below, and if it says
+              payment isn't confirmed yet, just wait a moment and try again.
+            </p>
+          </div>
+        )}
 
         <form onSubmit={handleSubmit} className="space-y-4 bg-white/[0.03] border border-white/10 rounded-3xl p-6">
           <div>

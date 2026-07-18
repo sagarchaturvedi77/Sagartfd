@@ -20,6 +20,11 @@ try:
 except Exception:
     httpx = None
 
+try:
+    from email_service import send_internship_payment_reminder_email
+except Exception:
+    send_internship_payment_reminder_email = None
+
 LOG = logging.getLogger("scheduler")
 LOG.setLevel(logging.INFO)
 
@@ -45,12 +50,14 @@ events = db.get_collection("events")  # backend/analytics_routes.py's EventTrack
 targets = db.get_collection("targets")
 employee_profiles = db.get_collection("employee_profiles")
 notifications = db.get_collection("notifications")  # in-app bell/list — see backend/notification_service.py's NotificationInDB shape
+internship_students = db.get_collection("internship_students")
 
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "")
 GEMINI_MODEL = os.environ.get("GEMINI_MODEL", "gemini-3.5-flash")
 VAPID_PRIVATE_KEY = os.environ.get("VAPID_PRIVATE_KEY", "")
 VAPID_CLAIM_EMAIL = os.environ.get("VAPID_CLAIM_EMAIL", "mailto:admin@thefinancialdoctor.in")
 WEBSITE_NOTIF_INTERVAL_DAYS = float(os.environ.get("WEBSITE_NOTIF_INTERVAL_DAYS", "2"))
+SITE_URL = "https://www.thefinancialdoctor.in"  # matches internship_routes.py's own constant
 
 
 def send_push_to_user(uid: str, title: str, body: str, url: str | None = None, n_type: str = "scheduled") -> int:
@@ -568,6 +575,37 @@ def send_proposal_followups():
         events.update_one({"_id": ev["_id"]}, {"$set": {"followed_up": True}})
 
 
+def send_pending_payment_reminders():
+    """Any TFD Internship signup that's 30 minutes to 24 hours old, still
+    unpaid, and hasn't already gotten a reminder gets a one-shot nudge email
+    with their resume-payment link. Same time-window + idempotency-flag
+    shape as send_calculator_followups/send_proposal_followups above —
+    payment_reminder_sent_at marks it done either way, so a student with no
+    resume token (shouldn't happen for accounts created after this feature
+    shipped, but defensive anyway) doesn't get re-checked forever."""
+    if not send_internship_payment_reminder_email:
+        LOG.warning("email_service not importable — skipping payment reminders")
+        return
+    now = datetime.utcnow()
+    due_before = now - timedelta(minutes=30)
+    not_too_old = now - timedelta(hours=24)
+    candidates = list(internship_students.find({
+        "payment_status": {"$nin": ["paid", "waived"]},
+        "is_demo": {"$ne": True},
+        "payment_reminder_sent_at": None,
+        "payment_resume_token": {"$ne": None},
+        "created_at": {"$lte": due_before, "$gte": not_too_old},
+    }))
+    LOG.info("Found %s unpaid internship signups due for a payment reminder", len(candidates))
+    for student in candidates:
+        resume_link = f"{SITE_URL}/internship/resume-payment/{student['payment_resume_token']}"
+        try:
+            send_internship_payment_reminder_email(student["email"], student.get("name", "there"), resume_link)
+        except Exception:
+            LOG.exception("Payment reminder email failed for %s", student.get("email"))
+        internship_students.update_one({"id": student["id"]}, {"$set": {"payment_reminder_sent_at": now}})
+
+
 def send_website_broadcast() -> bool:
     """Sends one Gemini-generated Hinglish notification to every website
     visitor who opted into push (web_push_subs) — raw Web Push via
@@ -736,6 +774,11 @@ def run_due_checks() -> dict:
     ran.append("calculator_followups")
     send_proposal_followups()
     ran.append("proposal_followups")
+
+    # Internship signups stuck at unpaid for 30+ min — each check's own
+    # payment_reminder_sent_at flag keeps this naturally idempotent.
+    send_pending_payment_reminders()
+    ran.append("pending_payment_reminders")
 
     return {"ran": ran, "checked_at": now_local.isoformat()}
 
