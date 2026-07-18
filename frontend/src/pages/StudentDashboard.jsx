@@ -188,6 +188,13 @@ export default function StudentDashboard() {
           <div className="h-2 rounded-full bg-white/10 overflow-hidden">
             <div className="h-full bg-gradient-to-r from-[#14E0A0] to-[#5EEAD4] rounded-full transition-all" style={{ width: `${progressPct}%` }} />
           </div>
+          <div className="flex items-center gap-1.5 mt-3 text-[11px] font-semibold text-[#14E0A0]">
+            <span className="relative flex h-1.5 w-1.5">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#14E0A0] opacity-75" />
+              <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-[#14E0A0]" />
+            </span>
+            Current Status: Active Corporate Trainee
+          </div>
         </div>
 
         {!pendingPayment && <ManagerFeedWidget />}

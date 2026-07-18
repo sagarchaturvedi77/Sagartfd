@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { ArrowLeft, ArrowUpRight, TrendingUp, Heart, Megaphone, Landmark, Video } from "lucide-react";
 import { toast } from "sonner";
 import { useInternshipAuth } from "../portal/student/InternshipAuthContext";
@@ -23,11 +23,17 @@ const TRACKS = [
 // a bare constant) since the price lookup below still reads from it.
 const DURATIONS = [{ days: 90, price: 5000 }];
 
+const TRACK_VALUES = TRACKS.map((t) => t.value);
+
 export default function InternshipSignup() {
   const navigate = useNavigate();
   const { setSession } = useInternshipAuth();
+  const [searchParams] = useSearchParams();
+  const preselectedTrack = searchParams.get("track");
   const [form, setForm] = useState({
-    name: "", phone: "", email: "", password: "", college: "", course_year: "", track: "", duration_days: 90,
+    name: "", phone: "", email: "", password: "", college: "", course_year: "",
+    track: TRACK_VALUES.includes(preselectedTrack) ? preselectedTrack : "",
+    duration_days: 90,
   });
   const [videoConsent, setVideoConsent] = useState(null); // null = not yet chosen, forces an explicit answer
 
@@ -94,7 +100,7 @@ export default function InternshipSignup() {
 
   return (
     <div className="min-h-screen bg-[#050B16] text-white px-4 py-8 sm:py-14">
-      <div className="max-w-lg mx-auto">
+      <div className="max-w-lg lg:max-w-4xl mx-auto">
         <div className="flex items-center justify-between mb-8">
           <div className="flex items-center gap-2.5">
             <img src={MAIN_LOGO_URL} alt="The Financial Doctor" className="h-8 bg-white rounded-lg p-1 object-contain" />
@@ -112,114 +118,122 @@ export default function InternshipSignup() {
         <h1 className="font-display text-2xl font-bold mb-1">Apply for TFD Internship</h1>
         <p className="text-white/50 text-sm mb-8">Create your student account and pick a track — takes under 2 minutes.</p>
 
-        <form onSubmit={handleSubmit} className="space-y-4 bg-white/[0.03] border border-white/10 rounded-3xl p-6">
-          <div>
-            <label className="block text-[11px] font-semibold text-white/50 uppercase tracking-wide mb-1.5">Full Name *</label>
-            <input required value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} className={field} />
-          </div>
-          <div className="grid grid-cols-2 gap-3">
+        {/* Landscape on desktop: two columns side by side (account details
+            left, track/duration/consent/submit right) so the whole form
+            fits on a typical desktop screen without scrolling. Below the
+            lg breakpoint it collapses to the original single column. */}
+        <form onSubmit={handleSubmit} className="bg-white/[0.03] border border-white/10 rounded-3xl p-6 lg:p-8 grid grid-cols-1 lg:grid-cols-2 gap-x-8 gap-y-4">
+          <div className="space-y-4">
             <div>
-              <label className="block text-[11px] font-semibold text-white/50 uppercase tracking-wide mb-1.5">Mobile Number *</label>
-              <input required type="tel" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} className={field} />
+              <label className="block text-[11px] font-semibold text-white/50 uppercase tracking-wide mb-1.5">Full Name *</label>
+              <input required value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} className={field} />
             </div>
-            <div>
-              <label className="block text-[11px] font-semibold text-white/50 uppercase tracking-wide mb-1.5">Email *</label>
-              <input required type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} className={field} />
-            </div>
-          </div>
-          <div>
-            <label className="block text-[11px] font-semibold text-white/50 uppercase tracking-wide mb-1.5">Set a Password *</label>
-            <input required type="password" minLength={6} value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} className={field} />
-          </div>
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="block text-[11px] font-semibold text-white/50 uppercase tracking-wide mb-1.5">College</label>
-              <input value={form.college} onChange={(e) => setForm({ ...form, college: e.target.value })} className={field} />
-            </div>
-            <div>
-              <label className="block text-[11px] font-semibold text-white/50 uppercase tracking-wide mb-1.5">Course & Year</label>
-              <input placeholder="e.g. BBA 2nd Year" value={form.course_year} onChange={(e) => setForm({ ...form, course_year: e.target.value })} className={field} />
-            </div>
-          </div>
-
-          <div>
-            <label className="block text-[11px] font-semibold text-white/50 uppercase tracking-wide mb-2">Choose Your Track *</label>
-            <div className="grid grid-cols-2 gap-2.5">
-              {TRACKS.map((t) => (
-                <button
-                  type="button"
-                  key={t.value}
-                  onClick={() => setForm({ ...form, track: t.value })}
-                  className={`flex items-center gap-2 text-left px-3 py-2.5 rounded-xl text-xs font-medium border transition-colors ${
-                    form.track === t.value
-                      ? "bg-[#14E0A0]/15 border-[#14E0A0] text-[#14E0A0]"
-                      : "bg-white/[0.03] border-white/10 text-white/60 hover:border-white/25"
-                  }`}
-                >
-                  <t.icon size={14} className="shrink-0" /> {t.label}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <div>
-            <label className="block text-[11px] font-semibold text-white/50 uppercase tracking-wide mb-2">Program Duration</label>
-            <div className="flex items-center justify-between px-4 py-3 rounded-xl border border-[#14E0A0]/40 bg-[#14E0A0]/[0.08]">
-              <span className="text-sm font-bold text-white">90-Day Program</span>
-              <span className="text-sm font-bold text-[#14E0A0]">₹5,000</span>
-            </div>
-          </div>
-
-          <div className="rounded-2xl border border-[#14E0A0]/25 bg-[#14E0A0]/[0.04] p-4">
-            <div className="flex items-start gap-2.5">
-              <Video size={16} className="text-[#14E0A0] shrink-0 mt-0.5" />
+            <div className="grid grid-cols-2 gap-3">
               <div>
-                <p className="text-xs font-bold text-white">Heads up — a video review at the end</p>
-                <p className="text-[11px] text-white/50 mt-1 leading-relaxed">
-                  Near the end of your internship, we'll ask you to share a short review video of your experience —
-                  feel free to include small clips from wherever you were working. It's just a link (YouTube,
-                  Instagram, Google Drive — wherever you've already uploaded it), no file upload needed here.
-                </p>
+                <label className="block text-[11px] font-semibold text-white/50 uppercase tracking-wide mb-1.5">Mobile Number *</label>
+                <input required type="tel" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} className={field} />
+              </div>
+              <div>
+                <label className="block text-[11px] font-semibold text-white/50 uppercase tracking-wide mb-1.5">Email *</label>
+                <input required type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} className={field} />
+              </div>
+            </div>
+            <div>
+              <label className="block text-[11px] font-semibold text-white/50 uppercase tracking-wide mb-1.5">Set a Password *</label>
+              <input required type="password" minLength={6} value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} className={field} />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-[11px] font-semibold text-white/50 uppercase tracking-wide mb-1.5">College</label>
+                <input value={form.college} onChange={(e) => setForm({ ...form, college: e.target.value })} className={field} />
+              </div>
+              <div>
+                <label className="block text-[11px] font-semibold text-white/50 uppercase tracking-wide mb-1.5">Course & Year</label>
+                <input placeholder="e.g. BBA 2nd Year" value={form.course_year} onChange={(e) => setForm({ ...form, course_year: e.target.value })} className={field} />
               </div>
             </div>
 
-            <div className="mt-3.5">
-              <label className="block text-[11px] font-semibold text-white/60 mb-2">
-                Can TFD feature your review video on our social media (Instagram / YouTube / LinkedIn)? *
-              </label>
+            <div>
+              <label className="block text-[11px] font-semibold text-white/50 uppercase tracking-wide mb-2">Choose Your Track *</label>
               <div className="grid grid-cols-2 gap-2.5">
-                <button
-                  type="button"
-                  onClick={() => setVideoConsent(true)}
-                  className={`px-3 py-2 rounded-xl text-xs font-semibold border transition-colors ${
-                    videoConsent === true ? "bg-[#14E0A0]/15 border-[#14E0A0] text-[#14E0A0]" : "bg-white/[0.03] border-white/10 text-white/60 hover:border-white/25"
-                  }`}
-                >
-                  Yes, you can feature it
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setVideoConsent(false)}
-                  className={`px-3 py-2 rounded-xl text-xs font-semibold border transition-colors ${
-                    videoConsent === false ? "bg-white/10 border-white/30 text-white" : "bg-white/[0.03] border-white/10 text-white/60 hover:border-white/25"
-                  }`}
-                >
-                  No, keep it private
-                </button>
+                {TRACKS.map((t) => (
+                  <button
+                    type="button"
+                    key={t.value}
+                    onClick={() => setForm({ ...form, track: t.value })}
+                    className={`flex items-center gap-2 text-left px-3 py-2.5 rounded-xl text-xs font-medium border transition-colors ${
+                      form.track === t.value
+                        ? "bg-[#14E0A0]/15 border-[#14E0A0] text-[#14E0A0]"
+                        : "bg-white/[0.03] border-white/10 text-white/60 hover:border-white/25"
+                    }`}
+                  >
+                    <t.icon size={14} className="shrink-0" /> {t.label}
+                  </button>
+                ))}
               </div>
-              <p className="text-[10px] text-white/35 mt-1.5">You can change your answer later, right when you submit the actual video.</p>
             </div>
           </div>
 
-          <button
-            type="submit"
-            disabled={submitting}
-            className="w-full flex items-center justify-center gap-2 bg-[#14E0A0] hover:bg-[#0FCB8F] disabled:opacity-50 text-[#050B16] font-bold text-sm py-3 rounded-xl shadow-[0_8px_24px_rgba(20,224,160,0.3)] transition-all mt-2"
-          >
-            {submitting
-              ? "Setting things up..."
-              : `Create Account & Pay ₹${DURATIONS.find((d) => d.days === form.duration_days)?.price}`} <ArrowUpRight size={16} />
-          </button>
+          <div className="space-y-4 flex flex-col">
+            <div>
+              <label className="block text-[11px] font-semibold text-white/50 uppercase tracking-wide mb-2">Program Duration</label>
+              <div className="flex items-center justify-between px-4 py-3 rounded-xl border border-[#14E0A0]/40 bg-[#14E0A0]/[0.08]">
+                <span className="text-sm font-bold text-white">90-Day Program</span>
+                <span className="text-sm font-bold text-[#14E0A0]">₹5,000</span>
+              </div>
+            </div>
+
+            <div className="rounded-2xl border border-[#14E0A0]/25 bg-[#14E0A0]/[0.04] p-4">
+              <div className="flex items-start gap-2.5">
+                <Video size={16} className="text-[#14E0A0] shrink-0 mt-0.5" />
+                <div>
+                  <p className="text-xs font-bold text-white">Heads up — a video review at the end</p>
+                  <p className="text-[11px] text-white/50 mt-1 leading-relaxed">
+                    Near the end of your internship, we'll ask you to share a short review video of your experience —
+                    feel free to include small clips from wherever you were working. It's just a link (YouTube,
+                    Instagram, Google Drive — wherever you've already uploaded it), no file upload needed here.
+                  </p>
+                </div>
+              </div>
+
+              <div className="mt-3.5">
+                <label className="block text-[11px] font-semibold text-white/60 mb-2">
+                  Can TFD feature your review video on our social media (Instagram / YouTube / LinkedIn)? *
+                </label>
+                <div className="grid grid-cols-2 gap-2.5">
+                  <button
+                    type="button"
+                    onClick={() => setVideoConsent(true)}
+                    className={`px-3 py-2 rounded-xl text-xs font-semibold border transition-colors ${
+                      videoConsent === true ? "bg-[#14E0A0]/15 border-[#14E0A0] text-[#14E0A0]" : "bg-white/[0.03] border-white/10 text-white/60 hover:border-white/25"
+                    }`}
+                  >
+                    Yes, you can feature it
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setVideoConsent(false)}
+                    className={`px-3 py-2 rounded-xl text-xs font-semibold border transition-colors ${
+                      videoConsent === false ? "bg-white/10 border-white/30 text-white" : "bg-white/[0.03] border-white/10 text-white/60 hover:border-white/25"
+                    }`}
+                  >
+                    No, keep it private
+                  </button>
+                </div>
+                <p className="text-[10px] text-white/35 mt-1.5">You can change your answer later, right when you submit the actual video.</p>
+              </div>
+            </div>
+
+            <button
+              type="submit"
+              disabled={submitting}
+              className="w-full flex items-center justify-center gap-2 bg-[#14E0A0] hover:bg-[#0FCB8F] disabled:opacity-50 text-[#050B16] font-bold text-sm py-3 rounded-xl shadow-[0_8px_24px_rgba(20,224,160,0.3)] transition-all mt-auto"
+            >
+              {submitting
+                ? "Setting things up..."
+                : `Create Account & Pay ₹${DURATIONS.find((d) => d.days === form.duration_days)?.price}`} <ArrowUpRight size={16} />
+            </button>
+          </div>
         </form>
       </div>
     </div>

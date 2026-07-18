@@ -55,6 +55,28 @@ let webpackConfig = {
       if (config.enableHealthCheck && healthPluginInstance) {
         webpackConfig.plugins.push(healthPluginInstance);
       }
+
+      // Some published npm packages (e.g. newer @radix-ui/* releases) ship
+      // .mjs files with a sourceMappingURL comment pointing at a path that
+      // only exists in the package author's own monorepo, not in a
+      // consumer's node_modules — yarn hoists the actual dependency instead
+      // of nesting it, so source-map-loader's read of that literal path
+      // 404s with ENOENT and CRA surfaces it as a hard compile error rather
+      // than a warning. Source maps for third-party libraries aren't needed
+      // for debugging this app's own code, so skip that loader for
+      // node_modules entirely instead of playing whack-a-mole per package.
+      const usesSourceMapLoader = (use) => {
+        if (!use) return false;
+        if (typeof use === "string") return use.includes("source-map-loader");
+        if (Array.isArray(use)) return use.some(usesSourceMapLoader);
+        if (typeof use === "object") return usesSourceMapLoader(use.loader);
+        return false;
+      };
+      const sourceMapRule = webpackConfig.module.rules.find((rule) => usesSourceMapLoader(rule.use) || usesSourceMapLoader(rule.loader));
+      if (sourceMapRule) {
+        sourceMapRule.exclude = /node_modules/;
+      }
+
       return webpackConfig;
     },
   },

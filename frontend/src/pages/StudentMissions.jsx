@@ -118,6 +118,13 @@ export default function StudentMissions() {
           )}
         </div>
 
+        <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
+          <p className="text-[10px] font-bold uppercase tracking-wide text-white/40 mb-1">Corporate Protocol</p>
+          <p className="text-white/60 text-xs leading-relaxed">
+            Read carefully <span className="text-white/30">&rarr;</span> Learn the concept <span className="text-white/30">&rarr;</span> Execute accurately. Copy-paste is blocked by system security.
+          </p>
+        </div>
+
         {data?.weeks?.length > 0 && (
           <div className="rounded-2xl border border-[#14E0A0]/20 bg-[#14E0A0]/5 p-4 flex items-start gap-2.5">
             <Eye size={15} className="text-[#14E0A0] shrink-0 mt-0.5" />

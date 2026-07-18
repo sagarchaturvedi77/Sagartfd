@@ -95,6 +95,8 @@ const PublicVerifyEmployee = lazy(() => import("./pages/PublicVerifyEmployee"));
 const PublicVerify = lazy(() => import("./pages/PublicVerify"));
 const InternApplicationPage = lazy(() => import("./pages/InternApplicationPage"));
 const InternshipLandingPage = lazy(() => import("./pages/InternshipLandingPage"));
+const InternshipTrackPage = lazy(() => import("./pages/InternshipTrackPage"));
+const InternshipResumePayment = lazy(() => import("./pages/InternshipResumePayment"));
 const InternshipSignup = lazy(() => import("./pages/InternshipSignup"));
 const InternshipLogin = lazy(() => import("./pages/InternshipLogin"));
 const InternshipForgotPassword = lazy(() => import("./pages/InternshipForgotPassword"));
@@ -501,6 +503,8 @@ element={
                     fully separate from TFD Workspace staff/employee auth —
                     see portal/student/InternshipAuthContext.jsx) */}
                 <Route path="/internship" element={<InternshipLandingPage />} />
+                <Route path="/internship/tracks/:trackId" element={<InternshipTrackPage />} />
+                <Route path="/internship/resume-payment/:token" element={<InternshipResumePayment />} />
                 <Route path="/internship/apply" element={<InternshipSignup />} />
                 <Route path="/internship/login" element={<InternshipLogin />} />
                 <Route path="/internship/forgot-password" element={<InternshipForgotPassword />} />
