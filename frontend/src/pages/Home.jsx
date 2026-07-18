@@ -21,7 +21,7 @@ export default function Home() {
     return (
         <div className="relative" data-testid="home-root">
             <SEO
-                title="The Financial Doctor | Mutual Fund, SIP & Insurance Advisor"
+                title="The Financial Doctor | Mutual Fund, SIP & Insurance Plans"
                 description="Grow your wealth with expert-guided Mutual Fund investments, SIP & Lumpsum planning, Term, Health & Motor Insurance, and complete financial planning — trusted, AMFI-registered advisory led by Sagar Chaturvedi."
                 keywords="mutual fund advisor near me, SIP calculator, best SIP plan, term insurance, health insurance plan, financial advisor India, AMFI registered advisor"
                 path="/"

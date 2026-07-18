@@ -9,7 +9,7 @@ export default function MotorInsurancePage() {
   return (
     <div className="relative min-h-screen bg-[#FBF7EE]">
       <SEO
-        title="The Financial Doctor | Motor & Car Insurance Advisor"
+        title="The Financial Doctor | Motor & Car Insurance"
         description="Motor insurance guidance from The Financial Doctor — car insurance and two wheeler insurance advisory to get you the right cover at the right price."
         keywords="motor insurance, car insurance, two wheeler insurance, best insurance advisor"
         path="/motor-insurance"

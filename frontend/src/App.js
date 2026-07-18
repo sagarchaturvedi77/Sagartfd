@@ -594,6 +594,13 @@ element={
                     </ProtectedRoute>
                   }
                 />
+
+                {/* Last-resort safety net: any URL that doesn't match a
+                    route above (a mistyped/old/unlisted link _redirects
+                    doesn't know about) sends the visitor Home instead of
+                    rendering a blank page — the exact failure mode behind
+                    the /about-us/ bug report. */}
+                <Route path="*" element={<Navigate to="/" replace />} />
               </Routes>
             </BrowserRouter>
             <Toaster

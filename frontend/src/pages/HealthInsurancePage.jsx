@@ -9,7 +9,7 @@ export default function HealthInsurancePage() {
   return (
     <div className="relative min-h-screen bg-[#FBF7EE]">
       <SEO
-        title="The Financial Doctor | Health Insurance Policy Advisor"
+        title="The Financial Doctor | Health Insurance Policy"
         description="Health insurance policy (mediclaim) guidance from The Financial Doctor — find the right health cover for you and your family with expert advisory."
         keywords="health insurance policy, mediclaim, best insurance advisor"
         path="/health-insurance"

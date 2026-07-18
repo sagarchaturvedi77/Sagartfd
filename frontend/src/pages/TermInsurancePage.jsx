@@ -9,7 +9,7 @@ export default function TermInsurancePage() {
   return (
     <div className="relative min-h-screen bg-[#FBF7EE]">
       <SEO
-        title="The Financial Doctor | Term Insurance Plan Advisor"
+        title="The Financial Doctor | Term Insurance Plans"
         description="Term insurance plan guidance from The Financial Doctor — find the right life insurance cover for your family, at the right premium, with expert advisory."
         keywords="term insurance plan, life insurance, best insurance advisor"
         path="/term-insurance"
