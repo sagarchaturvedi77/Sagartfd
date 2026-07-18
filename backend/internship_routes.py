@@ -13,6 +13,7 @@ require_admin staff-auth dependency, because admins manage this data from
 inside the existing staff portal; the student-facing endpoints use their
 own get_current_student_payload dependency defined in this file.
 """
+import asyncio
 import io
 import json
 import logging
@@ -1827,6 +1828,61 @@ async def delete_report(report_id: str, payload: dict = Depends(get_current_stud
     if result.deleted_count == 0:
         raise HTTPException(status_code=404, detail="Report entry not found")
     return {"status": "deleted"}
+
+
+@router.get("/reports/pdf")
+async def download_progress_report_pdf(payload: dict = Depends(get_current_student_payload)):
+    """An on-demand, in-progress version of the same rich report PDF that
+    normally only gets generated at graduation (see generate_internship_
+    report_pdf/create_graduation_certificate) — reused here rather than
+    building a second, simpler report layout. Generated fresh every call,
+    never stored, so it's always current as of the moment it's downloaded."""
+    student = await internship_students_collection.find_one({"id": payload["sub"]})
+    if not student:
+        raise HTTPException(status_code=404, detail="Student profile not found")
+
+    track_label = TRACK_LABELS.get(student.get("track"), student.get("track") or "-")
+    duration_days = student.get("duration_days", 90)
+    start = student.get("program_start_date")
+    issue_date = date.today().isoformat()
+
+    grad = await _graduation_eligibility(student)
+    report_entries = [
+        {"date": e["date"], "what_learned": e.get("what_learned", ""), "what_did": e.get("what_did", "")}
+        async for e in internship_reports_collection.find({"student_id": student["id"]}).sort("date", 1)
+    ]
+    approved_submissions = [
+        {"week_number": s.get("week_number", 0), "task_title": s.get("task_title", "-"), "points_awarded": s.get("points_awarded") or 0, "status": s.get("status", "approved")}
+        async for s in internship_submissions_collection.find({"student_id": student["id"], "status": "approved"}).sort("week_number", 1)
+    ]
+    radar_scores_labelled = {RADAR_CATEGORY_LABELS.get(k, k): v for k, v in (student.get("radar_scores") or {}).items()}
+
+    report_photo_bytes = None
+    if student.get("photo_r2_key"):
+        try:
+            obj = r2_client().get_object(Bucket=R2_BUCKET_NAME, Key=student["photo_r2_key"])
+            report_photo_bytes = obj["Body"].read()
+        except Exception:
+            report_photo_bytes = None
+
+    pdf_bytes = await asyncio.to_thread(
+        generate_internship_report_pdf,
+        {
+            "name": student["name"], "intern_id": student.get("intern_id", ""), "college": student.get("college"),
+            "college_id_number": student.get("college_id_number"), "course_year": student.get("course_year"),
+            "track_label": track_label,
+            "start_date": start.date().isoformat() if start else issue_date,
+            "end_date": issue_date, "duration_days": duration_days,
+            "status_label": "Graduated" if student.get("status") == "graduated" else f"In Progress — Day {_compute_progress(student)[0]}",
+            "percentage": grad.percentage, "earned_points": grad.earned_points, "total_points": grad.total_points,
+            "quiz_pass_count": student.get("quiz_pass_count", 0), "last_quiz_score": student.get("last_quiz_score"),
+            "radar_scores": radar_scores_labelled, "submissions": approved_submissions, "entries": report_entries,
+            "certificate_number": None,
+        },
+        photo_bytes=report_photo_bytes,
+    )
+    filename = f"TFD_Internship_Progress_Report_{student.get('intern_id', 'report')}.pdf"
+    return StreamingResponse(io.BytesIO(pdf_bytes), media_type="application/pdf", headers={"Content-Disposition": f'inline; filename="{filename}"'})
 
 
 # ── Graduation & certificate ─────────────────────────────────────────

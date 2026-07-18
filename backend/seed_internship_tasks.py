@@ -344,620 +344,1999 @@ FINANCE_TASKS = [
 ]
 
 
-TASKS = FINANCE_TASKS + [
+# ════════════════════════════════════════════════════════════════════
+# MARKETING (7) — 90-day phase-based curated pool, mirrors Finance
+# ════════════════════════════════════════════════════════════════════
+# ── Task 4: Marketing Budget Allocation — spreadsheet ─────────────────────
+# Fictional company: Nimbus Home Decor (e-commerce home decor brand).
+# Fixed monthly budget = Rs 2,00,000, split across 6 channels using a given
+# recommended Allocation % (based on each channel's historical performance,
+# described in the brief) and a given historical Cost per Lead (Rs).
+#
+# Arithmetic (hand-checked):
+#   Allocated Amount = Allocation % x 200000
+#   Projected Leads   = Allocated Amount / Cost per Lead
+#
+#   Social Media Ads:        30% x 200000 = 60000   ; 60000 / 250  = 240
+#   Google Search Ads:       25% x 200000 = 50000   ; 50000 / 400  = 125
+#   Influencer Marketing:    15% x 200000 = 30000   ; 30000 / 600  = 50
+#   Print / Local Ads:       10% x 200000 = 20000   ; 20000 / 800  = 25
+#   Events & Sponsorships:   10% x 200000 = 20000   ; 20000 / 1000 = 20
+#   Content Marketing (SEO): 10% x 200000 = 20000   ; 20000 / 200  = 100
+#   Allocation % total = 30+25+15+10+10+10 = 100  -> Total Allocated = 200000 (checks out)
+#   Total Projected Leads = 240+125+50+25+20+100 = 560
+#   Blended Cost per Lead = 200000 / 560 = 357.142857... ~= 357.14
 
-    # ════════════════════════════════════════════════════════════════════
-    # MARKETING (50) — general marketing skills, any product/industry
-    # ════════════════════════════════════════════════════════════════════
-    {"track": "marketing", "title": "Social Media Post Concept for Any Local Business", "difficulty": "easy", "points_value": 60, "deliverable_type": "text", "requires_geotag": False, "estimated_duration": "2.5-3.5 hours",
-     "brief": "Describe, in words (no design tool needed), a social media post idea for any local business of your choice.",
-     "why_it_matters": "This task builds research and customer-psychology skills that apply to any customer-facing role. This is exactly the kind of skill employers look for, regardless of which company or industry you end up joining.",
-     "instructions": "Step 1: Pick any local business you know.\nStep 2: Decide the post's headline.\nStep 3: Describe the visual idea.\nStep 4: Write the caption, and describe who the target audience is.\nStep 5: Don't stop at the first example — dig deeper. Research or work through at least 3-4 real examples/cases related to \"Social Media Post Concept for Any Local Business\", not just one, before you move on.\nStep 6: Now write it up properly, in your own words — a clear, well-organised summary of at least 400 words covering everything you found, structured like you're presenting it to a manager (not just a few bullet points).\nStep 7: Finally, write a short reflection (150+ words) — what surprised you while working on this, what was harder than it looked, and how this exact skill would be useful at ANY company you might work at, not just this one."},
-    {"track": "marketing", "title": "Write 3 Ad Captions for a Product", "difficulty": "easy", "points_value": 60, "deliverable_type": "text", "requires_geotag": False, "estimated_duration": "2.5-3.5 hours",
-     "brief": "Write 3 different, original social media captions for any product or service of your choice, each with a different angle.",
-     "why_it_matters": "This task builds your comfort putting ideas into words clearly and quickly — a rare, valuable skill. This is exactly the kind of skill employers look for, regardless of which company or industry you end up joining.",
-     "instructions": "Step 1: Pick any product or service.\nStep 2: Write Caption 1 with a problem/solution angle.\nStep 3: Write Caption 2 with an aspirational angle.\nStep 4: Write Caption 3 highlighting a unique feature. Keep each under 150 words with hashtags.\nStep 5: Don't stop at the first example — dig deeper. Research or work through at least 3-4 real examples/cases related to \"Write 3 Ad Captions for a Product\", not just one, before you move on.\nStep 6: Now write it up properly, in your own words — a clear, well-organised summary of at least 400 words covering everything you found, structured like you're presenting it to a manager (not just a few bullet points).\nStep 7: Finally, write a short reflection (150+ words) — what surprised you while working on this, what was harder than it looked, and how this exact skill would be useful at ANY company you might work at, not just this one."},
-    {"track": "marketing", "title": "Competitor Analysis: Any 2 Brands", "difficulty": "medium", "points_value": 80, "deliverable_type": "text", "requires_geotag": False, "estimated_duration": "3-4 hours",
-     "brief": "Study how 2 competing brands (any industry) present themselves on social media, and note what works and what doesn't.",
-     "why_it_matters": "This task sharpens your understanding of how businesses actually attract and keep customers, not just theory. This is exactly the kind of skill employers look for, regardless of which company or industry you end up joining.",
-     "instructions": "Step 1: Pick any 2 competing brands in the same industry.\nStep 2: Look at their last 10-15 posts on each. Note tone, content type, and posting frequency.\nStep 3: Write 2-3 things each does well, and 1-2 improvements — don't just look at follower counts.\nStep 4: Don't stop at the first example — dig deeper. Research or work through at least 3-4 real examples/cases related to \"Competitor Analysis: Any 2 Brands\", not just one, before you move on.\nStep 5: Now write it up properly, in your own words — a clear, well-organised summary of at least 400 words covering everything you found, structured like you're presenting it to a manager (not just a few bullet points).\nStep 6: Finally, write a short reflection (150+ words) — what surprised you while working on this, what was harder than it looked, and how this exact skill would be useful at ANY company you might work at, not just this one."},
-    {"track": "marketing", "title": "Draft an Email Newsletter", "difficulty": "easy", "points_value": 60, "deliverable_type": "text", "requires_geotag": False, "estimated_duration": "2.5-3.5 hours",
-     "brief": "Write a short promotional email for any product or service launch of your choice.",
-     "why_it_matters": "This task gives you real practice creating content the way marketing teams do it professionally. This is exactly the kind of skill employers look for, regardless of which company or industry you end up joining.",
-     "instructions": "Step 1: Pick any product/service launching something new.\nStep 2: Draft the email.\nStep 3: Keep it under 100 words.\nStep 4: Include one clear call-to-action.\nStep 5: Don't stop at the first example — dig deeper. Research or work through at least 3-4 real examples/cases related to \"Draft an Email Newsletter\", not just one, before you move on.\nStep 6: Now write it up properly, in your own words — a clear, well-organised summary of at least 400 words covering everything you found, structured like you're presenting it to a manager (not just a few bullet points).\nStep 7: Finally, write a short reflection (150+ words) — what surprised you while working on this, what was harder than it looked, and how this exact skill would be useful at ANY company you might work at, not just this one."},
-    {"track": "marketing", "title": "Field Survey: Local Business Scan", "difficulty": "medium", "points_value": 95, "deliverable_type": "text_and_photo", "requires_geotag": True, "estimated_duration": "3-5 hours (including travel)",
-     "brief": "A real-world field task — find 5 local businesses and note one marketing observation about each.",
-     "why_it_matters": "This task sharpens your understanding of how businesses actually attract and keep customers, not just theory. This is exactly the kind of skill employers look for, regardless of which company or industry you end up joining.",
-     "instructions": "Step 1: Walk around your local area and identify 5 different businesses.\nStep 2: Note one thing about how each markets itself.\nStep 3: Take a photo of at least one storefront/signage as proof.\nStep 4: Don't stop at the minimum — go broader than the task first asked. Cover more real examples/locations than you initially might (aim for at least 4-5 in total, not just 1-2), so your comparison has real depth.\nStep 5: Now write it up properly, in your own words — a clear, well-organised summary of at least 400 words covering everything you found, structured like you're presenting it to a manager (not just a few bullet points).\nStep 6: Finally, write a short reflection (150+ words) — what surprised you while working on this, what was harder than it looked, and how this exact skill would be useful at ANY company you might work at, not just this one."},
-    {"track": "marketing", "title": "Blog Outline for Any Topic", "difficulty": "easy", "points_value": 60, "deliverable_type": "text", "requires_geotag": False, "estimated_duration": "2.5-3.5 hours",
-     "brief": "Create a structured outline (not the full article) for a blog post on any topic relevant to a business or industry you're interested in.",
-     "why_it_matters": "This task builds research and customer-psychology skills that apply to any customer-facing role. This is exactly the kind of skill employers look for, regardless of which company or industry you end up joining.",
-     "instructions": "Step 1: Pick a blog title relevant to any industry.\nStep 2: Break it into 3-5 section headings.\nStep 3: Under each, write 2-3 bullet points.\nStep 4: You don't need full paragraphs — just a clear outline.\nStep 5: Don't stop at the first example — dig deeper. Research or work through at least 3-4 real examples/cases related to \"Blog Outline for Any Topic\", not just one, before you move on.\nStep 6: Now write it up properly, in your own words — a clear, well-organised summary of at least 400 words covering everything you found, structured like you're presenting it to a manager (not just a few bullet points).\nStep 7: Finally, write a short reflection (150+ words) — what surprised you while working on this, what was harder than it looked, and how this exact skill would be useful at ANY company you might work at, not just this one."},
-    {"track": "marketing", "title": "Public Awareness Mini-Survey", "difficulty": "medium", "points_value": 80, "deliverable_type": "text", "requires_geotag": False, "estimated_duration": "3-4 hours",
-     "brief": "Ask 5 people a simple question about any brand or topic and see what people actually know or think.",
-     "why_it_matters": "This task sharpens your understanding of how businesses actually attract and keep customers, not just theory. This is exactly the kind of skill employers look for, regardless of which company or industry you end up joining.",
-     "instructions": "Step 1: Pick a simple question about any brand or product category.\nStep 2: Ask 5 different people and write down their answers.\nStep 3: In 3-4 sentences, summarise the patterns you noticed.\nStep 4: Don't stop at the first example — dig deeper. Research or work through at least 3-4 real examples/cases related to \"Public Awareness Mini-Survey\", not just one, before you move on.\nStep 5: Now write it up properly, in your own words — a clear, well-organised summary of at least 400 words covering everything you found, structured like you're presenting it to a manager (not just a few bullet points).\nStep 6: Finally, write a short reflection (150+ words) — what surprised you while working on this, what was harder than it looked, and how this exact skill would be useful at ANY company you might work at, not just this one."},
-    {"track": "marketing", "title": "Poster Concept for Any Event", "difficulty": "medium", "points_value": 80, "deliverable_type": "text", "requires_geotag": False, "estimated_duration": "3-4 hours",
-     "brief": "Describe a poster design for any event of your choice — no design software needed, just describe it clearly in words.",
-     "why_it_matters": "This task teaches you to think from the customer's side, a habit that helps in literally any job. This is exactly the kind of skill employers look for, regardless of which company or industry you end up joining.",
-     "instructions": "Step 1: Pick any event.\nStep 2: Write the headline and describe the key visual.\nStep 3: Write 3 short bullet points the poster would highlight.\nStep 4: Describe the rough layout.\nStep 5: Don't stop at the first example — dig deeper. Research or work through at least 3-4 real examples/cases related to \"Poster Concept for Any Event\", not just one, before you move on.\nStep 6: Now write it up properly, in your own words — a clear, well-organised summary of at least 400 words covering everything you found, structured like you're presenting it to a manager (not just a few bullet points).\nStep 7: Finally, write a short reflection (150+ words) — what surprised you while working on this, what was harder than it looked, and how this exact skill would be useful at ANY company you might work at, not just this one."},
-    {"track": "marketing", "title": "Google Reviews Audit", "difficulty": "medium", "points_value": 80, "deliverable_type": "text", "requires_geotag": False, "estimated_duration": "3-4 hours",
-     "brief": "Read through any business's public Google Reviews and spot the patterns in what customers say — good and bad.",
-     "why_it_matters": "This task builds your persuasive writing and brand-thinking skills — useful in marketing, sales, or running your own venture someday. This is exactly the kind of skill employers look for, regardless of which company or industry you end up joining.",
-     "instructions": "Step 1: Search for any business on Google and open its Reviews section.\nStep 2: Read at least 15-20 reviews.\nStep 3: Identify 2 recurring POSITIVE and 2 recurring NEGATIVE themes.\nStep 4: Suggest one concrete fix for the negative pattern.\nStep 5: Don't stop at the first example — dig deeper. Research or work through at least 3-4 real examples/cases related to \"Google Reviews Audit\", not just one, before you move on.\nStep 6: Now write it up properly, in your own words — a clear, well-organised summary of at least 400 words covering everything you found, structured like you're presenting it to a manager (not just a few bullet points).\nStep 7: Finally, write a short reflection (150+ words) — what surprised you while working on this, what was harder than it looked, and how this exact skill would be useful at ANY company you might work at, not just this one."},
-    {"track": "marketing", "title": "One-Week Content Calendar", "difficulty": "medium", "points_value": 80, "deliverable_type": "text", "requires_geotag": False, "estimated_duration": "3-4 hours",
-     "brief": "Plan out 7 days of social media posts for any brand of your choice — one idea per day.",
-     "why_it_matters": "This task gives you real practice creating content the way marketing teams do it professionally. This is exactly the kind of skill employers look for, regardless of which company or industry you end up joining.",
-     "instructions": "Step 1: Pick any brand.\nStep 2: For each of 7 days, write the post format and topic.\nStep 3: Mix formats.\nStep 4: At least 2 posts must be purely educational.\nStep 5: Don't stop at the first example — dig deeper. Research or work through at least 3-4 real examples/cases related to \"One-Week Content Calendar\", not just one, before you move on.\nStep 6: Now write it up properly, in your own words — a clear, well-organised summary of at least 400 words covering everything you found, structured like you're presenting it to a manager (not just a few bullet points).\nStep 7: Finally, write a short reflection (150+ words) — what surprised you while working on this, what was harder than it looked, and how this exact skill would be useful at ANY company you might work at, not just this one."},
-    {"track": "marketing", "title": "Field Scan: Local Advertising", "difficulty": "easy", "points_value": 75, "deliverable_type": "photo", "requires_geotag": True, "estimated_duration": "3-5 hours (including travel)",
-     "brief": "A real-world field task — go out and photograph how businesses advertise in your local area, across any industries.",
-     "why_it_matters": "This task builds your persuasive writing and brand-thinking skills — useful in marketing, sales, or running your own venture someday. This is exactly the kind of skill employers look for, regardless of which company or industry you end up joining.",
-     "instructions": "Step 1: Walk around your local area looking for hoardings, banners, or shop-front ads.\nStep 2: Photograph 3 different examples.\nStep 3: Caption each with the brand and message.\nStep 4: Don't stop at the minimum — go broader than the task first asked. Cover more real examples/locations than you initially might (aim for at least 4-5 in total, not just 1-2), so your comparison has real depth.\nStep 5: Now write it up properly, in your own words — a clear, well-organised summary of at least 400 words covering everything you found, structured like you're presenting it to a manager (not just a few bullet points).\nStep 6: Finally, write a short reflection (150+ words) — what surprised you while working on this, what was harder than it looked, and how this exact skill would be useful at ANY company you might work at, not just this one."},
-    {"track": "marketing", "title": "SWOT Analysis of a Company", "difficulty": "medium", "points_value": 80, "deliverable_type": "text", "requires_geotag": False, "estimated_duration": "3-4 hours",
-     "brief": "SWOT stands for Strengths, Weaknesses, Opportunities, and Threats — a standard way to analyse any business. Do one for a company of your choice.",
-     "why_it_matters": "This task trains your eye for what makes messaging work — or fail — in the real world. This is exactly the kind of skill employers look for, regardless of which company or industry you end up joining.",
-     "instructions": "Step 1: Pick any company.\nStep 2: Write 2-3 points each for Strengths, Weaknesses, Opportunities, Threats.\nStep 3: Summarise your overall view in 2-3 lines.\nStep 4: Don't stop at the first example — dig deeper. Research or work through at least 3-4 real examples/cases related to \"SWOT Analysis of a Company\", not just one, before you move on.\nStep 5: Now write it up properly, in your own words — a clear, well-organised summary of at least 400 words covering everything you found, structured like you're presenting it to a manager (not just a few bullet points).\nStep 6: Finally, write a short reflection (150+ words) — what surprised you while working on this, what was harder than it looked, and how this exact skill would be useful at ANY company you might work at, not just this one."},
-    {"track": "marketing", "title": "3 Referral Program Ideas for Any Business", "difficulty": "easy", "points_value": 60, "deliverable_type": "text", "requires_geotag": False, "estimated_duration": "2.5-3.5 hours",
-     "brief": "Come up with 3 original ideas for a referral program that would encourage a business's existing customers to refer friends and family.",
-     "why_it_matters": "This task builds research and customer-psychology skills that apply to any customer-facing role. This is exactly the kind of skill employers look for, regardless of which company or industry you end up joining.",
-     "instructions": "Step 1: Pick any business.\nStep 2: Brainstorm 3 ideas for rewarding referrals.\nStep 3: Note rough cost and why a customer would participate, for each.\nStep 4: Don't stop at the first example — dig deeper. Research or work through at least 3-4 real examples/cases related to \"3 Referral Program Ideas for Any Business\", not just one, before you move on.\nStep 5: Now write it up properly, in your own words — a clear, well-organised summary of at least 400 words covering everything you found, structured like you're presenting it to a manager (not just a few bullet points).\nStep 6: Finally, write a short reflection (150+ words) — what surprised you while working on this, what was harder than it looked, and how this exact skill would be useful at ANY company you might work at, not just this one."},
-    {"track": "marketing", "title": "Write a Press Release", "difficulty": "medium", "points_value": 80, "deliverable_type": "text", "requires_geotag": False, "estimated_duration": "3-4 hours",
-     "brief": "A press release announces news to journalists/media in a standard format. Write one for any announcement.",
-     "why_it_matters": "This task teaches you to think from the customer's side, a habit that helps in literally any job. This is exactly the kind of skill employers look for, regardless of which company or industry you end up joining.",
-     "instructions": "Step 1: Pick any announcement (a product launch, an award, a new store opening).\nStep 2: Write a headline, a 2-3 line summary, and 2-3 short paragraphs with the details.\nStep 3: End with a one-line 'About the Company' section.\nStep 4: Don't stop at the first example — dig deeper. Research or work through at least 3-4 real examples/cases related to \"Write a Press Release\", not just one, before you move on.\nStep 5: Now write it up properly, in your own words — a clear, well-organised summary of at least 400 words covering everything you found, structured like you're presenting it to a manager (not just a few bullet points).\nStep 6: Finally, write a short reflection (150+ words) — what surprised you while working on this, what was harder than it looked, and how this exact skill would be useful at ANY company you might work at, not just this one."},
-    {"track": "marketing", "title": "Create a Customer Persona", "difficulty": "medium", "points_value": 80, "deliverable_type": "text", "requires_geotag": False, "estimated_duration": "3-4 hours",
-     "brief": "A 'customer persona' is a semi-fictional profile of an ideal customer, used to guide marketing decisions. Create one.",
-     "why_it_matters": "This task teaches you to think from the customer's side, a habit that helps in literally any job. This is exactly the kind of skill employers look for, regardless of which company or industry you end up joining.",
-     "instructions": "Step 1: Pick any product or service.\nStep 2: Create a persona with a name, age, job, and interests.\nStep 3: Describe their biggest pain point that your product/service solves.\nStep 4: Note where they'd likely see your marketing (Instagram, Google, word of mouth, etc).\nStep 5: Don't stop at the first example — dig deeper. Research or work through at least 3-4 real examples/cases related to \"Create a Customer Persona\", not just one, before you move on.\nStep 6: Now write it up properly, in your own words — a clear, well-organised summary of at least 400 words covering everything you found, structured like you're presenting it to a manager (not just a few bullet points).\nStep 7: Finally, write a short reflection (150+ words) — what surprised you while working on this, what was harder than it looked, and how this exact skill would be useful at ANY company you might work at, not just this one."},
-    {"track": "marketing", "title": "Analyze a TV/YouTube Ad", "difficulty": "medium", "points_value": 80, "deliverable_type": "text", "requires_geotag": False, "estimated_duration": "3-4 hours",
-     "brief": "Watch any advertisement and break down why it works (or doesn't).",
-     "why_it_matters": "This task teaches you to think from the customer's side, a habit that helps in literally any job. This is exactly the kind of skill employers look for, regardless of which company or industry you end up joining.",
-     "instructions": "Step 1: Pick any TV ad or YouTube ad you remember or can find online.\nStep 2: Describe what happens in the ad in 3-4 lines.\nStep 3: Explain what emotion or message it's trying to create, and whether you think it succeeds.\nStep 4: Don't stop at the first example — dig deeper. Research or work through at least 3-4 real examples/cases related to \"Analyze a TV/YouTube Ad\", not just one, before you move on.\nStep 5: Now write it up properly, in your own words — a clear, well-organised summary of at least 400 words covering everything you found, structured like you're presenting it to a manager (not just a few bullet points).\nStep 6: Finally, write a short reflection (150+ words) — what surprised you while working on this, what was harder than it looked, and how this exact skill would be useful at ANY company you might work at, not just this one."},
-    {"track": "marketing", "title": "Write a Product Description", "difficulty": "easy", "points_value": 60, "deliverable_type": "text", "requires_geotag": False, "estimated_duration": "2.5-3.5 hours",
-     "brief": "E-commerce product descriptions need to inform and persuade at the same time. Write one.",
-     "why_it_matters": "This task builds research and customer-psychology skills that apply to any customer-facing role. This is exactly the kind of skill employers look for, regardless of which company or industry you end up joining.",
-     "instructions": "Step 1: Pick any product (real or imaginary).\nStep 2: Write a product description (80-120 words) covering what it is, its key benefit, and one persuasive detail.\nStep 3: End with a short call-to-action line.\nStep 4: Don't stop at the first example — dig deeper. Research or work through at least 3-4 real examples/cases related to \"Write a Product Description\", not just one, before you move on.\nStep 5: Now write it up properly, in your own words — a clear, well-organised summary of at least 400 words covering everything you found, structured like you're presenting it to a manager (not just a few bullet points).\nStep 6: Finally, write a short reflection (150+ words) — what surprised you while working on this, what was harder than it looked, and how this exact skill would be useful at ANY company you might work at, not just this one."},
-    {"track": "marketing", "title": "Design a Loyalty Program Concept", "difficulty": "medium", "points_value": 80, "deliverable_type": "text", "requires_geotag": False, "estimated_duration": "3-4 hours",
-     "brief": "Loyalty programs reward repeat customers. Design a simple one for any business.",
-     "why_it_matters": "This task builds your comfort putting ideas into words clearly and quickly — a rare, valuable skill. This is exactly the kind of skill employers look for, regardless of which company or industry you end up joining.",
-     "instructions": "Step 1: Pick any business.\nStep 2: Design a simple points or punch-card style loyalty system.\nStep 3: Explain what a customer needs to do to earn a reward, and what the reward is.\nStep 4: Note why this would motivate repeat visits.\nStep 5: Don't stop at the first example — dig deeper. Research or work through at least 3-4 real examples/cases related to \"Design a Loyalty Program Concept\", not just one, before you move on.\nStep 6: Now write it up properly, in your own words — a clear, well-organised summary of at least 400 words covering everything you found, structured like you're presenting it to a manager (not just a few bullet points).\nStep 7: Finally, write a short reflection (150+ words) — what surprised you while working on this, what was harder than it looked, and how this exact skill would be useful at ANY company you might work at, not just this one."},
-    {"track": "marketing", "title": "Understand SEO Basics", "difficulty": "medium", "points_value": 80, "deliverable_type": "text", "requires_geotag": False, "estimated_duration": "3-4 hours",
-     "brief": "SEO (Search Engine Optimization) helps a website rank higher on Google. Learn the basics.",
-     "why_it_matters": "This task sharpens your understanding of how businesses actually attract and keep customers, not just theory. This is exactly the kind of skill employers look for, regardless of which company or industry you end up joining.",
-     "instructions": "Step 1: Search 'what is SEO' and read a simple explainer.\nStep 2: Explain in your own words what a 'keyword' is and why it matters.\nStep 3: List 3 basic things a website could do to improve its SEO.\nStep 4: Don't stop at the first example — dig deeper. Research or work through at least 3-4 real examples/cases related to \"Understand SEO Basics\", not just one, before you move on.\nStep 5: Now write it up properly, in your own words — a clear, well-organised summary of at least 400 words covering everything you found, structured like you're presenting it to a manager (not just a few bullet points).\nStep 6: Finally, write a short reflection (150+ words) — what surprised you while working on this, what was harder than it looked, and how this exact skill would be useful at ANY company you might work at, not just this one."},
-    {"track": "marketing", "title": "Write a LinkedIn Post for a Professional Brand", "difficulty": "easy", "points_value": 60, "deliverable_type": "text", "requires_geotag": False, "estimated_duration": "2.5-3.5 hours",
-     "brief": "LinkedIn content style is different from Instagram — more professional, insight-driven. Write a post.",
-     "why_it_matters": "This task builds your comfort putting ideas into words clearly and quickly — a rare, valuable skill. This is exactly the kind of skill employers look for, regardless of which company or industry you end up joining.",
-     "instructions": "Step 1: Pick any professional topic or achievement (real or imaginary) relevant to a business.\nStep 2: Write a LinkedIn-style post (150-200 words) sharing an insight or update.\nStep 3: End with a question to encourage comments.\nStep 4: Don't stop at the first example — dig deeper. Research or work through at least 3-4 real examples/cases related to \"Write a LinkedIn Post for a Professional Brand\", not just one, before you move on.\nStep 5: Now write it up properly, in your own words — a clear, well-organised summary of at least 400 words covering everything you found, structured like you're presenting it to a manager (not just a few bullet points).\nStep 6: Finally, write a short reflection (150+ words) — what surprised you while working on this, what was harder than it looked, and how this exact skill would be useful at ANY company you might work at, not just this one."},
-    {"track": "marketing", "title": "Create a Brand Tagline", "difficulty": "easy", "points_value": 60, "deliverable_type": "text", "requires_geotag": False, "estimated_duration": "2.5-3.5 hours",
-     "brief": "A tagline is a short, memorable phrase that captures a brand's essence. Write 3 options for any brand.",
-     "why_it_matters": "This task builds your comfort putting ideas into words clearly and quickly — a rare, valuable skill. This is exactly the kind of skill employers look for, regardless of which company or industry you end up joining.",
-     "instructions": "Step 1: Pick any brand or product.\nStep 2: Write 3 different tagline options, each under 8 words.\nStep 3: Explain in 1 line why each one works.\nStep 4: Don't stop at the first example — dig deeper. Research or work through at least 3-4 real examples/cases related to \"Create a Brand Tagline\", not just one, before you move on.\nStep 5: Now write it up properly, in your own words — a clear, well-organised summary of at least 400 words covering everything you found, structured like you're presenting it to a manager (not just a few bullet points).\nStep 6: Finally, write a short reflection (150+ words) — what surprised you while working on this, what was harder than it looked, and how this exact skill would be useful at ANY company you might work at, not just this one."},
-    {"track": "marketing", "title": "Understand the 4 Ps of Marketing", "difficulty": "medium", "points_value": 80, "deliverable_type": "text", "requires_geotag": False, "estimated_duration": "3-4 hours",
-     "brief": "The '4 Ps' (Product, Price, Place, Promotion) is a classic marketing framework. Apply it to a real product.",
-     "why_it_matters": "This task sharpens your understanding of how businesses actually attract and keep customers, not just theory. This is exactly the kind of skill employers look for, regardless of which company or industry you end up joining.",
-     "instructions": "Step 1: Pick any product you're familiar with.\nStep 2: Describe it under each of the 4 Ps: Product (what it is), Price (positioning — premium/budget), Place (where it's sold), Promotion (how it's marketed).\nStep 3: In 2 lines, note if any of the 4 seem mismatched with the others.\nStep 4: Don't stop at the first example — dig deeper. Research or work through at least 3-4 real examples/cases related to \"Understand the 4 Ps of Marketing\", not just one, before you move on.\nStep 5: Now write it up properly, in your own words — a clear, well-organised summary of at least 400 words covering everything you found, structured like you're presenting it to a manager (not just a few bullet points).\nStep 6: Finally, write a short reflection (150+ words) — what surprised you while working on this, what was harder than it looked, and how this exact skill would be useful at ANY company you might work at, not just this one."},
-    {"track": "marketing", "title": "Field: Photograph Window Displays of 3 Shops", "difficulty": "easy", "points_value": 75, "deliverable_type": "photo", "requires_geotag": True, "estimated_duration": "3-5 hours (including travel)",
-     "brief": "A real-world field task — window displays are a form of marketing. Study and photograph a few.",
-     "why_it_matters": "This task builds research and customer-psychology skills that apply to any customer-facing role. This is exactly the kind of skill employers look for, regardless of which company or industry you end up joining.",
-     "instructions": "Step 1: Visit any local market or shopping street.\nStep 2: Find 3 shops with visible window/storefront displays.\nStep 3: Photograph each, and caption what you think each display is trying to communicate.\nStep 4: Don't stop at the minimum — go broader than the task first asked. Cover more real examples/locations than you initially might (aim for at least 4-5 in total, not just 1-2), so your comparison has real depth.\nStep 5: Now write it up properly, in your own words — a clear, well-organised summary of at least 400 words covering everything you found, structured like you're presenting it to a manager (not just a few bullet points).\nStep 6: Finally, write a short reflection (150+ words) — what surprised you while working on this, what was harder than it looked, and how this exact skill would be useful at ANY company you might work at, not just this one."},
-    {"track": "marketing", "title": "Write a Product Launch Announcement", "difficulty": "easy", "points_value": 60, "deliverable_type": "text", "requires_geotag": False, "estimated_duration": "2.5-3.5 hours",
-     "brief": "Write a social media announcement for a new product launch.",
-     "why_it_matters": "This task builds your persuasive writing and brand-thinking skills — useful in marketing, sales, or running your own venture someday. This is exactly the kind of skill employers look for, regardless of which company or industry you end up joining.",
-     "instructions": "Step 1: Pick any product (real or imaginary) that's newly launching.\nStep 2: Write an announcement post (under 150 words) building excitement.\nStep 3: Include a launch date/availability detail and a call-to-action.\nStep 4: Don't stop at the first example — dig deeper. Research or work through at least 3-4 real examples/cases related to \"Write a Product Launch Announcement\", not just one, before you move on.\nStep 5: Now write it up properly, in your own words — a clear, well-organised summary of at least 400 words covering everything you found, structured like you're presenting it to a manager (not just a few bullet points).\nStep 6: Finally, write a short reflection (150+ words) — what surprised you while working on this, what was harder than it looked, and how this exact skill would be useful at ANY company you might work at, not just this one."},
-    {"track": "marketing", "title": "Create an Influencer Outreach Message", "difficulty": "medium", "points_value": 80, "deliverable_type": "text", "requires_geotag": False, "estimated_duration": "3-4 hours",
-     "brief": "Brands often reach out to social media influencers for collaborations. Write an outreach message.",
-     "why_it_matters": "This task gives you real practice creating content the way marketing teams do it professionally. This is exactly the kind of skill employers look for, regardless of which company or industry you end up joining.",
-     "instructions": "Step 1: Pick any product/brand.\nStep 2: Write a short DM/email pitching a collaboration to an imaginary influencer.\nStep 3: Mention what's in it for them, not just what you want.\nStep 4: Don't stop at the first example — dig deeper. Research or work through at least 3-4 real examples/cases related to \"Create an Influencer Outreach Message\", not just one, before you move on.\nStep 5: Now write it up properly, in your own words — a clear, well-organised summary of at least 400 words covering everything you found, structured like you're presenting it to a manager (not just a few bullet points).\nStep 6: Finally, write a short reflection (150+ words) — what surprised you while working on this, what was harder than it looked, and how this exact skill would be useful at ANY company you might work at, not just this one."},
-    {"track": "marketing", "title": "Analyze a Successful Ad Campaign", "difficulty": "medium", "points_value": 80, "deliverable_type": "text", "requires_geotag": False, "estimated_duration": "3-4 hours",
-     "brief": "Study a marketing campaign you consider successful and figure out why it worked.",
-     "why_it_matters": "This task trains your eye for what makes messaging work — or fail — in the real world. This is exactly the kind of skill employers look for, regardless of which company or industry you end up joining.",
-     "instructions": "Step 1: Pick any ad campaign (any brand, any era) you remember well.\nStep 2: Describe what made it memorable.\nStep 3: Identify 2 specific marketing techniques it used (e.g. humor, emotional storytelling, celebrity endorsement, scarcity).\nStep 4: Don't stop at the first example — dig deeper. Research or work through at least 3-4 real examples/cases related to \"Analyze a Successful Ad Campaign\", not just one, before you move on.\nStep 5: Now write it up properly, in your own words — a clear, well-organised summary of at least 400 words covering everything you found, structured like you're presenting it to a manager (not just a few bullet points).\nStep 6: Finally, write a short reflection (150+ words) — what surprised you while working on this, what was harder than it looked, and how this exact skill would be useful at ANY company you might work at, not just this one."},
-    {"track": "marketing", "title": "Write FAQs for a Product/Service", "difficulty": "easy", "points_value": 60, "deliverable_type": "text", "requires_geotag": False, "estimated_duration": "2.5-3.5 hours",
-     "brief": "A good FAQ section answers real customer hesitations before they even ask. Write one.",
-     "why_it_matters": "This task trains your eye for what makes messaging work — or fail — in the real world. This is exactly the kind of skill employers look for, regardless of which company or industry you end up joining.",
-     "instructions": "Step 1: Pick any product/service.\nStep 2: Write 5 questions a hesitant customer might have.\nStep 3: Write a clear, reassuring answer for each.\nStep 4: Don't stop at the first example — dig deeper. Research or work through at least 3-4 real examples/cases related to \"Write FAQs for a Product/Service\", not just one, before you move on.\nStep 5: Now write it up properly, in your own words — a clear, well-organised summary of at least 400 words covering everything you found, structured like you're presenting it to a manager (not just a few bullet points).\nStep 6: Finally, write a short reflection (150+ words) — what surprised you while working on this, what was harder than it looked, and how this exact skill would be useful at ANY company you might work at, not just this one."},
-    {"track": "marketing", "title": "Create a Simple Market Segmentation", "difficulty": "medium", "points_value": 80, "deliverable_type": "text", "requires_geotag": False, "estimated_duration": "3-4 hours",
-     "brief": "Not every customer is the same — segmentation groups them by shared traits. Practice this for any product.",
-     "why_it_matters": "This task teaches you to think from the customer's side, a habit that helps in literally any job. This is exactly the kind of skill employers look for, regardless of which company or industry you end up joining.",
-     "instructions": "Step 1: Pick any product with a broad customer base.\nStep 2: Identify 3 different customer segments (e.g. by age, income, lifestyle).\nStep 3: Note how the marketing message might differ for each segment.\nStep 4: Don't stop at the first example — dig deeper. Research or work through at least 3-4 real examples/cases related to \"Create a Simple Market Segmentation\", not just one, before you move on.\nStep 5: Now write it up properly, in your own words — a clear, well-organised summary of at least 400 words covering everything you found, structured like you're presenting it to a manager (not just a few bullet points).\nStep 6: Finally, write a short reflection (150+ words) — what surprised you while working on this, what was harder than it looked, and how this exact skill would be useful at ANY company you might work at, not just this one."},
-    {"track": "marketing", "title": "Design a Discount/Sale Promotion Concept", "difficulty": "easy", "points_value": 60, "deliverable_type": "text", "requires_geotag": False, "estimated_duration": "2.5-3.5 hours",
-     "brief": "Design a limited-time promotion for any business.",
-     "why_it_matters": "This task trains your eye for what makes messaging work — or fail — in the real world. This is exactly the kind of skill employers look for, regardless of which company or industry you end up joining.",
-     "instructions": "Step 1: Pick any business.\nStep 2: Design a promotion (e.g. a % off, buy-one-get-one, festive offer).\nStep 3: Write the promotional message announcing it, including the time limit to create urgency.\nStep 4: Don't stop at the first example — dig deeper. Research or work through at least 3-4 real examples/cases related to \"Design a Discount/Sale Promotion Concept\", not just one, before you move on.\nStep 5: Now write it up properly, in your own words — a clear, well-organised summary of at least 400 words covering everything you found, structured like you're presenting it to a manager (not just a few bullet points).\nStep 6: Finally, write a short reflection (150+ words) — what surprised you while working on this, what was harder than it looked, and how this exact skill would be useful at ANY company you might work at, not just this one."},
-    {"track": "marketing", "title": "Write a Customer Testimonial Request Message", "difficulty": "easy", "points_value": 60, "deliverable_type": "text", "requires_geotag": False, "estimated_duration": "2.5-3.5 hours",
-     "brief": "Getting a happy customer to write a testimonial requires a good ask. Write that message.",
-     "why_it_matters": "This task trains your eye for what makes messaging work — or fail — in the real world. This is exactly the kind of skill employers look for, regardless of which company or industry you end up joining.",
-     "instructions": "Step 1: Pick any product/service.\nStep 2: Write a short message asking a satisfied customer for a written testimonial or review.\nStep 3: Make it easy for them — suggest what they could mention.\nStep 4: Don't stop at the first example — dig deeper. Research or work through at least 3-4 real examples/cases related to \"Write a Customer Testimonial Request Message\", not just one, before you move on.\nStep 5: Now write it up properly, in your own words — a clear, well-organised summary of at least 400 words covering everything you found, structured like you're presenting it to a manager (not just a few bullet points).\nStep 6: Finally, write a short reflection (150+ words) — what surprised you while working on this, what was harder than it looked, and how this exact skill would be useful at ANY company you might work at, not just this one."},
-    {"track": "marketing", "title": "Understand Brand Positioning vs Competitors", "difficulty": "medium", "points_value": 80, "deliverable_type": "text", "requires_geotag": False, "estimated_duration": "3-4 hours",
-     "brief": "Brand positioning is how a brand differentiates itself in customers' minds. Analyse one example.",
-     "why_it_matters": "This task sharpens your understanding of how businesses actually attract and keep customers, not just theory. This is exactly the kind of skill employers look for, regardless of which company or industry you end up joining.",
-     "instructions": "Step 1: Pick any brand and one of its direct competitors.\nStep 2: In 1-2 lines each, describe how each brand tries to be seen differently (e.g. 'premium' vs 'affordable', 'fast' vs 'reliable').\nStep 3: Explain which positioning you find more convincing and why.\nStep 4: Don't stop at the first example — dig deeper. Research or work through at least 3-4 real examples/cases related to \"Understand Brand Positioning vs Competitors\", not just one, before you move on.\nStep 5: Now write it up properly, in your own words — a clear, well-organised summary of at least 400 words covering everything you found, structured like you're presenting it to a manager (not just a few bullet points).\nStep 6: Finally, write a short reflection (150+ words) — what surprised you while working on this, what was harder than it looked, and how this exact skill would be useful at ANY company you might work at, not just this one."},
-    {"track": "marketing", "title": "Field: Interview a Shop Owner About Their Marketing", "difficulty": "medium", "points_value": 95, "deliverable_type": "text_and_photo", "requires_geotag": True, "estimated_duration": "3-5 hours (including travel)",
-     "brief": "A real-world field task — ask a local shop owner how they currently attract customers.",
-     "why_it_matters": "This task teaches you to think from the customer's side, a habit that helps in literally any job. This is exactly the kind of skill employers look for, regardless of which company or industry you end up joining.",
-     "instructions": "Step 1: Visit any local shop.\nStep 2: Politely ask the owner how they currently market or advertise their business (word of mouth, social media, none at all — all answers are useful).\nStep 3: Write down what you learned.\nStep 4: Take a photo of the shop's exterior/signage as proof.\nStep 5: Don't stop at the minimum — go broader than the task first asked. Cover more real examples/locations than you initially might (aim for at least 4-5 in total, not just 1-2), so your comparison has real depth.\nStep 6: Now write it up properly, in your own words — a clear, well-organised summary of at least 400 words covering everything you found, structured like you're presenting it to a manager (not just a few bullet points).\nStep 7: Finally, write a short reflection (150+ words) — what surprised you while working on this, what was harder than it looked, and how this exact skill would be useful at ANY company you might work at, not just this one."},
-    {"track": "marketing", "title": "Create a Hashtag Strategy for a Campaign", "difficulty": "easy", "points_value": 60, "deliverable_type": "text", "requires_geotag": False, "estimated_duration": "2.5-3.5 hours",
-     "brief": "Hashtags help content get discovered. Design a small hashtag strategy for a campaign.",
-     "why_it_matters": "This task trains your eye for what makes messaging work — or fail — in the real world. This is exactly the kind of skill employers look for, regardless of which company or industry you end up joining.",
-     "instructions": "Step 1: Pick any brand/product launching a campaign.\nStep 2: Create one unique branded hashtag for the campaign.\nStep 3: List 5 additional relevant hashtags to pair with it, and explain why you chose them.\nStep 4: Don't stop at the first example — dig deeper. Research or work through at least 3-4 real examples/cases related to \"Create a Hashtag Strategy for a Campaign\", not just one, before you move on.\nStep 5: Now write it up properly, in your own words — a clear, well-organised summary of at least 400 words covering everything you found, structured like you're presenting it to a manager (not just a few bullet points).\nStep 6: Finally, write a short reflection (150+ words) — what surprised you while working on this, what was harder than it looked, and how this exact skill would be useful at ANY company you might work at, not just this one."},
-    {"track": "marketing", "title": "Write a Crisis Response Message", "difficulty": "hard", "points_value": 100, "deliverable_type": "text", "requires_geotag": False, "estimated_duration": "4-5 hours",
-     "brief": "Brands sometimes need to respond publicly to a complaint or bad press. Practice writing a calm, professional response.",
-     "why_it_matters": "This task builds your comfort putting ideas into words clearly and quickly — a rare, valuable skill. This is exactly the kind of skill employers look for, regardless of which company or industry you end up joining.",
-     "instructions": "Step 1: Imagine a brand received public criticism for a delayed order (a mild, realistic scenario).\nStep 2: Write a public response — acknowledge the issue, avoid being defensive, and explain what's being done.\nStep 3: Keep the tone calm and professional throughout.\nStep 4: Don't stop at the first example — dig deeper. Research or work through at least 3-4 real examples/cases related to \"Write a Crisis Response Message\", not just one, before you move on.\nStep 5: Now write it up properly, in your own words — a clear, well-organised summary of at least 400 words covering everything you found, structured like you're presenting it to a manager (not just a few bullet points).\nStep 6: Finally, write a short reflection (150+ words) — what surprised you while working on this, what was harder than it looked, and how this exact skill would be useful at ANY company you might work at, not just this one."},
-    {"track": "marketing", "title": "Design an Email Subject Line A/B Test", "difficulty": "easy", "points_value": 60, "deliverable_type": "text", "requires_geotag": False, "estimated_duration": "2.5-3.5 hours",
-     "brief": "Marketers often test 2 versions of something to see which performs better. Practice with email subject lines.",
-     "why_it_matters": "This task builds your comfort putting ideas into words clearly and quickly — a rare, valuable skill. This is exactly the kind of skill employers look for, regardless of which company or industry you end up joining.",
-     "instructions": "Step 1: Pick any email topic (a sale, a newsletter, a product update).\nStep 2: Write 2 different subject lines for the same email — Version A and Version B.\nStep 3: Explain what's different about their approach (e.g. curiosity vs directness) and which you predict would perform better.\nStep 4: Don't stop at the first example — dig deeper. Research or work through at least 3-4 real examples/cases related to \"Design an Email Subject Line A/B Test\", not just one, before you move on.\nStep 5: Now write it up properly, in your own words — a clear, well-organised summary of at least 400 words covering everything you found, structured like you're presenting it to a manager (not just a few bullet points).\nStep 6: Finally, write a short reflection (150+ words) — what surprised you while working on this, what was harder than it looked, and how this exact skill would be useful at ANY company you might work at, not just this one."},
-    {"track": "marketing", "title": "Understand Marketing Funnel Basics", "difficulty": "medium", "points_value": 80, "deliverable_type": "text", "requires_geotag": False, "estimated_duration": "3-4 hours",
-     "brief": "The marketing funnel describes the stages a customer goes through: Awareness, Interest, Decision, Action. Learn it.",
-     "why_it_matters": "This task trains your eye for what makes messaging work — or fail — in the real world. This is exactly the kind of skill employers look for, regardless of which company or industry you end up joining.",
-     "instructions": "Step 1: Research the marketing funnel stages: Awareness, Interest, Decision, Action.\nStep 2: For any product of your choice, describe one marketing activity suited to EACH stage.\nStep 3: In 2 lines, explain why using the same message at every stage usually doesn't work well.\nStep 4: Don't stop at the first example — dig deeper. Research or work through at least 3-4 real examples/cases related to \"Understand Marketing Funnel Basics\", not just one, before you move on.\nStep 5: Now write it up properly, in your own words — a clear, well-organised summary of at least 400 words covering everything you found, structured like you're presenting it to a manager (not just a few bullet points).\nStep 6: Finally, write a short reflection (150+ words) — what surprised you while working on this, what was harder than it looked, and how this exact skill would be useful at ANY company you might work at, not just this one."},
-    {"track": "marketing", "title": "Create a Simple Media Kit Outline", "difficulty": "medium", "points_value": 80, "deliverable_type": "text", "requires_geotag": False, "estimated_duration": "3-4 hours",
-     "brief": "A media kit is a one-page summary a brand shares with press or partners. Outline one.",
-     "why_it_matters": "This task sharpens your understanding of how businesses actually attract and keep customers, not just theory. This is exactly the kind of skill employers look for, regardless of which company or industry you end up joining.",
-     "instructions": "Step 1: Pick any brand.\nStep 2: List what sections a media kit should include (e.g. brand story, key stats, logo/visuals, contact info).\nStep 3: Fill in brief sample content for each section.\nStep 4: Don't stop at the first example — dig deeper. Research or work through at least 3-4 real examples/cases related to \"Create a Simple Media Kit Outline\", not just one, before you move on.\nStep 5: Now write it up properly, in your own words — a clear, well-organised summary of at least 400 words covering everything you found, structured like you're presenting it to a manager (not just a few bullet points).\nStep 6: Finally, write a short reflection (150+ words) — what surprised you while working on this, what was harder than it looked, and how this exact skill would be useful at ANY company you might work at, not just this one."},
-    {"track": "marketing", "title": "Write a Video Script Concept", "difficulty": "medium", "points_value": 80, "deliverable_type": "text", "requires_geotag": False, "estimated_duration": "3-4 hours",
-     "brief": "Write a short script concept for a 30-second promotional video.",
-     "why_it_matters": "This task builds research and customer-psychology skills that apply to any customer-facing role. This is exactly the kind of skill employers look for, regardless of which company or industry you end up joining.",
-     "instructions": "Step 1: Pick any product/service.\nStep 2: Write a scene-by-scene outline for a 30-second video (what's shown, what's said).\nStep 3: End with a clear call-to-action shown on screen.\nStep 4: Don't stop at the first example — dig deeper. Research or work through at least 3-4 real examples/cases related to \"Write a Video Script Concept\", not just one, before you move on.\nStep 5: Now write it up properly, in your own words — a clear, well-organised summary of at least 400 words covering everything you found, structured like you're presenting it to a manager (not just a few bullet points).\nStep 6: Finally, write a short reflection (150+ words) — what surprised you while working on this, what was harder than it looked, and how this exact skill would be useful at ANY company you might work at, not just this one."},
-    {"track": "marketing", "title": "Field: Note Down 5 QR Codes You See in Public", "difficulty": "easy", "points_value": 75, "deliverable_type": "photo", "requires_geotag": True, "estimated_duration": "3-5 hours (including travel)",
-     "brief": "A real-world field task — QR codes are everywhere now as a marketing/contactless tool. Spot and photograph a few.",
-     "why_it_matters": "This task builds your persuasive writing and brand-thinking skills — useful in marketing, sales, or running your own venture someday. This is exactly the kind of skill employers look for, regardless of which company or industry you end up joining.",
-     "instructions": "Step 1: While out and about, look for QR codes used for marketing (menus, payment, offers, social media links).\nStep 2: Photograph 3-5 different examples.\nStep 3: Note what each QR code seemed to be used for.\nStep 4: Don't stop at the minimum — go broader than the task first asked. Cover more real examples/locations than you initially might (aim for at least 4-5 in total, not just 1-2), so your comparison has real depth.\nStep 5: Now write it up properly, in your own words — a clear, well-organised summary of at least 400 words covering everything you found, structured like you're presenting it to a manager (not just a few bullet points).\nStep 6: Finally, write a short reflection (150+ words) — what surprised you while working on this, what was harder than it looked, and how this exact skill would be useful at ANY company you might work at, not just this one."},
-    {"track": "marketing", "title": "Analyze a Brand's Logo & Color Choices", "difficulty": "easy", "points_value": 60, "deliverable_type": "text", "requires_geotag": False, "estimated_duration": "2.5-3.5 hours",
-     "brief": "Colors and logo design communicate a lot before a customer reads a single word. Analyse one brand's choices.",
-     "why_it_matters": "This task builds research and customer-psychology skills that apply to any customer-facing role. This is exactly the kind of skill employers look for, regardless of which company or industry you end up joining.",
-     "instructions": "Step 1: Pick any brand with a distinct logo/color scheme.\nStep 2: Describe the main colors used.\nStep 3: Explain what feeling or message you think those color choices are meant to create (e.g. red = energy/urgency, blue = trust/calm).\nStep 4: Don't stop at the first example — dig deeper. Research or work through at least 3-4 real examples/cases related to \"Analyze a Brand's Logo & Color Choices\", not just one, before you move on.\nStep 5: Now write it up properly, in your own words — a clear, well-organised summary of at least 400 words covering everything you found, structured like you're presenting it to a manager (not just a few bullet points).\nStep 6: Finally, write a short reflection (150+ words) — what surprised you while working on this, what was harder than it looked, and how this exact skill would be useful at ANY company you might work at, not just this one."},
-    {"track": "marketing", "title": "Write a Cold Outreach Email for a Partnership", "difficulty": "medium", "points_value": 80, "deliverable_type": "text", "requires_geotag": False, "estimated_duration": "3-4 hours",
-     "brief": "Write an email pitching a business partnership/collaboration to another company.",
-     "why_it_matters": "This task teaches you to think from the customer's side, a habit that helps in literally any job. This is exactly the kind of skill employers look for, regardless of which company or industry you end up joining.",
-     "instructions": "Step 1: Pick any 2 businesses that could reasonably partner (e.g. a gym and a healthy food cafe).\nStep 2: Write a short outreach email from one to the other, proposing a collaboration idea.\nStep 3: Clearly explain the mutual benefit.\nStep 4: Don't stop at the first example — dig deeper. Research or work through at least 3-4 real examples/cases related to \"Write a Cold Outreach Email for a Partnership\", not just one, before you move on.\nStep 5: Now write it up properly, in your own words — a clear, well-organised summary of at least 400 words covering everything you found, structured like you're presenting it to a manager (not just a few bullet points).\nStep 6: Finally, write a short reflection (150+ words) — what surprised you while working on this, what was harder than it looked, and how this exact skill would be useful at ANY company you might work at, not just this one."},
-    {"track": "marketing", "title": "Create a Simple Customer Journey Map", "difficulty": "medium", "points_value": 80, "deliverable_type": "text", "requires_geotag": False, "estimated_duration": "3-4 hours",
-     "brief": "A customer journey map traces every step a customer takes, from first hearing about a brand to becoming a loyal buyer. Map one.",
-     "why_it_matters": "This task sharpens your understanding of how businesses actually attract and keep customers, not just theory. This is exactly the kind of skill employers look for, regardless of which company or industry you end up joining.",
-     "instructions": "Step 1: Pick any product/service.\nStep 2: List the stages a customer goes through (e.g. sees an ad → visits website → asks a friend → buys → uses it → tells others).\nStep 3: For each stage, note one thing the brand could do to improve that step.\nStep 4: Don't stop at the first example — dig deeper. Research or work through at least 3-4 real examples/cases related to \"Create a Simple Customer Journey Map\", not just one, before you move on.\nStep 5: Now write it up properly, in your own words — a clear, well-organised summary of at least 400 words covering everything you found, structured like you're presenting it to a manager (not just a few bullet points).\nStep 6: Finally, write a short reflection (150+ words) — what surprised you while working on this, what was harder than it looked, and how this exact skill would be useful at ANY company you might work at, not just this one."},
-    {"track": "marketing", "title": "Understand Word-of-Mouth Marketing", "difficulty": "easy", "points_value": 60, "deliverable_type": "text", "requires_geotag": False, "estimated_duration": "2.5-3.5 hours",
-     "brief": "Word-of-mouth is one of the most powerful (and free) forms of marketing. Understand why it works.",
-     "why_it_matters": "This task builds your persuasive writing and brand-thinking skills — useful in marketing, sales, or running your own venture someday. This is exactly the kind of skill employers look for, regardless of which company or industry you end up joining.",
-     "instructions": "Step 1: Think of a product/service you personally recommended to someone.\nStep 2: Explain why you recommended it — what made it worth talking about.\nStep 3: Suggest 2 ways a business could encourage more word-of-mouth.\nStep 4: Don't stop at the first example — dig deeper. Research or work through at least 3-4 real examples/cases related to \"Understand Word-of-Mouth Marketing\", not just one, before you move on.\nStep 5: Now write it up properly, in your own words — a clear, well-organised summary of at least 400 words covering everything you found, structured like you're presenting it to a manager (not just a few bullet points).\nStep 6: Finally, write a short reflection (150+ words) — what surprised you while working on this, what was harder than it looked, and how this exact skill would be useful at ANY company you might work at, not just this one."},
-    {"track": "marketing", "title": "Design a Referral Discount Code Concept", "difficulty": "easy", "points_value": 60, "deliverable_type": "text", "requires_geotag": False, "estimated_duration": "2.5-3.5 hours",
-     "brief": "Referral discount codes reward both the referrer and the new customer. Design one.",
-     "why_it_matters": "This task builds research and customer-psychology skills that apply to any customer-facing role. This is exactly the kind of skill employers look for, regardless of which company or industry you end up joining.",
-     "instructions": "Step 1: Pick any business.\nStep 2: Design a referral code system (e.g. both people get 10% off).\nStep 3: Write the message a customer would share with a friend to use it.\nStep 4: Don't stop at the first example — dig deeper. Research or work through at least 3-4 real examples/cases related to \"Design a Referral Discount Code Concept\", not just one, before you move on.\nStep 5: Now write it up properly, in your own words — a clear, well-organised summary of at least 400 words covering everything you found, structured like you're presenting it to a manager (not just a few bullet points).\nStep 6: Finally, write a short reflection (150+ words) — what surprised you while working on this, what was harder than it looked, and how this exact skill would be useful at ANY company you might work at, not just this one."},
-    {"track": "marketing", "title": "Write an 'About Us' Page Draft", "difficulty": "easy", "points_value": 60, "deliverable_type": "text", "requires_geotag": False, "estimated_duration": "2.5-3.5 hours",
-     "brief": "An 'About Us' page tells a brand's story. Write a short one.",
-     "why_it_matters": "This task trains your eye for what makes messaging work — or fail — in the real world. This is exactly the kind of skill employers look for, regardless of which company or industry you end up joining.",
-     "instructions": "Step 1: Pick any business (real or imaginary).\nStep 2: Write a 100-150 word 'About Us' covering why it started and what it stands for.\nStep 3: Keep it human and specific, not generic corporate language.\nStep 4: Don't stop at the first example — dig deeper. Research or work through at least 3-4 real examples/cases related to \"Write an 'About Us' Page Draft\", not just one, before you move on.\nStep 5: Now write it up properly, in your own words — a clear, well-organised summary of at least 400 words covering everything you found, structured like you're presenting it to a manager (not just a few bullet points).\nStep 6: Finally, write a short reflection (150+ words) — what surprised you while working on this, what was harder than it looked, and how this exact skill would be useful at ANY company you might work at, not just this one."},
-    {"track": "marketing", "title": "Field: Compare Packaging of 3 Similar Products", "difficulty": "medium", "points_value": 95, "deliverable_type": "text_and_photo", "requires_geotag": True, "estimated_duration": "3-5 hours (including travel)",
-     "brief": "A real-world field task — packaging is a marketing tool too. Compare how 3 similar products package themselves.",
-     "why_it_matters": "This task builds your comfort putting ideas into words clearly and quickly — a rare, valuable skill. This is exactly the kind of skill employers look for, regardless of which company or industry you end up joining.",
-     "instructions": "Step 1: Pick a product category (e.g. biscuits, soap, chips) with several competing brands.\nStep 2: Find 3 different brands' packaging in that category.\nStep 3: Note what's different about their design, colors, and messaging.\nStep 4: Take a photo of the 3 products together as proof.\nStep 5: Don't stop at the minimum — go broader than the task first asked. Cover more real examples/locations than you initially might (aim for at least 4-5 in total, not just 1-2), so your comparison has real depth.\nStep 6: Now write it up properly, in your own words — a clear, well-organised summary of at least 400 words covering everything you found, structured like you're presenting it to a manager (not just a few bullet points).\nStep 7: Finally, write a short reflection (150+ words) — what surprised you while working on this, what was harder than it looked, and how this exact skill would be useful at ANY company you might work at, not just this one."},
-    {"track": "marketing", "title": "Create a Content Repurposing Plan", "difficulty": "medium", "points_value": 80, "deliverable_type": "text", "requires_geotag": False, "estimated_duration": "3-4 hours",
-     "brief": "One good idea can be turned into multiple content formats. Practice repurposing.",
-     "why_it_matters": "This task trains your eye for what makes messaging work — or fail — in the real world. This is exactly the kind of skill employers look for, regardless of which company or industry you end up joining.",
-     "instructions": "Step 1: Pick one piece of content (e.g. a blog post idea, a tip, a customer story).\nStep 2: Describe how you'd turn it into 3 different formats: an Instagram carousel, a short video script, and an email snippet.\nStep 3: Don't stop at the first example — dig deeper. Research or work through at least 3-4 real examples/cases related to \"Create a Content Repurposing Plan\", not just one, before you move on.\nStep 4: Now write it up properly, in your own words — a clear, well-organised summary of at least 400 words covering everything you found, structured like you're presenting it to a manager (not just a few bullet points).\nStep 5: Finally, write a short reflection (150+ words) — what surprised you while working on this, what was harder than it looked, and how this exact skill would be useful at ANY company you might work at, not just this one."},
-    {"track": "marketing", "title": "Understand Guerrilla Marketing", "difficulty": "medium", "points_value": 80, "deliverable_type": "text", "requires_geotag": False, "estimated_duration": "3-4 hours",
-     "brief": "Guerrilla marketing uses low-cost, unconventional tactics for high impact. Learn the concept with an example.",
-     "why_it_matters": "This task gives you real practice creating content the way marketing teams do it professionally. This is exactly the kind of skill employers look for, regardless of which company or industry you end up joining.",
-     "instructions": "Step 1: Search 'guerrilla marketing examples' and find one that stands out to you.\nStep 2: Describe what the brand did.\nStep 3: Explain why it worked without a big budget.\nStep 4: Don't stop at the first example — dig deeper. Research or work through at least 3-4 real examples/cases related to \"Understand Guerrilla Marketing\", not just one, before you move on.\nStep 5: Now write it up properly, in your own words — a clear, well-organised summary of at least 400 words covering everything you found, structured like you're presenting it to a manager (not just a few bullet points).\nStep 6: Finally, write a short reflection (150+ words) — what surprised you while working on this, what was harder than it looked, and how this exact skill would be useful at ANY company you might work at, not just this one."},
-    {"track": "marketing", "title": "Write a Year-End Recap Post for a Brand", "difficulty": "easy", "points_value": 60, "deliverable_type": "text", "requires_geotag": False, "estimated_duration": "2.5-3.5 hours",
-     "brief": "Year-end recaps are a common, engaging content format. Write one for any brand.",
-     "why_it_matters": "This task builds your persuasive writing and brand-thinking skills — useful in marketing, sales, or running your own venture someday. This is exactly the kind of skill employers look for, regardless of which company or industry you end up joining.",
-     "instructions": "Step 1: Pick any brand (real or imaginary).\nStep 2: Write a short 'year in review' post highlighting 3 made-up achievements/milestones.\nStep 3: End on a forward-looking note about the year ahead.\nStep 4: Don't stop at the first example — dig deeper. Research or work through at least 3-4 real examples/cases related to \"Write a Year-End Recap Post for a Brand\", not just one, before you move on.\nStep 5: Now write it up properly, in your own words — a clear, well-organised summary of at least 400 words covering everything you found, structured like you're presenting it to a manager (not just a few bullet points).\nStep 6: Finally, write a short reflection (150+ words) — what surprised you while working on this, what was harder than it looked, and how this exact skill would be useful at ANY company you might work at, not just this one."},
-    {"track": "marketing", "title": "Design a Simple Brand Awareness Survey", "difficulty": "medium", "points_value": 80, "deliverable_type": "text", "requires_geotag": False, "estimated_duration": "3-4 hours",
-     "brief": "Design a short survey to measure how well-known a brand is among a target audience.",
-     "why_it_matters": "This task trains your eye for what makes messaging work — or fail — in the real world. This is exactly the kind of skill employers look for, regardless of which company or industry you end up joining.",
-     "instructions": "Step 1: Pick any brand.\nStep 2: Write 5 survey questions to measure awareness (e.g. 'Have you heard of [Brand]?', 'Where did you hear about it?').\nStep 3: Explain what you'd do with the results.\nStep 4: Don't stop at the first example — dig deeper. Research or work through at least 3-4 real examples/cases related to \"Design a Simple Brand Awareness Survey\", not just one, before you move on.\nStep 5: Now write it up properly, in your own words — a clear, well-organised summary of at least 400 words covering everything you found, structured like you're presenting it to a manager (not just a few bullet points).\nStep 6: Finally, write a short reflection (150+ words) — what surprised you while working on this, what was harder than it looked, and how this exact skill would be useful at ANY company you might work at, not just this one."},
+_MKT_TASK4_TEMPLATE = {
+    "rows": 12,
+    "cols": 5,
+    "headers": ["Channel", "Cost per Lead (Rs)", "Allocation %", "Allocated Amount (Rs)", "Projected Leads"],
+    "prefilled": {
+        "A1": "Channel", "B1": "Cost per Lead (Rs)", "C1": "Allocation %",
+        "D1": "Allocated Amount (Rs)", "E1": "Projected Leads",
+        "A2": "Social Media Ads", "B2": 250, "C2": 30,
+        "A3": "Google Search Ads", "B3": 400, "C3": 25,
+        "A4": "Influencer Marketing", "B4": 600, "C4": 15,
+        "A5": "Print / Local Ads", "B5": 800, "C5": 10,
+        "A6": "Events & Sponsorships", "B6": 1000, "C6": 10,
+        "A7": "Content Marketing (SEO/Blog)", "B7": 200, "C7": 10,
+        "A9": "TOTALS",
+        "A10": "Total Allocated Amount (Rs)",
+        "A11": "Total Projected Leads",
+        "A12": "Blended Cost per Lead (Total Budget / Total Leads)",
+    },
+    "locked_cells": [
+        "A1", "B1", "C1", "D1", "E1",
+        "A2", "B2", "C2", "A3", "B3", "C3", "A4", "B4", "C4",
+        "A5", "B5", "C5", "A6", "B6", "C6", "A7", "B7", "C7",
+        "A9", "A10", "A11", "A12",
+    ],
+}
 
-    # ════════════════════════════════════════════════════════════════════
-    # SALES (50) — general sales skills, any product/industry
-    # ════════════════════════════════════════════════════════════════════
-    {"track": "sales", "title": "Cold-Call Opening Script", "difficulty": "easy", "points_value": 60, "deliverable_type": "text", "requires_geotag": False, "estimated_duration": "2.5-3.5 hours",
-     "brief": "Write the opening lines (first 30 seconds) of a phone call to a potential customer who showed interest in any product or service of your choice.",
-     "why_it_matters": "This task builds your communication and persuasion skills — useful in every career, not just sales. This is exactly the kind of skill employers look for, regardless of which company or industry you end up joining.",
-     "instructions": "Step 1: Pick any product or service.\nStep 2: Write your introduction — who you are and why you're calling.\nStep 3: Reference why you're reaching out to THIS person.\nStep 4: Write it the way you'd actually speak — read it aloud and fix anything robotic.\nStep 5: Don't stop at the first example — dig deeper. Research or work through at least 3-4 real examples/cases related to \"Cold-Call Opening Script\", not just one, before you move on.\nStep 6: Now write it up properly, in your own words — a clear, well-organised summary of at least 400 words covering everything you found, structured like you're presenting it to a manager (not just a few bullet points).\nStep 7: Finally, write a short reflection (150+ words) — what surprised you while working on this, what was harder than it looked, and how this exact skill would be useful at ANY company you might work at, not just this one."},
-    {"track": "sales", "title": "Field Lead Scan: Local Market Visit", "difficulty": "medium", "points_value": 95, "deliverable_type": "text_and_photo", "requires_geotag": True, "estimated_duration": "3-5 hours (including travel)",
-     "brief": "A real-world field task — visit a local market or business area and identify 5 potential customers for any product/service.",
-     "why_it_matters": "This task sharpens your ability to build trust and rapport quickly with people you've just met. This is exactly the kind of skill employers look for, regardless of which company or industry you end up joining.",
-     "instructions": "Step 1: Visit a local market, shopping area, or business park.\nStep 2: Pick any product/service category and note 5 potential leads with why they'd be good customers.\nStep 3: Take a photo of the market/area — not identifiable people.\nStep 4: Don't collect personal contact details without consent.\nStep 5: Don't stop at the minimum — go broader than the task first asked. Cover more real examples/locations than you initially might (aim for at least 4-5 in total, not just 1-2), so your comparison has real depth.\nStep 6: Now write it up properly, in your own words — a clear, well-organised summary of at least 400 words covering everything you found, structured like you're presenting it to a manager (not just a few bullet points).\nStep 7: Finally, write a short reflection (150+ words) — what surprised you while working on this, what was harder than it looked, and how this exact skill would be useful at ANY company you might work at, not just this one."},
-    {"track": "sales", "title": "60-Second Elevator Pitch", "difficulty": "easy", "points_value": 60, "deliverable_type": "text", "requires_geotag": False, "estimated_duration": "2.5-3.5 hours",
-     "brief": "An 'elevator pitch' is a short pitch you could give in the time of a short elevator ride. Write one for any product or service.",
-     "why_it_matters": "This task gives you real practice structuring a pitch that actually gets heard and remembered. This is exactly the kind of skill employers look for, regardless of which company or industry you end up joining.",
-     "instructions": "Step 1: Pick any product/service.\nStep 2: Write a pitch speakable in about 60 seconds.\nStep 3: Cover what it is, who it's for, and why someone should care.\nStep 4: Don't stop at the first example — dig deeper. Research or work through at least 3-4 real examples/cases related to \"60-Second Elevator Pitch\", not just one, before you move on.\nStep 5: Now write it up properly, in your own words — a clear, well-organised summary of at least 400 words covering everything you found, structured like you're presenting it to a manager (not just a few bullet points).\nStep 6: Finally, write a short reflection (150+ words) — what surprised you while working on this, what was harder than it looked, and how this exact skill would be useful at ANY company you might work at, not just this one."},
-    {"track": "sales", "title": "Objection Handling: 'It's Too Expensive'", "difficulty": "medium", "points_value": 80, "deliverable_type": "text", "requires_geotag": False, "estimated_duration": "3-4 hours",
-     "brief": "'It's too expensive' is one of the most common objections in any sales conversation. Write out exactly how you'd respond.",
-     "why_it_matters": "This task trains you to really listen before you speak, which most people never practice deliberately. This is exactly the kind of skill employers look for, regardless of which company or industry you end up joining.",
-     "instructions": "Step 1: Pick any product/service.\nStep 2: Write your response to 'it's too expensive.'\nStep 3: Acknowledge the concern first.\nStep 4: Explain the value that justifies the price, without being pushy.\nStep 5: Don't stop at the first example — dig deeper. Research or work through at least 3-4 real examples/cases related to \"Objection Handling: 'It's Too Expensive'\", not just one, before you move on.\nStep 6: Now write it up properly, in your own words — a clear, well-organised summary of at least 400 words covering everything you found, structured like you're presenting it to a manager (not just a few bullet points).\nStep 7: Finally, write a short reflection (150+ words) — what surprised you while working on this, what was harder than it looked, and how this exact skill would be useful at ANY company you might work at, not just this one."},
-    {"track": "sales", "title": "Follow-Up Message Sequence for a Cold Lead", "difficulty": "medium", "points_value": 80, "deliverable_type": "text", "requires_geotag": False, "estimated_duration": "3-4 hours",
-     "brief": "Write 3 short follow-up messages for a lead who showed interest earlier but has since stopped replying — for any product/service.",
-     "why_it_matters": "This task trains you to really listen before you speak, which most people never practice deliberately. This is exactly the kind of skill employers look for, regardless of which company or industry you end up joining.",
-     "instructions": "Step 1: Pick any product/service.\nStep 2: Write Message 1 (Day 1) — light, no pressure.\nStep 3: Write Message 2 (Day 4) — add value.\nStep 4: Write Message 3 (Day 10) — final polite check-in. Keep each short.\nStep 5: Don't stop at the first example — dig deeper. Research or work through at least 3-4 real examples/cases related to \"Follow-Up Message Sequence for a Cold Lead\", not just one, before you move on.\nStep 6: Now write it up properly, in your own words — a clear, well-organised summary of at least 400 words covering everything you found, structured like you're presenting it to a manager (not just a few bullet points).\nStep 7: Finally, write a short reflection (150+ words) — what surprised you while working on this, what was harder than it looked, and how this exact skill would be useful at ANY company you might work at, not just this one."},
-    {"track": "sales", "title": "Shadow a Local Shopkeeper's Sales Technique", "difficulty": "medium", "points_value": 80, "deliverable_type": "text", "requires_geotag": False, "estimated_duration": "3-4 hours",
-     "brief": "Watch how a shopkeeper or vendor sells to customers in real life, and note down techniques that apply to selling anything.",
-     "why_it_matters": "This task gives you real practice structuring a pitch that actually gets heard and remembered. This is exactly the kind of skill employers look for, regardless of which company or industry you end up joining.",
-     "instructions": "Step 1: Visit any local shop and quietly observe for 15-20 minutes.\nStep 2: Note down 2 specific techniques used.\nStep 3: Write how you could adapt each to sell any other product.\nStep 4: Be respectful — you're observing, not interviewing.\nStep 5: Don't stop at the first example — dig deeper. Research or work through at least 3-4 real examples/cases related to \"Shadow a Local Shopkeeper's Sales Technique\", not just one, before you move on.\nStep 6: Now write it up properly, in your own words — a clear, well-organised summary of at least 400 words covering everything you found, structured like you're presenting it to a manager (not just a few bullet points).\nStep 7: Finally, write a short reflection (150+ words) — what surprised you while working on this, what was harder than it looked, and how this exact skill would be useful at ANY company you might work at, not just this one."},
-    {"track": "sales", "title": "10 Discovery-Call Questions", "difficulty": "easy", "points_value": 60, "deliverable_type": "text", "requires_geotag": False, "estimated_duration": "2.5-3.5 hours",
-     "brief": "List 10 questions a salesperson could ask a new prospect on a first call, in ANY industry, to understand their needs.",
-     "why_it_matters": "This task builds resilience — a core sales skill that also helps with interviews and everyday setbacks. This is exactly the kind of skill employers look for, regardless of which company or industry you end up joining.",
-     "instructions": "Step 1: Pick any industry.\nStep 2: Write 10 different open-ended questions a salesperson might ask a new prospect.\nStep 3: Make sure none can be answered with just yes/no.\nStep 4: Don't stop at the first example — dig deeper. Research or work through at least 3-4 real examples/cases related to \"10 Discovery-Call Questions\", not just one, before you move on.\nStep 5: Now write it up properly, in your own words — a clear, well-organised summary of at least 400 words covering everything you found, structured like you're presenting it to a manager (not just a few bullet points).\nStep 6: Finally, write a short reflection (150+ words) — what surprised you while working on this, what was harder than it looked, and how this exact skill would be useful at ANY company you might work at, not just this one."},
-    {"track": "sales", "title": "B2B Proposal Draft for a Small Business", "difficulty": "hard", "points_value": 100, "deliverable_type": "text", "requires_geotag": False, "estimated_duration": "4-5 hours",
-     "brief": "Draft a simple proposal explaining why a small business should buy a product or service you're 'selling' (pick anything — software, supplies, a service).",
-     "why_it_matters": "This task sharpens your ability to build trust and rapport quickly with people you've just met. This is exactly the kind of skill employers look for, regardless of which company or industry you end up joining.",
-     "instructions": "Step 1: Pick any product/service a small business might buy.\nStep 2: Explain what problem it solves.\nStep 3: Explain why THIS business specifically would benefit.\nStep 4: Suggest a rough pricing structure and justify it.\nStep 5: Don't stop at the first example — dig deeper. Research or work through at least 3-4 real examples/cases related to \"B2B Proposal Draft for a Small Business\", not just one, before you move on.\nStep 6: Now write it up properly, in your own words — a clear, well-organised summary of at least 400 words covering everything you found, structured like you're presenting it to a manager (not just a few bullet points).\nStep 7: Finally, write a short reflection (150+ words) — what surprised you while working on this, what was harder than it looked, and how this exact skill would be useful at ANY company you might work at, not just this one."},
-    {"track": "sales", "title": "Handling 'I Need to Think About It'", "difficulty": "medium", "points_value": 80, "deliverable_type": "text", "requires_geotag": False, "estimated_duration": "3-4 hours",
-     "brief": "'I need to think about it' is a common stalling objection. Write your response for any product/service you choose.",
-     "why_it_matters": "This task builds your communication and persuasion skills — useful in every career, not just sales. This is exactly the kind of skill employers look for, regardless of which company or industry you end up joining.",
-     "instructions": "Step 1: Pick any product/service.\nStep 2: Write your response to 'I need to think about it.'\nStep 3: Aim to find out what's really holding them back.\nStep 4: End with a low-pressure next step.\nStep 5: Don't stop at the first example — dig deeper. Research or work through at least 3-4 real examples/cases related to \"Handling 'I Need to Think About It'\", not just one, before you move on.\nStep 6: Now write it up properly, in your own words — a clear, well-organised summary of at least 400 words covering everything you found, structured like you're presenting it to a manager (not just a few bullet points).\nStep 7: Finally, write a short reflection (150+ words) — what surprised you while working on this, what was harder than it looked, and how this exact skill would be useful at ANY company you might work at, not just this one."},
-    {"track": "sales", "title": "Field Introduction: 3 Local Businesses", "difficulty": "medium", "points_value": 95, "deliverable_type": "text_and_photo", "requires_geotag": True, "estimated_duration": "3-5 hours (including travel)",
-     "brief": "A real-world field task — visit 3 local shops or small offices and practice introducing any product/service, even informally.",
-     "why_it_matters": "This task trains you to really listen before you speak, which most people never practice deliberately. This is exactly the kind of skill employers look for, regardless of which company or industry you end up joining.",
-     "instructions": "Step 1: Pick any product/service to 'introduce.'\nStep 2: Visit 3 local shops/offices and briefly introduce it.\nStep 3: Note their reaction at each place.\nStep 4: Take a photo of each location's exterior/signage.\nStep 5: Don't stop at the minimum — go broader than the task first asked. Cover more real examples/locations than you initially might (aim for at least 4-5 in total, not just 1-2), so your comparison has real depth.\nStep 6: Now write it up properly, in your own words — a clear, well-organised summary of at least 400 words covering everything you found, structured like you're presenting it to a manager (not just a few bullet points).\nStep 7: Finally, write a short reflection (150+ words) — what surprised you while working on this, what was harder than it looked, and how this exact skill would be useful at ANY company you might work at, not just this one."},
-    {"track": "sales", "title": "Referral Ask Script", "difficulty": "easy", "points_value": 60, "deliverable_type": "text", "requires_geotag": False, "estimated_duration": "2.5-3.5 hours",
-     "brief": "Write a short, natural script for asking a happy existing customer to refer a friend or family member — without sounding pushy.",
-     "why_it_matters": "This task sharpens your ability to build trust and rapport quickly with people you've just met. This is exactly the kind of skill employers look for, regardless of which company or industry you end up joining.",
-     "instructions": "Step 1: Pick any product/service.\nStep 2: Acknowledge something positive about the relationship first.\nStep 3: Make the ask, casually.\nStep 4: Keep it to 3-5 sentences.\nStep 5: Don't stop at the first example — dig deeper. Research or work through at least 3-4 real examples/cases related to \"Referral Ask Script\", not just one, before you move on.\nStep 6: Now write it up properly, in your own words — a clear, well-organised summary of at least 400 words covering everything you found, structured like you're presenting it to a manager (not just a few bullet points).\nStep 7: Finally, write a short reflection (150+ words) — what surprised you while working on this, what was harder than it looked, and how this exact skill would be useful at ANY company you might work at, not just this one."},
-    {"track": "sales", "title": "Post-Mortem: A Hypothetical Lost Sale", "difficulty": "medium", "points_value": 80, "deliverable_type": "text", "requires_geotag": False, "estimated_duration": "3-4 hours",
-     "brief": "Imagine a lead went cold after you followed up 3 times with no response. Think through what might have gone wrong — a useful reflection skill in any sales job.",
-     "why_it_matters": "This task trains you to really listen before you speak, which most people never practice deliberately. This is exactly the kind of skill employers look for, regardless of which company or industry you end up joining.",
-     "instructions": "Step 1: Pick any product/service.\nStep 2: Write 3 specific possible reasons the lead went cold.\nStep 3: Make them realistic, not generic.\nStep 4: Write one thing you'd do differently next time.\nStep 5: Don't stop at the first example — dig deeper. Research or work through at least 3-4 real examples/cases related to \"Post-Mortem: A Hypothetical Lost Sale\", not just one, before you move on.\nStep 6: Now write it up properly, in your own words — a clear, well-organised summary of at least 400 words covering everything you found, structured like you're presenting it to a manager (not just a few bullet points).\nStep 7: Finally, write a short reflection (150+ words) — what surprised you while working on this, what was harder than it looked, and how this exact skill would be useful at ANY company you might work at, not just this one."},
-    {"track": "sales", "title": "Customer Onboarding Checklist", "difficulty": "medium", "points_value": 80, "deliverable_type": "text", "requires_geotag": False, "estimated_duration": "3-4 hours",
-     "brief": "Create a step-by-step checklist of everything that should happen between a customer saying 'yes' and them actually becoming a fully set-up customer.",
-     "why_it_matters": "This task gives you real practice structuring a pitch that actually gets heard and remembered. This is exactly the kind of skill employers look for, regardless of which company or industry you end up joining.",
-     "instructions": "Step 1: Pick any product/service.\nStep 2: List every step in order from agreement to first use.\nStep 3: Include paperwork, verification, and payment steps.\nStep 4: Don't stop at the first example — dig deeper. Research or work through at least 3-4 real examples/cases related to \"Customer Onboarding Checklist\", not just one, before you move on.\nStep 5: Now write it up properly, in your own words — a clear, well-organised summary of at least 400 words covering everything you found, structured like you're presenting it to a manager (not just a few bullet points).\nStep 6: Finally, write a short reflection (150+ words) — what surprised you while working on this, what was harder than it looked, and how this exact skill would be useful at ANY company you might work at, not just this one."},
-    {"track": "sales", "title": "Understand the Sales Funnel", "difficulty": "medium", "points_value": 80, "deliverable_type": "text", "requires_geotag": False, "estimated_duration": "3-4 hours",
-     "brief": "The sales funnel describes stages a prospect goes through before buying. Learn and apply the concept.",
-     "why_it_matters": "This task trains you to handle objections and pushback calmly, which helps in any negotiation, ever. This is exactly the kind of skill employers look for, regardless of which company or industry you end up joining.",
-     "instructions": "Step 1: Research the typical sales funnel stages (e.g. Lead → Qualified Lead → Proposal → Negotiation → Closed).\nStep 2: For any product, describe what activity happens at each stage.\nStep 3: In 2 lines, explain why not every lead reaches the bottom of the funnel.\nStep 4: Don't stop at the first example — dig deeper. Research or work through at least 3-4 real examples/cases related to \"Understand the Sales Funnel\", not just one, before you move on.\nStep 5: Now write it up properly, in your own words — a clear, well-organised summary of at least 400 words covering everything you found, structured like you're presenting it to a manager (not just a few bullet points).\nStep 6: Finally, write a short reflection (150+ words) — what surprised you while working on this, what was harder than it looked, and how this exact skill would be useful at ANY company you might work at, not just this one."},
-    {"track": "sales", "title": "Write a LinkedIn Connection Request for Prospecting", "difficulty": "easy", "points_value": 60, "deliverable_type": "text", "requires_geotag": False, "estimated_duration": "2.5-3.5 hours",
-     "brief": "LinkedIn is a common B2B prospecting tool. Write a personalized connection request message.",
-     "why_it_matters": "This task sharpens your ability to build trust and rapport quickly with people you've just met. This is exactly the kind of skill employers look for, regardless of which company or industry you end up joining.",
-     "instructions": "Step 1: Pick any B2B product/service.\nStep 2: Write a short connection request message (under 300 characters) to a hypothetical decision-maker.\nStep 3: Make it personalized, not a generic sales pitch.\nStep 4: Don't stop at the first example — dig deeper. Research or work through at least 3-4 real examples/cases related to \"Write a LinkedIn Connection Request for Prospecting\", not just one, before you move on.\nStep 5: Now write it up properly, in your own words — a clear, well-organised summary of at least 400 words covering everything you found, structured like you're presenting it to a manager (not just a few bullet points).\nStep 6: Finally, write a short reflection (150+ words) — what surprised you while working on this, what was harder than it looked, and how this exact skill would be useful at ANY company you might work at, not just this one."},
-    {"track": "sales", "title": "Role-Play: Handling a Rude Customer", "difficulty": "medium", "points_value": 80, "deliverable_type": "text", "requires_geotag": False, "estimated_duration": "3-4 hours",
-     "brief": "Staying calm and professional with a difficult customer is a real sales skill. Write out how you'd handle one scenario.",
-     "why_it_matters": "This task trains you to handle objections and pushback calmly, which helps in any negotiation, ever. This is exactly the kind of skill employers look for, regardless of which company or industry you end up joining.",
-     "instructions": "Step 1: Imagine a customer is being rude/impatient because of a delay.\nStep 2: Write out how you'd respond — staying calm, acknowledging their frustration.\nStep 3: End with how you'd resolve or de-escalate the situation.\nStep 4: Don't stop at the first example — dig deeper. Research or work through at least 3-4 real examples/cases related to \"Role-Play: Handling a Rude Customer\", not just one, before you move on.\nStep 5: Now write it up properly, in your own words — a clear, well-organised summary of at least 400 words covering everything you found, structured like you're presenting it to a manager (not just a few bullet points).\nStep 6: Finally, write a short reflection (150+ words) — what surprised you while working on this, what was harder than it looked, and how this exact skill would be useful at ANY company you might work at, not just this one."},
-    {"track": "sales", "title": "Create a Sales Pitch Deck Outline", "difficulty": "medium", "points_value": 80, "deliverable_type": "text", "requires_geotag": False, "estimated_duration": "3-4 hours",
-     "brief": "Sales pitches to businesses are often done via a slide deck. Outline one (5 slides) for any product.",
-     "why_it_matters": "This task trains you to handle objections and pushback calmly, which helps in any negotiation, ever. This is exactly the kind of skill employers look for, regardless of which company or industry you end up joining.",
-     "instructions": "Step 1: Pick any B2B product/service.\nStep 2: Outline 5 slides: e.g. Problem, Solution, How It Works, Pricing, Next Steps.\nStep 3: Write 2-3 bullet points of content for each slide.\nStep 4: Don't stop at the first example — dig deeper. Research or work through at least 3-4 real examples/cases related to \"Create a Sales Pitch Deck Outline\", not just one, before you move on.\nStep 5: Now write it up properly, in your own words — a clear, well-organised summary of at least 400 words covering everything you found, structured like you're presenting it to a manager (not just a few bullet points).\nStep 6: Finally, write a short reflection (150+ words) — what surprised you while working on this, what was harder than it looked, and how this exact skill would be useful at ANY company you might work at, not just this one."},
-    {"track": "sales", "title": "Understand Upselling vs Cross-Selling", "difficulty": "easy", "points_value": 60, "deliverable_type": "text", "requires_geotag": False, "estimated_duration": "2.5-3.5 hours",
-     "brief": "Upselling and cross-selling are related but different techniques for increasing sale value. Learn the difference.",
-     "why_it_matters": "This task builds resilience — a core sales skill that also helps with interviews and everyday setbacks. This is exactly the kind of skill employers look for, regardless of which company or industry you end up joining.",
-     "instructions": "Step 1: Research the difference between 'upselling' (a better/pricier version) and 'cross-selling' (a related add-on product).\nStep 2: Give one real example of each for any product category.\nStep 3: Explain, in 2 lines, why both need to feel helpful, not pushy, to work.\nStep 4: Don't stop at the first example — dig deeper. Research or work through at least 3-4 real examples/cases related to \"Understand Upselling vs Cross-Selling\", not just one, before you move on.\nStep 5: Now write it up properly, in your own words — a clear, well-organised summary of at least 400 words covering everything you found, structured like you're presenting it to a manager (not just a few bullet points).\nStep 6: Finally, write a short reflection (150+ words) — what surprised you while working on this, what was harder than it looked, and how this exact skill would be useful at ANY company you might work at, not just this one."},
-    {"track": "sales", "title": "Write a Thank-You Note After a Sale", "difficulty": "easy", "points_value": 60, "deliverable_type": "text", "requires_geotag": False, "estimated_duration": "2.5-3.5 hours",
-     "brief": "A simple thank-you after a sale builds relationships. Write one.",
-     "why_it_matters": "This task sharpens your ability to build trust and rapport quickly with people you've just met. This is exactly the kind of skill employers look for, regardless of which company or industry you end up joining.",
-     "instructions": "Step 1: Pick any product/service.\nStep 2: Write a short, genuine thank-you message to a new customer.\nStep 3: Mention one specific thing about their purchase, not a generic template.\nStep 4: Don't stop at the first example — dig deeper. Research or work through at least 3-4 real examples/cases related to \"Write a Thank-You Note After a Sale\", not just one, before you move on.\nStep 5: Now write it up properly, in your own words — a clear, well-organised summary of at least 400 words covering everything you found, structured like you're presenting it to a manager (not just a few bullet points).\nStep 6: Finally, write a short reflection (150+ words) — what surprised you while working on this, what was harder than it looked, and how this exact skill would be useful at ANY company you might work at, not just this one."},
-    {"track": "sales", "title": "Practice Active Listening — Summarize a Conversation", "difficulty": "medium", "points_value": 80, "deliverable_type": "text", "requires_geotag": False, "estimated_duration": "3-4 hours",
-     "brief": "Good salespeople listen more than they talk. Practice by summarizing a real conversation accurately.",
-     "why_it_matters": "This task builds the confidence to start conversations with strangers, professionally and comfortably. This is exactly the kind of skill employers look for, regardless of which company or industry you end up joining.",
-     "instructions": "Step 1: Have a short conversation with someone (a friend, family member) about any topic they care about — at least 5 minutes.\nStep 2: Without recording, write a summary of what they said, as accurately as you can from memory.\nStep 3: Reflect: what was hard to remember, and what does that tell you about active listening?\nStep 4: Don't stop at the first example — dig deeper. Research or work through at least 3-4 real examples/cases related to \"Practice Active Listening — Summarize a Conversation\", not just one, before you move on.\nStep 5: Now write it up properly, in your own words — a clear, well-organised summary of at least 400 words covering everything you found, structured like you're presenting it to a manager (not just a few bullet points).\nStep 6: Finally, write a short reflection (150+ words) — what surprised you while working on this, what was harder than it looked, and how this exact skill would be useful at ANY company you might work at, not just this one."},
-    {"track": "sales", "title": "Understand CRM Basics", "difficulty": "easy", "points_value": 60, "deliverable_type": "text", "requires_geotag": False, "estimated_duration": "2.5-3.5 hours",
-     "brief": "CRM (Customer Relationship Management) software helps sales teams track leads and customers. Understand what it's for.",
-     "why_it_matters": "This task builds the confidence to start conversations with strangers, professionally and comfortably. This is exactly the kind of skill employers look for, regardless of which company or industry you end up joining.",
-     "instructions": "Step 1: Search 'what is a CRM' and read a simple explainer.\nStep 2: Explain in your own words what problems a CRM solves for a sales team.\nStep 3: List 3 pieces of information a CRM typically tracks about a lead.\nStep 4: Don't stop at the first example — dig deeper. Research or work through at least 3-4 real examples/cases related to \"Understand CRM Basics\", not just one, before you move on.\nStep 5: Now write it up properly, in your own words — a clear, well-organised summary of at least 400 words covering everything you found, structured like you're presenting it to a manager (not just a few bullet points).\nStep 6: Finally, write a short reflection (150+ words) — what surprised you while working on this, what was harder than it looked, and how this exact skill would be useful at ANY company you might work at, not just this one."},
-    {"track": "sales", "title": "Create a Prospect Qualification Checklist", "difficulty": "medium", "points_value": 80, "deliverable_type": "text", "requires_geotag": False, "estimated_duration": "3-4 hours",
-     "brief": "Not every lead is worth pursuing equally. Create a checklist for judging whether a prospect is worth prioritizing.",
-     "why_it_matters": "This task sharpens your ability to build trust and rapport quickly with people you've just met. This is exactly the kind of skill employers look for, regardless of which company or industry you end up joining.",
-     "instructions": "Step 1: Research the 'BANT' framework (Budget, Authority, Need, Timeline) used to qualify sales leads.\nStep 2: For any product, write one question you'd ask to check each of the 4 BANT factors.\nStep 3: Explain what you'd do differently for a lead that qualifies well vs one that doesn't.\nStep 4: Don't stop at the first example — dig deeper. Research or work through at least 3-4 real examples/cases related to \"Create a Prospect Qualification Checklist\", not just one, before you move on.\nStep 5: Now write it up properly, in your own words — a clear, well-organised summary of at least 400 words covering everything you found, structured like you're presenting it to a manager (not just a few bullet points).\nStep 6: Finally, write a short reflection (150+ words) — what surprised you while working on this, what was harder than it looked, and how this exact skill would be useful at ANY company you might work at, not just this one."},
-    {"track": "sales", "title": "Field: Note Sales Techniques Used at a Mall/Market", "difficulty": "medium", "points_value": 95, "deliverable_type": "text_and_photo", "requires_geotag": True, "estimated_duration": "3-5 hours (including travel)",
-     "brief": "A real-world field task — malls and markets are full of subtle sales techniques. Spot a few.",
-     "why_it_matters": "This task gives you real practice structuring a pitch that actually gets heard and remembered. This is exactly the kind of skill employers look for, regardless of which company or industry you end up joining.",
-     "instructions": "Step 1: Visit a mall or busy market area.\nStep 2: Observe at least 2 different stores/stalls and note any sales technique you notice (displays, staff approach, offers).\nStep 3: Take a photo of the general area as proof.\nStep 4: Write what you observed.\nStep 5: Don't stop at the minimum — go broader than the task first asked. Cover more real examples/locations than you initially might (aim for at least 4-5 in total, not just 1-2), so your comparison has real depth.\nStep 6: Now write it up properly, in your own words — a clear, well-organised summary of at least 400 words covering everything you found, structured like you're presenting it to a manager (not just a few bullet points).\nStep 7: Finally, write a short reflection (150+ words) — what surprised you while working on this, what was harder than it looked, and how this exact skill would be useful at ANY company you might work at, not just this one."},
-    {"track": "sales", "title": "Write a Win-Back Email for a Lost Customer", "difficulty": "medium", "points_value": 80, "deliverable_type": "text", "requires_geotag": False, "estimated_duration": "3-4 hours",
-     "brief": "Sometimes customers stop buying. Write an email trying to win one back.",
-     "why_it_matters": "This task builds the confidence to start conversations with strangers, professionally and comfortably. This is exactly the kind of skill employers look for, regardless of which company or industry you end up joining.",
-     "instructions": "Step 1: Pick any product/service.\nStep 2: Write an email to a customer who hasn't purchased in a while.\nStep 3: Include a reason to come back (an update, an offer, or just genuine check-in) without sounding desperate.\nStep 4: Don't stop at the first example — dig deeper. Research or work through at least 3-4 real examples/cases related to \"Write a Win-Back Email for a Lost Customer\", not just one, before you move on.\nStep 5: Now write it up properly, in your own words — a clear, well-organised summary of at least 400 words covering everything you found, structured like you're presenting it to a manager (not just a few bullet points).\nStep 6: Finally, write a short reflection (150+ words) — what surprised you while working on this, what was harder than it looked, and how this exact skill would be useful at ANY company you might work at, not just this one."},
-    {"track": "sales", "title": "Understand B2B vs B2C Sales", "difficulty": "easy", "points_value": 60, "deliverable_type": "text", "requires_geotag": False, "estimated_duration": "2.5-3.5 hours",
-     "brief": "Selling to businesses (B2B) is different from selling to individual consumers (B2C). Understand the key differences.",
-     "why_it_matters": "This task trains you to handle objections and pushback calmly, which helps in any negotiation, ever. This is exactly the kind of skill employers look for, regardless of which company or industry you end up joining.",
-     "instructions": "Step 1: Research the difference between B2B and B2C sales.\nStep 2: List 2 key differences (e.g. decision-making time, number of people involved, price).\nStep 3: Give one example product/service for each category.\nStep 4: Don't stop at the first example — dig deeper. Research or work through at least 3-4 real examples/cases related to \"Understand B2B vs B2C Sales\", not just one, before you move on.\nStep 5: Now write it up properly, in your own words — a clear, well-organised summary of at least 400 words covering everything you found, structured like you're presenting it to a manager (not just a few bullet points).\nStep 6: Finally, write a short reflection (150+ words) — what surprised you while working on this, what was harder than it looked, and how this exact skill would be useful at ANY company you might work at, not just this one."},
-    {"track": "sales", "title": "Practice Negotiation — a Simple Scenario", "difficulty": "medium", "points_value": 80, "deliverable_type": "text", "requires_geotag": False, "estimated_duration": "3-4 hours",
-     "brief": "Negotiation is a core sales skill. Write through a simple negotiation scenario.",
-     "why_it_matters": "This task trains you to really listen before you speak, which most people never practice deliberately. This is exactly the kind of skill employers look for, regardless of which company or industry you end up joining.",
-     "instructions": "Step 1: Imagine a customer wants a 20% discount on a ₹50,000 product; you're authorized to give up to 10%.\nStep 2: Write out how the conversation might go, aiming for a middle-ground outcome both sides feel okay with.\nStep 3: Explain what you offered instead of a bigger discount (e.g. added value, faster delivery).\nStep 4: Don't stop at the first example — dig deeper. Research or work through at least 3-4 real examples/cases related to \"Practice Negotiation — a Simple Scenario\", not just one, before you move on.\nStep 5: Now write it up properly, in your own words — a clear, well-organised summary of at least 400 words covering everything you found, structured like you're presenting it to a manager (not just a few bullet points).\nStep 6: Finally, write a short reflection (150+ words) — what surprised you while working on this, what was harder than it looked, and how this exact skill would be useful at ANY company you might work at, not just this one."},
-    {"track": "sales", "title": "Create a Sales Target Tracking Sheet Concept", "difficulty": "easy", "points_value": 60, "deliverable_type": "text", "requires_geotag": False, "estimated_duration": "2.5-3.5 hours",
-     "brief": "Salespeople need to track progress against their targets. Design a simple tracking sheet.",
-     "why_it_matters": "This task builds resilience — a core sales skill that also helps with interviews and everyday setbacks. This is exactly the kind of skill employers look for, regardless of which company or industry you end up joining.",
-     "instructions": "Step 1: Imagine a monthly sales target of ₹5,00,000.\nStep 2: Design a simple tracking sheet layout (columns you'd need — e.g. date, deal, amount, running total).\nStep 3: Explain how this helps a salesperson pace themselves through the month.\nStep 4: Don't stop at the first example — dig deeper. Research or work through at least 3-4 real examples/cases related to \"Create a Sales Target Tracking Sheet Concept\", not just one, before you move on.\nStep 5: Now write it up properly, in your own words — a clear, well-organised summary of at least 400 words covering everything you found, structured like you're presenting it to a manager (not just a few bullet points).\nStep 6: Finally, write a short reflection (150+ words) — what surprised you while working on this, what was harder than it looked, and how this exact skill would be useful at ANY company you might work at, not just this one."},
-    {"track": "sales", "title": "Write a Product Comparison Sheet", "difficulty": "medium", "points_value": 80, "deliverable_type": "text", "requires_geotag": False, "estimated_duration": "3-4 hours",
-     "brief": "Comparing your product against a competitor's helps prospects decide. Write a simple comparison.",
-     "why_it_matters": "This task trains you to handle objections and pushback calmly, which helps in any negotiation, ever. This is exactly the kind of skill employers look for, regardless of which company or industry you end up joining.",
-     "instructions": "Step 1: Pick any product and an imaginary or real competitor.\nStep 2: List 4-5 features/factors and compare both honestly.\nStep 3: Keep it fair — a comparison that's too one-sided loses credibility.\nStep 4: Don't stop at the first example — dig deeper. Research or work through at least 3-4 real examples/cases related to \"Write a Product Comparison Sheet\", not just one, before you move on.\nStep 5: Now write it up properly, in your own words — a clear, well-organised summary of at least 400 words covering everything you found, structured like you're presenting it to a manager (not just a few bullet points).\nStep 6: Finally, write a short reflection (150+ words) — what surprised you while working on this, what was harder than it looked, and how this exact skill would be useful at ANY company you might work at, not just this one."},
-    {"track": "sales", "title": "Understand Consultative Selling", "difficulty": "medium", "points_value": 80, "deliverable_type": "text", "requires_geotag": False, "estimated_duration": "3-4 hours",
-     "brief": "Consultative selling means acting as an advisor, not just a pitcher. Understand the approach.",
-     "why_it_matters": "This task builds your communication and persuasion skills — useful in every career, not just sales. This is exactly the kind of skill employers look for, regardless of which company or industry you end up joining.",
-     "instructions": "Step 1: Research 'consultative selling.'\nStep 2: Explain in your own words how it's different from a traditional hard-sell approach.\nStep 3: Give one example of a consultative question a salesperson might ask instead of jumping straight to a pitch.\nStep 4: Don't stop at the first example — dig deeper. Research or work through at least 3-4 real examples/cases related to \"Understand Consultative Selling\", not just one, before you move on.\nStep 5: Now write it up properly, in your own words — a clear, well-organised summary of at least 400 words covering everything you found, structured like you're presenting it to a manager (not just a few bullet points).\nStep 6: Finally, write a short reflection (150+ words) — what surprised you while working on this, what was harder than it looked, and how this exact skill would be useful at ANY company you might work at, not just this one."},
-    {"track": "sales", "title": "Field: Observe a Salesperson's Body Language", "difficulty": "easy", "points_value": 60, "deliverable_type": "text", "requires_geotag": False, "estimated_duration": "2.5-3.5 hours",
-     "brief": "Body language affects trust in sales conversations. Observe this in a real setting.",
-     "why_it_matters": "This task builds resilience — a core sales skill that also helps with interviews and everyday setbacks. This is exactly the kind of skill employers look for, regardless of which company or industry you end up joining.",
-     "instructions": "Step 1: Visit any shop and watch a salesperson interact with a customer (without interfering).\nStep 2: Note their body language — eye contact, posture, tone.\nStep 3: Write 2-3 lines on what seemed to build (or hurt) trust.\nStep 4: Don't stop at the first example — dig deeper. Research or work through at least 3-4 real examples/cases related to \"Field: Observe a Salesperson's Body Language\", not just one, before you move on.\nStep 5: Now write it up properly, in your own words — a clear, well-organised summary of at least 400 words covering everything you found, structured like you're presenting it to a manager (not just a few bullet points).\nStep 6: Finally, write a short reflection (150+ words) — what surprised you while working on this, what was harder than it looked, and how this exact skill would be useful at ANY company you might work at, not just this one."},
-    {"track": "sales", "title": "Write a Script for Handling 'I'll Call You Back'", "difficulty": "medium", "points_value": 80, "deliverable_type": "text", "requires_geotag": False, "estimated_duration": "3-4 hours",
-     "brief": "'I'll call you back' often means a lead is slipping away. Write a response that keeps the conversation alive.",
-     "why_it_matters": "This task builds the confidence to start conversations with strangers, professionally and comfortably. This is exactly the kind of skill employers look for, regardless of which company or industry you end up joining.",
-     "instructions": "Step 1: Pick any product/service.\nStep 2: Write your response when a prospect says 'I'll call you back.'\nStep 3: Try to set a specific follow-up time instead of leaving it open-ended.\nStep 4: Don't stop at the first example — dig deeper. Research or work through at least 3-4 real examples/cases related to \"Write a Script for Handling 'I'll Call You Back'\", not just one, before you move on.\nStep 5: Now write it up properly, in your own words — a clear, well-organised summary of at least 400 words covering everything you found, structured like you're presenting it to a manager (not just a few bullet points).\nStep 6: Finally, write a short reflection (150+ words) — what surprised you while working on this, what was harder than it looked, and how this exact skill would be useful at ANY company you might work at, not just this one."},
-    {"track": "sales", "title": "Create an Ideal Customer Profile", "difficulty": "medium", "points_value": 80, "deliverable_type": "text", "requires_geotag": False, "estimated_duration": "3-4 hours",
-     "brief": "An Ideal Customer Profile (ICP) describes the best-fit customer for a product. Create one.",
-     "why_it_matters": "This task builds your communication and persuasion skills — useful in every career, not just sales. This is exactly the kind of skill employers look for, regardless of which company or industry you end up joining.",
-     "instructions": "Step 1: Pick any product/service.\nStep 2: Describe the ideal customer — their situation, budget, and need.\nStep 3: Explain why they're a better fit than a random customer.\nStep 4: Don't stop at the first example — dig deeper. Research or work through at least 3-4 real examples/cases related to \"Create an Ideal Customer Profile\", not just one, before you move on.\nStep 5: Now write it up properly, in your own words — a clear, well-organised summary of at least 400 words covering everything you found, structured like you're presenting it to a manager (not just a few bullet points).\nStep 6: Finally, write a short reflection (150+ words) — what surprised you while working on this, what was harder than it looked, and how this exact skill would be useful at ANY company you might work at, not just this one."},
-    {"track": "sales", "title": "Understand the AIDA Sales Model", "difficulty": "medium", "points_value": 80, "deliverable_type": "text", "requires_geotag": False, "estimated_duration": "3-4 hours",
-     "brief": "AIDA (Attention, Interest, Desire, Action) is a classic sales/marketing model. Apply it to a pitch.",
-     "why_it_matters": "This task gives you real practice structuring a pitch that actually gets heard and remembered. This is exactly the kind of skill employers look for, regardless of which company or industry you end up joining.",
-     "instructions": "Step 1: Research the AIDA model.\nStep 2: Write one line of a sales pitch for each stage (Attention-grabber, build Interest, create Desire, prompt Action) for any product.\nStep 3: Don't stop at the first example — dig deeper. Research or work through at least 3-4 real examples/cases related to \"Understand the AIDA Sales Model\", not just one, before you move on.\nStep 4: Now write it up properly, in your own words — a clear, well-organised summary of at least 400 words covering everything you found, structured like you're presenting it to a manager (not just a few bullet points).\nStep 5: Finally, write a short reflection (150+ words) — what surprised you while working on this, what was harder than it looked, and how this exact skill would be useful at ANY company you might work at, not just this one."},
-    {"track": "sales", "title": "Practice Cold Emailing", "difficulty": "medium", "points_value": 80, "deliverable_type": "text", "requires_geotag": False, "estimated_duration": "3-4 hours",
-     "brief": "Write a cold email — a first-contact email to someone who hasn't heard from you before.",
-     "why_it_matters": "This task trains you to handle objections and pushback calmly, which helps in any negotiation, ever. This is exactly the kind of skill employers look for, regardless of which company or industry you end up joining.",
-     "instructions": "Step 1: Pick any B2B product/service.\nStep 2: Write a short cold email (under 120 words) with a clear subject line.\nStep 3: Make sure it's about THEM (a problem you can solve), not just about you.\nStep 4: Don't stop at the first example — dig deeper. Research or work through at least 3-4 real examples/cases related to \"Practice Cold Emailing\", not just one, before you move on.\nStep 5: Now write it up properly, in your own words — a clear, well-organised summary of at least 400 words covering everything you found, structured like you're presenting it to a manager (not just a few bullet points).\nStep 6: Finally, write a short reflection (150+ words) — what surprised you while working on this, what was harder than it looked, and how this exact skill would be useful at ANY company you might work at, not just this one."},
-    {"track": "sales", "title": "Write a Script for Asking for a Testimonial", "difficulty": "easy", "points_value": 60, "deliverable_type": "text", "requires_geotag": False, "estimated_duration": "2.5-3.5 hours",
-     "brief": "Testimonials build trust for future customers. Practice asking for one.",
-     "why_it_matters": "This task trains you to handle objections and pushback calmly, which helps in any negotiation, ever. This is exactly the kind of skill employers look for, regardless of which company or industry you end up joining.",
-     "instructions": "Step 1: Pick any product/service.\nStep 2: Write a short message asking a happy customer for a testimonial.\nStep 3: Suggest what they could mention to make it useful.\nStep 4: Don't stop at the first example — dig deeper. Research or work through at least 3-4 real examples/cases related to \"Write a Script for Asking for a Testimonial\", not just one, before you move on.\nStep 5: Now write it up properly, in your own words — a clear, well-organised summary of at least 400 words covering everything you found, structured like you're presenting it to a manager (not just a few bullet points).\nStep 6: Finally, write a short reflection (150+ words) — what surprised you while working on this, what was harder than it looked, and how this exact skill would be useful at ANY company you might work at, not just this one."},
-    {"track": "sales", "title": "Understand Sales Commission Structures", "difficulty": "easy", "points_value": 60, "deliverable_type": "text", "requires_geotag": False, "estimated_duration": "2.5-3.5 hours",
-     "brief": "Salespeople are often paid partly on commission. Understand common structures.",
-     "why_it_matters": "This task builds your communication and persuasion skills — useful in every career, not just sales. This is exactly the kind of skill employers look for, regardless of which company or industry you end up joining.",
-     "instructions": "Step 1: Research common sales commission structures (e.g. flat %, tiered, salary + commission).\nStep 2: Explain each briefly in your own words.\nStep 3: Note one pro and one con of commission-heavy pay for a salesperson.\nStep 4: Don't stop at the first example — dig deeper. Research or work through at least 3-4 real examples/cases related to \"Understand Sales Commission Structures\", not just one, before you move on.\nStep 5: Now write it up properly, in your own words — a clear, well-organised summary of at least 400 words covering everything you found, structured like you're presenting it to a manager (not just a few bullet points).\nStep 6: Finally, write a short reflection (150+ words) — what surprised you while working on this, what was harder than it looked, and how this exact skill would be useful at ANY company you might work at, not just this one."},
-    {"track": "sales", "title": "Field: Note 3 Ways a Business Attracts Walk-In Customers", "difficulty": "easy", "points_value": 75, "deliverable_type": "text_and_photo", "requires_geotag": True, "estimated_duration": "3-5 hours (including travel)",
-     "brief": "A real-world field task — study how a shop pulls in people who weren't planning to enter.",
-     "why_it_matters": "This task builds resilience — a core sales skill that also helps with interviews and everyday setbacks. This is exactly the kind of skill employers look for, regardless of which company or industry you end up joining.",
-     "instructions": "Step 1: Visit any shop with visible street presence.\nStep 2: Note 3 things it does to attract walk-in customers (signage, displays, a person outside, offers).\nStep 3: Take a photo of the shop's exterior as proof.\nStep 4: Don't stop at the minimum — go broader than the task first asked. Cover more real examples/locations than you initially might (aim for at least 4-5 in total, not just 1-2), so your comparison has real depth.\nStep 5: Now write it up properly, in your own words — a clear, well-organised summary of at least 400 words covering everything you found, structured like you're presenting it to a manager (not just a few bullet points).\nStep 6: Finally, write a short reflection (150+ words) — what surprised you while working on this, what was harder than it looked, and how this exact skill would be useful at ANY company you might work at, not just this one."},
-    {"track": "sales", "title": "Create a Follow-Up Reminder System Concept", "difficulty": "easy", "points_value": 60, "deliverable_type": "text", "requires_geotag": False, "estimated_duration": "2.5-3.5 hours",
-     "brief": "Missed follow-ups lose sales. Design a simple system to never forget one.",
-     "why_it_matters": "This task sharpens your ability to build trust and rapport quickly with people you've just met. This is exactly the kind of skill employers look for, regardless of which company or industry you end up joining.",
-     "instructions": "Step 1: Design a simple way to track 'who to follow up with and when' (e.g. a spreadsheet with columns: Name, Last Contact, Next Follow-Up Date).\nStep 2: Explain how you'd use it daily.\nStep 3: Note why this matters more than just 'remembering.'\nStep 4: Don't stop at the first example — dig deeper. Research or work through at least 3-4 real examples/cases related to \"Create a Follow-Up Reminder System Concept\", not just one, before you move on.\nStep 5: Now write it up properly, in your own words — a clear, well-organised summary of at least 400 words covering everything you found, structured like you're presenting it to a manager (not just a few bullet points).\nStep 6: Finally, write a short reflection (150+ words) — what surprised you while working on this, what was harder than it looked, and how this exact skill would be useful at ANY company you might work at, not just this one."},
-    {"track": "sales", "title": "Write a Script Handling Silence/No Response", "difficulty": "medium", "points_value": 80, "deliverable_type": "text", "requires_geotag": False, "estimated_duration": "3-4 hours",
-     "brief": "When a lead goes completely silent, most salespeople give up too soon or too late. Write one final message.",
-     "why_it_matters": "This task builds resilience — a core sales skill that also helps with interviews and everyday setbacks. This is exactly the kind of skill employers look for, regardless of which company or industry you end up joining.",
-     "instructions": "Step 1: Pick any product/service.\nStep 2: Write a final, polite 'closing the loop' message to a lead that's gone silent for weeks.\nStep 3: Make it easy for them to say no, without pressure — this often gets replies.\nStep 4: Don't stop at the first example — dig deeper. Research or work through at least 3-4 real examples/cases related to \"Write a Script Handling Silence/No Response\", not just one, before you move on.\nStep 5: Now write it up properly, in your own words — a clear, well-organised summary of at least 400 words covering everything you found, structured like you're presenting it to a manager (not just a few bullet points).\nStep 6: Finally, write a short reflection (150+ words) — what surprised you while working on this, what was harder than it looked, and how this exact skill would be useful at ANY company you might work at, not just this one."},
-    {"track": "sales", "title": "Understand the Importance of After-Sales Service", "difficulty": "easy", "points_value": 60, "deliverable_type": "text", "requires_geotag": False, "estimated_duration": "2.5-3.5 hours",
-     "brief": "The sale doesn't end at the sale. Understand why after-sales service matters.",
-     "why_it_matters": "This task trains you to handle objections and pushback calmly, which helps in any negotiation, ever. This is exactly the kind of skill employers look for, regardless of which company or industry you end up joining.",
-     "instructions": "Step 1: Think of a time you had a good (or bad) after-sales experience with any company.\nStep 2: Describe what happened.\nStep 3: Explain in 2-3 lines how it affected whether you'd buy from them again.\nStep 4: Don't stop at the first example — dig deeper. Research or work through at least 3-4 real examples/cases related to \"Understand the Importance of After-Sales Service\", not just one, before you move on.\nStep 5: Now write it up properly, in your own words — a clear, well-organised summary of at least 400 words covering everything you found, structured like you're presenting it to a manager (not just a few bullet points).\nStep 6: Finally, write a short reflection (150+ words) — what surprised you while working on this, what was harder than it looked, and how this exact skill would be useful at ANY company you might work at, not just this one."},
-    {"track": "sales", "title": "Practice Building Rapport", "difficulty": "medium", "points_value": 80, "deliverable_type": "text", "requires_geotag": False, "estimated_duration": "3-4 hours",
-     "brief": "Building rapport in the first 2 minutes of a meeting sets the tone. Write out how you'd do it.",
-     "why_it_matters": "This task trains you to handle objections and pushback calmly, which helps in any negotiation, ever. This is exactly the kind of skill employers look for, regardless of which company or industry you end up joining.",
-     "instructions": "Step 1: Imagine meeting a new prospect for the first time.\nStep 2: Write the first 2 minutes of small talk/rapport-building before getting into business.\nStep 3: Keep it natural — avoid generic weather talk, find something genuinely relevant.\nStep 4: Don't stop at the first example — dig deeper. Research or work through at least 3-4 real examples/cases related to \"Practice Building Rapport\", not just one, before you move on.\nStep 5: Now write it up properly, in your own words — a clear, well-organised summary of at least 400 words covering everything you found, structured like you're presenting it to a manager (not just a few bullet points).\nStep 6: Finally, write a short reflection (150+ words) — what surprised you while working on this, what was harder than it looked, and how this exact skill would be useful at ANY company you might work at, not just this one."},
-    {"track": "sales", "title": "Create a Sales Objection Cheat-Sheet", "difficulty": "medium", "points_value": 80, "deliverable_type": "text", "requires_geotag": False, "estimated_duration": "3-4 hours",
-     "brief": "Create a quick-reference sheet of common objections and how to respond to each.",
-     "why_it_matters": "This task sharpens your ability to build trust and rapport quickly with people you've just met. This is exactly the kind of skill employers look for, regardless of which company or industry you end up joining.",
-     "instructions": "Step 1: Pick any product/service.\nStep 2: List 5 common objections a prospect might raise.\nStep 3: Write a short response strategy for each — not a full script, just the key idea.\nStep 4: Don't stop at the first example — dig deeper. Research or work through at least 3-4 real examples/cases related to \"Create a Sales Objection Cheat-Sheet\", not just one, before you move on.\nStep 5: Now write it up properly, in your own words — a clear, well-organised summary of at least 400 words covering everything you found, structured like you're presenting it to a manager (not just a few bullet points).\nStep 6: Finally, write a short reflection (150+ words) — what surprised you while working on this, what was harder than it looked, and how this exact skill would be useful at ANY company you might work at, not just this one."},
-    {"track": "sales", "title": "Write a LinkedIn Post Establishing Sales Credibility", "difficulty": "easy", "points_value": 60, "deliverable_type": "text", "requires_geotag": False, "estimated_duration": "2.5-3.5 hours",
-     "brief": "Sharing genuine insight on LinkedIn builds trust before a cold outreach even happens. Write a post.",
-     "why_it_matters": "This task builds your communication and persuasion skills — useful in every career, not just sales. This is exactly the kind of skill employers look for, regardless of which company or industry you end up joining.",
-     "instructions": "Step 1: Pick any industry.\nStep 2: Write a LinkedIn post (100-150 words) sharing a useful insight, not a sales pitch.\nStep 3: End with an inviting, non-pushy line.\nStep 4: Don't stop at the first example — dig deeper. Research or work through at least 3-4 real examples/cases related to \"Write a LinkedIn Post Establishing Sales Credibility\", not just one, before you move on.\nStep 5: Now write it up properly, in your own words — a clear, well-organised summary of at least 400 words covering everything you found, structured like you're presenting it to a manager (not just a few bullet points).\nStep 6: Finally, write a short reflection (150+ words) — what surprised you while working on this, what was harder than it looked, and how this exact skill would be useful at ANY company you might work at, not just this one."},
-    {"track": "sales", "title": "Understand Value-Based Selling vs Price-Based Selling", "difficulty": "medium", "points_value": 80, "deliverable_type": "text", "requires_geotag": False, "estimated_duration": "3-4 hours",
-     "brief": "Selling on value vs selling on price leads to very different conversations. Understand the difference.",
-     "why_it_matters": "This task gives you real practice structuring a pitch that actually gets heard and remembered. This is exactly the kind of skill employers look for, regardless of which company or industry you end up joining.",
-     "instructions": "Step 1: Explain the difference between competing on price (cheapest) vs competing on value (worth the cost).\nStep 2: Give one example of a brand that clearly sells on value, not price.\nStep 3: Explain why competing purely on price is risky long-term.\nStep 4: Don't stop at the first example — dig deeper. Research or work through at least 3-4 real examples/cases related to \"Understand Value-Based Selling vs Price-Based Selling\", not just one, before you move on.\nStep 5: Now write it up properly, in your own words — a clear, well-organised summary of at least 400 words covering everything you found, structured like you're presenting it to a manager (not just a few bullet points).\nStep 6: Finally, write a short reflection (150+ words) — what surprised you while working on this, what was harder than it looked, and how this exact skill would be useful at ANY company you might work at, not just this one."},
-    {"track": "sales", "title": "Field: Compare How 2 Shops Greet Customers", "difficulty": "easy", "points_value": 75, "deliverable_type": "text", "requires_geotag": True, "estimated_duration": "3-5 hours (including travel)",
-     "brief": "A real-world field task — the first 10 seconds of a customer interaction matter a lot. Compare two shops.",
-     "why_it_matters": "This task builds resilience — a core sales skill that also helps with interviews and everyday setbacks. This is exactly the kind of skill employers look for, regardless of which company or industry you end up joining.",
-     "instructions": "Step 1: Visit 2 different shops (any kind).\nStep 2: Note how staff greeted you (or didn't) in each.\nStep 3: Write which felt better and why.\nStep 4: Don't stop at the minimum — go broader than the task first asked. Cover more real examples/locations than you initially might (aim for at least 4-5 in total, not just 1-2), so your comparison has real depth.\nStep 5: Now write it up properly, in your own words — a clear, well-organised summary of at least 400 words covering everything you found, structured like you're presenting it to a manager (not just a few bullet points).\nStep 6: Finally, write a short reflection (150+ words) — what surprised you while working on this, what was harder than it looked, and how this exact skill would be useful at ANY company you might work at, not just this one."},
-    {"track": "sales", "title": "Write a Proposal Follow-Up Email", "difficulty": "easy", "points_value": 60, "deliverable_type": "text", "requires_geotag": False, "estimated_duration": "2.5-3.5 hours",
-     "brief": "After sending a proposal, following up properly matters. Write that email.",
-     "why_it_matters": "This task builds your communication and persuasion skills — useful in every career, not just sales. This is exactly the kind of skill employers look for, regardless of which company or industry you end up joining.",
-     "instructions": "Step 1: Pick any B2B product/service.\nStep 2: Write a follow-up email sent 3 days after sending a proposal, checking in without being pushy.\nStep 3: Offer to answer any questions.\nStep 4: Don't stop at the first example — dig deeper. Research or work through at least 3-4 real examples/cases related to \"Write a Proposal Follow-Up Email\", not just one, before you move on.\nStep 5: Now write it up properly, in your own words — a clear, well-organised summary of at least 400 words covering everything you found, structured like you're presenting it to a manager (not just a few bullet points).\nStep 6: Finally, write a short reflection (150+ words) — what surprised you while working on this, what was harder than it looked, and how this exact skill would be useful at ANY company you might work at, not just this one."},
-    {"track": "sales", "title": "Understand the Role of Trust in Sales", "difficulty": "easy", "points_value": 60, "deliverable_type": "text", "requires_geotag": False, "estimated_duration": "2.5-3.5 hours",
-     "brief": "Trust is often the real deciding factor in a sale. Reflect on why.",
-     "why_it_matters": "This task sharpens your ability to build trust and rapport quickly with people you've just met. This is exactly the kind of skill employers look for, regardless of which company or industry you end up joining.",
-     "instructions": "Step 1: Think of a purchase you made mainly because you trusted the seller/brand.\nStep 2: Describe what built that trust.\nStep 3: In 2-3 lines, explain how a new salesperson could build trust quickly with a stranger.\nStep 4: Don't stop at the first example — dig deeper. Research or work through at least 3-4 real examples/cases related to \"Understand the Role of Trust in Sales\", not just one, before you move on.\nStep 5: Now write it up properly, in your own words — a clear, well-organised summary of at least 400 words covering everything you found, structured like you're presenting it to a manager (not just a few bullet points).\nStep 6: Finally, write a short reflection (150+ words) — what surprised you while working on this, what was harder than it looked, and how this exact skill would be useful at ANY company you might work at, not just this one."},
-    {"track": "sales", "title": "Create a Competitor Battlecard", "difficulty": "medium", "points_value": 80, "deliverable_type": "text", "requires_geotag": False, "estimated_duration": "3-4 hours",
-     "brief": "A 'battlecard' quickly arms a salesperson with how to respond when a competitor comes up. Create a basic one.",
-     "why_it_matters": "This task builds resilience — a core sales skill that also helps with interviews and everyday setbacks. This is exactly the kind of skill employers look for, regardless of which company or industry you end up joining.",
-     "instructions": "Step 1: Pick any product and one competitor.\nStep 2: List 2 strengths of your product vs the competitor.\nStep 3: Write what to say if a prospect mentions they're also considering that competitor.\nStep 4: Don't stop at the first example — dig deeper. Research or work through at least 3-4 real examples/cases related to \"Create a Competitor Battlecard\", not just one, before you move on.\nStep 5: Now write it up properly, in your own words — a clear, well-organised summary of at least 400 words covering everything you found, structured like you're presenting it to a manager (not just a few bullet points).\nStep 6: Finally, write a short reflection (150+ words) — what surprised you while working on this, what was harder than it looked, and how this exact skill would be useful at ANY company you might work at, not just this one."},
-    {"track": "sales", "title": "Practice a Product Demo Script", "difficulty": "medium", "points_value": 80, "deliverable_type": "text", "requires_geotag": False, "estimated_duration": "3-4 hours",
-     "brief": "Product demos need structure so they don't ramble. Write a simple demo script.",
-     "why_it_matters": "This task builds the confidence to start conversations with strangers, professionally and comfortably. This is exactly the kind of skill employers look for, regardless of which company or industry you end up joining.",
-     "instructions": "Step 1: Pick any product with a few key features.\nStep 2: Write a demo flow: opening, 2-3 key features to show with why each matters, and a closing question.\nStep 3: Keep the whole thing under 3 minutes of spoken content.\nStep 4: Don't stop at the first example — dig deeper. Research or work through at least 3-4 real examples/cases related to \"Practice a Product Demo Script\", not just one, before you move on.\nStep 5: Now write it up properly, in your own words — a clear, well-organised summary of at least 400 words covering everything you found, structured like you're presenting it to a manager (not just a few bullet points).\nStep 6: Finally, write a short reflection (150+ words) — what surprised you while working on this, what was harder than it looked, and how this exact skill would be useful at ANY company you might work at, not just this one."},
-    {"track": "sales", "title": "Write an End-of-Quarter Sales Summary", "difficulty": "medium", "points_value": 80, "deliverable_type": "text", "requires_geotag": False, "estimated_duration": "3-4 hours",
-     "brief": "Sales summaries communicate performance to a manager. Write a hypothetical one.",
-     "why_it_matters": "This task gives you real practice structuring a pitch that actually gets heard and remembered. This is exactly the kind of skill employers look for, regardless of which company or industry you end up joining.",
-     "instructions": "Step 1: Imagine a quarter where you hit 85% of a ₹10,00,000 sales target.\nStep 2: Write a short summary — what worked, what didn't, and one plan for next quarter.\nStep 3: Keep the tone honest, not just self-congratulatory.\nStep 4: Don't stop at the first example — dig deeper. Research or work through at least 3-4 real examples/cases related to \"Write an End-of-Quarter Sales Summary\", not just one, before you move on.\nStep 5: Now write it up properly, in your own words — a clear, well-organised summary of at least 400 words covering everything you found, structured like you're presenting it to a manager (not just a few bullet points).\nStep 6: Finally, write a short reflection (150+ words) — what surprised you while working on this, what was harder than it looked, and how this exact skill would be useful at ANY company you might work at, not just this one."},
+_MKT_TASK4_ANSWER_KEY = {
+    "cells": {
+        "D2": {"expected": 60000, "tolerance": 1}, "E2": {"expected": 240, "tolerance": 1},
+        "D3": {"expected": 50000, "tolerance": 1}, "E3": {"expected": 125, "tolerance": 1},
+        "D4": {"expected": 30000, "tolerance": 1}, "E4": {"expected": 50, "tolerance": 1},
+        "D5": {"expected": 20000, "tolerance": 1}, "E5": {"expected": 25, "tolerance": 1},
+        "D6": {"expected": 20000, "tolerance": 1}, "E6": {"expected": 20, "tolerance": 1},
+        "D7": {"expected": 20000, "tolerance": 1}, "E7": {"expected": 100, "tolerance": 1},
+        "D10": {
+            "expected": 200000, "tolerance": 1,
+            "mistake_note": "Total allocated must equal the full Rs 2,00,000 budget exactly — if it doesn't, one of "
+                             "your Allocated Amount formulas isn't correctly referencing the Allocation % and total budget.",
+        },
+        "E11": {"expected": 560, "tolerance": 2},
+        "D12": {"expected": 357.14, "tolerance": 1},
+    },
+}
 
-    # ════════════════════════════════════════════════════════════════════
-    # HR (50) — general HR skills, any company/industry
-    # ════════════════════════════════════════════════════════════════════
-    {"track": "hr", "title": "Job Description for Any Role", "difficulty": "easy", "points_value": 60, "deliverable_type": "text", "requires_geotag": False, "estimated_duration": "2.5-3.5 hours",
-     "brief": "Write a complete job description for any entry-to-mid level role, at any type of company.",
-     "why_it_matters": "This task gives you real practice with the documentation and process-thinking every organisation quietly needs. This is exactly the kind of skill employers look for, regardless of which company or industry you end up joining.",
-     "instructions": "Step 1: Pick any job role and industry.\nStep 2: Write a short role summary.\nStep 3: List 4-6 key responsibilities.\nStep 4: List required skills and qualifications.\nStep 5: Don't stop at the first example — dig deeper. Research or work through at least 3-4 real examples/cases related to \"Job Description for Any Role\", not just one, before you move on.\nStep 6: Now write it up properly, in your own words — a clear, well-organised summary of at least 400 words covering everything you found, structured like you're presenting it to a manager (not just a few bullet points).\nStep 7: Finally, write a short reflection (150+ words) — what surprised you while working on this, what was harder than it looked, and how this exact skill would be useful at ANY company you might work at, not just this one."},
-    {"track": "hr", "title": "Employee Onboarding Checklist", "difficulty": "medium", "points_value": 80, "deliverable_type": "text", "requires_geotag": False, "estimated_duration": "3-4 hours",
-     "brief": "Design a first-week checklist for welcoming a new employee, applicable at any small-to-mid sized company.",
-     "why_it_matters": "This task trains you to think about fairness and structure, valuable whether you end up in HR or leading a team someday. This is exactly the kind of skill employers look for, regardless of which company or industry you end up joining.",
-     "instructions": "Step 1: List everything for Day 1.\nStep 2: List the rest of Week 1.\nStep 3: Organise day-by-day if possible.\nStep 4: Don't stop at the first example — dig deeper. Research or work through at least 3-4 real examples/cases related to \"Employee Onboarding Checklist\", not just one, before you move on.\nStep 5: Now write it up properly, in your own words — a clear, well-organised summary of at least 400 words covering everything you found, structured like you're presenting it to a manager (not just a few bullet points).\nStep 6: Finally, write a short reflection (150+ words) — what surprised you while working on this, what was harder than it looked, and how this exact skill would be useful at ANY company you might work at, not just this one."},
-    {"track": "hr", "title": "5 Interview Questions for Any Role", "difficulty": "easy", "points_value": 60, "deliverable_type": "text", "requires_geotag": False, "estimated_duration": "2.5-3.5 hours",
-     "brief": "Write 5 interview questions specifically designed to test whether a candidate is genuinely good at a role of your choice.",
-     "why_it_matters": "This task builds the quiet, practical skill of getting people-related processes actually written down and usable. This is exactly the kind of skill employers look for, regardless of which company or industry you end up joining.",
-     "instructions": "Step 1: Pick any job role.\nStep 2: Write 5 questions.\nStep 3: Avoid generic questions.\nStep 4: Focus on real scenarios relevant to that role.\nStep 5: Don't stop at the first example — dig deeper. Research or work through at least 3-4 real examples/cases related to \"5 Interview Questions for Any Role\", not just one, before you move on.\nStep 6: Now write it up properly, in your own words — a clear, well-organised summary of at least 400 words covering everything you found, structured like you're presenting it to a manager (not just a few bullet points).\nStep 7: Finally, write a short reflection (150+ words) — what surprised you while working on this, what was harder than it looked, and how this exact skill would be useful at ANY company you might work at, not just this one."},
-    {"track": "hr", "title": "Employee Engagement Activity Idea", "difficulty": "easy", "points_value": 60, "deliverable_type": "text", "requires_geotag": False, "estimated_duration": "2.5-3.5 hours",
-     "brief": "Suggest one low-cost activity that could make a small team of 10-15 people feel more connected and engaged at work — at any type of company.",
-     "why_it_matters": "This task sharpens your organisational and policy-writing skills, which few graduates ever get to practice. This is exactly the kind of skill employers look for, regardless of which company or industry you end up joining.",
-     "instructions": "Step 1: Describe your activity idea.\nStep 2: Explain roughly how it would run.\nStep 3: Keep budget and time realistic.\nStep 4: Don't stop at the first example — dig deeper. Research or work through at least 3-4 real examples/cases related to \"Employee Engagement Activity Idea\", not just one, before you move on.\nStep 5: Now write it up properly, in your own words — a clear, well-organised summary of at least 400 words covering everything you found, structured like you're presenting it to a manager (not just a few bullet points).\nStep 6: Finally, write a short reflection (150+ words) — what surprised you while working on this, what was harder than it looked, and how this exact skill would be useful at ANY company you might work at, not just this one."},
-    {"track": "hr", "title": "Offer Letter Template Draft", "difficulty": "medium", "points_value": 80, "deliverable_type": "text", "requires_geotag": False, "estimated_duration": "3-4 hours",
-     "brief": "Draft a sample offer letter template that any company could reuse for any new hire.",
-     "why_it_matters": "This task builds your understanding of how a healthy workplace culture actually gets built, not just talked about. This is exactly the kind of skill employers look for, regardless of which company or industry you end up joining.",
-     "instructions": "Step 1: Include role, compensation, joining date, terms.\nStep 2: Use placeholders like [NAME].\nStep 3: Keep tone professional and welcoming.\nStep 4: Don't stop at the first example — dig deeper. Research or work through at least 3-4 real examples/cases related to \"Offer Letter Template Draft\", not just one, before you move on.\nStep 5: Now write it up properly, in your own words — a clear, well-organised summary of at least 400 words covering everything you found, structured like you're presenting it to a manager (not just a few bullet points).\nStep 6: Finally, write a short reflection (150+ words) — what surprised you while working on this, what was harder than it looked, and how this exact skill would be useful at ANY company you might work at, not just this one."},
-    {"track": "hr", "title": "Employee Benefits Research", "difficulty": "medium", "points_value": 80, "deliverable_type": "text", "requires_geotag": False, "estimated_duration": "3-4 hours",
-     "brief": "Research 3 common employee benefits (beyond salary) that companies across different industries typically offer.",
-     "why_it_matters": "This task trains you to think about fairness and structure, valuable whether you end up in HR or leading a team someday. This is exactly the kind of skill employers look for, regardless of which company or industry you end up joining.",
-     "instructions": "Step 1: Search for benefits commonly offered by Indian companies.\nStep 2: Pick 3 and explain each.\nStep 3: Note roughly what each might cost the employer.\nStep 4: Mention where you found your info.\nStep 5: Don't stop at the first example — dig deeper. Research or work through at least 3-4 real examples/cases related to \"Employee Benefits Research\", not just one, before you move on.\nStep 6: Now write it up properly, in your own words — a clear, well-organised summary of at least 400 words covering everything you found, structured like you're presenting it to a manager (not just a few bullet points).\nStep 7: Finally, write a short reflection (150+ words) — what surprised you while working on this, what was harder than it looked, and how this exact skill would be useful at ANY company you might work at, not just this one."},
-    {"track": "hr", "title": "Employee Feedback Form Design", "difficulty": "easy", "points_value": 60, "deliverable_type": "text", "requires_geotag": False, "estimated_duration": "2.5-3.5 hours",
-     "brief": "Design a short anonymous form to check how satisfied employees are at work — usable at any company.",
-     "why_it_matters": "This task builds your people-skills and empathy — useful in any team-based job, not just HR. This is exactly the kind of skill employers look for, regardless of which company or industry you end up joining.",
-     "instructions": "Step 1: Write 8-10 questions.\nStep 2: Mix multiple-choice with 1-2 open-ended.\nStep 3: Keep it short enough to actually finish.\nStep 4: Don't stop at the first example — dig deeper. Research or work through at least 3-4 real examples/cases related to \"Employee Feedback Form Design\", not just one, before you move on.\nStep 5: Now write it up properly, in your own words — a clear, well-organised summary of at least 400 words covering everything you found, structured like you're presenting it to a manager (not just a few bullet points).\nStep 6: Finally, write a short reflection (150+ words) — what surprised you while working on this, what was harder than it looked, and how this exact skill would be useful at ANY company you might work at, not just this one."},
-    {"track": "hr", "title": "Describe an Ideal Company Culture", "difficulty": "medium", "points_value": 80, "deliverable_type": "text", "requires_geotag": False, "estimated_duration": "3-4 hours",
-     "brief": "Write a short 'company culture' description as it might appear on a careers page — for any type of company you'd want to work at.",
-     "why_it_matters": "This task gives you real practice with the documentation and process-thinking every organisation quietly needs. This is exactly the kind of skill employers look for, regardless of which company or industry you end up joining.",
-     "instructions": "Step 1: Think about a workplace culture you'd want.\nStep 2: Write 4-6 honest sentences.\nStep 3: Include at least one specific, concrete detail.\nStep 4: Don't stop at the first example — dig deeper. Research or work through at least 3-4 real examples/cases related to \"Describe an Ideal Company Culture\", not just one, before you move on.\nStep 5: Now write it up properly, in your own words — a clear, well-organised summary of at least 400 words covering everything you found, structured like you're presenting it to a manager (not just a few bullet points).\nStep 6: Finally, write a short reflection (150+ words) — what surprised you while working on this, what was harder than it looked, and how this exact skill would be useful at ANY company you might work at, not just this one."},
-    {"track": "hr", "title": "Attendance Policy Draft", "difficulty": "medium", "points_value": 80, "deliverable_type": "text", "requires_geotag": False, "estimated_duration": "3-4 hours",
-     "brief": "Draft a simple, fair attendance and leave policy suitable for any small office.",
-     "why_it_matters": "This task sharpens your organisational and policy-writing skills, which few graduates ever get to practice. This is exactly the kind of skill employers look for, regardless of which company or industry you end up joining.",
-     "instructions": "Step 1: State working hours.\nStep 2: List leave types and rough allowances.\nStep 3: Explain the process for repeated unexplained absence — fair, not harsh.\nStep 4: Don't stop at the first example — dig deeper. Research or work through at least 3-4 real examples/cases related to \"Attendance Policy Draft\", not just one, before you move on.\nStep 5: Now write it up properly, in your own words — a clear, well-organised summary of at least 400 words covering everything you found, structured like you're presenting it to a manager (not just a few bullet points).\nStep 6: Finally, write a short reflection (150+ words) — what surprised you while working on this, what was harder than it looked, and how this exact skill would be useful at ANY company you might work at, not just this one."},
-    {"track": "hr", "title": "5 Ways to Improve Employee Retention", "difficulty": "medium", "points_value": 80, "deliverable_type": "text", "requires_geotag": False, "estimated_duration": "3-4 hours",
-     "brief": "List 5 concrete, low-cost ways any small company could get employees to stay longer — without just raising salaries.",
-     "why_it_matters": "This task sharpens your organisational and policy-writing skills, which few graduates ever get to practice. This is exactly the kind of skill employers look for, regardless of which company or industry you end up joining.",
-     "instructions": "Step 1: List 5 distinct ideas.\nStep 2: Keep each realistic for a small budget.\nStep 3: Briefly explain why each helps.\nStep 4: Don't stop at the first example — dig deeper. Research or work through at least 3-4 real examples/cases related to \"5 Ways to Improve Employee Retention\", not just one, before you move on.\nStep 5: Now write it up properly, in your own words — a clear, well-organised summary of at least 400 words covering everything you found, structured like you're presenting it to a manager (not just a few bullet points).\nStep 6: Finally, write a short reflection (150+ words) — what surprised you while working on this, what was harder than it looked, and how this exact skill would be useful at ANY company you might work at, not just this one."},
-    {"track": "hr", "title": "Field Observation: Local Business HR Practices", "difficulty": "medium", "points_value": 95, "deliverable_type": "text_and_photo", "requires_geotag": True, "estimated_duration": "3-5 hours (including travel)",
-     "brief": "A real-world field task — visit or call any local business and find out how they handle basic HR, even informally.",
-     "why_it_matters": "This task builds your people-skills and empathy — useful in any team-based job, not just HR. This is exactly the kind of skill employers look for, regardless of which company or industry you end up joining.",
-     "instructions": "Step 1: Visit or call any local business.\nStep 2: Politely ask how they onboard/handle attendance or leave.\nStep 3: Write down what you learned.\nStep 4: Take a photo of the exterior/signage.\nStep 5: Don't stop at the minimum — go broader than the task first asked. Cover more real examples/locations than you initially might (aim for at least 4-5 in total, not just 1-2), so your comparison has real depth.\nStep 6: Now write it up properly, in your own words — a clear, well-organised summary of at least 400 words covering everything you found, structured like you're presenting it to a manager (not just a few bullet points).\nStep 7: Finally, write a short reflection (150+ words) — what surprised you while working on this, what was harder than it looked, and how this exact skill would be useful at ANY company you might work at, not just this one."},
-    {"track": "hr", "title": "Performance Review Template", "difficulty": "medium", "points_value": 80, "deliverable_type": "text", "requires_geotag": False, "estimated_duration": "3-4 hours",
-     "brief": "Create a simple quarterly performance review template usable for any role.",
-     "why_it_matters": "This task trains you to think about fairness and structure, valuable whether you end up in HR or leading a team someday. This is exactly the kind of skill employers look for, regardless of which company or industry you end up joining.",
-     "instructions": "Step 1: Pick any role.\nStep 2: List 4-5 evaluation categories.\nStep 3: Add a rating scale.\nStep 4: Add a written-feedback section.\nStep 5: Don't stop at the first example — dig deeper. Research or work through at least 3-4 real examples/cases related to \"Performance Review Template\", not just one, before you move on.\nStep 6: Now write it up properly, in your own words — a clear, well-organised summary of at least 400 words covering everything you found, structured like you're presenting it to a manager (not just a few bullet points).\nStep 7: Finally, write a short reflection (150+ words) — what surprised you while working on this, what was harder than it looked, and how this exact skill would be useful at ANY company you might work at, not just this one."},
-    {"track": "hr", "title": "New Employee Welcome Kit Checklist", "difficulty": "easy", "points_value": 60, "deliverable_type": "text", "requires_geotag": False, "estimated_duration": "2.5-3.5 hours",
-     "brief": "List everything you'd include in a 'welcome kit' to make a new employee feel welcomed on their first day — at any company.",
-     "why_it_matters": "This task trains you to see situations from multiple people's perspectives before deciding anything. This is exactly the kind of skill employers look for, regardless of which company or industry you end up joining.",
-     "instructions": "Step 1: List obvious items first.\nStep 2: Add thoughtful extras.\nStep 3: Aim for 6-8 items.\nStep 4: Don't stop at the first example — dig deeper. Research or work through at least 3-4 real examples/cases related to \"New Employee Welcome Kit Checklist\", not just one, before you move on.\nStep 5: Now write it up properly, in your own words — a clear, well-organised summary of at least 400 words covering everything you found, structured like you're presenting it to a manager (not just a few bullet points).\nStep 6: Finally, write a short reflection (150+ words) — what surprised you while working on this, what was harder than it looked, and how this exact skill would be useful at ANY company you might work at, not just this one."},
-    {"track": "hr", "title": "Understand the Recruitment Process", "difficulty": "medium", "points_value": 80, "deliverable_type": "text", "requires_geotag": False, "estimated_duration": "3-4 hours",
-     "brief": "Recruitment has a standard flow from job posting to hire. Understand each step.",
-     "why_it_matters": "This task trains you to think about fairness and structure, valuable whether you end up in HR or leading a team someday. This is exactly the kind of skill employers look for, regardless of which company or industry you end up joining.",
-     "instructions": "Step 1: List the typical recruitment steps (e.g. job posting, screening resumes, phone screen, interview(s), offer).\nStep 2: For each step, note who's usually involved (HR, hiring manager, candidate).\nStep 3: Note one thing that commonly slows this process down.\nStep 4: Don't stop at the first example — dig deeper. Research or work through at least 3-4 real examples/cases related to \"Understand the Recruitment Process\", not just one, before you move on.\nStep 5: Now write it up properly, in your own words — a clear, well-organised summary of at least 400 words covering everything you found, structured like you're presenting it to a manager (not just a few bullet points).\nStep 6: Finally, write a short reflection (150+ words) — what surprised you while working on this, what was harder than it looked, and how this exact skill would be useful at ANY company you might work at, not just this one."},
-    {"track": "hr", "title": "Write a Job Posting for a Job Board", "difficulty": "easy", "points_value": 60, "deliverable_type": "text", "requires_geotag": False, "estimated_duration": "2.5-3.5 hours",
-     "brief": "Job board postings need to attract the right candidates quickly. Write one.",
-     "why_it_matters": "This task trains you to think about fairness and structure, valuable whether you end up in HR or leading a team someday. This is exactly the kind of skill employers look for, regardless of which company or industry you end up joining.",
-     "instructions": "Step 1: Pick any role.\nStep 2: Write a job posting with a catchy opening line, key responsibilities, and requirements.\nStep 3: Keep it scannable — bullet points, not long paragraphs.\nStep 4: Don't stop at the first example — dig deeper. Research or work through at least 3-4 real examples/cases related to \"Write a Job Posting for a Job Board\", not just one, before you move on.\nStep 5: Now write it up properly, in your own words — a clear, well-organised summary of at least 400 words covering everything you found, structured like you're presenting it to a manager (not just a few bullet points).\nStep 6: Finally, write a short reflection (150+ words) — what surprised you while working on this, what was harder than it looked, and how this exact skill would be useful at ANY company you might work at, not just this one."},
-    {"track": "hr", "title": "Create an Exit Interview Question List", "difficulty": "medium", "points_value": 80, "deliverable_type": "text", "requires_geotag": False, "estimated_duration": "3-4 hours",
-     "brief": "Exit interviews help companies learn why people leave. Write good questions for one.",
-     "why_it_matters": "This task builds the quiet, practical skill of getting people-related processes actually written down and usable. This is exactly the kind of skill employers look for, regardless of which company or industry you end up joining.",
-     "instructions": "Step 1: Write 6-8 questions for a departing employee.\nStep 2: Focus on constructive learning, not blame.\nStep 3: Include at least one question about what would have made them stay.\nStep 4: Don't stop at the first example — dig deeper. Research or work through at least 3-4 real examples/cases related to \"Create an Exit Interview Question List\", not just one, before you move on.\nStep 5: Now write it up properly, in your own words — a clear, well-organised summary of at least 400 words covering everything you found, structured like you're presenting it to a manager (not just a few bullet points).\nStep 6: Finally, write a short reflection (150+ words) — what surprised you while working on this, what was harder than it looked, and how this exact skill would be useful at ANY company you might work at, not just this one."},
-    {"track": "hr", "title": "Understand Employee Grievance Handling", "difficulty": "medium", "points_value": 80, "deliverable_type": "text", "requires_geotag": False, "estimated_duration": "3-4 hours",
-     "brief": "Employees need a fair process to raise complaints. Understand how this typically works.",
-     "why_it_matters": "This task gives you real practice with the documentation and process-thinking every organisation quietly needs. This is exactly the kind of skill employers look for, regardless of which company or industry you end up joining.",
-     "instructions": "Step 1: Research 'employee grievance procedure' basics.\nStep 2: Explain in your own words the typical steps (raise issue → investigation → resolution).\nStep 3: Note why confidentiality matters in this process.\nStep 4: Don't stop at the first example — dig deeper. Research or work through at least 3-4 real examples/cases related to \"Understand Employee Grievance Handling\", not just one, before you move on.\nStep 5: Now write it up properly, in your own words — a clear, well-organised summary of at least 400 words covering everything you found, structured like you're presenting it to a manager (not just a few bullet points).\nStep 6: Finally, write a short reflection (150+ words) — what surprised you while working on this, what was harder than it looked, and how this exact skill would be useful at ANY company you might work at, not just this one."},
-    {"track": "hr", "title": "Write a Warning Letter Template", "difficulty": "medium", "points_value": 80, "deliverable_type": "text", "requires_geotag": False, "estimated_duration": "3-4 hours",
-     "brief": "Formal warnings need to be clear and fair, not harsh. Draft a generic template.",
-     "why_it_matters": "This task trains you to think about fairness and structure, valuable whether you end up in HR or leading a team someday. This is exactly the kind of skill employers look for, regardless of which company or industry you end up joining.",
-     "instructions": "Step 1: Draft a template for a first-warning letter about repeated lateness (a mild example).\nStep 2: State the issue factually, expected improvement, and consequences of no change.\nStep 3: Keep the tone firm but respectful, not punitive.\nStep 4: Don't stop at the first example — dig deeper. Research or work through at least 3-4 real examples/cases related to \"Write a Warning Letter Template\", not just one, before you move on.\nStep 5: Now write it up properly, in your own words — a clear, well-organised summary of at least 400 words covering everything you found, structured like you're presenting it to a manager (not just a few bullet points).\nStep 6: Finally, write a short reflection (150+ words) — what surprised you while working on this, what was harder than it looked, and how this exact skill would be useful at ANY company you might work at, not just this one."},
-    {"track": "hr", "title": "Design a Training Plan for a New Skill", "difficulty": "medium", "points_value": 80, "deliverable_type": "text", "requires_geotag": False, "estimated_duration": "3-4 hours",
-     "brief": "Design a short training plan to teach a team a new skill.",
-     "why_it_matters": "This task trains you to see situations from multiple people's perspectives before deciding anything. This is exactly the kind of skill employers look for, regardless of which company or industry you end up joining.",
-     "instructions": "Step 1: Pick any skill relevant to a workplace (e.g. using a new software tool, customer service basics).\nStep 2: Design a 3-session training plan (what's covered each session).\nStep 3: Suggest how you'd check if the training actually worked.\nStep 4: Don't stop at the first example — dig deeper. Research or work through at least 3-4 real examples/cases related to \"Design a Training Plan for a New Skill\", not just one, before you move on.\nStep 5: Now write it up properly, in your own words — a clear, well-organised summary of at least 400 words covering everything you found, structured like you're presenting it to a manager (not just a few bullet points).\nStep 6: Finally, write a short reflection (150+ words) — what surprised you while working on this, what was harder than it looked, and how this exact skill would be useful at ANY company you might work at, not just this one."},
-    {"track": "hr", "title": "Understand Labour Law Basics", "difficulty": "medium", "points_value": 80, "deliverable_type": "text", "requires_geotag": False, "estimated_duration": "3-4 hours",
-     "brief": "Basic labour law protections apply to most Indian workplaces. Learn the essentials.",
-     "why_it_matters": "This task gives you real practice with the documentation and process-thinking every organisation quietly needs. This is exactly the kind of skill employers look for, regardless of which company or industry you end up joining.",
-     "instructions": "Step 1: Search 'Indian labour law basics' (working hours, minimum wage, leave entitlements).\nStep 2: Note 3 basic protections every employee is typically entitled to.\nStep 3: Explain why a small business owner should still care about these even if enforcement is inconsistent.\nStep 4: Don't stop at the first example — dig deeper. Research or work through at least 3-4 real examples/cases related to \"Understand Labour Law Basics\", not just one, before you move on.\nStep 5: Now write it up properly, in your own words — a clear, well-organised summary of at least 400 words covering everything you found, structured like you're presenting it to a manager (not just a few bullet points).\nStep 6: Finally, write a short reflection (150+ words) — what surprised you while working on this, what was harder than it looked, and how this exact skill would be useful at ANY company you might work at, not just this one."},
-    {"track": "hr", "title": "Create a Diversity & Inclusion Statement Draft", "difficulty": "medium", "points_value": 80, "deliverable_type": "text", "requires_geotag": False, "estimated_duration": "3-4 hours",
-     "brief": "Many companies publish a diversity & inclusion (D&I) statement. Draft a short, genuine one.",
-     "why_it_matters": "This task builds your understanding of how a healthy workplace culture actually gets built, not just talked about. This is exactly the kind of skill employers look for, regardless of which company or industry you end up joining.",
-     "instructions": "Step 1: Write a short D&I statement (100-150 words) for a hypothetical company.\nStep 2: Make it specific rather than just generic buzzwords.\nStep 3: Include one concrete practice the company could actually follow through on.\nStep 4: Don't stop at the first example — dig deeper. Research or work through at least 3-4 real examples/cases related to \"Create a Diversity & Inclusion Statement Draft\", not just one, before you move on.\nStep 5: Now write it up properly, in your own words — a clear, well-organised summary of at least 400 words covering everything you found, structured like you're presenting it to a manager (not just a few bullet points).\nStep 6: Finally, write a short reflection (150+ words) — what surprised you while working on this, what was harder than it looked, and how this exact skill would be useful at ANY company you might work at, not just this one."},
-    {"track": "hr", "title": "Write a Reference Check Question List", "difficulty": "easy", "points_value": 60, "deliverable_type": "text", "requires_geotag": False, "estimated_duration": "2.5-3.5 hours",
-     "brief": "Reference checks verify what a candidate claims. Write good questions for one.",
-     "why_it_matters": "This task trains you to think about fairness and structure, valuable whether you end up in HR or leading a team someday. This is exactly the kind of skill employers look for, regardless of which company or industry you end up joining.",
-     "instructions": "Step 1: Write 5-6 questions to ask a candidate's previous manager.\nStep 2: Focus on work performance and reliability, not personal opinions.\nStep 3: Include one question that would reveal something a resume can't.\nStep 4: Don't stop at the first example — dig deeper. Research or work through at least 3-4 real examples/cases related to \"Write a Reference Check Question List\", not just one, before you move on.\nStep 5: Now write it up properly, in your own words — a clear, well-organised summary of at least 400 words covering everything you found, structured like you're presenting it to a manager (not just a few bullet points).\nStep 6: Finally, write a short reflection (150+ words) — what surprised you while working on this, what was harder than it looked, and how this exact skill would be useful at ANY company you might work at, not just this one."},
-    {"track": "hr", "title": "Understand HR vs People Ops", "difficulty": "easy", "points_value": 60, "deliverable_type": "text", "requires_geotag": False, "estimated_duration": "2.5-3.5 hours",
-     "brief": "Some companies use 'People Ops' instead of 'HR.' Understand if/how they differ.",
-     "why_it_matters": "This task sharpens your organisational and policy-writing skills, which few graduates ever get to practice. This is exactly the kind of skill employers look for, regardless of which company or industry you end up joining.",
-     "instructions": "Step 1: Search 'HR vs People Operations.'\nStep 2: Explain in your own words if there's a real difference or if it's mostly a naming/branding choice.\nStep 3: Note which term you think fits a small company better, and why.\nStep 4: Don't stop at the first example — dig deeper. Research or work through at least 3-4 real examples/cases related to \"Understand HR vs People Ops\", not just one, before you move on.\nStep 5: Now write it up properly, in your own words — a clear, well-organised summary of at least 400 words covering everything you found, structured like you're presenting it to a manager (not just a few bullet points).\nStep 6: Finally, write a short reflection (150+ words) — what surprised you while working on this, what was harder than it looked, and how this exact skill would be useful at ANY company you might work at, not just this one."},
-    {"track": "hr", "title": "Field: Ask a Working Professional About Onboarding", "difficulty": "medium", "points_value": 80, "deliverable_type": "text", "requires_geotag": False, "estimated_duration": "3-4 hours",
-     "brief": "Ask someone who's actually been through onboarding at a real company what it was like.",
-     "why_it_matters": "This task sharpens your organisational and policy-writing skills, which few graduates ever get to practice. This is exactly the kind of skill employers look for, regardless of which company or industry you end up joining.",
-     "instructions": "Step 1: Find any working professional you know (family, friend, senior).\nStep 2: Ask them what their first week at their current/recent job was like.\nStep 3: Note 2 things that worked well and 1 thing that could've been better, based on their answer.\nStep 4: Don't stop at the first example — dig deeper. Research or work through at least 3-4 real examples/cases related to \"Field: Ask a Working Professional About Onboarding\", not just one, before you move on.\nStep 5: Now write it up properly, in your own words — a clear, well-organised summary of at least 400 words covering everything you found, structured like you're presenting it to a manager (not just a few bullet points).\nStep 6: Finally, write a short reflection (150+ words) — what surprised you while working on this, what was harder than it looked, and how this exact skill would be useful at ANY company you might work at, not just this one."},
-    {"track": "hr", "title": "Create a Remote Work Policy Draft", "difficulty": "medium", "points_value": 80, "deliverable_type": "text", "requires_geotag": False, "estimated_duration": "3-4 hours",
-     "brief": "Remote/hybrid work needs clear ground rules. Draft a basic policy.",
-     "why_it_matters": "This task sharpens your organisational and policy-writing skills, which few graduates ever get to practice. This is exactly the kind of skill employers look for, regardless of which company or industry you end up joining.",
-     "instructions": "Step 1: Cover: which roles can work remotely, expected working hours/availability, and how often (if at all) people need to come in.\nStep 2: Keep it simple and fair.\nStep 3: Note one tool/process needed to make remote work function well (e.g. daily check-ins).\nStep 4: Don't stop at the first example — dig deeper. Research or work through at least 3-4 real examples/cases related to \"Create a Remote Work Policy Draft\", not just one, before you move on.\nStep 5: Now write it up properly, in your own words — a clear, well-organised summary of at least 400 words covering everything you found, structured like you're presenting it to a manager (not just a few bullet points).\nStep 6: Finally, write a short reflection (150+ words) — what surprised you while working on this, what was harder than it looked, and how this exact skill would be useful at ANY company you might work at, not just this one."},
-    {"track": "hr", "title": "Understand Employee Classification", "difficulty": "easy", "points_value": 60, "deliverable_type": "text", "requires_geotag": False, "estimated_duration": "2.5-3.5 hours",
-     "brief": "Full-time, contract, and intern roles have different rules and benefits. Understand the differences.",
-     "why_it_matters": "This task builds the quiet, practical skill of getting people-related processes actually written down and usable. This is exactly the kind of skill employers look for, regardless of which company or industry you end up joining.",
-     "instructions": "Step 1: Research the basic differences between full-time employees, contract workers, and interns in India.\nStep 2: Note one key difference in benefits/protections for each.\nStep 3: Explain why a company needs to classify roles correctly.\nStep 4: Don't stop at the first example — dig deeper. Research or work through at least 3-4 real examples/cases related to \"Understand Employee Classification\", not just one, before you move on.\nStep 5: Now write it up properly, in your own words — a clear, well-organised summary of at least 400 words covering everything you found, structured like you're presenting it to a manager (not just a few bullet points).\nStep 6: Finally, write a short reflection (150+ words) — what surprised you while working on this, what was harder than it looked, and how this exact skill would be useful at ANY company you might work at, not just this one."},
-    {"track": "hr", "title": "Write a Rejection Email Template", "difficulty": "easy", "points_value": 60, "deliverable_type": "text", "requires_geotag": False, "estimated_duration": "2.5-3.5 hours",
-     "brief": "Rejecting candidates respectfully matters for the company's reputation. Write a template.",
-     "why_it_matters": "This task sharpens your organisational and policy-writing skills, which few graduates ever get to practice. This is exactly the kind of skill employers look for, regardless of which company or industry you end up joining.",
-     "instructions": "Step 1: Write a short, kind rejection email template.\nStep 2: Avoid being cold or overly generic — thank them genuinely for their time.\nStep 3: Keep the door open for future roles if appropriate.\nStep 4: Don't stop at the first example — dig deeper. Research or work through at least 3-4 real examples/cases related to \"Write a Rejection Email Template\", not just one, before you move on.\nStep 5: Now write it up properly, in your own words — a clear, well-organised summary of at least 400 words covering everything you found, structured like you're presenting it to a manager (not just a few bullet points).\nStep 6: Finally, write a short reflection (150+ words) — what surprised you while working on this, what was harder than it looked, and how this exact skill would be useful at ANY company you might work at, not just this one."},
-    {"track": "hr", "title": "Design a Skills Matrix for a Team", "difficulty": "medium", "points_value": 80, "deliverable_type": "text", "requires_geotag": False, "estimated_duration": "3-4 hours",
-     "brief": "A skills matrix shows who on a team has which skills, and helps spot gaps. Design one.",
-     "why_it_matters": "This task gives you real practice with the documentation and process-thinking every organisation quietly needs. This is exactly the kind of skill employers look for, regardless of which company or industry you end up joining.",
-     "instructions": "Step 1: Imagine a team of 5 people and list 4-5 relevant skills for their work.\nStep 2: Create a grid (Person x Skill) and mark, for a hypothetical team, who has strong/weak proficiency in each (you can make this up realistically).\nStep 3: Explain how this grid would help a manager plan training.\nStep 4: Don't stop at the first example — dig deeper. Research or work through at least 3-4 real examples/cases related to \"Design a Skills Matrix for a Team\", not just one, before you move on.\nStep 5: Now write it up properly, in your own words — a clear, well-organised summary of at least 400 words covering everything you found, structured like you're presenting it to a manager (not just a few bullet points).\nStep 6: Finally, write a short reflection (150+ words) — what surprised you while working on this, what was harder than it looked, and how this exact skill would be useful at ANY company you might work at, not just this one."},
-    {"track": "hr", "title": "Understand PF & ESI Basics", "difficulty": "medium", "points_value": 80, "deliverable_type": "text", "requires_geotag": False, "estimated_duration": "3-4 hours",
-     "brief": "PF (Provident Fund) and ESI (Employee State Insurance) are common Indian employment benefits. Learn the basics.",
-     "why_it_matters": "This task trains you to think about fairness and structure, valuable whether you end up in HR or leading a team someday. This is exactly the kind of skill employers look for, regardless of which company or industry you end up joining.",
-     "instructions": "Step 1: Search 'what is PF' and 'what is ESI' in the Indian employment context.\nStep 2: Explain what each is meant to provide employees.\nStep 3: Note roughly which companies/employees these typically apply to (e.g. based on company size or salary level).\nStep 4: Don't stop at the first example — dig deeper. Research or work through at least 3-4 real examples/cases related to \"Understand PF & ESI Basics\", not just one, before you move on.\nStep 5: Now write it up properly, in your own words — a clear, well-organised summary of at least 400 words covering everything you found, structured like you're presenting it to a manager (not just a few bullet points).\nStep 6: Finally, write a short reflection (150+ words) — what surprised you while working on this, what was harder than it looked, and how this exact skill would be useful at ANY company you might work at, not just this one."},
-    {"track": "hr", "title": "Create a Team-Building Activity Plan", "difficulty": "easy", "points_value": 60, "deliverable_type": "text", "requires_geotag": False, "estimated_duration": "2.5-3.5 hours",
-     "brief": "Design a half-day team-building activity plan for a small team.",
-     "why_it_matters": "This task sharpens your organisational and policy-writing skills, which few graduates ever get to practice. This is exactly the kind of skill employers look for, regardless of which company or industry you end up joining.",
-     "instructions": "Step 1: Pick any low-cost team-building activity.\nStep 2: Outline a rough half-day schedule (timings, activities).\nStep 3: Explain what outcome you're hoping the activity achieves (trust, communication, fun).\nStep 4: Don't stop at the first example — dig deeper. Research or work through at least 3-4 real examples/cases related to \"Create a Team-Building Activity Plan\", not just one, before you move on.\nStep 5: Now write it up properly, in your own words — a clear, well-organised summary of at least 400 words covering everything you found, structured like you're presenting it to a manager (not just a few bullet points).\nStep 6: Finally, write a short reflection (150+ words) — what surprised you while working on this, what was harder than it looked, and how this exact skill would be useful at ANY company you might work at, not just this one."},
-    {"track": "hr", "title": "Write an Internal Job Posting Template", "difficulty": "easy", "points_value": 60, "deliverable_type": "text", "requires_geotag": False, "estimated_duration": "2.5-3.5 hours",
-     "brief": "Internal job postings let current employees apply for new roles before external hiring. Write one.",
-     "why_it_matters": "This task trains you to see situations from multiple people's perspectives before deciding anything. This is exactly the kind of skill employers look for, regardless of which company or industry you end up joining.",
-     "instructions": "Step 1: Pick any role a company might promote from within for.\nStep 2: Write an internal posting — role, requirements, how to apply.\nStep 3: Note why internal postings can boost morale.\nStep 4: Don't stop at the first example — dig deeper. Research or work through at least 3-4 real examples/cases related to \"Write an Internal Job Posting Template\", not just one, before you move on.\nStep 5: Now write it up properly, in your own words — a clear, well-organised summary of at least 400 words covering everything you found, structured like you're presenting it to a manager (not just a few bullet points).\nStep 6: Finally, write a short reflection (150+ words) — what surprised you while working on this, what was harder than it looked, and how this exact skill would be useful at ANY company you might work at, not just this one."},
-    {"track": "hr", "title": "Understand Conflict Resolution in the Workplace", "difficulty": "medium", "points_value": 80, "deliverable_type": "text", "requires_geotag": False, "estimated_duration": "3-4 hours",
-     "brief": "Conflicts between coworkers are inevitable. Understand a basic approach to resolving them.",
-     "why_it_matters": "This task builds your understanding of how a healthy workplace culture actually gets built, not just talked about. This is exactly the kind of skill employers look for, regardless of which company or industry you end up joining.",
-     "instructions": "Step 1: Research a simple conflict-resolution framework (e.g. listen to both sides separately, find common ground, agree on next steps).\nStep 2: Apply it to a hypothetical scenario: two coworkers disagreeing over how to split a project.\nStep 3: Write out how you, as HR/a manager, would mediate this.\nStep 4: Don't stop at the first example — dig deeper. Research or work through at least 3-4 real examples/cases related to \"Understand Conflict Resolution in the Workplace\", not just one, before you move on.\nStep 5: Now write it up properly, in your own words — a clear, well-organised summary of at least 400 words covering everything you found, structured like you're presenting it to a manager (not just a few bullet points).\nStep 6: Finally, write a short reflection (150+ words) — what surprised you while working on this, what was harder than it looked, and how this exact skill would be useful at ANY company you might work at, not just this one."},
-    {"track": "hr", "title": "Field: Research How a Company Handles Hybrid Work", "difficulty": "medium", "points_value": 80, "deliverable_type": "text", "requires_geotag": False, "estimated_duration": "3-4 hours",
-     "brief": "Ask someone how their company actually handles remote/hybrid work in practice.",
-     "why_it_matters": "This task sharpens your organisational and policy-writing skills, which few graduates ever get to practice. This is exactly the kind of skill employers look for, regardless of which company or industry you end up joining.",
-     "instructions": "Step 1: Find someone who works at a company with remote/hybrid policies.\nStep 2: Ask them how it actually works day-to-day (not just the official policy).\nStep 3: Write 2-3 lines on what you learned.\nStep 4: Don't stop at the first example — dig deeper. Research or work through at least 3-4 real examples/cases related to \"Field: Research How a Company Handles Hybrid Work\", not just one, before you move on.\nStep 5: Now write it up properly, in your own words — a clear, well-organised summary of at least 400 words covering everything you found, structured like you're presenting it to a manager (not just a few bullet points).\nStep 6: Finally, write a short reflection (150+ words) — what surprised you while working on this, what was harder than it looked, and how this exact skill would be useful at ANY company you might work at, not just this one."},
-    {"track": "hr", "title": "Create a New Manager Onboarding Checklist", "difficulty": "medium", "points_value": 80, "deliverable_type": "text", "requires_geotag": False, "estimated_duration": "3-4 hours",
-     "brief": "New managers need different onboarding than individual contributors — they need to learn to lead a team. Design a checklist.",
-     "why_it_matters": "This task builds your people-skills and empathy — useful in any team-based job, not just HR. This is exactly the kind of skill employers look for, regardless of which company or industry you end up joining.",
-     "instructions": "Step 1: List what a brand-new manager needs to learn in their first month (e.g. how to run 1-on-1s, how to give feedback, company policies on approvals).\nStep 2: Organise into a checklist.\nStep 3: Note why this is different from a regular new-hire checklist.\nStep 4: Don't stop at the first example — dig deeper. Research or work through at least 3-4 real examples/cases related to \"Create a New Manager Onboarding Checklist\", not just one, before you move on.\nStep 5: Now write it up properly, in your own words — a clear, well-organised summary of at least 400 words covering everything you found, structured like you're presenting it to a manager (not just a few bullet points).\nStep 6: Finally, write a short reflection (150+ words) — what surprised you while working on this, what was harder than it looked, and how this exact skill would be useful at ANY company you might work at, not just this one."},
-    {"track": "hr", "title": "Write a Social Media Use Policy", "difficulty": "medium", "points_value": 80, "deliverable_type": "text", "requires_geotag": False, "estimated_duration": "3-4 hours",
-     "brief": "Companies often have guidelines for how employees represent themselves online. Draft one.",
-     "why_it_matters": "This task builds your people-skills and empathy — useful in any team-based job, not just HR. This is exactly the kind of skill employers look for, regardless of which company or industry you end up joining.",
-     "instructions": "Step 1: Draft a short policy covering what employees should/shouldn't post about work on personal social media.\nStep 2: Keep it reasonable, not overly restrictive.\nStep 3: Explain why such a policy exists in 2 lines.\nStep 4: Don't stop at the first example — dig deeper. Research or work through at least 3-4 real examples/cases related to \"Write a Social Media Use Policy\", not just one, before you move on.\nStep 5: Now write it up properly, in your own words — a clear, well-organised summary of at least 400 words covering everything you found, structured like you're presenting it to a manager (not just a few bullet points).\nStep 6: Finally, write a short reflection (150+ words) — what surprised you while working on this, what was harder than it looked, and how this exact skill would be useful at ANY company you might work at, not just this one."},
-    {"track": "hr", "title": "Understand the Basics of Payroll Processing", "difficulty": "medium", "points_value": 80, "deliverable_type": "text", "requires_geotag": False, "estimated_duration": "3-4 hours",
-     "brief": "Payroll processing has to happen accurately every month. Understand the basic steps.",
-     "why_it_matters": "This task sharpens your organisational and policy-writing skills, which few graduates ever get to practice. This is exactly the kind of skill employers look for, regardless of which company or industry you end up joining.",
-     "instructions": "Step 1: Research the basic monthly payroll cycle (attendance/leave data → salary calculation → deductions → payment → payslip generation).\nStep 2: Explain each step briefly.\nStep 3: Note one common payroll mistake companies make and how to avoid it.\nStep 4: Don't stop at the first example — dig deeper. Research or work through at least 3-4 real examples/cases related to \"Understand the Basics of Payroll Processing\", not just one, before you move on.\nStep 5: Now write it up properly, in your own words — a clear, well-organised summary of at least 400 words covering everything you found, structured like you're presenting it to a manager (not just a few bullet points).\nStep 6: Finally, write a short reflection (150+ words) — what surprised you while working on this, what was harder than it looked, and how this exact skill would be useful at ANY company you might work at, not just this one."},
-    {"track": "hr", "title": "Design a Recognition/Rewards Program", "difficulty": "medium", "points_value": 80, "deliverable_type": "text", "requires_geotag": False, "estimated_duration": "3-4 hours",
-     "brief": "Recognizing good work motivates employees. Design a simple recognition program.",
-     "why_it_matters": "This task builds your understanding of how a healthy workplace culture actually gets built, not just talked about. This is exactly the kind of skill employers look for, regardless of which company or industry you end up joining.",
-     "instructions": "Step 1: Design a simple 'employee of the month' style program (or an alternative idea).\nStep 2: Define the criteria for recognition — keep it fair and clear.\nStep 3: Suggest a low-cost reward.\nStep 4: Don't stop at the first example — dig deeper. Research or work through at least 3-4 real examples/cases related to \"Design a Recognition/Rewards Program\", not just one, before you move on.\nStep 5: Now write it up properly, in your own words — a clear, well-organised summary of at least 400 words covering everything you found, structured like you're presenting it to a manager (not just a few bullet points).\nStep 6: Finally, write a short reflection (150+ words) — what surprised you while working on this, what was harder than it looked, and how this exact skill would be useful at ANY company you might work at, not just this one."},
-    {"track": "hr", "title": "Write an Employee Handbook Section", "difficulty": "medium", "points_value": 80, "deliverable_type": "text", "requires_geotag": False, "estimated_duration": "3-4 hours",
-     "brief": "Employee handbooks cover company policies in one place. Write one section.",
-     "why_it_matters": "This task gives you real practice with the documentation and process-thinking every organisation quietly needs. This is exactly the kind of skill employers look for, regardless of which company or industry you end up joining.",
-     "instructions": "Step 1: Pick any topic (e.g. dress code, expense reimbursement, work-from-home days).\nStep 2: Write a clear, short handbook section on it.\nStep 3: Make sure it answers the obvious questions an employee would have.\nStep 4: Don't stop at the first example — dig deeper. Research or work through at least 3-4 real examples/cases related to \"Write an Employee Handbook Section\", not just one, before you move on.\nStep 5: Now write it up properly, in your own words — a clear, well-organised summary of at least 400 words covering everything you found, structured like you're presenting it to a manager (not just a few bullet points).\nStep 6: Finally, write a short reflection (150+ words) — what surprised you while working on this, what was harder than it looked, and how this exact skill would be useful at ANY company you might work at, not just this one."},
-    {"track": "hr", "title": "Understand Succession Planning Basics", "difficulty": "hard", "points_value": 100, "deliverable_type": "text", "requires_geotag": False, "estimated_duration": "4-5 hours",
-     "brief": "Succession planning means preparing for when a key employee leaves or is promoted. Learn the basics.",
-     "why_it_matters": "This task trains you to think about fairness and structure, valuable whether you end up in HR or leading a team someday. This is exactly the kind of skill employers look for, regardless of which company or industry you end up joining.",
-     "instructions": "Step 1: Research 'succession planning' basics.\nStep 2: Explain why even small companies should think about 'who could step up' for key roles.\nStep 3: For a hypothetical small company, suggest one action they could take to prepare for a manager's sudden departure.\nStep 4: Don't stop at the first example — dig deeper. Research or work through at least 3-4 real examples/cases related to \"Understand Succession Planning Basics\", not just one, before you move on.\nStep 5: Now write it up properly, in your own words — a clear, well-organised summary of at least 400 words covering everything you found, structured like you're presenting it to a manager (not just a few bullet points).\nStep 6: Finally, write a short reflection (150+ words) — what surprised you while working on this, what was harder than it looked, and how this exact skill would be useful at ANY company you might work at, not just this one."},
-    {"track": "hr", "title": "Create a Candidate Interview Scorecard", "difficulty": "medium", "points_value": 80, "deliverable_type": "text", "requires_geotag": False, "estimated_duration": "3-4 hours",
-     "brief": "A scorecard helps interviewers evaluate candidates consistently and fairly. Design one.",
-     "why_it_matters": "This task trains you to think about fairness and structure, valuable whether you end up in HR or leading a team someday. This is exactly the kind of skill employers look for, regardless of which company or industry you end up joining.",
-     "instructions": "Step 1: Pick any role.\nStep 2: List 4-5 things to score (e.g. communication, relevant experience, problem-solving).\nStep 3: Add a simple rating scale for each.\nStep 4: Don't stop at the first example — dig deeper. Research or work through at least 3-4 real examples/cases related to \"Create a Candidate Interview Scorecard\", not just one, before you move on.\nStep 5: Now write it up properly, in your own words — a clear, well-organised summary of at least 400 words covering everything you found, structured like you're presenting it to a manager (not just a few bullet points).\nStep 6: Finally, write a short reflection (150+ words) — what surprised you while working on this, what was harder than it looked, and how this exact skill would be useful at ANY company you might work at, not just this one."},
-    {"track": "hr", "title": "Field: Ask a Small Business How They Find New Hires", "difficulty": "medium", "points_value": 95, "deliverable_type": "text_and_photo", "requires_geotag": True, "estimated_duration": "3-5 hours (including travel)",
-     "brief": "A real-world field task — small businesses often hire very informally. Find out how.",
-     "why_it_matters": "This task trains you to think about fairness and structure, valuable whether you end up in HR or leading a team someday. This is exactly the kind of skill employers look for, regardless of which company or industry you end up joining.",
-     "instructions": "Step 1: Visit or contact any small local business.\nStep 2: Ask how they typically find and hire new staff.\nStep 3: Write down what you learned.\nStep 4: Take a photo of the business's exterior/signage as proof.\nStep 5: Don't stop at the minimum — go broader than the task first asked. Cover more real examples/locations than you initially might (aim for at least 4-5 in total, not just 1-2), so your comparison has real depth.\nStep 6: Now write it up properly, in your own words — a clear, well-organised summary of at least 400 words covering everything you found, structured like you're presenting it to a manager (not just a few bullet points).\nStep 7: Finally, write a short reflection (150+ words) — what surprised you while working on this, what was harder than it looked, and how this exact skill would be useful at ANY company you might work at, not just this one."},
-    {"track": "hr", "title": "Write a Maternity/Paternity Leave Policy Draft", "difficulty": "medium", "points_value": 80, "deliverable_type": "text", "requires_geotag": False, "estimated_duration": "3-4 hours",
-     "brief": "Draft a basic parental leave policy for a small company.",
-     "why_it_matters": "This task trains you to think about fairness and structure, valuable whether you end up in HR or leading a team someday. This is exactly the kind of skill employers look for, regardless of which company or industry you end up joining.",
-     "instructions": "Step 1: Search India's legal minimum maternity leave requirements.\nStep 2: Draft a simple policy that meets or exceeds it.\nStep 3: Note whether you'd include any paternity leave, and why.\nStep 4: Don't stop at the first example — dig deeper. Research or work through at least 3-4 real examples/cases related to \"Write a Maternity/Paternity Leave Policy Draft\", not just one, before you move on.\nStep 5: Now write it up properly, in your own words — a clear, well-organised summary of at least 400 words covering everything you found, structured like you're presenting it to a manager (not just a few bullet points).\nStep 6: Finally, write a short reflection (150+ words) — what surprised you while working on this, what was harder than it looked, and how this exact skill would be useful at ANY company you might work at, not just this one."},
-    {"track": "hr", "title": "Understand Employment Contract Basics", "difficulty": "medium", "points_value": 80, "deliverable_type": "text", "requires_geotag": False, "estimated_duration": "3-4 hours",
-     "brief": "Employment contracts protect both employer and employee. Understand what they typically include.",
-     "why_it_matters": "This task builds the quiet, practical skill of getting people-related processes actually written down and usable. This is exactly the kind of skill employers look for, regardless of which company or industry you end up joining.",
-     "instructions": "Step 1: Research standard sections of an Indian employment contract (role, salary, notice period, confidentiality, termination terms).\nStep 2: Explain each section briefly.\nStep 3: Note why a 'notice period' clause matters for both sides.\nStep 4: Don't stop at the first example — dig deeper. Research or work through at least 3-4 real examples/cases related to \"Understand Employment Contract Basics\", not just one, before you move on.\nStep 5: Now write it up properly, in your own words — a clear, well-organised summary of at least 400 words covering everything you found, structured like you're presenting it to a manager (not just a few bullet points).\nStep 6: Finally, write a short reflection (150+ words) — what surprised you while working on this, what was harder than it looked, and how this exact skill would be useful at ANY company you might work at, not just this one."},
-    {"track": "hr", "title": "Design an Employee Wellness Program Idea", "difficulty": "easy", "points_value": 60, "deliverable_type": "text", "requires_geotag": False, "estimated_duration": "2.5-3.5 hours",
-     "brief": "Wellness programs support employee wellbeing beyond just work tasks. Design one idea.",
-     "why_it_matters": "This task builds your people-skills and empathy — useful in any team-based job, not just HR. This is exactly the kind of skill employers look for, regardless of which company or industry you end up joining.",
-     "instructions": "Step 1: Suggest one wellness initiative a small company could realistically offer (e.g. a weekly yoga session, mental health day, gym reimbursement).\nStep 2: Explain roughly what it would cost and how it would run.\nStep 3: Note the benefit to both employee and employer.\nStep 4: Don't stop at the first example — dig deeper. Research or work through at least 3-4 real examples/cases related to \"Design an Employee Wellness Program Idea\", not just one, before you move on.\nStep 5: Now write it up properly, in your own words — a clear, well-organised summary of at least 400 words covering everything you found, structured like you're presenting it to a manager (not just a few bullet points).\nStep 6: Finally, write a short reflection (150+ words) — what surprised you while working on this, what was harder than it looked, and how this exact skill would be useful at ANY company you might work at, not just this one."},
-    {"track": "hr", "title": "Create a 30-60-90 Day Plan Template", "difficulty": "medium", "points_value": 80, "deliverable_type": "text", "requires_geotag": False, "estimated_duration": "3-4 hours",
-     "brief": "A 30-60-90 day plan sets clear expectations for a new hire's first 3 months. Create a template.",
-     "why_it_matters": "This task builds your people-skills and empathy — useful in any team-based job, not just HR. This is exactly the kind of skill employers look for, regardless of which company or industry you end up joining.",
-     "instructions": "Step 1: Pick any role.\nStep 2: Define what success looks like at Day 30 (learning), Day 60 (contributing), and Day 90 (owning tasks independently).\nStep 3: Write 2-3 goals for each milestone.\nStep 4: Don't stop at the first example — dig deeper. Research or work through at least 3-4 real examples/cases related to \"Create a 30-60-90 Day Plan Template\", not just one, before you move on.\nStep 5: Now write it up properly, in your own words — a clear, well-organised summary of at least 400 words covering everything you found, structured like you're presenting it to a manager (not just a few bullet points).\nStep 6: Finally, write a short reflection (150+ words) — what surprised you while working on this, what was harder than it looked, and how this exact skill would be useful at ANY company you might work at, not just this one."},
-    {"track": "hr", "title": "Write a Meeting Agenda Template", "difficulty": "easy", "points_value": 60, "deliverable_type": "text", "requires_geotag": False, "estimated_duration": "2.5-3.5 hours",
-     "brief": "Unstructured meetings waste time. Write a reusable agenda template for a team sync.",
-     "why_it_matters": "This task builds the quiet, practical skill of getting people-related processes actually written down and usable. This is exactly the kind of skill employers look for, regardless of which company or industry you end up joining.",
-     "instructions": "Step 1: Design a simple weekly team-sync agenda template (sections like updates, blockers, action items).\nStep 2: Suggest a realistic total time limit.\nStep 3: Explain why having a template improves meeting quality.\nStep 4: Don't stop at the first example — dig deeper. Research or work through at least 3-4 real examples/cases related to \"Write a Meeting Agenda Template\", not just one, before you move on.\nStep 5: Now write it up properly, in your own words — a clear, well-organised summary of at least 400 words covering everything you found, structured like you're presenting it to a manager (not just a few bullet points).\nStep 6: Finally, write a short reflection (150+ words) — what surprised you while working on this, what was harder than it looked, and how this exact skill would be useful at ANY company you might work at, not just this one."},
-    {"track": "hr", "title": "Understand Workplace Harassment Policy Basics", "difficulty": "medium", "points_value": 80, "deliverable_type": "text", "requires_geotag": False, "estimated_duration": "3-4 hours",
-     "brief": "Every Indian workplace is legally required to have a harassment policy (POSH Act). Understand the basics.",
-     "why_it_matters": "This task trains you to see situations from multiple people's perspectives before deciding anything. This is exactly the kind of skill employers look for, regardless of which company or industry you end up joining.",
-     "instructions": "Step 1: Search 'POSH Act India' (Prevention of Sexual Harassment) and read a simple explainer.\nStep 2: Explain in your own words what it requires companies to do.\nStep 3: Note why having a clear, confidential reporting process matters.\nStep 4: Don't stop at the first example — dig deeper. Research or work through at least 3-4 real examples/cases related to \"Understand Workplace Harassment Policy Basics\", not just one, before you move on.\nStep 5: Now write it up properly, in your own words — a clear, well-organised summary of at least 400 words covering everything you found, structured like you're presenting it to a manager (not just a few bullet points).\nStep 6: Finally, write a short reflection (150+ words) — what surprised you while working on this, what was harder than it looked, and how this exact skill would be useful at ANY company you might work at, not just this one."},
-    {"track": "hr", "title": "Field: Note How a Local Business Displays Its Team/Culture", "difficulty": "easy", "points_value": 75, "deliverable_type": "photo", "requires_geotag": True, "estimated_duration": "3-5 hours (including travel)",
-     "brief": "A real-world field task — some businesses show off their team or culture publicly. Spot examples.",
-     "why_it_matters": "This task builds your people-skills and empathy — useful in any team-based job, not just HR. This is exactly the kind of skill employers look for, regardless of which company or industry you end up joining.",
-     "instructions": "Step 1: Visit or look at any local business.\nStep 2: Note if/how they showcase their team or culture (a staff photo wall, values on a poster, etc — many won't have this, that's a useful observation too).\nStep 3: Take a photo as proof of your visit.\nStep 4: Don't stop at the minimum — go broader than the task first asked. Cover more real examples/locations than you initially might (aim for at least 4-5 in total, not just 1-2), so your comparison has real depth.\nStep 5: Now write it up properly, in your own words — a clear, well-organised summary of at least 400 words covering everything you found, structured like you're presenting it to a manager (not just a few bullet points).\nStep 6: Finally, write a short reflection (150+ words) — what surprised you while working on this, what was harder than it looked, and how this exact skill would be useful at ANY company you might work at, not just this one."},
-    {"track": "hr", "title": "Create an Internal Newsletter Draft for Employees", "difficulty": "easy", "points_value": 60, "deliverable_type": "text", "requires_geotag": False, "estimated_duration": "2.5-3.5 hours",
-     "brief": "Internal newsletters keep employees informed and connected. Write a short one.",
-     "why_it_matters": "This task trains you to see situations from multiple people's perspectives before deciding anything. This is exactly the kind of skill employers look for, regardless of which company or industry you end up joining.",
-     "instructions": "Step 1: Write a short internal newsletter (150-200 words) covering a made-up company update, a shoutout to an employee, and an upcoming event.\nStep 2: Keep the tone warm and internal-facing, not like external marketing.\nStep 3: Don't stop at the first example — dig deeper. Research or work through at least 3-4 real examples/cases related to \"Create an Internal Newsletter Draft for Employees\", not just one, before you move on.\nStep 4: Now write it up properly, in your own words — a clear, well-organised summary of at least 400 words covering everything you found, structured like you're presenting it to a manager (not just a few bullet points).\nStep 5: Finally, write a short reflection (150+ words) — what surprised you while working on this, what was harder than it looked, and how this exact skill would be useful at ANY company you might work at, not just this one."},
-    {"track": "hr", "title": "Write a Farewell Message Template", "difficulty": "easy", "points_value": 60, "deliverable_type": "text", "requires_geotag": False, "estimated_duration": "2.5-3.5 hours",
-     "brief": "Write a template for wishing a departing employee well.",
-     "why_it_matters": "This task trains you to think about fairness and structure, valuable whether you end up in HR or leading a team someday. This is exactly the kind of skill employers look for, regardless of which company or industry you end up joining.",
-     "instructions": "Step 1: Write a short farewell message template for a company-wide email when someone leaves.\nStep 2: Make it genuine, not just a formality.\nStep 3: Include a line about how the team can stay in touch.\nStep 4: Don't stop at the first example — dig deeper. Research or work through at least 3-4 real examples/cases related to \"Write a Farewell Message Template\", not just one, before you move on.\nStep 5: Now write it up properly, in your own words — a clear, well-organised summary of at least 400 words covering everything you found, structured like you're presenting it to a manager (not just a few bullet points).\nStep 6: Finally, write a short reflection (150+ words) — what surprised you while working on this, what was harder than it looked, and how this exact skill would be useful at ANY company you might work at, not just this one."},
+# ── Task 6: Ad Performance Analysis — spreadsheet ──────────────────────────
+# Fictional company: Nimbus Home Decor (same brand as Task 4, for continuity).
+# 18 raw ad campaigns across 4 channels, average order value = Rs 1,200/conversion.
+#
+# Formulas: CTR % = Clicks/Impressions*100 ; CPC = Spend/Clicks ;
+#           CPA = Spend/Conversions ; Revenue = Conversions*1200 ; ROAS = Revenue/Spend
+#
+# Hand-checked arithmetic for every row (row = campaign# + 1, header is row 1):
+#  1 FB-Diwali-Sale            15000 300000 6000  120 -> CTR=2.0  CPC=2.5  CPA=125  Rev=144000 ROAS=9.6
+#  2 FB-Retarget-Cart           8000 100000 2500  100 -> CTR=2.5  CPC=3.2  CPA=80   Rev=120000 ROAS=15
+#  3 FB-Brand-Awareness        12000 600000 6000   30 -> CTR=1.0  CPC=2.0  CPA=400  Rev=36000  ROAS=3
+#  4 FB-Lookalike-Audience     10000 200000 4000   80 -> CTR=2.0  CPC=2.5  CPA=125  Rev=96000  ROAS=9.6
+#  5 FB-Video-Ad                9000 450000 4500   45 -> CTR=1.0  CPC=2.0  CPA=200  Rev=54000  ROAS=6
+#  6 Google-Search-Brand       20000  80000 4000  200 -> CTR=5.0  CPC=5.0  CPA=100  Rev=240000 ROAS=12
+#  7 Google-Search-Generic     24000 150000 3000   80 -> CTR=2.0  CPC=8.0  CPA=300  Rev=96000  ROAS=4
+#  8 Google-Shopping           18000  90000 1800   90 -> CTR=2.0  CPC=10.0 CPA=200  Rev=108000 ROAS=6
+#  9 Google-Display-Network     6000 500000 2500   15 -> CTR=0.5  CPC=2.4  CPA=400  Rev=18000  ROAS=3
+# 10 Google-Remarketing         7000  70000 1400   70 -> CTR=2.0  CPC=5.0  CPA=100  Rev=84000  ROAS=12
+# 11 Insta-Reels-Launch        11000 275000 5500   55 -> CTR=2.0  CPC=2.0  CPA=200  Rev=66000  ROAS=6
+# 12 Insta-Influencer-Collab   15000 400000 6000   30 -> CTR=1.5  CPC=2.5  CPA=500  Rev=36000  ROAS=2.4
+# 13 Insta-Story-Ads            6000 200000 4000   40 -> CTR=2.0  CPC=1.5  CPA=150  Rev=48000  ROAS=8
+# 14 Insta-Carousel-Ad          9000 300000 6000   36 -> CTR=2.0  CPC=1.5  CPA=250  Rev=43200  ROAS=4.8
+# 15 YouTube-Skippable-Ad      14000 700000 7000   28 -> CTR=1.0  CPC=2.0  CPA=500  Rev=33600  ROAS=2.4
+# 16 YouTube-Bumper-Ad          8000 800000 4000   16 -> CTR=0.5  CPC=2.0  CPA=500  Rev=19200  ROAS=2.4
+# 17 YouTube-InStream-Ad       10000 500000 5000   25 -> CTR=1.0  CPC=2.0  CPA=400  Rev=30000  ROAS=3
+# 18 YouTube-Discovery-Ad       5000 250000 2500   25 -> CTR=1.0  CPC=2.0  CPA=200  Rev=30000  ROAS=6
+#
+# Total Spend       = 15000+8000+12000+10000+9000+20000+24000+18000+6000+7000+11000+15000+6000+9000+14000+8000+10000+5000 = 207000
+# Total Conversions = 120+100+30+80+45+200+80+90+15+70+55+30+40+36+28+16+25+25 = 1085
+# Total Revenue     = 1085 * 1200 = 1302000
+# Overall ROAS      = 1302000 / 207000 = 6.28985... ~= 6.29
+
+_TASK6_ROWS = [
+    ("FB-Diwali-Sale", "Facebook Ads", 15000, 300000, 6000, 120),
+    ("FB-Retarget-Cart", "Facebook Ads", 8000, 100000, 2500, 100),
+    ("FB-Brand-Awareness", "Facebook Ads", 12000, 600000, 6000, 30),
+    ("FB-Lookalike-Audience", "Facebook Ads", 10000, 200000, 4000, 80),
+    ("FB-Video-Ad", "Facebook Ads", 9000, 450000, 4500, 45),
+    ("Google-Search-Brand", "Google Search Ads", 20000, 80000, 4000, 200),
+    ("Google-Search-Generic", "Google Search Ads", 24000, 150000, 3000, 80),
+    ("Google-Shopping", "Google Search Ads", 18000, 90000, 1800, 90),
+    ("Google-Display-Network", "Google Display Ads", 6000, 500000, 2500, 15),
+    ("Google-Remarketing", "Google Search Ads", 7000, 70000, 1400, 70),
+    ("Insta-Reels-Launch", "Instagram Ads", 11000, 275000, 5500, 55),
+    ("Insta-Influencer-Collab", "Instagram Ads", 15000, 400000, 6000, 30),
+    ("Insta-Story-Ads", "Instagram Ads", 6000, 200000, 4000, 40),
+    ("Insta-Carousel-Ad", "Instagram Ads", 9000, 300000, 6000, 36),
+    ("YouTube-Skippable-Ad", "YouTube Ads", 14000, 700000, 7000, 28),
+    ("YouTube-Bumper-Ad", "YouTube Ads", 8000, 800000, 4000, 16),
+    ("YouTube-InStream-Ad", "YouTube Ads", 10000, 500000, 5000, 25),
+    ("YouTube-Discovery-Ad", "YouTube Ads", 5000, 250000, 2500, 25),
 ]
+
+_TASK6_PREFILLED = {
+    "A1": "Campaign", "B1": "Channel", "C1": "Spend (Rs)", "D1": "Impressions", "E1": "Clicks",
+    "F1": "Conversions", "G1": "CTR %", "H1": "CPC (Rs)", "I1": "CPA (Rs)", "J1": "Revenue (Rs)", "K1": "ROAS",
+}
+_TASK6_LOCKED = ["A1", "B1", "C1", "D1", "E1", "F1", "G1", "H1", "I1", "J1", "K1"]
+for _i, (_camp, _chan, _spend, _imp, _clicks, _conv) in enumerate(_TASK6_ROWS):
+    _r = _i + 2
+    _TASK6_PREFILLED[f"A{_r}"] = _camp
+    _TASK6_PREFILLED[f"B{_r}"] = _chan
+    _TASK6_PREFILLED[f"C{_r}"] = _spend
+    _TASK6_PREFILLED[f"D{_r}"] = _imp
+    _TASK6_PREFILLED[f"E{_r}"] = _clicks
+    _TASK6_PREFILLED[f"F{_r}"] = _conv
+    _TASK6_LOCKED += [f"A{_r}", f"B{_r}", f"C{_r}", f"D{_r}", f"E{_r}", f"F{_r}"]
+_TASK6_PREFILLED.update({
+    "A20": "TOTALS (across all 18 campaigns) — Avg Order Value per conversion = Rs 1,200",
+    "A21": "Total Spend (Rs)",
+    "A22": "Total Conversions",
+    "A23": "Total Revenue (Rs)",
+    "A24": "Overall ROAS (Blended) = Total Revenue / Total Spend",
+})
+_TASK6_LOCKED += ["A20", "A21", "A22", "A23", "A24"]
+
+_MKT_TASK6_TEMPLATE = {
+    "rows": 24,
+    "cols": 11,
+    "headers": ["Campaign", "Channel", "Spend (Rs)", "Impressions", "Clicks", "Conversions",
+                "CTR %", "CPC (Rs)", "CPA (Rs)", "Revenue (Rs)", "ROAS"],
+    "prefilled": _TASK6_PREFILLED,
+    "locked_cells": _TASK6_LOCKED,
+}
+
+_MKT_TASK6_ANSWER_KEY = {
+    "cells": {
+        # Row 2 = campaign 1 (FB-Diwali-Sale)
+        "G2": {"expected": 2.0, "tolerance": 0.1}, "H2": {"expected": 2.5, "tolerance": 0.1},
+        "I2": {"expected": 125, "tolerance": 1}, "J2": {"expected": 144000, "tolerance": 1},
+        "K2": {"expected": 9.6, "tolerance": 0.1},
+        # Row 7 = campaign 6 (Google-Search-Brand)
+        "G7": {"expected": 5.0, "tolerance": 0.1}, "H7": {"expected": 5.0, "tolerance": 0.1},
+        "I7": {"expected": 100, "tolerance": 1}, "J7": {"expected": 240000, "tolerance": 1},
+        "K7": {"expected": 12.0, "tolerance": 0.2},
+        # Row 10 = campaign 9 (Google-Display-Network)
+        "G10": {"expected": 0.5, "tolerance": 0.05}, "H10": {"expected": 2.4, "tolerance": 0.1},
+        "I10": {"expected": 400, "tolerance": 1}, "J10": {"expected": 18000, "tolerance": 1},
+        "K10": {
+            "expected": 3.0, "tolerance": 0.1,
+            "mistake_note": "A ROAS of 3 with a CPA of Rs 400 (the highest CPA of any campaign here) marks this as a "
+                             "candidate to CUT or rework, not scale — missing this is a common mistake when only "
+                             "looking at Spend or Impressions instead of the efficiency ratios.",
+        },
+        # Row 12 = campaign 11 (Insta-Reels-Launch)
+        "G12": {"expected": 2.0, "tolerance": 0.1}, "H12": {"expected": 2.0, "tolerance": 0.1},
+        "I12": {"expected": 200, "tolerance": 1}, "J12": {"expected": 66000, "tolerance": 1},
+        "K12": {"expected": 6.0, "tolerance": 0.1},
+        # Row 16 = campaign 15 (YouTube-Skippable-Ad)
+        "G16": {"expected": 1.0, "tolerance": 0.1}, "H16": {"expected": 2.0, "tolerance": 0.1},
+        "I16": {"expected": 500, "tolerance": 1}, "J16": {"expected": 33600, "tolerance": 1},
+        "K16": {"expected": 2.4, "tolerance": 0.1},
+        # Row 19 = campaign 18 (YouTube-Discovery-Ad)
+        "G19": {"expected": 1.0, "tolerance": 0.1}, "H19": {"expected": 2.0, "tolerance": 0.1},
+        "I19": {"expected": 200, "tolerance": 1}, "J19": {"expected": 30000, "tolerance": 1},
+        "K19": {"expected": 6.0, "tolerance": 0.1},
+        # Totals
+        "C21": {"expected": 207000, "tolerance": 1},
+        "F22": {"expected": 1085, "tolerance": 1},
+        "J23": {"expected": 1302000, "tolerance": 5},
+        "K24": {"expected": 6.29, "tolerance": 0.1},
+    },
+}
+
+
+MARKETING_TASKS = [
+
+    # ── Phase 1 (guided, Day 1-30) ─────────────────────────────────────────
+    {
+        "track": "marketing",
+        "title": "Social Media Caption Writing",
+        "phase": 1,
+        "is_blindfold": False,
+        "difficulty": "easy",
+        "points_value": 70,
+        "deliverable_type": "text",
+        "requires_geotag": False,
+        "estimated_duration": "1.5-2 hours",
+        "brief": "Urban Nest Bakery is a boutique neighbourhood bakery known for sourdough bread and fresh "
+                 "pastries. Weekday afternoons (2-6 PM) are their slowest period — most customers only come in "
+                 "on weekend mornings. To fix this, they're launching the 'Monsoon Chai-Time Box' — a "
+                 "limited-time snack box (2 samosas, 1 slice of banana bread, 1 cup of masala chai) priced at "
+                 "Rs 149, available only Monday-Friday, 2-6 PM, for the next 4 weeks. The owner has asked you "
+                 "to write the social captions for the launch, across platforms.",
+        "why_it_matters": "Adjusting tone and structure for the platform (not just the product) is a core "
+                           "copywriting skill that applies at any company selling anything, on any channel.",
+        "instructions": "Step 1: Read the brief carefully — note the product, the price, the availability "
+                         "window, and the specific problem (slow weekday afternoons) this campaign is solving.\n"
+                         "Step 2: Write 2 Instagram captions — casual, visual-first tone, emojis and 3-5 "
+                         "relevant hashtags are fine, each under 150 words.\n"
+                         "Step 3: Write 2 Facebook captions — slightly longer and more descriptive, "
+                         "community/local-story tone, each under 150 words.\n"
+                         "Step 4: Write 1-2 LinkedIn captions — professional tone, framed as a founder-story or "
+                         "small-business angle, no emojis, no hard sell, under 150 words.\n"
+                         "Step 5: Under each caption, add a 1-2 sentence rationale explaining why that specific "
+                         "tone/angle fits that platform and this campaign's goal.\n"
+                         "Step 6: Finally, write a 150+ word summary explaining which platform you think will "
+                         "drive the most weekday walk-ins for this specific campaign, and why.",
+        "mistake_explanation": "Using the same caption and tone across every platform is one of the most common "
+                                "junior-marketer mistakes — Instagram audiences skim visually and respond to "
+                                "casual, hashtag-driven copy, while LinkedIn audiences expect a professional, "
+                                "story-driven angle and disengage from hard-sell language. In a real company, "
+                                "posting identical copy everywhere signals the brand doesn't understand its own "
+                                "audience, and it measurably lowers engagement on every platform at once.",
+        "hints": [
+            "Hint 1: Instagram captions can be short and punchy with emojis/hashtags — the photo does most of "
+            "the work there, the caption just needs a hook.",
+            "Hint 2: Facebook captions can be a little longer and more 'story-like' — naming the actual problem "
+            "(slow weekday afternoons) directly tends to land well with Facebook's local-community tone.",
+            "Hint 3: LinkedIn is not the place for a hard sell or emojis — reframe the same launch as a "
+            "small-business decision or a founder's story, and keep the tone professional throughout.",
+        ],
+        "sample_solution": "Worked example using a different fictional business (PowerFit Gym, launching a "
+                            "Rs 999/month student discount): Instagram — 'Student budget, no excuses. PowerFit's "
+                            "new Rs 999/month plan is live — bring your student ID, walk out with a plan. Tag "
+                            "your gym buddy #StudentFitness #GymLife #PowerFit' (Rationale: short, uses an "
+                            "emoji-driven CTA and a tag-a-friend hook — this is how Instagram users are used to "
+                            "consuming offers.) LinkedIn — 'We noticed a lot of our neighbourhood's college "
+                            "students skip the gym once expenses add up. So we built a Rs 999/month student "
+                            "plan — not a marketing gimmick, just something that made sense for our community. "
+                            "If you know a student who could use it, feel free to share.' (Rationale: no "
+                            "emojis, frames the offer as a considered business decision for a professional "
+                            "audience, not a hard sell.)",
+    },
+
+    {
+        "track": "marketing",
+        "title": "Competitor Analysis",
+        "phase": 1,
+        "is_blindfold": False,
+        "difficulty": "medium",
+        "points_value": 85,
+        "deliverable_type": "text_and_photo",
+        "requires_geotag": True,
+        "estimated_duration": "2-3 hours (including travel)",
+        "brief": "Urban Nest Bakery (the same fictional bakery from your caption-writing task — premium "
+                 "sourdough and pastries, Rs 149 Chai-Time Box promo, moderate pricing, no loyalty program yet, "
+                 "and very light social media activity, roughly one post every 2 weeks) wants to understand "
+                 "how a real, similarly-positioned local business markets itself in person, not just online. "
+                 "Go find any real nearby business that competes for a similar kind of customer — a bakery, "
+                 "cafe, sweet shop, quick-service restaurant, or any local food/retail business near you — and "
+                 "study its in-person marketing.",
+        "why_it_matters": "Reading a real business's in-person marketing signals — signage, pricing display, "
+                           "visible offers, positioning — is a skill no amount of online research replaces, and "
+                           "it's exactly what a marketing analyst is expected to do before writing any real "
+                           "recommendation.",
+        "instructions": "Step 1: Pick a real local business near you that competes for a customer similar to "
+                         "Urban Nest Bakery's (any bakery, cafe, sweet shop, or small food/retail business is "
+                         "fine — it doesn't need to be an exact match).\n"
+                         "Step 2: Take a live photo of its storefront, signage, or window display — this is "
+                         "your proof-of-visit, and your location will be captured automatically with the "
+                         "photo.\n"
+                         "Step 3: While there, note what you observe: signage/branding, any visible offers or "
+                         "discounts, how prices are displayed, footfall at the time you visited, and anything "
+                         "about how it visually tries to pull people in off the street.\n"
+                         "Step 4: Compare what you saw to Urban Nest Bakery's current situation as given in the "
+                         "brief — its pricing, lack of a loyalty program, and light social media presence.\n"
+                         "Step 5: Write 200+ words covering: what this real business does well that Urban Nest "
+                         "Bakery doesn't, at least 2 concrete and specific recommendations Urban Nest Bakery "
+                         "could copy or adapt, and one thing you think this real competitor could itself "
+                         "improve.\n"
+                         "Step 6: Submit your photo together with your written analysis.",
+        "mistake_explanation": "A competitor analysis that stays vague ('their signage looks nice') instead of "
+                                "specific ('they display a Buy-1-Get-1 pastry board right at eye level near the "
+                                "entrance, which is exactly the kind of visible, low-cost promo Urban Nest "
+                                "Bakery could run in its slow 2-6 PM window') gives a business owner nothing "
+                                "they can actually act on. In a real company, recommendations that aren't "
+                                "grounded in specific, observed detail get ignored — genuinely useful "
+                                "competitive intelligence is the entire point of this kind of field research.",
+        "hints": [
+            "Hint 1: Don't just photograph the sign — look at what's near the entrance/window: price boards, "
+            "offer stickers, queue length, how staff greet walk-ins. These in-person details are what "
+            "online-only 'competitor research' misses entirely.",
+            "Hint 2: A useful recommendation is specific and actionable ('add a visible weekday-afternoon "
+            "offer board near the entrance') — not generic ('improve their marketing').",
+            "Hint 3: It's fine if the business you visit isn't an exact bakery match — a cafe, sweet shop, or "
+            "any small food/retail business works, as long as you can genuinely compare its in-person "
+            "marketing approach to Urban Nest Bakery's.",
+        ],
+        "sample_solution": "Worked example using a different fictional client and a different real visit: if "
+                            "your fictional client were 'GreenCup Coffee' (no visible in-store offers, plain "
+                            "paper cups, minimal signage) and you visited a real nearby juice bar that had a "
+                            "large 'Today's Combo: Juice + Sandwich Rs 99' board right at the door, laminated "
+                            "price cards on every table, and a 'Follow us, tag us, get 10% off' sticker at the "
+                            "counter — your write-up would note: GreenCup Coffee has no visible in-store offer "
+                            "at all, so a simple laminated 'Today's Combo' board near the entrance (mirroring "
+                            "what you saw) is a low-cost, high-visibility fix, and the 'follow us for a "
+                            "discount' sticker is another near-zero-cost idea that directly grows their weak "
+                            "social presence. You'd also flag one thing the juice bar itself could improve — "
+                            "e.g. its queue management looked disorganised during your visit.",
+    },
+
+    {
+        "track": "marketing",
+        "title": "Email Campaign Draft",
+        "phase": 1,
+        "is_blindfold": False,
+        "difficulty": "medium",
+        "points_value": 75,
+        "deliverable_type": "text",
+        "requires_geotag": False,
+        "estimated_duration": "1.5-2.5 hours",
+        "brief": "PulseFit is a fictional mobile fitness app. They're launching 'PulseFit Pro' — a new premium "
+                 "subscription tier (personalised workout plans, live trainer chat, and offline video "
+                 "downloads) priced at Rs 499/month. For the first 500 signups only, they're offering 30% off "
+                 "for the first 3 months (so Rs 349/month), and the offer expires in 7 days. This email will go "
+                 "to PulseFit's existing free-tier user base (around 40,000 users) who have never upgraded.",
+        "why_it_matters": "Writing a subject line and body that actually get opened and acted on — not just "
+                           "filled with buzzwords — is one of the highest-leverage, most measurable skills in "
+                           "any marketing role, at any company.",
+        "instructions": "Step 1: Write a subject line (under 60 characters) designed to get a free-tier user to "
+                         "open the email.\n"
+                         "Step 2: Write the email body (150-250 words) — open with the free-tier user's likely "
+                         "pain point, introduce PulseFit Pro's 3 key features, and state the 30% early-bird "
+                         "discount, the 'first 500 signups' scarcity, and the 7-day deadline clearly and "
+                         "early.\n"
+                         "Step 3: Write one clear, single call-to-action (e.g. 'Upgrade to Pro Now') — not "
+                         "multiple competing actions.\n"
+                         "Step 4: Below the email, write a 150+ word note on your subject-line strategy — why "
+                         "you chose those specific words, what makes a free-tier user open a fitness-app email "
+                         "versus ignore it, and whether urgency/scarcity language works well here and why.",
+        "mistake_explanation": "A vague or clickbait-y subject line ('You won't believe this!!') either gets "
+                                "filtered as spam or opened with the wrong intent and immediately deleted — in "
+                                "a real company, subject-line performance is measured directly as open rate, "
+                                "and a bad one means the entire email, no matter how good the body is, gets "
+                                "read by almost nobody. Burying the actual offer (price, discount %, deadline) "
+                                "deep in paragraph 3 instead of stating it early is the second most common "
+                                "mistake — real users skim, they don't read start to finish.",
+        "hints": [
+            "Hint 1: A strong subject line is specific, not hype-y — naming the actual benefit or the deadline "
+            "(a number, a percentage, or a countdown) usually outperforms vague excitement.",
+            "Hint 2: State the discount, the eligibility ('first 500 signups'), and the deadline explicitly and "
+            "early in the body — don't make the reader hunt for the actual offer.",
+            "Hint 3: One CTA, not three — an email offering 'Upgrade Now' AND 'Learn More' AND 'Share with a "
+            "friend' dilutes the single action you actually want taken.",
+        ],
+        "sample_solution": "Worked example for a different fictional product (Nimbus Home Decor's 'Nimbus "
+                            "Bundle', a 3-piece home decor set at Rs 2,499, 20% off for the first 200 orders, "
+                            "5-day deadline): Subject: '20% off your first Nimbus Bundle - 5 days left'. Body: "
+                            "'Hi [Name], your home deserves better than mismatched decor. The Nimbus Bundle "
+                            "brings 3 pieces — a woven wall hanging, a ceramic vase, and a table runner — "
+                            "designed to work together, for Rs 2,499. For the next 5 days (or the first 200 "
+                            "orders, whichever comes first), it's 20% off at Rs 1,999. [Shop the Bundle Now]'. "
+                            "Subject-line note: the subject leads with a concrete number (20%) and a real "
+                            "deadline (5 days) instead of vague excitement — specific numbers signal a real, "
+                            "time-bound offer rather than routine promotional noise, which is what actually "
+                            "earns an open from a user who already gets several marketing emails a week.",
+    },
+
+    # ── Phase 2 (independent, Day 31-60) ────────────────────────────────────
+    {
+        "track": "marketing",
+        "title": "Marketing Budget Allocation",
+        "phase": 2,
+        "is_blindfold": False,
+        "difficulty": "medium",
+        "points_value": 95,
+        "deliverable_type": "text_and_spreadsheet",
+        "requires_geotag": False,
+        "estimated_duration": "2-2.5 hours",
+        "brief": "Nimbus Home Decor (a fictional e-commerce home decor brand) has a fixed monthly marketing "
+                 "budget of Rs 2,00,000 to split across 6 channels. Based on last quarter's performance, each "
+                 "channel has a historical Cost per Lead and a recommended Allocation % already worked out for "
+                 "you: Social Media Ads (Cost per Lead Rs 250, Allocation 30%), Google Search Ads (Rs 400, "
+                 "25%), Influencer Marketing (Rs 600, 15%), Print / Local Ads (Rs 800, 10%), Events & "
+                 "Sponsorships (Rs 1,000, 10%), Content Marketing / SEO-Blog (Rs 200, 10%). Turn this into "
+                 "actual rupee amounts and a projected lead count per channel, then form your own view on "
+                 "whether this recommended split is actually the smart one.",
+        "why_it_matters": "Turning a budget and channel-performance data into an actual rupee allocation — and "
+                           "then being able to argue whether that allocation is smart — is exactly what a "
+                           "marketing coordinator or analyst does before any campaign spend is approved, at any "
+                           "company.",
+        "instructions": "Step 1: In column D (Allocated Amount), calculate each channel's rupee allocation as "
+                         "Allocation % x total budget (Rs 2,00,000) — use a formula that references the "
+                         "Allocation % cell, don't hand-type the result.\n"
+                         "Step 2: In column E (Projected Leads), calculate Allocated Amount / Cost per Lead for "
+                         "each channel.\n"
+                         "Step 3: In row 10, sum up the Total Allocated Amount across all 6 channels (it should "
+                         "land on exactly Rs 2,00,000).\n"
+                         "Step 4: In row 11, sum up Total Projected Leads across all 6 channels.\n"
+                         "Step 5: In row 12, calculate the Blended Cost per Lead = Total Allocated Amount / "
+                         "Total Projected Leads.\n"
+                         "Step 6: In the text box, write 150+ words: which channel is the most lead-efficient, "
+                         "would you change the given allocation at all if it were your decision, and why (or "
+                         "why not)?",
+        "spreadsheet_template": _MKT_TASK4_TEMPLATE,
+        "spreadsheet_answer_key": _MKT_TASK4_ANSWER_KEY,
+        "mistake_explanation": "Allocating budget without checking that it actually adds up to the full "
+                                "approved amount (here, exactly Rs 2,00,000) is a real, common mistake — either "
+                                "money goes unspent and sits idle, or the plan quietly overshoots the approved "
+                                "budget, which is exactly the kind of error that gets a marketing plan sent "
+                                "back by finance before any of it can run.",
+        "hints": [
+            "Hint 1: Allocated Amount = Allocation % x Total Budget (Rs 2,00,000) — for example, "
+            "=C2*200000/100 (or reference a dedicated budget cell) rather than typing the rupee number by "
+            "hand.",
+            "Hint 2: Projected Leads = Allocated Amount / Cost per Lead for that same channel.",
+            "Hint 3: Your 6 Allocated Amounts should sum to exactly Rs 2,00,000 — if D10 doesn't show that, "
+            "re-check that your Allocation % formulas reference the right cells.",
+        ],
+        "sample_solution": "Worked example with a smaller Rs 1,00,000 budget and 2 channels (different mock "
+                            "data): Channel A has Allocation % = 40% and Cost per Lead = Rs 200 -> Allocated "
+                            "Amount = 0.40 x 100000 = Rs 40,000 -> Projected Leads = 40000/200 = 200 leads. "
+                            "Channel B has Allocation % = 60% and Cost per Lead = Rs 500 -> Allocated Amount = "
+                            "Rs 60,000 -> Projected Leads = 60000/500 = 120 leads. Total Allocated = Rs "
+                            "1,00,000, Total Leads = 320, Blended Cost per Lead = 100000/320 = Rs 312.5. The "
+                            "written justification should note Channel A is far more lead-efficient (Rs 200 vs "
+                            "Rs 500 per lead) and argue whether the allocation should skew even further toward "
+                            "A, or whether Channel B still deserves its share for reasons beyond pure "
+                            "lead-cost, like broader reach or brand visibility.",
+    },
+
+    {
+        "track": "marketing",
+        "title": "Content Calendar Planning",
+        "phase": 2,
+        "is_blindfold": False,
+        "difficulty": "medium",
+        "points_value": 85,
+        "deliverable_type": "text",
+        "requires_geotag": False,
+        "estimated_duration": "2-3 hours",
+        "brief": "GreenLeaf Organics is a fictional organic grocery delivery startup preparing to launch a new "
+                 "'Farm Box Subscription' (a weekly box of seasonal organic produce) in 2 weeks. Before the "
+                 "launch, they want a content calendar covering the 14 days leading up to launch day (Day 14) "
+                 "— building awareness and pre-launch interest across Instagram, Facebook, and email.",
+        "why_it_matters": "Sequencing content over time toward a specific date — instead of just posting "
+                           "randomly — is what separates a real pre-launch marketing plan from a list of "
+                           "disconnected social posts, and it's a skill used identically whether the launch is "
+                           "a grocery subscription or a software product.",
+        "instructions": "Step 1: For each of the 14 days, decide 4 things: the platform (Instagram / Facebook "
+                         "/ Email — mix them, don't repeat the same platform every day), the content type "
+                         "(e.g. reel, carousel post, static image, behind-the-scenes, testimonial, countdown, "
+                         "email teaser, FAQ post, etc.), the theme/topic for that day, and the specific goal "
+                         "(awareness, education, trust-building, urgency, or conversion).\n"
+                         "Step 2: Make sure the mix isn't repetitive — vary content type and platform across "
+                         "the 14 days, and build toward increasing urgency as Day 14 (launch) approaches.\n"
+                         "Step 3: Include at least 2 purely educational posts (e.g. 'why organic matters', 'how "
+                         "the Farm Box works') somewhere in the first week — not just promotional content.\n"
+                         "Step 4: Include at least 1 countdown/urgency-driven post in the final 3 days before "
+                         "launch.\n"
+                         "Step 5: Present your calendar as a day-by-day list (Day 1 through Day 14) with the 4 "
+                         "fields above for each day.\n"
+                         "Step 6: Finally, write 150+ words explaining your reasoning — why you sequenced the "
+                         "content the way you did, and why this mix and cadence builds toward launch day "
+                         "rather than just filling 14 days.",
+        "mistake_explanation": "A content calendar that posts the same content type on the same platform every "
+                                "single day (e.g. 14 straight promotional Instagram posts) fatigues an audience "
+                                "fast — engagement drops sharply after the first few repetitive posts, and by "
+                                "launch day the audience has already tuned out. In a real company, a calendar "
+                                "that doesn't vary content type/platform and doesn't build urgency toward a "
+                                "specific date wastes the entire pre-launch window — the whole point of a "
+                                "content calendar like this is to build momentum, not just to fill days.",
+        "hints": [
+            "Hint 1: Think of the 14 days in 3 phases — early days build awareness/education (why should "
+            "anyone care), middle days build trust (testimonials, behind-the-scenes, how it works), and the "
+            "final 2-3 days build urgency (countdown, 'launching in 2 days', early-bird signup).",
+            "Hint 2: Email doesn't need to go out every day like social does — 2-3 well-timed emails (e.g. a "
+            "teaser mid-week, a 'launching in 3 days' reminder) are usually enough.",
+            "Hint 3: Vary content TYPE even on the same platform — a week of nothing but static image posts on "
+            "Instagram is just as repetitive as posting on only one platform.",
+        ],
+        "sample_solution": "Worked example using a different fictional brand (BrightPage Books, launching a "
+                            "'Monthly Book Box' in 2 weeks): Day 1 — Instagram, carousel post, 'Why we started "
+                            "BrightPage', awareness. Day 3 — Facebook, static post, 'What's inside a Book Box?', "
+                            "education. Day 5 — Instagram, reel, 'Unboxing a sample box', trust-building. Day 7 "
+                            "— Email, teaser email, 'Something's coming...', awareness. Day 9 — Instagram, "
+                            "testimonial graphic, 'What early readers are saying', trust-building. Day 11 — "
+                            "Facebook, FAQ post, 'Your questions answered', education/trust. Day 12 — Email, "
+                            "'Launching in 2 days + early-bird 15% off', urgency/conversion. Day 13 — "
+                            "Instagram, countdown post, '1 day left', urgency. Day 14 — all platforms, launch "
+                            "announcement with direct signup link, conversion. The reasoning would explain: the "
+                            "first week deliberately avoids selling anything and builds the 'why', the middle "
+                            "stretch builds proof/trust, and only the final 3 days push urgency, because "
+                            "spending the strongest urgency messaging on Day 1, on an audience that doesn't "
+                            "know the brand yet, wastes it on people who aren't ready to convert.",
+    },
+
+    # ── Phase 3 (Day 61-90) ─────────────────────────────────────────────────
+    {
+        "track": "marketing",
+        "title": "Ad Performance Analysis",
+        "phase": 3,
+        "is_blindfold": False,
+        "difficulty": "hard",
+        "points_value": 115,
+        "deliverable_type": "text_and_spreadsheet",
+        "requires_geotag": False,
+        "estimated_duration": "3-4 hours",
+        "brief": "Nimbus Home Decor (the same fictional brand from your Budget Allocation task) ran 18 ad "
+                 "campaigns last quarter across Facebook, Google Search, Google Display, Instagram, and "
+                 "YouTube. The raw spend/impressions/clicks/conversions data for all 18 campaigns is already "
+                 "filled into the spreadsheet below. Their average order value is Rs 1,200 per conversion. "
+                 "Calculate CTR, CPC, CPA, Revenue, and ROAS for every campaign, then decide which campaigns "
+                 "you'd scale up and which you'd cut.",
+        "why_it_matters": "Turning a raw, unsorted ad-performance export into CTR/CPC/CPA/ROAS and using those "
+                           "numbers (not gut feeling) to decide what to scale or cut is the single most common "
+                           "recurring task for a performance marketer or media buyer at any company running "
+                           "paid ads.",
+        "instructions": "Step 1: In column G, calculate CTR % = (Clicks / Impressions) x 100 for each of the "
+                         "18 campaigns.\n"
+                         "Step 2: In column H, calculate CPC (Cost per Click) = Spend / Clicks.\n"
+                         "Step 3: In column I, calculate CPA (Cost per Acquisition) = Spend / Conversions.\n"
+                         "Step 4: In column J, calculate Revenue = Conversions x Rs 1,200 (the given average "
+                         "order value).\n"
+                         "Step 5: In column K, calculate ROAS (Return on Ad Spend) = Revenue / Spend.\n"
+                         "Step 6: In rows 21-24, calculate the Total Spend, Total Conversions, Total Revenue, "
+                         "and the Overall Blended ROAS (Total Revenue / Total Spend) across all 18 campaigns.\n"
+                         "Step 7: In the text box, write 200+ words identifying at least 3 campaigns you'd "
+                         "scale up (highest ROAS / lowest CPA relative to their channel) and at least 3 you'd "
+                         "cut or rework (lowest ROAS / highest CPA), with your reasoning for each.",
+        "spreadsheet_template": _MKT_TASK6_TEMPLATE,
+        "spreadsheet_answer_key": _MKT_TASK6_ANSWER_KEY,
+        "mistake_explanation": "Judging a campaign by Spend or Impressions alone — instead of CPA and ROAS — is "
+                                "a common, costly mistake: a campaign can have huge reach and still lose money "
+                                "on every conversion, or a small, cheap campaign can be quietly the most "
+                                "profitable one in the account. In a real company, scaling the wrong campaign "
+                                "based on vanity metrics (impressions, clicks) instead of ROAS directly wastes "
+                                "ad spend that could have gone to a campaign that was actually converting "
+                                "efficiently.",
+        "hints": [
+            "Hint 1: CTR % = (Clicks / Impressions) x 100. CPC (Cost per Click) = Spend / Clicks. Both use the "
+            "raw Spend/Impressions/Clicks columns already filled in for you.",
+            "Hint 2: CPA (Cost per Acquisition) = Spend / Conversions. Revenue = Conversions x Rs 1,200 (the "
+            "average order value given in the brief) — this isn't in the raw data, you calculate it yourself.",
+            "Hint 3: ROAS (Return on Ad Spend) = Revenue / Spend. A ROAS well below the account average is "
+            "usually a signal to cut or rework a campaign, not scale it — compare each campaign's ROAS and CPA "
+            "against others in the same channel before deciding.",
+        ],
+        "sample_solution": "Worked example with a single different fictional campaign: Spend = Rs 4,000, "
+                            "Impressions = 100,000, Clicks = 2,000, Conversions = 20, Average Order Value = Rs "
+                            "1,000. CTR = 2000/100000*100 = 2%. CPC = 4000/2000 = Rs 2. CPA = 4000/20 = Rs 200. "
+                            "Revenue = 20 x 1000 = Rs 20,000. ROAS = 20000/4000 = 5. A ROAS of 5 (Rs 5 earned "
+                            "for every Rs 1 spent) with a moderate CPA is a solid candidate to scale further; "
+                            "if a second campaign showed ROAS of 1.5 with a much higher CPA, that one would be "
+                            "the one to cut or rework instead — the decision should always compare campaigns "
+                            "against each other, not judge one campaign in isolation.",
+    },
+
+    {
+        "track": "marketing",
+        "title": "Full Campaign Proposal",
+        "phase": 3,
+        "is_blindfold": True,
+        "difficulty": "hard",
+        "points_value": 130,
+        "deliverable_type": "text",
+        "requires_geotag": False,
+        "estimated_duration": "3-4 hours",
+        "brief": "Verve Audio (a fictional consumer electronics brand) is launching 'Verve Pods X' — a new "
+                 "pair of wireless earbuds (Rs 3,999, active noise cancellation, 30-hour battery life) "
+                 "targeting urban working professionals aged 24-35 who currently use budget/no-name earbuds "
+                 "and are ready to upgrade. Verve Audio has approved a total marketing budget of Rs 8,00,000 "
+                 "for the 6-week launch window and wants a complete campaign proposal before they approve any "
+                 "spend.",
+        "why_it_matters": "Building a complete, defensible campaign proposal — objective, audience, channels, "
+                           "budget, timeline, and success metrics, all tied together — is the actual work "
+                           "product a marketing manager delivers before any real campaign is approved to run, "
+                           "at any company, for any product.",
+        "instructions": "Step 1: Write a clear campaign Objective (1-2 sentences) — what specifically should "
+                         "this campaign achieve in 6 weeks (a unit-sales target, a signup/waitlist number, or a "
+                         "specific measurable awareness metric). A vague objective like 'increase brand "
+                         "awareness' is not acceptable — make it specific and measurable.\n"
+                         "Step 2: Define the Target Audience in detail — not just the age range given, but "
+                         "their likely habits, where they spend time online and offline, and what would "
+                         "actually make them switch from a budget earbud to a Rs 3,999 one.\n"
+                         "Step 3: Propose a Channel Mix — which channels you'd use (e.g. Instagram, Google "
+                         "Search, YouTube, influencer marketing, offline retail activation, etc.) and a "
+                         "one-line reason why each fits this specific audience and product.\n"
+                         "Step 4: Build a Budget Breakdown — allocate the full Rs 8,00,000 across your chosen "
+                         "channels, with a rupee amount (or %) per channel, and a one-line reason for each "
+                         "allocation.\n"
+                         "Step 5: Build a Timeline across the 6 weeks — what happens in which week (e.g. "
+                         "teaser phase, launch day, sustain phase, final-push phase).\n"
+                         "Step 6: Define Success Metrics — the specific numbers/KPIs you'd check at the end of "
+                         "6 weeks to know if the campaign worked, tied back to your Step 1 objective.\n"
+                         "Step 7: Write your full proposal as one structured document with a clear heading for "
+                         "each of the 6 sections above — minimum 500 words total across the whole proposal.",
+        "mistake_explanation": "A campaign proposal that skips straight to 'post on Instagram and run some ads' "
+                                "without a specific objective, a defined audience, or a budget breakdown is the "
+                                "single most common reason real campaign proposals get rejected before they "
+                                "even reach execution — a stakeholder approving Rs 8,00,000 in spend needs to "
+                                "see exactly where the money goes, why, and how success will be measured, or "
+                                "the campaign has no way to be judged a win or a failure afterward. A vague "
+                                "objective like 'increase awareness' with no measurable target is functionally "
+                                "impossible to grade as successful or not.",
+    },
+]
+
+
+# ════════════════════════════════════════════════════════════════════
+# SALES (8) — 90-day phase-based curated pool, mirrors Finance
+# ════════════════════════════════════════════════════════════════════
+# ── Task 5 mock data: "Prioritize Lead List" ──────────────────────────────
+# 16 leads (rows 2-17), raw signals in columns B-F, computed Priority Score
+# in column G. Weighted scoring formula (weights sum to 1.0, max score 10):
+#   G = 0.35*MIN(10, DealSize/20000)      [max 3.5]
+#     + 0.15*(EmailOpens*2)               [max 1.5]
+#     + 0.20*(MeetingAttended*10)         [max 2.0]
+#     + 0.15*Responsiveness               [max 1.5]
+#     + 0.15*MAX(0, 10-DaysSinceContact)  [max 1.5]
+# Arithmetic for every row (hand-verified, shown per row below):
+#   Kumar Hardware:      0.35*2.25 + 0.15*6 + 0.20*10 + 0.15*7 + 0.15*6
+#                       = 0.7875 + 0.9 + 2.0 + 1.05 + 0.9        = 5.6375
+#   Priya Boutique:       0.35*9.0 + 0.15*10 + 0.20*10 + 0.15*9 + 0.15*8
+#                       = 3.15 + 1.5 + 2.0 + 1.35 + 1.2           = 9.2
+#   Grover Wholesale:     0.35*10(capped,11) + 0.15*8 + 0.20*10 + 0.15*8 + 0.15*9
+#                       = 3.5 + 1.2 + 2.0 + 1.2 + 1.35             = 9.25
+#   Sethi General Store:  0.35*0.75 + 0.15*2 + 0.20*0 + 0.15*3 + 0.15*0(neg->0)
+#                       = 0.2625 + 0.3 + 0 + 0.45 + 0              = 1.0125
+#   Om Sai Distributors:  0.35*4.75 + 0.15*4 + 0.20*0 + 0.15*5 + 0.15*0
+#                       = 1.6625 + 0.6 + 0 + 0.75 + 0               = 3.0125
+#   Verma Electronics:    0.35*3.0 + 0.15*8 + 0.20*10 + 0.15*6 + 0.15*4
+#                       = 1.05 + 1.2 + 2.0 + 0.9 + 0.6              = 5.75
+#   Bansal Textiles:      0.35*1.5 + 0.15*0 + 0.20*0 + 0.15*2 + 0.15*0
+#                       = 0.525 + 0 + 0 + 0.3 + 0                   = 0.825
+#   Nagpal Supermart:     0.35*6.5 + 0.15*6 + 0.20*10 + 0.15*7 + 0.15*5
+#                       = 2.275 + 0.9 + 2.0 + 1.05 + 0.75            = 6.975
+#   City Book Depot:      0.35*1.0 + 0.15*4 + 0.20*0 + 0.15*4 + 0.15*0
+#                       = 0.35 + 0.6 + 0 + 0.6 + 0                  = 1.55
+#   Rathi Wholesale Foods: 0.35*10(capped,12.5) + 0.15*10 + 0.20*10 + 0.15*9 + 0.15*7
+#                       = 3.5 + 1.5 + 2.0 + 1.35 + 1.05             = 9.4
+#   Anand Stationery Mart: 0.35*1.25 + 0.15*2 + 0.20*0 + 0.15*3 + 0.15*0
+#                       = 0.4375 + 0.3 + 0 + 0.45 + 0               = 1.1875
+#   Bright Kids Toys:      0.35*2.75 + 0.15*6 + 0.20*0 + 0.15*6 + 0.15*2
+#                       = 0.9625 + 0.9 + 0 + 0.9 + 0.3              = 3.0625
+#   Metro Hardware Sol.:   0.35*5.5 + 0.15*8 + 0.20*10 + 0.15*8 + 0.15*8
+#                       = 1.925 + 1.2 + 2.0 + 1.2 + 1.2             = 7.525
+#   Deshmukh Auto Parts:   0.35*2.0 + 0.15*4 + 0.20*10 + 0.15*5 + 0.15*0
+#                       = 0.7 + 0.6 + 2.0 + 0.75 + 0                = 4.05
+#   Fresh Mart Groceries:  0.35*0.9 + 0.15*0 + 0.20*0 + 0.15*2 + 0.15*0
+#                       = 0.315 + 0 + 0 + 0.3 + 0                   = 0.615
+#   Kapoor Furnishings:    0.35*8.0 + 0.15*8 + 0.20*10 + 0.15*7 + 0.15*6
+#                       = 2.8 + 1.2 + 2.0 + 1.05 + 0.9              = 7.95
+# Ranked descending -> Top 5: Rathi Wholesale Foods (9.4), Grover Wholesale
+# Traders (9.25), Priya Boutique Chain (9.2), Kapoor Furnishings (7.95),
+# Metro Hardware Solutions (7.525).
+
+_T5_LEADS = [
+    ("Kumar Hardware Store", 45000, 3, 1, 7, 4),
+    ("Priya Boutique Chain", 180000, 5, 1, 9, 2),
+    ("Grover Wholesale Traders", 220000, 4, 1, 8, 1),
+    ("Sethi General Store", 15000, 1, 0, 3, 20),
+    ("Om Sai Distributors", 95000, 2, 0, 5, 10),
+    ("Verma Electronics", 60000, 4, 1, 6, 6),
+    ("Bansal Textiles", 30000, 0, 0, 2, 28),
+    ("Nagpal Supermart", 130000, 3, 1, 7, 5),
+    ("City Book Depot", 20000, 2, 0, 4, 15),
+    ("Rathi Wholesale Foods", 250000, 5, 1, 9, 3),
+    ("Anand Stationery Mart", 25000, 1, 0, 3, 18),
+    ("Bright Kids Toys", 55000, 3, 0, 6, 8),
+    ("Metro Hardware Solutions", 110000, 4, 1, 8, 2),
+    ("Deshmukh Auto Parts", 40000, 2, 1, 5, 12),
+    ("Fresh Mart Groceries", 18000, 0, 0, 2, 25),
+    ("Kapoor Furnishings", 160000, 4, 1, 7, 4),
+]
+
+_T5_PREFILLED = {
+    "A1": "Lead / Company", "B1": "Deal Size (₹)", "C1": "Email Opens (out of last 5 sent)",
+    "D1": "Meeting Attended (1=Yes, 0=No)", "E1": "Responsiveness Rating (0-10)",
+    "F1": "Days Since Last Contact", "G1": "Priority Score (weighted, 0-10)",
+}
+_T5_LOCKED = ["A1", "B1", "C1", "D1", "E1", "F1", "G1"]
+for _i, (_name, _deal, _opens, _meet, _resp, _days) in enumerate(_T5_LEADS):
+    _r = _i + 2
+    _T5_PREFILLED[f"A{_r}"] = _name
+    _T5_PREFILLED[f"B{_r}"] = _deal
+    _T5_PREFILLED[f"C{_r}"] = _opens
+    _T5_PREFILLED[f"D{_r}"] = _meet
+    _T5_PREFILLED[f"E{_r}"] = _resp
+    _T5_PREFILLED[f"F{_r}"] = _days
+    _T5_LOCKED += [f"A{_r}", f"B{_r}", f"C{_r}", f"D{_r}", f"E{_r}", f"F{_r}"]
+
+_SALES_TASK5_TEMPLATE = {
+    "rows": 17, "cols": 7,
+    "headers": ["Lead / Company", "Deal Size (₹)", "Email Opens (out of last 5 sent)",
+                "Meeting Attended (1=Yes, 0=No)", "Responsiveness Rating (0-10)",
+                "Days Since Last Contact", "Priority Score (weighted, 0-10)"],
+    "prefilled": _T5_PREFILLED, "locked_cells": _T5_LOCKED,
+}
+_SALES_TASK5_ANSWER_KEY = {"cells": {
+    "G2": {"expected": 5.6375, "tolerance": 0.3},
+    "G3": {"expected": 9.2, "tolerance": 0.3},
+    "G4": {"expected": 9.25, "tolerance": 0.3,
+           "mistake_note": "Deal Size Score is capped at 10 — Grover's deal (₹220,000 ÷ 20,000 = 11) does NOT score "
+                            "an 11, it caps at 10. Forgetting the cap over-inflates a large deal's priority beyond "
+                            "what it should be."},
+    "G5": {"expected": 1.0125, "tolerance": 0.3},
+    "G6": {"expected": 3.0125, "tolerance": 0.3},
+    "G7": {"expected": 5.75, "tolerance": 0.3},
+    "G8": {"expected": 0.825, "tolerance": 0.3,
+           "mistake_note": "Recency Score floors at 0 — with 28 days since contact (10-28 = -18), the score is 0, "
+                            "not a negative number. A negative recency score would incorrectly drag an already-cold "
+                            "lead's total even lower than it should go."},
+    "G9": {"expected": 6.975, "tolerance": 0.3},
+    "G10": {"expected": 1.55, "tolerance": 0.3},
+    "G11": {"expected": 9.4, "tolerance": 0.3},
+    "G12": {"expected": 1.1875, "tolerance": 0.3},
+    "G13": {"expected": 3.0625, "tolerance": 0.3},
+    "G14": {"expected": 7.525, "tolerance": 0.3},
+    "G15": {"expected": 4.05, "tolerance": 0.3},
+    "G16": {"expected": 0.615, "tolerance": 0.3},
+    "G17": {"expected": 7.95, "tolerance": 0.3},
+}}
+
+# ── Task 6 mock data: "Pipeline Analysis" ─────────────────────────────────
+# 14 deals (rows 2-15). Weighted Value (col F) = Deal Value * WinProb/100.
+# Arithmetic per row:
+#   Bansal Furniture World: 50000*0.10=5000        (Prospecting, open)
+#   Rathi Wholesale Foods:  250000*0.25=62500       (Qualified, open)
+#   Grover Wholesale Traders: 220000*0.80=176000    (Negotiation, open)
+#   Priya Boutique Chain:   180000*0.60=108000      (Proposal Sent, open)
+#   Metro Hardware Solutions: 110000*0.40=44000     (Demo Scheduled, open)
+#   Kapoor Furnishings:     160000*0.60=96000        (Proposal Sent, open)
+#   Om Sai Distributors:    95000*0.25=23750         (Qualified, open)
+#   Nagpal Supermart:       130000*0.80=104000        (Negotiation, open)
+#   Verma Electronics:      60000*0.10=6000           (Prospecting, open)
+#   City Book Depot:        20000*0.00=0              (Closed Lost, EXCLUDED)
+#   Anand Stationery Mart:  25000*1.00=25000           (Closed Won, EXCLUDED)
+#   Sethi General Store:    15000*0.10=1500            (Prospecting, open)
+#   Deshmukh Auto Parts:    40000*0.40=16000            (Demo Scheduled, open)
+#   Fresh Mart Groceries:   18000*0.25=4500             (Qualified, open)
+# Open deals = all except City Book Depot & Anand Stationery Mart (12 deals).
+# Total Open Pipeline Value = sum of Deal Value over the 12 open rows:
+#   50000+250000+220000+180000+110000+160000+95000+130000+60000+15000+40000+18000
+#   = 1,328,000
+# Total Weighted Pipeline Value = sum of Weighted Value over the same 12 rows:
+#   5000+62500+176000+108000+44000+96000+23750+104000+6000+1500+16000+4500
+#   = 647,250
+# Average Days in Stage (open only) = (5+12+18+9+25+40+6+4+20+3+8+15)/12
+#   = 165/12 = 13.75
+# Stage conversion rates from last-quarter funnel counts:
+#   Prospecting(50) -> Qualified(32):        32/50*100  = 64.0%
+#   Qualified(32) -> Demo Scheduled(20):     20/32*100  = 62.5%
+#   Demo Scheduled(20) -> Proposal Sent(12): 12/20*100  = 60.0%
+#   Proposal Sent(12) -> Negotiation(8):     8/12*100   = 66.666...%
+#   Negotiation(8) -> Closed Won(5):         5/8*100    = 62.5%
+
+_T6_DEALS = [
+    ("Bansal Furniture World", "Prospecting", 50000, 5, 10),
+    ("Rathi Wholesale Foods", "Qualified", 250000, 12, 25),
+    ("Grover Wholesale Traders", "Negotiation", 220000, 18, 80),
+    ("Priya Boutique Chain", "Proposal Sent", 180000, 9, 60),
+    ("Metro Hardware Solutions", "Demo Scheduled", 110000, 25, 40),
+    ("Kapoor Furnishings", "Proposal Sent", 160000, 40, 60),
+    ("Om Sai Distributors", "Qualified", 95000, 6, 25),
+    ("Nagpal Supermart", "Negotiation", 130000, 4, 80),
+    ("Verma Electronics", "Prospecting", 60000, 20, 10),
+    ("City Book Depot", "Closed Lost", 20000, 0, 0),
+    ("Anand Stationery Mart", "Closed Won", 25000, 0, 100),
+    ("Sethi General Store", "Prospecting", 15000, 3, 10),
+    ("Deshmukh Auto Parts", "Demo Scheduled", 40000, 8, 40),
+    ("Fresh Mart Groceries", "Qualified", 18000, 15, 25),
+]
+
+_T6_PREFILLED = {
+    "A1": "Deal / Company", "B1": "Stage", "C1": "Deal Value (₹)", "D1": "Days in Current Stage",
+    "E1": "Win Probability % (stage standard)", "F1": "Weighted Value (Deal Value x Win Probability%)",
+}
+_T6_LOCKED = ["A1", "B1", "C1", "D1", "E1", "F1"]
+for _i, (_name, _stage, _val, _days, _prob) in enumerate(_T6_DEALS):
+    _r = _i + 2
+    _T6_PREFILLED[f"A{_r}"] = _name
+    _T6_PREFILLED[f"B{_r}"] = _stage
+    _T6_PREFILLED[f"C{_r}"] = _val
+    _T6_PREFILLED[f"D{_r}"] = _days
+    _T6_PREFILLED[f"E{_r}"] = _prob
+    _T6_LOCKED += [f"A{_r}", f"B{_r}", f"C{_r}", f"D{_r}", f"E{_r}"]
+
+_T6_PREFILLED.update({
+    "A17": "PIPELINE SUMMARY (Open Deals Only)",
+    "A18": "Total Open Pipeline Value (₹) - excludes Closed Won/Lost",
+    "A19": "Total Weighted Pipeline Value (₹) - excludes Closed Won/Lost",
+    "A20": "Average Days in Stage (Open Deals Only)",
+    "A22": "LAST QUARTER FUNNEL COUNTS (deals that reached each stage)",
+    "A23": "Prospecting (entered)", "B23": 50,
+    "A24": "Qualified", "B24": 32,
+    "A25": "Demo Scheduled", "B25": 20,
+    "A26": "Proposal Sent", "B26": 12,
+    "A27": "Negotiation", "B27": 8,
+    "A28": "Closed Won", "B28": 5,
+    "A30": "STAGE CONVERSION RATES (%)",
+    "A31": "Prospecting -> Qualified", "A32": "Qualified -> Demo Scheduled",
+    "A33": "Demo Scheduled -> Proposal Sent", "A34": "Proposal Sent -> Negotiation",
+    "A35": "Negotiation -> Closed Won",
+})
+_T6_LOCKED += ["A17", "A18", "A19", "A20", "A22", "A23", "B23", "A24", "B24", "A25", "B25",
+               "A26", "B26", "A27", "B27", "A28", "B28", "A30", "A31", "A32", "A33", "A34", "A35"]
+
+_SALES_TASK6_TEMPLATE = {
+    "rows": 35, "cols": 6,
+    "headers": ["Deal / Company", "Stage", "Deal Value (₹)", "Days in Current Stage",
+                "Win Probability % (stage standard)", "Weighted Value (Deal Value x Win Probability%)"],
+    "prefilled": _T6_PREFILLED, "locked_cells": _T6_LOCKED,
+}
+_SALES_TASK6_ANSWER_KEY = {"cells": {
+    "F2": {"expected": 5000, "tolerance": 50}, "F3": {"expected": 62500, "tolerance": 100},
+    "F4": {"expected": 176000, "tolerance": 200}, "F5": {"expected": 108000, "tolerance": 100},
+    "F6": {"expected": 44000, "tolerance": 100}, "F7": {"expected": 96000, "tolerance": 100},
+    "F8": {"expected": 23750, "tolerance": 50}, "F9": {"expected": 104000, "tolerance": 100},
+    "F10": {"expected": 6000, "tolerance": 50}, "F11": {"expected": 0, "tolerance": 1},
+    "F12": {"expected": 25000, "tolerance": 50}, "F13": {"expected": 1500, "tolerance": 20},
+    "F14": {"expected": 16000, "tolerance": 50}, "F15": {"expected": 4500, "tolerance": 50},
+    "B18": {"expected": 1328000, "tolerance": 500,
+            "mistake_note": "A common mistake is including Closed Won / Closed Lost deal values in the open "
+                             "pipeline total — those deals are already decided, so counting them inflates (or "
+                             "confuses) what's actually still 'in flight'."},
+    "B19": {"expected": 647250, "tolerance": 500},
+    "B20": {"expected": 13.75, "tolerance": 0.5,
+            "mistake_note": "Average Days in Stage should also exclude the two closed deals (their 0-day values "
+                             "would otherwise drag the average down and hide real stalling)."},
+    "B31": {"expected": 64.0, "tolerance": 1}, "B32": {"expected": 62.5, "tolerance": 1},
+    "B33": {"expected": 60.0, "tolerance": 1},
+    "B34": {"expected": 66.67, "tolerance": 1,
+            "mistake_note": "8/12*100 = 66.67%, not 67% flat or 66% flat — small rounding slips here are normal, "
+                             "but the raw ratio (count reaching next stage / count reaching current stage) is what "
+                             "actually matters, not memorizing a rounded figure."},
+    "B35": {"expected": 62.5, "tolerance": 1},
+}}
+
+
+SALES_TASKS = [
+
+    # ═══════════════════════ PHASE 1 — guided (Day 1-30) ═══════════════════
+    {
+        "track": "sales", "title": "Add Leads to CRM", "phase": 1, "is_blindfold": False,
+        "difficulty": "easy", "points_value": 70, "deliverable_type": "text", "requires_geotag": False,
+        "estimated_duration": "1.5-2 hours",
+        "brief": (
+            "You're a Business Development Executive at Solstice CRM (a company that sells cloud inventory + "
+            "billing software to small and mid-size retail/wholesale businesses). Last week your team had a "
+            "booth at the 'Bengaluru Retail Tech Meet 2026' trade show, and a few inbound calls came in the same "
+            "week. Here are the raw lead notes exactly as they were scribbled down or typed in a hurry — nobody "
+            "has cleaned these up yet:\n\n"
+            "1. \"Ramesh Kumar - Kumar Hardware Store (Pune) - owner - 98765-43210 - picked up a brochure, said "
+            "'maybe next year, not urgent right now' - booth visitor\"\n"
+            "2. \"inbound call, didn't catch full number (9876...call back needed) - Priya S. - Priya Boutique "
+            "Chain, 3 stores - VERY keen, wants a demo ASAP - said a friend Meera from Meera Textiles referred her\"\n"
+            "3. \"Grover Wholesale Traders - Ajay Grover, Ops Manager - card scanned at booth - no other notes\"\n"
+            "4. \"walk-in - didn't give company name - said 'just browsing, comparing options' - no phone given\"\n"
+            "5. \"Verma Electronics - Sanjay Verma - 9988776655 - asked detailed pricing questions, says budget "
+            "approved for this quarter - booth\"\n"
+            "6. \"LinkedIn msg - Bright Kids Toys - Neha (didn't get last name) - interested in demo, mentioned "
+            "expanding to 2 more stores soon - no phone yet, only LinkedIn profile\"\n"
+            "7. \"Sethi General Store - phone - 91234 56789 - guy said not interested, just wanted the free pen "
+            "- booth\"\n"
+            "8. \"inbound call - Om Sai Distributors - Rakesh - asked if we do inventory + billing both, seemed "
+            "unsure if he's the decision maker, wants to 'check with partner'\"\n"
+            "9. \"card: Nagpal Supermart, Anita Nagpal, 9871122334 - said current system 'is fine for now' but "
+            "open to hearing more in 2-3 months - booth\"\n"
+            "10. \"Metro Hardware Solutions - Vikram - no card, wrote number on napkin - 90909 80808 - very "
+            "interested, said their Excel sheet caused a stock mismatch last month that cost them money\"\n"
+            "11. \"duplicate? - Ramesh Kumar again, second booth visit same day, same store - re-asked same "
+            "brochure question\"\n\n"
+            "None of this is structured yet. Your job is to describe how you'd turn this mess into a clean, "
+            "usable CRM lead list."
+        ),
+        "why_it_matters": "Every sales team runs on the quality of its CRM data — structuring messy raw notes into consistent, complete lead records is a foundational skill for any sales, ops, or customer-facing role at any company.",
+        "instructions": (
+            "Step 1: Read all 11 raw lead notes carefully.\n"
+            "Step 2: In your written answer, define a fixed set of fields every lead record should capture (for "
+            "example: Full Name, Company, Phone, Source, Interest Level, Notes/Follow-up date) and apply that "
+            "SAME structure to describe all 11 entries — don't invent a different field set per entry.\n"
+            "Step 3: Decide on a standardized Interest Level scale (e.g. Hot/Warm/Cold, or 1-5) and map each of "
+            "the 11 raw notes onto it, explaining your reasoning for each one in a short line.\n"
+            "Step 4: Call out every entry with missing or incomplete data (no phone, no company name, etc.) and "
+            "state exactly what you'd do about each gap — never invent a value that wasn't given.\n"
+            "Step 5: Identify the duplicate entry (or entries) and explain how you'd handle it so the same lead "
+            "doesn't end up as two separate CRM records.\n"
+            "Step 6: Write 150+ words explaining your overall data-hygiene approach — why standardizing fields "
+            "and flagging incomplete/duplicate data before it enters a shared CRM matters for an entire sales team, "
+            "not just for you."
+        ),
+        "mistake_explanation": (
+            "Messy, duplicated, or inconsistently-labeled CRM entries cause real damage: two reps end up calling "
+            "the same lead separately (which looks unprofessional to the prospect), a genuinely hot lead gets "
+            "buried under noisy low-quality entries and goes cold before anyone follows up, and pipeline reports "
+            "become inaccurate because duplicate records inflate the lead count. Clean data entry isn't busywork "
+            "— it's what the entire sales team's forecasting and follow-up depends on."
+        ),
+        "hints": [
+            "Hint 1: Start by deciding a fixed set of fields every lead record needs (Name, Company, Phone, "
+            "Source, Interest Level, Notes) and apply the SAME fields to every entry, even when a raw note is "
+            "missing some of them.",
+            "Hint 2: Don't guess or fill in missing data (e.g. don't invent a phone number) — flag it clearly "
+            "instead (\"Phone: not captured - follow up required\") so nobody downstream mistakes a guess for a "
+            "verified fact.",
+            "Hint 3: Look closely for note pairs that might describe the same person or company under slightly "
+            "different wording — catching and merging a duplicate before it's saved is far cheaper than cleaning "
+            "it up after multiple reps have already called the same lead separately.",
+        ],
+        "sample_solution": (
+            "Worked example using different raw notes than the task above. Raw note: \"card - Singh Auto Parts, "
+            "Deepak Singh, 99001-22334, said current vendor contract ends in 2 months, seemed like the "
+            "decision-maker, booth.\" Structured: Name: Deepak Singh | Company: Singh Auto Parts | Phone: "
+            "99001-22334 | Source: Trade Show Booth | Authority: Likely decision-maker (self-described) | "
+            "Interest Level: Warm (has a clear budget trigger — contract ending — but not urgent yet) | Notes: "
+            "Contract renewal in ~2 months, follow up in 4-5 weeks rather than immediately.\n\n"
+            "Raw note (missing-data example): \"inbound call, no company given, asked general questions, hung up "
+            "before leaving a number.\" Structured: Name: Unknown | Company: Unknown | Phone: Not captured | "
+            "Source: Inbound Call | Interest Level: Cold/Unqualified — insufficient information to qualify | "
+            "Notes: Flag as 'incomplete lead — do not count toward pipeline until contact info obtained'; do not "
+            "fabricate any field.\n\n"
+            "Overall reasoning to demonstrate: every entry gets the same field template regardless of how messy "
+            "the source note was, ambiguous or missing fields are explicitly flagged rather than guessed, and "
+            "anything that resembles an existing lead is checked against the list before being saved as a new "
+            "record."
+        ),
+    },
+
+    {
+        "track": "sales", "title": "Lead Qualification", "phase": 1, "is_blindfold": False,
+        "difficulty": "medium", "points_value": 80, "deliverable_type": "text", "requires_geotag": False,
+        "estimated_duration": "2-2.5 hours",
+        "brief": (
+            "7 lead profiles from Solstice CRM's pipeline are below, each with different levels of clarity on "
+            "Budget, Authority, Need, and Timeline (BANT). Qualify each one as Hot, Warm, or Cold.\n\n"
+            "Lead 1: Meera Agarwal, Operations Head at Grover Wholesale Traders (~40 employees, multi-location "
+            "wholesale distributor). Inbound inquiry after seeing a LinkedIn ad. On the discovery call she said: "
+            "'We've set aside about ₹2.2 lakh in this quarter's budget specifically for a software upgrade.' "
+            "She's leading the evaluation but will get final sign-off from the Managing Director, who has already "
+            "asked her to move fast. Their current process is entirely Excel-based, and last month a stock "
+            "mismatch across two warehouses caused them to oversell to a large customer, damaging that "
+            "relationship. She wants to be live before their festive season order rush, which starts in about "
+            "5 weeks.\n\n"
+            "Lead 2: Ajay Mehta, filled a 'download our brochure' form on the website 6 months ago, has not "
+            "responded to 3 follow-up emails since. When a rep finally reached him by phone he said, 'Oh yeah, I "
+            "remember downloading that, I think — not really looking into anything right now, we're happy with "
+            "what we have.' No budget mentioned, no clear role given (just 'I work there'), no timeline.\n\n"
+            "Lead 3: Sanjay Verma, 'Senior Manager' at Verma Electronics (single showroom + warehouse). Says he's "
+            "'pushing hard' for new inventory software because they lose track of stock every festive season, "
+            "and thinks he can get approval for around ₹80,000, but admits 'the final call is really my father's "
+            "— he owns the business and doesn't love new expenses.' No fixed timeline, just 'sometime this year "
+            "hopefully.'\n\n"
+            "Lead 4: Anita Nagpal, owner of Nagpal Supermart (2 stores). She's clearly the decision maker and "
+            "openly complains that her current billing software doesn't talk to her inventory at all, causing "
+            "daily reconciliation headaches. When asked about budget she said, 'I don't really have a number yet, "
+            "need to see what it costs first.' Timeline: 'no rush, just tired of the manual work.'\n\n"
+            "Lead 5: Vikram Rathi, IT Coordinator at Rathi Wholesale Foods (large distributor, ~120 employees). "
+            "Very responsive, attended a demo, and says leadership has approved a ₹2.5 lakh budget for 'a systems "
+            "upgrade' this quarter — but when asked specifically what problem they're trying to solve, he was "
+            "vague: 'management just said we need to modernize.' He confirmed he's not the final approver — "
+            "that's the CFO, who wasn't on the call.\n\n"
+            "Lead 6: Om Sai Distributors, spoke with Rakesh (title unclear). On a discovery call he said the "
+            "business is 'doing fine with pen-and-paper for now' and that any software spend 'isn't something "
+            "we're considering this year at all' — he was only on the call because a colleague asked him to take "
+            "it out of courtesy.\n\n"
+            "Lead 7: Neha Kapoor, store manager at Bright Kids Toys, currently 1 store expanding to 3 within the "
+            "next 2 months per an already-signed lease. She's clearly worried about managing inventory across 3 "
+            "locations manually and wants something in place before the second store opens. She's not sure of "
+            "the exact budget her owner has approved, and she'll need her owner's final sign-off, but she has "
+            "been proactively chasing the sales rep for updates twice a week."
+        ),
+        "why_it_matters": "Accurately separating real buyers from tire-kickers is what determines whether a sales team spends its limited time on deals it can actually win — this judgment call is central to any quota-carrying sales role.",
+        "instructions": (
+            "Step 1: For each of the 7 leads, note what you can tell about Budget, Authority, Need, and Timeline "
+            "— some will be clear, some will be missing or ambiguous, and that's intentional.\n"
+            "Step 2: Assign each lead a Hot, Warm, or Cold qualification.\n"
+            "Step 3: For each lead, write 2-4 sentences of reasoning explaining WHICH BANT signals drove your "
+            "call — don't just state the label.\n"
+            "Step 4: Finish with a short overall summary (200+ words total across all 7) reflecting on which "
+            "signal (Budget, Authority, Need, or Timeline) was hardest to judge across this set of leads, and why."
+        ),
+        "mistake_explanation": (
+            "Mis-qualifying a lead in either direction wastes real time and money: marking a Cold lead as Hot "
+            "means a rep spends hours chasing someone who was never going to buy, while marking a genuinely Hot "
+            "lead as Cold or Warm means it sits at the bottom of the call list and a competitor closes it first. "
+            "In a real sales team, qualification accuracy directly affects whether the team hits its revenue target."
+        ),
+        "hints": [
+            "Hint 1: BANT stands for Budget, Authority, Need, Timeline — check all four for each lead "
+            "individually; a lead can have a huge budget but no real need, or a real need but zero timeline, and "
+            "either one changes the qualification.",
+            "Hint 2: Don't just average the four signals in your head — a single clearly negative signal (e.g. "
+            "'not considering this year at all') can be disqualifying even if the other three look fine, and a "
+            "single ambiguous signal (e.g. 'not sure of the budget yet') doesn't automatically make a lead Cold "
+            "if the other three are strong.",
+            "Hint 3: Authority is often the trickiest signal — someone can be genuinely enthusiastic and still "
+            "not be the person who signs off; note who actually has to say yes, and treat that as a real (but not "
+            "always disqualifying) risk factor rather than ignoring it.",
+        ],
+        "sample_solution": (
+            "Worked example using different leads than the task above. Lead: 'Rohit Malhotra, owner of Malhotra "
+            "Fashion Store (1 store). Says he's been manually tracking stock for 8 years, is tired of it, has "
+            "₹40,000 set aside already, and wants to start within 2 weeks before an upcoming sale event.' — "
+            "Budget: confirmed and specific. Authority: he's the owner, no one else to check with. Need: "
+            "explicitly stated, long-standing pain. Timeline: hard deadline (2 weeks). All four signals strong "
+            "and specific → Hot.\n\n"
+            "Lead: 'Sunita Rao, marketing intern at Rao Traders, filled out a contact form out of curiosity while "
+            "researching for a college project, admits she has no purchasing authority and the business isn't "
+            "currently looking to buy anything.' — Budget: none. Authority: explicitly none. Need: none stated. "
+            "Timeline: none. All four signals absent or explicitly negative → Cold.\n\n"
+            "The written answer for each lead should name which of the 4 BANT signals were strong, weak, or "
+            "missing, and explain how that specific combination — not a gut feeling — led to the Hot/Warm/Cold call."
+        ),
+    },
+
+    {
+        "track": "sales", "title": "Cold-Call Script Writing", "phase": 1, "is_blindfold": False,
+        "difficulty": "medium", "points_value": 85, "deliverable_type": "text", "requires_geotag": False,
+        "estimated_duration": "2-3 hours",
+        "brief": (
+            "Product: Solstice CRM's core offering — affordable cloud inventory + billing management software "
+            "built for small-to-mid retail and wholesale businesses (1-10 locations), priced per location, no "
+            "long-term contract required.\n\n"
+            "Target persona for this cold call: the owner-operator of a 2-3 location retail or wholesale "
+            "business. They currently track inventory in Excel or a paper register, have never used sales "
+            "software before, and are busy and impatient on unsolicited calls (realistically, you have under 15 "
+            "seconds to earn their attention before they hang up). They're price-sensitive, have been burned "
+            "before by an overpriced software subscription they barely used, and are mildly skeptical of "
+            "salespeople in general.\n\n"
+            "Write a complete cold-call script for a rep calling this exact persona."
+        ),
+        "why_it_matters": "Structuring a cold call around a specific customer's real objections and attention span — rather than reciting a generic pitch — is the core skill behind every successful outbound sales motion, in any industry.",
+        "instructions": (
+            "Step 1: Write the Opener (first 10-15 seconds) — its only job is to earn the next 30 seconds, not "
+            "to explain the product yet.\n"
+            "Step 2: Write a one-sentence Value Proposition, phrased as an outcome for THIS persona, not a list "
+            "of features.\n"
+            "Step 3: Write one Qualifying Question that helps the rep understand this prospect's current setup.\n"
+            "Step 4: Write at least 2 Objection-Handling lines for objections this specific persona would "
+            "realistically raise (e.g. 'I don't have time for this' / 'we already manage fine on Excel' / 'we "
+            "tried software like this before and it was a waste of money').\n"
+            "Step 5: Write a Close that asks for one specific, low-commitment next step (e.g. booking a 15-minute "
+            "demo), not a vague 'let me know if you're interested.'\n"
+            "Step 6: Write 150+ words explaining WHY you structured the script this way for this specific "
+            "persona — reference their attention span, price sensitivity, and past bad experience explicitly."
+        ),
+        "mistake_explanation": (
+            "A generic, one-size-fits-all cold-call script that ignores who's actually on the other end of the "
+            "phone gets hung up on in the opening line — most cold-call attempts fail in the first 10-15 seconds "
+            "alone. A script that doesn't address this persona's real objections (price sensitivity, a past bad "
+            "experience, limited time) wastes every single dial the sales team makes that day, and can even "
+            "damage the company's reputation with prospects who feel talked at rather than listened to."
+        ),
+        "hints": [
+            "Hint 1: The opener has exactly one job — earn the next 20-30 seconds. It should name a specific, "
+            "relevant problem this persona likely has and ask permission to continue, not launch into the pitch.",
+            "Hint 2: Your value proposition should be one sentence, in the customer's own language, describing "
+            "the OUTCOME (e.g. 'never oversell stock you don't actually have') rather than the mechanism (e.g. "
+            "'real-time inventory sync API').",
+            "Hint 3: For objection-handling lines, follow this pattern: acknowledge the objection genuinely "
+            "(don't argue with it), reframe it, then ask a question that moves the conversation forward — never "
+            "just push past what they said.",
+        ],
+        "sample_solution": (
+            "Worked example for a DIFFERENT product and persona — a payroll software company cold-calling small "
+            "manufacturing unit owners who currently run payroll by hand.\n"
+            "Opener: 'Hi, this is Arjun calling from Clearline Payroll — I know this is out of the blue, do you "
+            "have 20 seconds before I explain why I'm calling?'\n"
+            "Value prop: 'We help small manufacturing units like yours cut payroll processing from a full day "
+            "down to about 20 minutes, and avoid the compliance mistakes that come with doing it by hand.'\n"
+            "Qualifying question: 'Out of curiosity, how are you currently handling payroll for your team right "
+            "now?'\n"
+            "Objection ('too expensive'): 'Totally fair to ask about cost — most owners tell me that too, until "
+            "they count the hours they're personally spending on it each month. Can I show you the actual math "
+            "on a 10-minute call?'\n"
+            "Objection ('no time right now'): 'I hear that a lot, which is exactly why I'm not asking for an "
+            "hour — just 10 minutes, and if it's not useful you'll know within the first 2.'\n"
+            "Close: 'Would Tuesday 11am or Wednesday 3pm work better for that 10-minute call?'\n"
+            "The write-up should explain that every line is built around THIS persona's specific pain (manual, "
+            "time-consuming, compliance-risk) rather than a generic pitch that could apply to any customer."
+        ),
+    },
+
+    # ═══════════════════════ PHASE 2 — independent (Day 31-60) ═════════════
+    {
+        "track": "sales", "title": "Objection Handling", "phase": 2, "is_blindfold": False,
+        "difficulty": "medium", "points_value": 90, "deliverable_type": "text", "requires_geotag": False,
+        "estimated_duration": "2-2.5 hours",
+        "brief": (
+            "6 realistic objections a Solstice CRM rep has heard on recent sales calls are listed below. Write a "
+            "response to each one.\n\n"
+            "1. \"Your pricing is too high compared to what we're paying now.\"\n"
+            "2. \"This isn't a good time for us, maybe check back next quarter.\"\n"
+            "3. \"I like it, but I'll need to run this by my partner before deciding anything.\"\n"
+            "4. \"We looked at a competitor too and they're cheaper for basically the same thing.\"\n"
+            "5. \"We tried a software like this two years ago and it was a mess — nobody on our team actually "
+            "used it.\"\n"
+            "6. \"Can you just send me the pricing over email? I'll get back to you.\""
+        ),
+        "why_it_matters": "Handling objections well — rather than either caving or arguing — is often the exact moment a deal is won or lost, and it's a skill that transfers directly to any sales, negotiation, or client-facing role.",
+        "instructions": (
+            "Step 1: For each of the 6 objections, write a response the rep could actually say out loud on a "
+            "call.\n"
+            "Step 2: For each response, name the technique you used (for example: reframing, social proof, "
+            "isolating the objection, trial close, offering a low-commitment next step) — pick a deliberate "
+            "technique for each, don't reuse the exact same one for all 6.\n"
+            "Step 3: For each objection, write 1-2 sentences explaining WHY that technique fits that specific "
+            "objection (200+ words total across all 6).\n"
+            "Step 4: In your response to objection 6 specifically, think carefully about what the prospect is "
+            "actually communicating by asking for a pricing email instead of continuing the call."
+        ),
+        "mistake_explanation": (
+            "A weak or defensive response to a common objection is often the exact moment a winnable deal is "
+            "lost — most objections are not a hard 'no,' they're a request for reassurance, and a rep who "
+            "responds with a mismatched approach (e.g. arguing on price when the real issue was trust) pushes "
+            "the prospect toward a competitor or toward doing nothing at all."
+        ),
+        "hints": [
+            "Hint 1: Most sales objections aren't really about what they sound like on the surface — 'send me "
+            "the pricing over email' is very often a polite way of ending the call, not a genuine request; your "
+            "response should try to keep the conversation live, not just comply.",
+            "Hint 2: Naming the technique you're using isn't just decoration — it forces you to pick a "
+            "deliberate approach instead of writing a generic reassurance that could apply to any objection.",
+            "Hint 3: Never argue directly against an objection ('no, we're actually not more expensive') — "
+            "acknowledge it first, then reframe with a fact, story, or question; direct disagreement makes a "
+            "prospect defensive.",
+        ],
+        "sample_solution": (
+            "Worked example for 2 different objections than the task above.\n"
+            "Objection: 'Your onboarding takes too long, we need this running in a week.' Response: 'That's a "
+            "completely fair concern — most of our customers say the same thing going in. What we've found is "
+            "that a rushed 1-week setup usually causes more problems later than a proper 2-week one does — can I "
+            "walk you through exactly what happens in each of those two weeks so you can judge for yourself if "
+            "it's justified?' Technique: reframing + inviting scrutiny, rather than just promising faster service.\n\n"
+            "Objection: 'I've heard mixed reviews about companies like yours online.' Response: 'That's worth "
+            "taking seriously, and I'd rather you hear it from me directly than wonder about it — can I share two "
+            "references, similar-sized businesses to yours, who you can call directly and ask whatever you "
+            "want?' Technique: social proof + transparency, not defensiveness.\n\n"
+            "Each written response should name the technique and explain, in a sentence, why that technique "
+            "specifically fits that objection rather than reusing a generic reassurance."
+        ),
+    },
+
+    {
+        "track": "sales", "title": "Prioritize Lead List", "phase": 2, "is_blindfold": False,
+        "difficulty": "hard", "points_value": 100, "deliverable_type": "text_and_spreadsheet", "requires_geotag": False,
+        "estimated_duration": "2.5-3.5 hours",
+        "brief": (
+            "16 leads currently sitting in Solstice CRM's pipeline are listed in the spreadsheet below, with 5 "
+            "raw signals for each: Deal Size, Email Opens (out of the last 5 emails sent), Meeting Attended "
+            "(1=Yes, 0=No), a Responsiveness Rating (0-10, based on how quickly and consistently the lead "
+            "replies), and Days Since Last Contact. You need to score and rank all 16 using a weighted scoring "
+            "model, then decide which 5 to call first."
+        ),
+        "why_it_matters": "Sales reps never have time to call every lead with equal urgency — building a repeatable, defensible scoring model to decide who gets called first (instead of just going by gut feeling) is exactly what separates a systematic sales process from a chaotic one.",
+        "instructions": (
+            "Step 1: In column G, calculate each lead's Priority Score (0-10 scale) using this exact weighted "
+            "formula: G = 0.35*MIN(10, DealSize/20000) + 0.15*(EmailOpens*2) + 0.20*(MeetingAttended*10) + "
+            "0.15*Responsiveness + 0.15*MAX(0, 10-DaysSinceLastContact). For example, G2 = "
+            "0.35*MIN(10,B2/20000) + 0.15*(C2*2) + 0.20*(D2*10) + 0.15*E2 + 0.15*MAX(0,10-F2).\n"
+            "Step 2: Apply the same formula to all 16 rows.\n"
+            "Step 3: Sort/identify the 5 leads with the highest Priority Score.\n"
+            "Step 4: In the text box, name your top 5 leads in order and write 150+ words explaining why this "
+            "scoring model prioritizes them the way it does — call out at least one lead whose score surprised "
+            "you (e.g. a large deal that scored lower than expected because of weak engagement, or a small deal "
+            "that scored high because it's fast-moving) and explain why."
+        ),
+        "mistake_explanation": (
+            "Prioritizing leads purely by deal size (ignoring engagement and recency) means reps waste time "
+            "chasing large deals that have gone cold, while a smaller but highly-engaged, ready-to-close lead "
+            "sits ignored and eventually goes to a competitor who called first. A scoring model that gets the "
+            "weighting wrong doesn't just produce a slightly different order — it can mean the sales team misses "
+            "its easiest wins of the month."
+        ),
+        "hints": [
+            "Hint 1: Deal Size Score caps at 10 — a ₹250,000 deal (250000/20000 = 12.5) does not score higher "
+            "than a ₹200,000 deal (200000/20000 = 10); both cap at 10. Forgetting the cap over-rewards very large "
+            "deals.",
+            "Hint 2: Recency Score cannot go negative — MAX(0, 10-Days) means any lead untouched for 10+ days "
+            "scores exactly 0 on that component, not a negative number that would drag the total below what a "
+            "lead with zero engagement elsewhere would score.",
+            "Hint 3: Once you have all 16 scores, don't just eyeball the top 5 — actually sort or compare them "
+            "carefully, since a couple of scores in this dataset are close enough that a careless read could "
+            "swap the ranking.",
+        ],
+        "sample_solution": (
+            "Worked example using 3 different leads than the task above, same formula. Lead X: Deal Size "
+            "₹100,000, Email Opens 5/5, Meeting Attended 1, Responsiveness 9, Days Since Contact 1. Deal Score = "
+            "MIN(10,100000/20000)=5, so 0.35*5=1.75. Email: 0.15*(5*2)=1.5. Meeting: 0.20*(1*10)=2.0. "
+            "Responsiveness: 0.15*9=1.35. Recency: 0.15*MAX(0,10-1)=0.15*9=1.35. Total = "
+            "1.75+1.5+2.0+1.35+1.35 = 8.0 (very high — strong across every signal).\n"
+            "Lead Y: Deal Size ₹300,000 (huge), but Email Opens 0, Meeting 0, Responsiveness 1, Days Since "
+            "Contact 45. Deal Score = MIN(10,300000/20000)=MIN(10,15)=10, so 0.35*10=3.5. Email: 0.15*0=0. "
+            "Meeting: 0.20*0=0. Responsiveness: 0.15*1=0.15. Recency: 0.15*MAX(0,10-45)=0.15*0=0. Total = "
+            "3.5+0+0+0.15+0 = 3.65 (surprisingly low, despite the huge deal size, because every engagement "
+            "signal is dead).\n"
+            "The written explanation should make exactly this kind of point: a big deal with no real engagement "
+            "can score below a modest deal that's actively moving, and that's the model working correctly, not a "
+            "flaw in it."
+        ),
+        "spreadsheet_template": _SALES_TASK5_TEMPLATE, "spreadsheet_answer_key": _SALES_TASK5_ANSWER_KEY,
+    },
+
+    {
+        "track": "sales", "title": "Pipeline Analysis", "phase": 2, "is_blindfold": False,
+        "difficulty": "hard", "points_value": 100, "deliverable_type": "text_and_spreadsheet", "requires_geotag": False,
+        "estimated_duration": "2.5-3.5 hours",
+        "brief": (
+            "Solstice CRM's current sales pipeline snapshot (14 deals) is in the spreadsheet below, along with "
+            "last quarter's stage-by-stage funnel counts (how many deals reached each stage). Each pipeline "
+            "stage has a standard win probability used company-wide: Prospecting 10%, Qualified 25%, Demo "
+            "Scheduled 40%, Proposal Sent 60%, Negotiation 80%, Closed Won 100%, Closed Lost 0%. Calculate the "
+            "pipeline's health metrics and identify where deals are getting stuck."
+        ),
+        "why_it_matters": "Reading a raw pipeline snapshot and turning it into conversion rates, weighted forecasts, and bottleneck flags is exactly what sales managers and RevOps analysts do every week to know whether a team will hit its number.",
+        "instructions": (
+            "Step 1: In column F, calculate each deal's Weighted Value = Deal Value x (Win Probability % / 100). "
+            "For example, F2 = C2*E2/100.\n"
+            "Step 2: In B18, calculate Total Open Pipeline Value = SUM of Deal Value (column C) for every row "
+            "EXCEPT Closed Won and Closed Lost.\n"
+            "Step 3: In B19, calculate Total Weighted Pipeline Value = SUM of Weighted Value (column F) for the "
+            "same open-deal rows only.\n"
+            "Step 4: In B20, calculate Average Days in Stage = AVERAGE of Days in Current Stage (column D) for "
+            "the same open-deal rows only.\n"
+            "Step 5: In B31-B35, calculate each Stage Conversion Rate using the funnel counts given in rows "
+            "23-28: (count that reached the NEXT stage / count that reached the CURRENT stage) x 100. For "
+            "example, B31 = B24/B23*100.\n"
+            "Step 6: In the text box, write 200+ words identifying which deal(s) in the open pipeline look "
+            "stalled (unusually long Days in Current Stage for their stage) and which stage-to-stage conversion "
+            "rate is the weakest link — then recommend one concrete action for each bottleneck you flag."
+        ),
+        "mistake_explanation": (
+            "Including already-closed deals in an 'open pipeline' total, or getting a stage conversion rate "
+            "backwards, doesn't just produce a slightly-off number — it directly misleads whoever uses that "
+            "number to forecast revenue or decide where to focus coaching effort. A sales manager who trusts a "
+            "wrong pipeline number can walk into a leadership meeting promising revenue that was never really "
+            "there, or miss a stage that's quietly bleeding deals."
+        ),
+        "hints": [
+            "Hint 1: 'Open pipeline' means deals still in progress — Closed Won and Closed Lost deals are "
+            "already decided and should be excluded from every open-pipeline total (value, weighted value, and "
+            "average days in stage).",
+            "Hint 2: A stage conversion rate is always (count that reached the NEXT stage) divided by (count "
+            "that reached the CURRENT stage) — not the other way around, and not divided by the total number of "
+            "leads overall.",
+            "Hint 3: A 'stalled' deal isn't just one with a lot of days in its stage in absolute terms — compare "
+            "it to how long deals typically sit in that particular stage; a deal sitting far longer than that "
+            "stage's normal pace is the real bottleneck signal.",
+        ],
+        "sample_solution": (
+            "Worked example with 3 different deals and a different funnel than the task above. Deals: Deal A — "
+            "Qualified, ₹80,000, 6 days, 25% win probability → Weighted Value = 80000*0.25 = 20,000. Deal B — "
+            "Negotiation, ₹150,000, 3 days, 80% → Weighted Value = 150000*0.80 = 120,000. Deal C — Closed Won, "
+            "₹60,000, 0 days, 100% → excluded from open totals. Open Pipeline Value = 80,000+150,000 = 230,000. "
+            "Open Weighted Pipeline Value = 20,000+120,000 = 140,000. Average Days in Stage (open only) = "
+            "(6+3)/2 = 4.5.\n"
+            "Funnel: Qualified 40 deals entered, Negotiation only 10 reached it. Conversion Qualified → "
+            "Negotiation-adjacent stage = 10/40*100 = 25% — a weak link worth flagging, since 75% of qualified "
+            "deals never make it that far.\n"
+            "The written answer should tie a specific stalled deal (e.g. Deal A sitting in Qualified for 6 days "
+            "when most Qualified deals move in 3-4) to a specific low conversion rate, and recommend something "
+            "concrete — e.g. a scripted follow-up cadence for deals stuck in Qualified past day 5."
+        ),
+        "spreadsheet_template": _SALES_TASK6_TEMPLATE, "spreadsheet_answer_key": _SALES_TASK6_ANSWER_KEY,
+    },
+
+    # ═══════════════════════ PHASE 3 — capstone (Day 61-90) ═════════════════
+    {
+        "track": "sales", "title": "Sales Proposal Writing", "phase": 3, "is_blindfold": False,
+        "difficulty": "hard", "points_value": 115, "deliverable_type": "text", "requires_geotag": False,
+        "estimated_duration": "2.5-3 hours",
+        "brief": (
+            "Client: Kapoor Furnishings, a furniture retailer with 3 showrooms, owner Rajeev Kapoor. Stated "
+            "needs and constraints from the discovery call:\n"
+            "- Currently tracks inventory separately per showroom in Excel; stock has been oversold twice this "
+            "year because the showrooms can't see each other's numbers.\n"
+            "- Staff are not technical — whatever is proposed needs to be simple enough for showroom floor staff "
+            "to use daily, not just head office.\n"
+            "- Budget ceiling: ₹1,50,000 per year, stated firmly by Rajeev.\n"
+            "- Wants to decide within 3 weeks — a 4th showroom opens next quarter and he wants this sorted "
+            "before then.\n"
+            "- Actively comparing Solstice CRM against a cheaper competitor, 'QuickStock Basic', priced at "
+            "₹60,000/year — but QuickStock Basic only supports single-location inventory with no multi-location "
+            "sync, which does not solve Kapoor Furnishings' actual overselling problem.\n"
+            "- Solstice CRM's standard multi-location plan (3 locations) list-prices at ₹4,300/location/month, "
+            "which comes to ₹1,54,800/year — ₹4,800 OVER Rajeev's stated budget."
+        ),
+        "why_it_matters": "Turning a client's specific stated needs, budget, and objections into a proposal that directly answers each one (rather than a generic pitch deck) is what actually wins deals — and what loses them when done poorly.",
+        "instructions": (
+            "Step 1: Write a Solution Summary explaining specifically how Solstice CRM solves Kapoor Furnishings' "
+            "stated problem (multi-location stock visibility, ease of use for non-technical staff) — not a "
+            "generic feature list.\n"
+            "Step 2: Write a Pricing section. The list price (₹1,54,800/year) is above Rajeev's stated "
+            "₹1,50,000 budget — decide how you'd address that gap (for example, an annual-prepay discount, a "
+            "phased rollout that adds the 4th showroom later at a locked-in rate, or another justified approach) "
+            "and state the final number clearly.\n"
+            "Step 3: Write Terms — contract length, payment schedule, and anything relevant to reducing Rajeev's "
+            "risk of committing (e.g. no long-term lock-in).\n"
+            "Step 4: Write Next Steps — concrete, dated actions tied to his 3-week decision window and the "
+            "upcoming 4th showroom.\n"
+            "Step 5: Write 150+ words explaining how your proposal specifically addresses (a) the QuickStock "
+            "Basic price comparison, and (b) the fact that his staff are non-technical — don't just say the "
+            "proposal 'addresses these', explain exactly how."
+        ),
+        "mistake_explanation": (
+            "A proposal that ignores the client's stated budget ceiling, or fails to explain why a more "
+            "expensive option is worth it compared to a cheaper competitor, is one of the most common reasons a "
+            "winnable deal is lost — the prospect doesn't reject the product, they reject a proposal that didn't "
+            "actually engage with their real concerns. A generic proposal template sent to every client, without "
+            "addressing their specific numbers and objections by name, reads as lazy and gets ignored."
+        ),
+        "hints": [
+            "Hint 1: Don't just quote the list price and hope Rajeev accepts going over budget — actively "
+            "propose a specific way to close the ₹4,800 gap (a discount, a phased plan, etc.) so the number in "
+            "your proposal matches or beats his stated ceiling.",
+            "Hint 2: When addressing the QuickStock Basic comparison, don't just say 'we're better' — name the "
+            "specific gap (no multi-location sync) and tie it directly back to the overselling problem Rajeev "
+            "described, since that's the actual reason a cheaper single-location tool won't solve his problem.",
+            "Hint 3: For non-technical staff, be specific about what 'simple' actually means in your proposal "
+            "(e.g. training time, interface simplicity, support availability) rather than just asserting the "
+            "product is 'easy to use.'",
+        ],
+        "sample_solution": (
+            "Worked example for a different client than the task above. Client: a 2-location bakery chain, "
+            "budget ₹80,000/year, comparing against a free spreadsheet-based tracker, decision needed in 2 "
+            "weeks before a big holiday order season.\n"
+            "Solution Summary: 'Solstice CRM replaces your manual spreadsheet with automatic stock sync between "
+            "both locations, so an order at Location A instantly reflects in Location B's available stock — no "
+            "more overselling around your busiest season.'\n"
+            "Pricing: List price for 2 locations is ₹86,000/year; offering a first-year 8% early-decision "
+            "discount brings it to ₹79,120/year, under budget.\n"
+            "Terms: Month-to-month after the first year, no cancellation fee, payment can be split quarterly.\n"
+            "Next Steps: 'A 20-minute setup call this week, live in both locations within 5 business days — "
+            "comfortably before your holiday order season starts.'\n"
+            "Reasoning write-up: should explicitly connect the discount to the stated budget ceiling, and "
+            "explicitly contrast the free spreadsheet's lack of real-time sync against the client's stated "
+            "overselling risk — not just assert the paid tool is 'worth it.'"
+        ),
+    },
+
+    # Grand Finale / Blindfold — no hints, no sample solution, done fully
+    # independently. See backend/internship_routes.py's is_blindfold handling.
+    {
+        "track": "sales", "title": "Go-to-Market Strategy", "phase": 3, "is_blindfold": True,
+        "difficulty": "hard", "points_value": 130, "deliverable_type": "text", "requires_geotag": False,
+        "estimated_duration": "3-4 hours",
+        "brief": (
+            "Solstice CRM is launching a new add-on product: 'Solstice Insights' — an AI-powered demand "
+            "forecasting module that predicts how much stock a retailer should order per SKU, per location, "
+            "ahead of each season, to reduce both overstock and stockouts.\n\n"
+            "Target market context: mid-size retail chains with 10-50 stores, who currently forecast demand by "
+            "gut feel or basic spreadsheets, and who lose real money every season to either overstock "
+            "(discounted/wasted inventory) or understock (missed sales). Solstice CRM already has ~200 existing "
+            "customers, but most of them are smaller (1-9 stores) — the 10-50 store segment is mostly net-new "
+            "for the company.\n\n"
+            "Competitive landscape:\n"
+            "- ForecastIQ: enterprise-focused, ₹8,00,000+/year, complex 3-month implementation, targets large "
+            "national chains (100+ stores).\n"
+            "- SimpleStock AI: cheap (~₹50,000/year), fast to set up, but retailers who've used it report it's "
+            "frequently inaccurate and many have quietly stopped relying on it after a season or two.\n\n"
+            "Company goal: reach ₹50 lakh in first-year ARR (annual recurring revenue) from Solstice Insights.\n\n"
+            "Write a complete go-to-market strategy for this launch."
+        ),
+        "why_it_matters": "Designing a full go-to-market plan — who to target, how to position against existing alternatives, how to price, how to actually reach buyers, and how to sequence the first 90 days — is capstone-level strategic thinking that sits above individual sales skills and applies to launching any product at any company.",
+        "instructions": (
+            "Step 1: Define the target segment precisely — within '10-50 store retail chains', which specific "
+            "type of retailer should Solstice Insights go after first, and why (consider Solstice CRM's existing "
+            "customer relationships, and where the gap between ForecastIQ and SimpleStock AI actually is).\n"
+            "Step 2: Write a positioning statement — how Solstice Insights should be described relative to both "
+            "ForecastIQ (too expensive/complex) and SimpleStock AI (too inaccurate/untrusted).\n"
+            "Step 3: Propose a pricing approach (structure and rough numbers) that fits this segment and "
+            "supports the ₹50 lakh first-year ARR goal — show your reasoning on how the number of customers "
+            "needed relates to your price point.\n"
+            "Step 4: Define the primary sales channel/motion — for example, cross-selling to Solstice CRM's "
+            "existing customer base vs. new outbound prospecting vs. inbound content, and justify which should "
+            "be the PRIMARY motion for the first 90 days specifically.\n"
+            "Step 5: Write a 90-day rollout plan broken into roughly 3 phases (Day 1-30, Day 31-60, Day 61-90), "
+            "each with concrete milestones.\n"
+            "Step 6: Write a final synthesis section (300+ words) explaining how your strategy uses lead "
+            "qualification, objection handling, proposal, and pipeline-thinking skills together — this is the "
+            "capstone task of the Sales track, so your answer should show you can combine everything from "
+            "earlier in the internship, not just answer each step in isolation."
+        ),
+        "mistake_explanation": (
+            "A go-to-market strategy that picks the wrong initial segment, prices without connecting to the "
+            "revenue goal, or spreads effort evenly across every possible channel instead of committing to a "
+            "primary motion, is how real product launches quietly fail — not with an obvious catastrophe, but by "
+            "burning the first 90 days (the period when the sales team has the most focus and momentum) on the "
+            "wrong target market or a channel that never had a real chance of hitting the revenue number."
+        ),
+    },
+]
+
+
+# ════════════════════════════════════════════════════════════════════
+# HR (8) — 90-day phase-based curated pool, mirrors Finance
+# ════════════════════════════════════════════════════════════════════
+# ── Task 6 ("Attendance Analysis") spreadsheet build ──────────────────────
+# Northstar BPO Services, Customer Support department, 3 employees, 10
+# scheduled working days each (two Mon-Fri weeks in June) = 30 data rows.
+# Status is one of Present / Late / Absent (Late = clocked in after the
+# 9:45 AM grace cutoff for a 9:30 AM shift start).
+_ATT_ROWS = [
+    # Priya Nair — reliable, 1 late day, 0 absences
+    ("Priya Nair", "02-Jun", "Present", "9:28 AM", "6:32 PM"),
+    ("Priya Nair", "03-Jun", "Present", "9:31 AM", "6:30 PM"),
+    ("Priya Nair", "04-Jun", "Present", "9:25 AM", "6:35 PM"),
+    ("Priya Nair", "05-Jun", "Late", "10:05 AM", "6:30 PM"),
+    ("Priya Nair", "06-Jun", "Present", "9:30 AM", "6:30 PM"),
+    ("Priya Nair", "09-Jun", "Present", "9:29 AM", "6:31 PM"),
+    ("Priya Nair", "10-Jun", "Present", "9:33 AM", "6:30 PM"),
+    ("Priya Nair", "11-Jun", "Present", "9:27 AM", "6:33 PM"),
+    ("Priya Nair", "12-Jun", "Present", "9:30 AM", "6:30 PM"),
+    ("Priya Nair", "13-Jun", "Present", "9:31 AM", "6:29 PM"),
+    # Rohan Mehta — chronic lateness + 2 absences
+    ("Rohan Mehta", "02-Jun", "Late", "10:10 AM", "6:30 PM"),
+    ("Rohan Mehta", "03-Jun", "Late", "9:50 AM", "6:30 PM"),
+    ("Rohan Mehta", "04-Jun", "Present", "9:35 AM", "6:30 PM"),
+    ("Rohan Mehta", "05-Jun", "Absent", "-", "-"),
+    ("Rohan Mehta", "06-Jun", "Late", "10:00 AM", "6:25 PM"),
+    ("Rohan Mehta", "09-Jun", "Present", "9:40 AM", "6:30 PM"),
+    ("Rohan Mehta", "10-Jun", "Late", "9:55 AM", "6:30 PM"),
+    ("Rohan Mehta", "11-Jun", "Present", "9:32 AM", "6:30 PM"),
+    ("Rohan Mehta", "12-Jun", "Late", "10:15 AM", "6:20 PM"),
+    ("Rohan Mehta", "13-Jun", "Absent", "-", "-"),
+    # Kavita Joshi — mostly present, moderate lateness, 1 absence
+    ("Kavita Joshi", "02-Jun", "Present", "9:29 AM", "6:30 PM"),
+    ("Kavita Joshi", "03-Jun", "Present", "9:31 AM", "6:30 PM"),
+    ("Kavita Joshi", "04-Jun", "Late", "9:52 AM", "6:30 PM"),
+    ("Kavita Joshi", "05-Jun", "Present", "9:28 AM", "6:32 PM"),
+    ("Kavita Joshi", "06-Jun", "Absent", "-", "-"),
+    ("Kavita Joshi", "09-Jun", "Late", "10:02 AM", "6:30 PM"),
+    ("Kavita Joshi", "10-Jun", "Present", "9:30 AM", "6:30 PM"),
+    ("Kavita Joshi", "11-Jun", "Present", "9:33 AM", "6:29 PM"),
+    ("Kavita Joshi", "12-Jun", "Present", "9:29 AM", "6:31 PM"),
+    ("Kavita Joshi", "13-Jun", "Late", "9:47 AM", "6:30 PM"),
+]
+
+_ATT_PREFILLED = {
+    "A1": "Employee", "B1": "Date", "C1": "Status", "D1": "In-Time", "E1": "Out-Time",
+    "F1": "Late Flag (1/0)", "G1": "Worked Flag (1/0)",
+}
+_ATT_LOCKED = ["A1", "B1", "C1", "D1", "E1", "F1", "G1"]
+for _i, (_emp, _date, _status, _in, _out) in enumerate(_ATT_ROWS):
+    _r = _i + 2
+    _ATT_PREFILLED.update({f"A{_r}": _emp, f"B{_r}": _date, f"C{_r}": _status, f"D{_r}": _in, f"E{_r}": _out})
+    _ATT_LOCKED += [f"A{_r}", f"B{_r}", f"C{_r}", f"D{_r}", f"E{_r}"]
+_ATT_PREFILLED.update({
+    "A33": "SUMMARY (10 scheduled working days per employee)",
+    "A34": "Employee", "B34": "Days Present (incl. Late)", "C34": "Late Count",
+    "D34": "Attendance %", "E34": "Flag (1 if Attendance % < 85)",
+    "A35": "Priya Nair", "A36": "Rohan Mehta", "A37": "Kavita Joshi",
+    "A39": "Department Average Attendance %",
+})
+_ATT_LOCKED += ["A33", "A34", "B34", "C34", "D34", "E34", "A35", "A36", "A37", "A39"]
+_HR_TASK6_TEMPLATE = _grid(
+    39, 7,
+    ["Employee", "Date", "Status", "In-Time", "Out-Time", "Late Flag (1/0)", "Worked Flag (1/0)"],
+    _ATT_PREFILLED, _ATT_LOCKED,
+)
+
+# Arithmetic check (by hand, since this feeds real automated grading):
+#   Priya Nair  (rows 2-11):  statuses = P,P,P,Late,P,P,P,P,P,P
+#     -> Late count = 1 (row 5).  Worked (Present+Late) = 10 of 10.
+#     -> Attendance % = 10/10*100 = 100.  Flag = 0 (100 is not < 85).
+#   Rohan Mehta (rows 12-21): statuses = Late,Late,P,Absent,Late,P,Late,P,Late,Absent
+#     -> Late count = 5 (rows 12,13,16,18,20).  Present(non-late) = 3 (rows 14,17,19).
+#     -> Worked = 5+3 = 8 of 10.  Attendance % = 8/10*100 = 80.  Flag = 1 (80 < 85).
+#   Kavita Joshi (rows 22-31): statuses = P,P,Late,P,Absent,Late,P,P,P,Late
+#     -> Late count = 3 (rows 24,27,31).  Present(non-late) = 6 (rows 22,23,25,28,29,30).
+#     -> Worked = 3+6 = 9 of 10.  Attendance % = 9/10*100 = 90.  Flag = 0 (90 is not < 85).
+#   Department average attendance % = AVERAGE(100, 80, 90) = 270/3 = 90.
+_HR_TASK6_ANSWER_KEY = {
+    "cells": {
+        "B35": {"expected": 10, "tolerance": 0.5}, "C35": {"expected": 1, "tolerance": 0.5},
+        "D35": {"expected": 100, "tolerance": 0.5}, "E35": {"expected": 0, "tolerance": 0.5},
+        "B36": {"expected": 8, "tolerance": 0.5}, "C36": {"expected": 5, "tolerance": 0.5},
+        "D36": {"expected": 80, "tolerance": 0.5},
+        "E36": {"expected": 1, "tolerance": 0.5,
+                "mistake_note": "Rohan Mehta's attendance is 80% — below the 85% threshold — so this should be "
+                                 "flagged. Missing this flag means a genuine attendance problem goes unnoticed until "
+                                 "it's already hurt team coverage and morale."},
+        "B37": {"expected": 9, "tolerance": 0.5}, "C37": {"expected": 3, "tolerance": 0.5},
+        "D37": {"expected": 90, "tolerance": 0.5}, "E37": {"expected": 0, "tolerance": 0.5},
+        "B39": {"expected": 90, "tolerance": 0.5},
+    },
+}
+
+HR_TASKS = [
+    # ═══════════════════════ PHASE 1 — guided (Day 1-30) ═══════════════════
+    {
+        "track": "hr", "title": "Resume Shortlisting", "phase": 1, "is_blindfold": False,
+        "difficulty": "medium", "points_value": 85, "deliverable_type": "text", "requires_geotag": False,
+        "estimated_duration": "2-2.5 hours",
+        "brief": (
+            "Meridian Textiles Ltd (a mid-sized fictional textile manufacturer based out of Sehore) is hiring a "
+            "Junior Accountant for its Finance department — entry-to-mid level, salary budget ₹18,000-₹22,000/month, "
+            "must be comfortable with Tally and basic GST work, immediate joiner preferred. You've been handed 9 "
+            "resumes as a first screening pass. Your job is to shortlist 3-4 to move forward to interview.\n\n"
+            "1. Ankit Verma — B.Com (2023). 0 years experience, fresh graduate. Knows MS Excel (basic) and Tally "
+            "ERP9 (self-taught, no certification, no work history yet). Based in Sehore.\n"
+            "2. Priyanka Sharma — B.Com (2019). 4 years experience, currently Senior Accountant at a manufacturing "
+            "firm, expert in Tally Prime, GST filing, and MIS reporting. Currently earning ₹35,000/month. Based in "
+            "Indore.\n"
+            "3. Rahul Kushwaha — B.A. Economics (2022). 1 year experience as a Sales Executive (not accounting). "
+            "Knows basic Excel only. Applied because he \"wants to switch fields into accounts.\" No accounting "
+            "software experience.\n"
+            "4. Sneha Patil — B.Com (2021). 2 years experience as Junior Accountant at a trading company. Working "
+            "knowledge of Tally ERP9 and GST returns. Immediate joiner. Based in Sehore. Expects ₹20,000/month.\n"
+            "5. Deepak Malviya — M.Com (2020). 3 years experience but has changed 4 jobs in 3 years (average ~9 "
+            "months per job), each role titled \"Accountant,\" reason for leaving listed each time as \"better "
+            "opportunity.\" Knows Tally, Busy, and Excel.\n"
+            "6. Kavya Reddy — B.Com (2022). 1.5 years experience as Accounts Assistant at a textile trading firm "
+            "(same industry as Meridian). Knows Tally ERP9, basic GST, and has completed a certificate course in "
+            "Advanced Excel. Based in Bhopal (~45 km away). Expects ₹19,000/month.\n"
+            "7. Mohammed Irfan — B.Com (2018). 6 years experience, most recently as Accounts Manager handling a "
+            "team of 3. Expects ₹45,000/month. Applied despite being well above this role's level.\n"
+            "8. Neha Joshi — B.Com (2020). 2-year employment gap (2021-2023, listed as \"career break\"); before "
+            "that, 1 year as an Accounts Trainee. Knows basic Tally. Based in Sehore. Flexible on salary.\n"
+            "9. Sanjay Rathore — 12th pass, no degree. 5 years experience as a \"Store Accountant\" at a small "
+            "kirana wholesale business. Self-taught in Tally, says he's \"familiar\" with GST filing but has no "
+            "formal experience filing it. Expects ₹18,000/month."
+        ),
+        "why_it_matters": (
+            "Screening resumes against a role's real requirements (not just keyword-matching) is the first skill "
+            "any recruiter or hiring manager builds, and it applies to hiring for any role at any company."
+        ),
+        "instructions": (
+            "Step 1: Re-read the role's actual requirements — budget, must-have skills, seniority level, and "
+            "location/joining constraints.\n"
+            "Step 2: Go through all 9 resumes one at a time. For each, write one line: shortlist or reject, and why "
+            "— tie your reason back to a specific requirement, not a vague impression.\n"
+            "Step 3: From your notes, pick your final 3-4 candidates to move to interview.\n"
+            "Step 4: Write 150+ words explaining your final shortlist as a whole — why these 3-4 together give the "
+            "hiring manager a good set of options, and what risk (if any) you'd flag about each one even though you "
+            "shortlisted them."
+        ),
+        "mistake_explanation": (
+            "A resume shortlist that ignores salary-expectation mismatches or job-hopping patterns wastes everyone's "
+            "time — interviewing a candidate who will reject the offer over salary, or hiring someone who leaves in "
+            "9 months, costs a real company weeks of re-hiring effort and lost productivity, not just an awkward "
+            "conversation."
+        ),
+        "hints": [
+            "Hint 1: A resume can look strong on paper and still be a bad shortlist choice — check salary "
+            "expectation against the budget before anything else. A candidate earning far more than the budget "
+            "rarely accepts the offer even if they interview well.",
+            "Hint 2: Relevant industry experience (same domain, e.g. textiles) and geographic fit (can actually join "
+            "without relocating) matter as much as raw years of experience for a junior role.",
+            "Hint 3: A pattern (like four jobs in three years, or claiming a skill without ever having done it "
+            "formally) is worth flagging even if the candidate is otherwise decent — note the risk, don't just "
+            "silently reject or silently ignore it.",
+        ],
+        "sample_solution": (
+            "Worked example for a different role (Warehouse Supervisor at a logistics company, budget ₹25,000-"
+            "₹28,000/month): Candidate X has exactly the required 3 years of warehouse experience, expects "
+            "₹26,000/month, and lives 10 minutes from the site — shortlist, strong fit on every axis. Candidate Y "
+            "has 8 years experience and expects ₹40,000/month — reject, over-budget and likely to leave quickly if "
+            "hired at a lower offer out of desperation. Candidate Z has zero warehouse experience but strong general "
+            "operations experience and is willing to start at the bottom of the budget band — shortlist as a "
+            "calculated bet, but flag the ramp-up risk to the hiring manager explicitly rather than hiding it. The "
+            "written summary should name the trade-off for each shortlisted candidate, not just declare them "
+            "\"good.\""
+        ),
+    },
+    {
+        "track": "hr", "title": "Job Description Writing", "phase": 1, "is_blindfold": False,
+        "difficulty": "easy", "points_value": 70, "deliverable_type": "text", "requires_geotag": False,
+        "estimated_duration": "1.5-2 hours",
+        "brief": (
+            "Bright Retail Traders (a fictional regional retail chain expanding its online presence) needs to hire "
+            "a Digital Marketing Executive for its Marketing department. Hiring details given to you: mid-level "
+            "role (2-4 years experience), reports to the Marketing Manager, monthly budget ₹25,000-₹32,000, "
+            "primary responsibilities will be running paid Instagram/Facebook ad campaigns, managing the company's "
+            "social pages day-to-day, and producing basic monthly performance reports. Write the complete Job "
+            "Description (JD) that will be posted publicly."
+        ),
+        "why_it_matters": (
+            "Writing a clear, accurately-scoped JD is one of the highest-leverage HR documents — a vague or "
+            "over-inflated JD is the single biggest cause of mismatched hires, and this exact skill transfers to "
+            "hiring for any role at any company."
+        ),
+        "instructions": (
+            "Step 1: Write a Job Title that matches the actual seniority and budget (don't inflate the title beyond "
+            "what a ₹25,000-₹32,000/month role can justify).\n"
+            "Step 2: Write a 2-3 line \"About the Role\" summary.\n"
+            "Step 3: List 5-7 Responsibilities as concrete, specific bullet points (not vague phrases like \"manage "
+            "marketing\").\n"
+            "Step 4: List Requirements (must-haves — years of experience, specific skills, tools) separately from "
+            "Nice-to-haves (things that would help but aren't dealbreakers).\n"
+            "Step 5: Add the salary range and any other practical details (location, reporting line).\n"
+            "Step 6: Write a 150+ word reasoning note explaining why you framed the responsibilities and "
+            "requirements the way you did — in particular, justify what you put in \"must-have\" vs \"nice-to-have\" "
+            "and why, given the stated budget."
+        ),
+        "mistake_explanation": (
+            "A JD that overstates the role (senior-sounding title, a long must-have list that doesn't match the "
+            "budget) attracts candidates who will reject the offer or quit within months once they realize the "
+            "actual scope and pay — that mismatch is one of the most expensive, avoidable causes of early attrition "
+            "a company faces."
+        ),
+        "hints": [
+            "Hint 1: Match the title to the budget, not to how important the role feels — \"Digital Marketing "
+            "Executive,\" not \"Digital Marketing Manager,\" for this pay band.",
+            "Hint 2: Keep the must-have list short and realistic for someone earning ₹25,000-₹32,000/month — "
+            "demanding 5+ years of experience or advanced certifications here will filter out exactly the "
+            "candidates this budget can actually attract.",
+            "Hint 3: Nice-to-haves are for genuinely optional extras (e.g. \"experience with a specific design "
+            "tool\") — don't quietly hide a real requirement there just to keep the must-have list short.",
+        ],
+        "sample_solution": (
+            "Worked example for a different hiring need (Front Desk Executive, budget ₹15,000-₹18,000/month, at a "
+            "small clinic): Title — \"Front Desk Executive.\" About the Role — first point of contact for patients, "
+            "manages appointment scheduling and basic billing. Responsibilities — greet and check in patients, "
+            "manage the appointment calendar, handle incoming calls, collect basic payment and issue receipts, "
+            "maintain patient record filing. Requirements — 12th pass minimum, basic computer literacy, clear "
+            "spoken Hindi and English, based within commutable distance. Nice-to-haves — prior front-desk or "
+            "receptionist experience, familiarity with a scheduling app. The reasoning note should explain: since "
+            "the budget is entry-level, the must-haves stay to basic literacy and communication rather than "
+            "healthcare-specific experience, which would be unrealistic to demand at this pay."
+        ),
+    },
+    {
+        "track": "hr", "title": "Interview Questions Design", "phase": 1, "is_blindfold": False,
+        "difficulty": "easy", "points_value": 65, "deliverable_type": "text", "requires_geotag": False,
+        "estimated_duration": "1.5-2 hours",
+        "brief": (
+            "Northstar BPO Services is hiring a Customer Support Team Lead — this person will manage a team of 8 "
+            "support agents handling voice and chat support for an e-commerce client, own escalation handling, "
+            "coach agents on call quality, and be responsible for hitting the team's SLA (service-level agreement) "
+            "targets. Design the interview question set for this role."
+        ),
+        "why_it_matters": (
+            "A good interview question is designed to reveal something specific about a candidate's ability, not "
+            "just to fill time — this structured-question-design skill is used in hiring interviews across every "
+            "role and every industry."
+        ),
+        "instructions": (
+            "Step 1: Write 3-4 Technical/Role-knowledge questions (things specific to running a support team — SLAs, "
+            "escalation handling, quality coaching).\n"
+            "Step 2: Write 3-4 Behavioral questions (asking about a real past experience, usually starting with "
+            "\"Tell me about a time...\").\n"
+            "Step 3: Write 2-3 Situational questions (a hypothetical scenario specific to this role, asking how "
+            "they'd handle it).\n"
+            "Step 4: For every single question, add a one-line rationale explaining exactly what it's meant to "
+            "reveal about the candidate.\n"
+            "Step 5: Write 100+ words on which 2 questions you consider the most important for THIS specific role, "
+            "and why."
+        ),
+        "mistake_explanation": (
+            "Generic questions (\"tell me about yourself,\" \"what's your biggest weakness\") don't actually predict "
+            "whether someone can run a support team under SLA pressure — a poorly designed interview lets a weak "
+            "hire slip through, and the real cost shows up months later as missed SLAs and a team that doesn't trust "
+            "its lead."
+        ),
+        "hints": [
+            "Hint 1: A technical question for a team lead role should test judgment about escalation/SLA handling, "
+            "not just knowledge of support terminology — e.g. \"how would you decide which of two escalations to "
+            "handle first?\" reveals more than \"what is SLA?\"",
+            "Hint 2: A strong behavioral question asks for a SPECIFIC past example (\"tell me about a time you had "
+            "to manage an underperforming team member\") rather than a general opinion question — specific stories "
+            "are harder to fake convincingly.",
+            "Hint 3: A situational question should be a realistic scenario this exact role will actually face (an "
+            "angry escalated customer, a team member missing SLA repeatedly) — not a generic puzzle question "
+            "unrelated to the job.",
+        ],
+        "sample_solution": (
+            "Worked example for a different role (Warehouse Shift Supervisor): Technical — \"How would you "
+            "prioritize which orders to pick first if you're running behind schedule?\" (rationale: tests whether "
+            "they understand operational prioritization, not just process steps). Behavioral — \"Tell me about a "
+            "time you had to report a safety issue to your manager.\" (rationale: reveals whether they'll actually "
+            "flag problems rather than stay quiet). Situational — \"If two team members are in a heated "
+            "disagreement on the floor during a shift, what do you do in the next 5 minutes?\" (rationale: tests "
+            "real-time conflict de-escalation under time pressure, which is the actual job). The written summary "
+            "should explain that the situational question is the most important one here, because a shift "
+            "supervisor's real value is shown in live moments, not in a rehearsed answer."
+        ),
+    },
+
+    # ═══════════════════════ PHASE 2 — independent (Day 31-60) ═════════════
+    {
+        "track": "hr", "title": "Onboarding Checklist Design", "phase": 2, "is_blindfold": False,
+        "difficulty": "medium", "points_value": 85, "deliverable_type": "text", "requires_geotag": False,
+        "estimated_duration": "1.5-2 hours",
+        "brief": (
+            "Emberline Retail Group has just hired a new Sales Executive who joins on Monday — a field + in-store "
+            "sales role covering a specific territory. On their first day they'll need: an introduction to their "
+            "manager and team, a walkthrough of the product catalog, access and training on the company's CRM tool "
+            "(internally called \"SalesTrack\"), their territory assignment and account list, HR paperwork and ID "
+            "card issuance, and a period shadowing a senior sales rep before going out on their own. Design the "
+            "full first-week (5 working days) onboarding checklist/schedule."
+        ),
+        "why_it_matters": (
+            "A well-sequenced first week is the single biggest lever a company has over whether a new hire feels "
+            "confident or lost — this exact planning skill (breaking a fuzzy goal into a day-by-day schedule) "
+            "applies to onboarding any role, anywhere."
+        ),
+        "instructions": (
+            "Step 1: List every onboarding item mentioned in the brief (there are 6).\n"
+            "Step 2: Assign each item to a specific day (Day 1 through Day 5) — don't just list them in one big pile.\n"
+            "Step 3: Within each day, order the items so the sequence actually makes sense (e.g. you can't assign "
+            "territory before they know the product catalog).\n"
+            "Step 4: Add at least one check-in point during the week (e.g. an end-of-week conversation with their "
+            "manager) so problems surface early.\n"
+            "Step 5: Write 150+ words explaining your sequencing choices — specifically, why you put certain items "
+            "early vs late in the week, and what would go wrong if the order were reversed."
+        ),
+        "mistake_explanation": (
+            "Onboarding items done in the wrong order (e.g. sending a new hire out on live sales calls before they "
+            "know the product or the CRM) makes a bad first impression on customers and on the new hire themselves "
+            "— a real company's first-week churn (new hires quitting within days) is very often an onboarding "
+            "sequencing failure, not a hiring failure."
+        ),
+        "hints": [
+            "Hint 1: Paperwork, ID card, and team introductions belong on Day 1 — before anything role-specific, so "
+            "the new hire feels settled and has what they need to function.",
+            "Hint 2: Product knowledge should come before CRM training, and both should come before territory "
+            "assignment or shadowing — you can't usefully shadow a call you don't understand yet.",
+            "Hint 3: Shadowing a senior rep should be the last step of the week, once the new hire has enough "
+            "context to actually learn from watching rather than just being confused.",
+        ],
+        "sample_solution": (
+            "Worked example for a different role (new hire joining as an Accounts Assistant): Day 1 — HR paperwork, "
+            "ID card, desk/system setup, team introductions. Day 2 — walkthrough of the company's chart of accounts "
+            "and current month's books. Day 3 — hands-on training on the accounting software (login, basic entry "
+            "practice on a test file, not live data yet). Day 4 — shadow the senior accountant on 2-3 real "
+            "transactions, ask questions. Day 5 — attempt 2-3 real entries independently with the senior accountant "
+            "reviewing before submission, plus a short end-of-week check-in with the finance manager. The reasoning "
+            "should note: software training before real transactions prevents costly data-entry mistakes in live "
+            "books, and the Friday check-in exists specifically to catch confusion before it turns into a bad "
+            "second week."
+        ),
+    },
+    {
+        "track": "hr", "title": "Employee Complaint Handling", "phase": 2, "is_blindfold": False,
+        "difficulty": "hard", "points_value": 100, "deliverable_type": "text", "requires_geotag": False,
+        "estimated_duration": "2-2.5 hours",
+        "brief": (
+            "You receive a written complaint at Northstar BPO Services from Ritu Sharma, a Customer Support agent. "
+            "Her complaint: her direct manager, Vikas, consistently assigns her the team's toughest escalation "
+            "calls while giving easier calls to others; he has denied her last two shift-swap and leave requests "
+            "while approving near-identical requests from other team members around the same time; and he has "
+            "publicly criticized her call handling in front of the whole team twice in the last month, instead of "
+            "giving that feedback privately. Ritu says she's stressed, feels singled out, and is seriously "
+            "considering resigning. She has not filed this anywhere else yet and asked that it be handled "
+            "carefully. Write how you, as HR, would investigate and resolve this."
+        ),
+        "why_it_matters": (
+            "Handling an employee complaint fairly — hearing both sides, documenting properly, and reaching a "
+            "resolution without retaliation — is one of the highest-stakes HR skills, because getting it wrong "
+            "creates real legal and trust exposure for any employer."
+        ),
+        "instructions": (
+            "Step 1: List the specific facts Ritu has alleged (there are 3 distinct issues — call assignment, "
+            "leave/shift approvals, and public criticism) — don't lump them into one vague \"conflict.\"\n"
+            "Step 2: Describe how you would investigate each one — who else you'd talk to, what records you'd pull "
+            "(e.g. call assignment logs, leave-approval history for the whole team), and how you'd keep the process "
+            "confidential and non-retaliatory while it's ongoing.\n"
+            "Step 3: Describe how you would hear Vikas's side fairly, without assuming guilt before the "
+            "investigation is done.\n"
+            "Step 4: Describe 2-3 possible outcomes depending on what the investigation finds, ranging from \"no "
+            "wrongdoing found, but coach Vikas on public feedback anyway\" to \"pattern confirmed, formal corrective "
+            "action.\"\n"
+            "Step 5: Write 200+ words explaining how you would protect Ritu from retaliation during and after this "
+            "process, and how you would follow up with her afterward regardless of the outcome."
+        ),
+        "mistake_explanation": (
+            "A complaint that's handled by only hearing the manager's side, or that leaks the complainant's identity "
+            "without protection, or that never follows up — creates exactly the kind of retaliation and unfair-"
+            "process exposure that turns into resignations, damaged trust across the whole team, and real legal "
+            "risk for the company, even when the original complaint itself was minor."
+        ),
+        "hints": [
+            "Hint 1: Separate the 3 allegations and investigate each with actual evidence (call logs, leave-request "
+            "records comparing Ritu's team) rather than treating the whole thing as one vague personality conflict.",
+            "Hint 2: Fair process means BOTH sides are heard before any conclusion is reached — write out what "
+            "questions you'd ask Vikas, not just what you'd ask Ritu.",
+            "Hint 3: Confidentiality and non-retaliation aren't just nice-to-haves — explicitly state how you'd "
+            "make sure Vikas doesn't find out who complained until the formal process requires it, and how you'd "
+            "check in on Ritu afterward to confirm there's been no retaliation.",
+        ],
+        "sample_solution": (
+            "Worked example for a different scenario (a warehouse employee complains their supervisor is "
+            "consistently assigning them the heaviest/most physically demanding tasks while giving lighter tasks to "
+            "a friend of the supervisor): Investigation — pull the task-assignment log for the last month across "
+            "the whole shift, compare distribution across all workers, interview 2-3 other team members "
+            "confidentially about whether they've noticed the same pattern. Hearing the supervisor's side — ask "
+            "them directly how they decide task assignments, without revealing who complained. Possible outcomes — "
+            "if the log shows a genuine skew, retrain the supervisor on rotation-based assignment and monitor for a "
+            "month; if the log shows assignments were actually balanced overall, still coach the supervisor on "
+            "communicating task-assignment reasoning transparently, since the perception problem itself is worth "
+            "fixing. The retaliation-protection section should specifically describe checking in with the "
+            "complainant 2-3 weeks later, privately, to confirm nothing changed for the worse."
+        ),
+    },
+    {
+        "track": "hr", "title": "Attendance Analysis", "phase": 2, "is_blindfold": False,
+        "difficulty": "medium", "points_value": 95, "deliverable_type": "text_and_spreadsheet", "requires_geotag": False,
+        "estimated_duration": "2.5-3 hours",
+        "brief": (
+            "Northstar BPO Services' Customer Support department has 3 agents — Priya Nair, Rohan Mehta, and Kavita "
+            "Joshi. Their raw daily attendance for 10 scheduled working days in June (two Mon-Fri weeks) is loaded "
+            "into the spreadsheet below exactly as recorded by the biometric system: employee name, date, status "
+            "(Present / Late / Absent), and clock-in/clock-out times. The shift starts at 9:30 AM with a 15-minute "
+            "grace period — anyone clocking in after 9:45 AM is marked Late. Build the summary analysis: total days "
+            "worked, late count, and attendance % per employee, and flag anyone whose attendance falls below 85%."
+        ),
+        "why_it_matters": (
+            "Turning raw biometric/attendance logs into a clean per-employee summary — and knowing where to draw "
+            "the line for a flag — is routine, recurring HR work at almost every company with hourly or shift-based "
+            "staff."
+        ),
+        "instructions": (
+            "Step 1: Look at the 30 raw attendance rows (rows 2-31) already filled in for you, split into 3 blocks "
+            "of 10 rows per employee (Priya rows 2-11, Rohan rows 12-21, Kavita rows 22-31).\n"
+            "Step 2: In column F (Late Flag), for every row, use a formula like =IF(C2=\"Late\",1,0).\n"
+            "Step 3: In column G (Worked Flag), for every row, use a formula like =IF(OR(C2=\"Present\",C2=\"Late\"),"
+            "1,0) — a Late day still counts as worked, just flagged separately.\n"
+            "Step 4: In row 35 (Priya), row 36 (Rohan), and row 37 (Kavita): B = SUM() of that employee's Worked "
+            "Flag range (e.g. B35=SUM(G2:G11)), C = SUM() of their Late Flag range, D = Attendance % (B ÷ 10 × 100).\n"
+            "Step 5: In column E (rows 35-37), flag anyone under 85% attendance: =IF(D35<85,1,0).\n"
+            "Step 6: In B39, calculate the department's average attendance % across all 3 employees using AVERAGE().\n"
+            "Step 7: In the text box, write 150+ words: who (if anyone) should have a conversation with their "
+            "manager about attendance, referencing both their attendance % and their late-count pattern — explain "
+            "why a borderline case is different from a clearly flagged case."
+        ),
+        "mistake_explanation": (
+            "Miscounting Late days as full absences (or vice versa) skews the attendance % and can wrongly flag a "
+            "generally reliable employee, or worse, miss someone who's genuinely below threshold — in a real "
+            "company, attendance summaries like this often feed directly into performance reviews and even payroll "
+            "deductions, so an arithmetic mistake here has a real, direct impact on an employee's record."
+        ),
+        "hints": [
+            "Hint 1: A Late day still counts toward \"days worked\" — only Absent days should reduce it. Don't "
+            "confuse the Late Flag column with the Worked Flag column; they answer different questions.",
+            "Hint 2: Attendance % is Days Worked ÷ Total Scheduled Days (10) × 100 — not Days Worked ÷ 30 (that "
+            "would divide by all 3 employees' rows combined, which is wrong for a per-employee number).",
+            "Hint 3: The 85% flag should be based on Attendance %, but your written explanation should also look at "
+            "the Late Count separately — someone can be above 85% attendance and still have a lateness pattern "
+            "worth raising.",
+        ],
+        "sample_solution": (
+            "Worked example with different numbers (2 employees, 5 scheduled days each): Employee X — 4 Present, 1 "
+            "Late, 0 Absent -> Worked = 5, Attendance % = 5/5*100 = 100%, not flagged, but Late Count = 1 is worth "
+            "a passing mention. Employee Y — 2 Present, 1 Late, 2 Absent -> Worked = 3, Attendance % = 3/5*100 = "
+            "60%, clearly flagged (well under 85%). The written explanation should distinguish these: Employee X "
+            "doesn't need a formal conversation, just a friendly note about the one late day; Employee Y needs an "
+            "actual manager conversation, because 60% attendance over just 5 days is a serious, not borderline, "
+            "problem."
+        ),
+        "spreadsheet_template": _HR_TASK6_TEMPLATE,
+        "spreadsheet_answer_key": _HR_TASK6_ANSWER_KEY,
+    },
+
+    # ═══════════════════════ PHASE 3 — capstone (Day 61-90) ════════════════
+    {
+        "track": "hr", "title": "Exit Interview Analysis", "phase": 3, "is_blindfold": False,
+        "difficulty": "hard", "points_value": 110, "deliverable_type": "text", "requires_geotag": False,
+        "estimated_duration": "2.5-3 hours",
+        "brief": (
+            "Vantage Logistics Pvt Ltd has had 6 employees leave over the last quarter. Here are their exit "
+            "interview summaries:\n\n"
+            "1. Warehouse Supervisor, 2.1 years tenure — reason given: \"better salary elsewhere.\" Sentiment: "
+            "neutral. Mentioned salary hasn't been revised despite a promised annual increment cycle.\n"
+            "2. Dispatch Coordinator, 8 months tenure — reason given: \"work-life balance, mandatory overtime "
+            "without notice.\" Sentiment: negative. Mentioned frequent last-minute Saturday shifts assigned with "
+            "less than a day's notice.\n"
+            "3. Fleet Executive, 3.4 years tenure — reason given: \"relocating to hometown for family reasons.\" "
+            "Sentiment: positive. Praised management directly, reason appears genuinely personal.\n"
+            "4. Inventory Clerk, 1.2 years tenure — reason given: \"no growth or promotion path.\" Sentiment: "
+            "negative. Said they asked twice about promotion timeline and got vague, non-committal answers both "
+            "times.\n"
+            "5. Warehouse Associate, 6 months tenure — reason given: \"mandatory overtime and unpredictable "
+            "scheduling.\" Sentiment: negative. Very similar complaint to the Dispatch Coordinator above.\n"
+            "6. Assistant Fleet Manager, 4 years tenure — reason given: \"better salary and designation elsewhere.\" "
+            "Sentiment: neutral-to-positive, but also mentioned their annual increment came in below expectation "
+            "for two years running.\n\n"
+            "Identify the real patterns behind these 6 exits and recommend retention actions."
+        ),
+        "why_it_matters": (
+            "Spotting the actual root cause behind a cluster of resignations — instead of treating each one as an "
+            "isolated \"better opportunity\" story — is exactly the analysis that separates HR that reacts to "
+            "attrition from HR that actually reduces it."
+        ),
+        "instructions": (
+            "Step 1: Read all 6 exit summaries and group them by underlying cause, not just by the stated reason "
+            "(two people who both say \"better salary\" may actually be pointing at the same root problem: "
+            "increments not keeping pace).\n"
+            "Step 2: Identify which exits look genuinely unavoidable (personal/uncontrollable) vs which point to a "
+            "fixable company-side issue.\n"
+            "Step 3: For each fixable pattern you find, name it explicitly (e.g. \"scheduling practice in "
+            "warehouse/dispatch roles,\" \"stagnant salary reviews for tenured staff,\" \"no defined promotion "
+            "criteria\").\n"
+            "Step 4: For each pattern, recommend one concrete retention action a company could realistically take.\n"
+            "Step 5: Write 200+ words tying it together: which single pattern, if fixed first, would likely have "
+            "the biggest impact on future retention, and why."
+        ),
+        "mistake_explanation": (
+            "Treating every resignation as a one-off (\"they just got a better offer\") instead of spotting the "
+            "shared pattern means the company keeps losing people to the exact same fixable problem quarter after "
+            "quarter — exit interviews only create value if someone actually connects the dots across multiple "
+            "exits, not just files each one away individually."
+        ),
+        "hints": [
+            "Hint 1: Two exits mentioning \"better salary\" alongside a specific detail about increments not "
+            "keeping pace are pointing at the same root issue — a compensation review problem, not two unrelated "
+            "coincidences.",
+            "Hint 2: Two exits with almost identical complaints about last-minute mandatory overtime, in the same "
+            "type of role (warehouse/dispatch), point to an operational scheduling-policy problem, not two "
+            "unrelated personality clashes.",
+            "Hint 3: Not every exit needs fixing — the relocation-for-family-reasons case is a normal, unavoidable "
+            "departure with a positive sentiment; don't force a root-cause narrative onto it.",
+        ],
+        "sample_solution": (
+            "Worked example with a different set of exits (3 resignations from a retail chain's cashier team): "
+            "Exit A cites \"unclear shift roster, found out my week's schedule only 2 days in advance\"; Exit B "
+            "cites \"never knew my schedule until the last minute, hard to plan anything\"; Exit C cites \"moving "
+            "abroad with spouse.\" Pattern: A and B point to the same root cause — the store isn't publishing "
+            "rosters far enough in advance — while C is a genuine personal/uncontrollable exit. Recommended action: "
+            "publish the weekly roster at least 5 days in advance as a standing policy, and track whether cashier "
+            "attrition drops over the following two quarters. The written summary should explicitly say which fix "
+            "to prioritize first and why it's the highest-leverage one, not just list every possible improvement."
+        ),
+    },
+    {
+        "track": "hr", "title": "Leave Policy Design", "phase": 3, "is_blindfold": True,
+        "difficulty": "hard", "points_value": 130, "deliverable_type": "text", "requires_geotag": False,
+        "estimated_duration": "3-4 hours",
+        "brief": (
+            "Solaris Devices Pvt Ltd is a 50-employee IT hardware startup with a single office in Pune, "
+            "Maharashtra. It currently has NO written leave policy at all — leave has been handled informally, "
+            "manager by manager, which has already caused a few disputes over who got approved and who didn't. The "
+            "founders have asked you to design the company's first formal leave policy from scratch, given these "
+            "constraints:\n\n"
+            "- 50 employees total, single office, all roles on-site (no remote/field staff to plan around).\n"
+            "- The company works Monday-Saturday currently, with alternate Saturdays off.\n"
+            "- Budget-conscious startup — the founders explicitly said they cannot match a large corporation's "
+            "leave count, but want something competitive enough to attract talent.\n"
+            "- Fixed public holidays that cannot be skipped: Republic Day (Jan 26), Independence Day (Aug 15), "
+            "Gandhi Jayanti (Oct 2) — beyond these, the founders are open to a small list of floating/regional "
+            "festival holidays employees can choose from.\n"
+            "- The founders are worried about leave-liability payout costs, so they specifically do NOT want "
+            "unlimited or overly generous carryover/encashment.\n"
+            "- New hires should have some flexibility but not full leave access from day one — the founders "
+            "mentioned a probation period (typically 90 days) should have its own, more restricted leave rules.\n"
+            "- The company must account for statutory-style leave categories any Indian employer is expected to "
+            "offer in some form (e.g. sick leave, earned/privilege leave, maternity/paternity leave, bereavement "
+            "leave), even though you are not expected to cite exact legal clauses — design something realistic and "
+            "defensible.\n\n"
+            "Design the complete leave policy for Solaris Devices Pvt Ltd."
+        ),
+        "why_it_matters": (
+            "Designing a leave policy from a blank page — balancing employee fairness against real cost/liability "
+            "constraints — is exactly the kind of judgment-heavy, no-template HR work a founder or a small "
+            "company's first HR hire is actually asked to do."
+        ),
+        "instructions": (
+            "Step 1: Define every leave type the policy will offer (at minimum: Casual Leave, Sick Leave, Earned/"
+            "Privilege Leave, Maternity Leave, Paternity Leave, Bereavement Leave) with a specific number of days "
+            "per year for each.\n"
+            "Step 2: Define the accrual rule for each leave type — does it accrue monthly, is it granted in full at "
+            "the start of the year, or does it depend on tenure?\n"
+            "Step 3: Define the carryover and/or encashment rule — how much (if any) unused leave carries into the "
+            "next year, and what happens to the rest.\n"
+            "Step 4: Define the approval process — who approves leave requests, how much advance notice is "
+            "required for planned leave vs sick leave, and whether there are any blackout periods.\n"
+            "Step 5: Define the probation-period rule specifically — what leave (if any) is available to an "
+            "employee in their first 90 days, and why.\n"
+            "Step 6: Write 250+ words of reasoning explaining the choice behind EACH major policy decision above — "
+            "tie each choice back to the specific constraints given (budget-conscious, worried about payout "
+            "liability, wants to stay competitive, single office, etc.)."
+        ),
+        "mistake_explanation": (
+            "A leave policy with vague or missing accrual/carryover rules is exactly what creates payroll disputes "
+            "later — if it's unclear how many days an employee has actually earned by the time they resign or ask "
+            "for encashment, HR and Finance end up in a dispute with the employee (and sometimes each other) over "
+            "money, and an inconsistent or informal policy (like Solaris has right now) is what causes employees to "
+            "feel that leave approval depends on who your manager is rather than on a fair, written rule."
+        ),
+    },
+]
+
+
+TASKS = FINANCE_TASKS + MARKETING_TASKS + SALES_TASKS + HR_TASKS
 
 
 async def seed():

@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
-import { NotebookPen, Pencil, Trash2, Save, X, Calendar } from "lucide-react";
+import { NotebookPen, Pencil, Trash2, Save, X, Calendar, Download } from "lucide-react";
 import StudentLayout from "../portal/student/StudentLayout";
 import { useInternshipAuth } from "../portal/student/InternshipAuthContext";
 import { useSubmitOnce } from "../lib/useSubmitOnce";
@@ -71,6 +71,24 @@ export default function StudentReport() {
     }
   });
 
+  const [downloadPdf, downloadingPdf] = useSubmitOnce(async () => {
+    try {
+      const res = await fetch(`${API_BASE}/api/internship/reports/pdf`, { headers: { Authorization: `Bearer ${token}` } });
+      if (!res.ok) throw new Error("Could not generate the report PDF");
+      const blob = await res.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "TFD_Internship_Progress_Report.pdf";
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (err) {
+      toast.error(err.message || "Could not download report");
+    }
+  });
+
   // No guard existed before — added fresh since this fires a DELETE call
   // that a rapid double-click/tap could otherwise send twice.
   const [remove, removing] = useSubmitOnce(async (id) => {
@@ -89,9 +107,18 @@ export default function StudentReport() {
   return (
     <StudentLayout activeKey="missions">
       <div className="max-w-2xl mx-auto space-y-6">
-        <div>
-          <h1 className="font-display text-2xl font-bold flex items-center gap-2"><NotebookPen size={22} className="text-[#14E0A0]" /> My Internship Report</h1>
-          <p className="text-white/45 text-sm mt-1">Log what you learned and did each day — this builds into your final report automatically.</p>
+        <div className="flex items-start justify-between gap-3 flex-wrap">
+          <div>
+            <h1 className="font-display text-2xl font-bold flex items-center gap-2"><NotebookPen size={22} className="text-[#14E0A0]" /> My Internship Report</h1>
+            <p className="text-white/45 text-sm mt-1">Log what you learned and did each day — this builds into your final report automatically.</p>
+          </div>
+          <button
+            onClick={downloadPdf}
+            disabled={downloadingPdf}
+            className="flex items-center gap-1.5 text-xs font-bold bg-white/5 hover:bg-white/10 border border-white/15 disabled:opacity-50 text-white px-3.5 py-2 rounded-xl transition-colors shrink-0"
+          >
+            <Download size={13} /> {downloadingPdf ? "Generating..." : "Download PDF"}
+          </button>
         </div>
 
         <div className="rounded-2xl border border-[#14E0A0]/25 bg-white/[0.03] p-5 space-y-3.5">
