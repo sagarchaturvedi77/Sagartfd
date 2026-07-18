@@ -6,8 +6,8 @@ import { openCashfreeCheckout } from "../lib/cashfree";
 import SEO from "../components/SEO";
 
 const API_BASE = process.env.REACT_APP_BACKEND_URL || "";
-const LOGO_URL = "/assets/logos/TFD-MAIN-LOGO.png";
-const INTERNSHIP_LOGO_URL = "/assets/logos/TFD-INTERNSHIP-LOGO.png";
+const LOGO_URL = "/assets/logos/TFD-MAIN-LOGO.webp";
+const INTERNSHIP_LOGO_URL = "/assets/logos/TFD-INTERNSHIP-LOGO.webp";
 const PARTNER_LOGO_URL = "/assets/logos/TFD-PARTNERHUB-LOGO.png";
 const WORKSPACE_LOGO_URL = "/assets/logos/TFD-WORKSPACE-LOGO.png";
 
@@ -80,7 +80,7 @@ export default function PublicVerify() {
       />
       <div className="w-full max-w-md">
         <div className="text-center mb-6">
-          <img src={LOGO_URL} alt="The Financial Doctor" className="h-16 mx-auto rounded-xl object-contain mb-3" />
+          <img src={LOGO_URL} alt="The Financial Doctor" width={900} height={235} className="h-16 mx-auto rounded-xl object-contain mb-3" />
           <h1 className="text-lg font-serif font-semibold text-[#0E1B2C]">Public Verification</h1>
           <p className="text-xs text-[#5C677D] mt-1">Verify an employee's association or a certificate issued by The Financial Doctor</p>
         </div>
@@ -149,7 +149,7 @@ export default function PublicVerify() {
         </div>
 
         <div className="flex items-center justify-center gap-4 mt-8">
-          <img src={INTERNSHIP_LOGO_URL} alt="TFD Internship" className="h-7 object-contain opacity-80" />
+          <img src={INTERNSHIP_LOGO_URL} alt="TFD Internship" width={500} height={246} className="h-7 object-contain opacity-80" />
           <img src={PARTNER_LOGO_URL} alt="TFD Partner Hub" className="h-7 object-contain opacity-80" />
           <img src={WORKSPACE_LOGO_URL} alt="TFD Workspace" className="h-7 object-contain opacity-80" />
         </div>

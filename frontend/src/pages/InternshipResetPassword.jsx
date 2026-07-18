@@ -4,8 +4,8 @@ import { ArrowLeft, CheckCircle2 } from "lucide-react";
 import { toast } from "sonner";
 import { useSubmitOnce } from "../lib/useSubmitOnce";
 
-const MAIN_LOGO_URL = "/assets/logos/TFD-MAIN-LOGO.png";
-const INTERNSHIP_LOGO_URL = "/assets/logos/TFD-INTERNSHIP-LOGO.png";
+const MAIN_LOGO_URL = "/assets/logos/TFD-MAIN-LOGO.webp";
+const INTERNSHIP_LOGO_URL = "/assets/logos/TFD-INTERNSHIP-LOGO.webp";
 const API_BASE = process.env.REACT_APP_BACKEND_URL || "";
 
 export default function InternshipResetPassword() {
@@ -49,7 +49,7 @@ export default function InternshipResetPassword() {
     <div className="min-h-screen bg-[#050B16] text-white px-4 py-10 flex flex-col">
       <div className="max-w-sm w-full mx-auto flex-1 flex flex-col justify-center">
         <div className="flex items-center justify-center gap-3 mb-8">
-          <img src={INTERNSHIP_LOGO_URL} alt="TFD Internship" className="h-9 object-contain" />
+          <img src={INTERNSHIP_LOGO_URL} alt="TFD Internship" width={500} height={246} className="h-9 object-contain" />
           <div className="text-left leading-tight">
             <div className="text-base font-bold text-white">TFD Internship</div>
             <div className="text-[10px] text-[#14E0A0] font-semibold tracking-wide">Learn. Build. Launch.</div>
@@ -103,7 +103,7 @@ export default function InternshipResetPassword() {
       </div>
 
       <div className="flex items-center justify-center gap-2 pt-6">
-        <img src={MAIN_LOGO_URL} alt="The Financial Doctor" className="h-6 bg-white rounded-md p-0.5 object-contain" />
+        <img src={MAIN_LOGO_URL} alt="The Financial Doctor" width={900} height={235} className="h-6 bg-white rounded-md p-0.5 object-contain" />
         <span className="text-white/30 text-[11px]">Powered by The Financial Doctor</span>
       </div>
     </div>

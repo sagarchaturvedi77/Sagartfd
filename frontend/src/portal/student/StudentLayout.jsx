@@ -10,7 +10,7 @@ import { useSubmitOnce } from "../../lib/useSubmitOnce";
 
 const API_BASE = process.env.REACT_APP_BACKEND_URL || "";
 const MAIN_LOGO_URL = "/assets/logos/TFD-MAIN-LOGO.webp";
-const INTERNSHIP_LOGO_URL = "/assets/logos/TFD-INTERNSHIP-LOGO.png";
+const INTERNSHIP_LOGO_URL = "/assets/logos/TFD-INTERNSHIP-LOGO.webp";
 
 const NAV_ITEMS = [
   { key: "overview", label: "Dashboard Overview", icon: LayoutDashboard, live: true, path: "/portal/student" },
@@ -268,7 +268,7 @@ export default function StudentLayout({ activeKey = "overview", children }) {
     <div className="min-h-screen bg-[#050B16] text-white flex">
       <aside className="hidden md:flex flex-col w-[230px] shrink-0 border-r border-white/10 bg-white/[0.02] p-4">
         <div className="flex items-center gap-2.5 mb-8 px-1">
-          <img src={INTERNSHIP_LOGO_URL} alt="TFD Internship" className="h-7 object-contain" />
+          <img src={INTERNSHIP_LOGO_URL} alt="TFD Internship" width={500} height={246} className="h-7 object-contain" />
           <div className="leading-tight">
             <div className="text-sm font-bold text-white">TFD Internship</div>
             <div className="text-[9px] text-[#14E0A0] font-semibold tracking-wide">Learn. Build. Launch.</div>
@@ -316,7 +316,7 @@ export default function StudentLayout({ activeKey = "overview", children }) {
       <div className="flex-1 min-w-0 flex flex-col">
         <header className="flex items-center justify-between px-5 py-3.5 border-b border-white/10 bg-white/[0.02]">
           <div className="flex items-center gap-2 md:hidden">
-            <img src={INTERNSHIP_LOGO_URL} alt="TFD Internship" className="h-6 object-contain" />
+            <img src={INTERNSHIP_LOGO_URL} alt="TFD Internship" width={500} height={246} className="h-6 object-contain" />
             <div className="leading-tight">
               <div className="text-xs font-bold text-white">TFD Internship</div>
               <div className="text-[8px] text-[#14E0A0] font-semibold">Learn. Build. Launch.</div>
@@ -343,7 +343,7 @@ export default function StudentLayout({ activeKey = "overview", children }) {
             >
               <LifeBuoy size={13} /> <span className="hidden sm:inline">Support</span>
             </button>
-            <img src={MAIN_LOGO_URL} alt="The Financial Doctor" className="h-6 bg-white rounded-md p-0.5 object-contain hidden sm:block" />
+            <img src={MAIN_LOGO_URL} alt="The Financial Doctor" width={900} height={235} className="h-6 bg-white rounded-md p-0.5 object-contain hidden sm:block" />
             <button onClick={logout} className="md:hidden text-red-400/80"><LogOut size={18} /></button>
           </div>
         </header>

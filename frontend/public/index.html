@@ -21,7 +21,22 @@
              instead of waiting to discover them after it parses that CSS. -->
         <link rel="preload" as="font" type="font/woff2" crossorigin href="https://fonts.gstatic.com/s/fraunces/v38/6NU78FyLNQOQZAnv9bYEvDiIdE9Ea92uemAk_WBq8U_9v0c2Wa0KxC9TeP2Xz5c.woff2" />
         <link rel="preload" as="font" type="font/woff2" crossorigin href="https://fonts.gstatic.com/s/dmsans/v17/rP2Hp2ywxg089UriCZOIHTWEBlw.woff2" />
-        <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Instrument+Serif:ital@0;1&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&display=swap" rel="stylesheet" />
+
+        <!-- The Google Fonts stylesheet itself (as opposed to the font
+             files, already preloaded above) was still a render-blocking
+             <link rel="stylesheet"> — the classic media="print" swap trick
+             loads it at low priority without blocking first paint, then
+             flips it to media="all" once it's actually arrived. noscript
+             fallback covers the no-JS case. -->
+        <link
+          rel="stylesheet"
+          media="print"
+          onload="this.media='all'; this.onload=null;"
+          href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Instrument+Serif:ital@0;1&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&display=swap"
+        />
+        <noscript>
+          <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Instrument+Serif:ital@0;1&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&display=swap" />
+        </noscript>
 
         <!-- LCP element on the homepage is the hero founder photo — preload it
              so the browser fetches it immediately while parsing this document,
@@ -77,21 +92,32 @@
         }
         </script>
 
-        <!-- Google Analytics GA4 — loaded after window "load" instead of
-             eagerly in <head>, so it doesn't compete for bandwidth with the
-             hero image/fonts/JS bundle during the critical rendering path.
-             dataLayer.push still queues calls correctly however late the
-             actual gtag.js script arrives. -->
+        <!-- Google Analytics GA4 — loaded via requestIdleCallback (falling
+             back to window "load" where that's unavailable) instead of
+             eagerly in <head>, so it never competes with the hero image/
+             fonts/JS bundle for main-thread time during first paint/load —
+             requestIdleCallback specifically waits for a genuinely idle
+             moment rather than just "the load event fired", so a page still
+             busy hydrating doesn't get gtag.js competing for the same
+             thread. dataLayer.push still queues calls correctly however
+             late the actual gtag.js script arrives. -->
         <script>
           window.dataLayer = window.dataLayer || [];
           function gtag(){dataLayer.push(arguments);}
           gtag('js', new Date());
           gtag('config', 'G-BSMNKJ97HM');
-          window.addEventListener("load", function () {
+          function loadGtagScript() {
             var s = document.createElement("script");
             s.async = true;
             s.src = "https://www.googletagmanager.com/gtag/js?id=G-BSMNKJ97HM";
             document.head.appendChild(s);
+          }
+          window.addEventListener("load", function () {
+            if ("requestIdleCallback" in window) {
+              requestIdleCallback(loadGtagScript, { timeout: 4000 });
+            } else {
+              setTimeout(loadGtagScript, 1500);
+            }
           });
         </script>
 

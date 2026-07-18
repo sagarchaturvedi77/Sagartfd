@@ -7,8 +7,8 @@ import { openCashfreeCheckout } from "../lib/cashfree";
 import { useSubmitOnce } from "../lib/useSubmitOnce";
 
 const API_BASE = process.env.REACT_APP_BACKEND_URL || "";
-const MAIN_LOGO_URL = "/assets/logos/TFD-MAIN-LOGO.png";
-const INTERNSHIP_LOGO_URL = "/assets/logos/TFD-INTERNSHIP-LOGO.png";
+const MAIN_LOGO_URL = "/assets/logos/TFD-MAIN-LOGO.webp";
+const INTERNSHIP_LOGO_URL = "/assets/logos/TFD-INTERNSHIP-LOGO.webp";
 
 const TRACKS = [
   { value: "finance", label: "Finance", icon: Landmark },
@@ -103,8 +103,8 @@ export default function InternshipSignup() {
       <div className="max-w-lg lg:max-w-4xl mx-auto">
         <div className="flex items-center justify-between mb-8">
           <div className="flex items-center gap-2.5">
-            <img src={MAIN_LOGO_URL} alt="The Financial Doctor" className="h-8 bg-white rounded-lg p-1 object-contain" />
-            <img src={INTERNSHIP_LOGO_URL} alt="TFD Internship" className="h-6 object-contain" />
+            <img src={MAIN_LOGO_URL} alt="The Financial Doctor" width={900} height={235} className="h-8 bg-white rounded-lg p-1 object-contain" />
+            <img src={INTERNSHIP_LOGO_URL} alt="TFD Internship" width={500} height={246} className="h-6 object-contain" />
             <div className="leading-tight hidden sm:block">
               <div className="text-xs font-bold text-white">TFD Internship</div>
               <div className="text-[8px] text-[#14E0A0] font-semibold">Learn. Build. Launch.</div>

@@ -5,8 +5,8 @@ import { toast } from "sonner";
 import { openCashfreeCheckout } from "../lib/cashfree";
 
 const API_BASE = process.env.REACT_APP_BACKEND_URL || "";
-const MAIN_LOGO_URL = "/assets/logos/TFD-MAIN-LOGO.png";
-const INTERNSHIP_LOGO_URL = "/assets/logos/TFD-INTERNSHIP-LOGO.png";
+const MAIN_LOGO_URL = "/assets/logos/TFD-MAIN-LOGO.webp";
+const INTERNSHIP_LOGO_URL = "/assets/logos/TFD-INTERNSHIP-LOGO.webp";
 
 const TRACKS = [
   { value: "finance", label: "Finance", icon: Landmark },
@@ -83,7 +83,7 @@ export default function InternshipResumePayment() {
   if (error) {
     return (
       <div className="min-h-screen bg-[#050B16] text-white px-4 py-10 flex flex-col items-center justify-center text-center">
-        <img src={INTERNSHIP_LOGO_URL} alt="TFD Internship" className="h-10 object-contain mb-6" />
+        <img src={INTERNSHIP_LOGO_URL} alt="TFD Internship" width={500} height={246} className="h-10 object-contain mb-6" />
         <p className="text-white/70 text-sm max-w-sm mb-6">{error}</p>
         <button
           onClick={() => navigate("/internship/login")}
@@ -100,8 +100,8 @@ export default function InternshipResumePayment() {
       <div className="max-w-lg mx-auto">
         <div className="flex items-center justify-between mb-8">
           <div className="flex items-center gap-2.5">
-            <img src={MAIN_LOGO_URL} alt="The Financial Doctor" className="h-8 bg-white rounded-lg p-1 object-contain" />
-            <img src={INTERNSHIP_LOGO_URL} alt="TFD Internship" className="h-6 object-contain" />
+            <img src={MAIN_LOGO_URL} alt="The Financial Doctor" width={900} height={235} className="h-8 bg-white rounded-lg p-1 object-contain" />
+            <img src={INTERNSHIP_LOGO_URL} alt="TFD Internship" width={500} height={246} className="h-6 object-contain" />
           </div>
           <button onClick={() => navigate("/internship")} className="flex items-center gap-1.5 text-xs font-semibold text-white/50 hover:text-white transition-colors">
             <ArrowLeft size={14} /> Back
