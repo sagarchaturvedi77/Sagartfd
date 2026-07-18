@@ -10,7 +10,8 @@ import {
     Download,
     X,
 } from "lucide-react";
-import html2canvas from "html2canvas";
+// html2canvas is dynamically imported at its call site in downloadProposal
+// below — only loaded when a visitor actually clicks the download button.
 import { QRCodeCanvas } from "qrcode.react";
 import { toast } from "sonner";
 import { IDS } from "@/constants/testIds";
@@ -625,6 +626,7 @@ function FundModal({ data, onClose }) {
         setDownloading(true);
         try {
             toast?.loading?.("Generating 1-page proposal PDF...", { id: "fund-proposal" });
+            const { default: html2canvas } = await import("html2canvas");
             await new Promise((resolve) => setTimeout(resolve, 150));
             const canvas = await html2canvas(proposalRef.current, {
                 backgroundColor: "#F6F1E8",

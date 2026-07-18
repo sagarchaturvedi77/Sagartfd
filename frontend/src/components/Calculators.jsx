@@ -10,8 +10,10 @@ import {
     CartesianGrid,
 } from "recharts";
 import { Download, ArrowUpRight, Calculator as CalcIcon, Sparkles, Lightbulb } from "lucide-react";
-import html2canvas from "html2canvas";
-import jsPDF from "jspdf";
+// html2canvas/jsPDF are dynamically imported at their call sites below (only
+// needed when a user actually clicks Download/Generate Proposal) — keeping
+// them out of the static import graph saves ~150KB from every calculator
+// page load, whether or not that visitor ever downloads anything.
 import { toast } from "sonner";
 import { IDS } from "@/constants/testIds";
 import { CALC_RECOMMENDATIONS } from "@/lib/recommendations";
@@ -551,6 +553,7 @@ const qrDataUrlRef = useRef(null);
         if (!snapRef.current) return;
         try {
             toast.loading("Generating your snapshot…", { id: "snap" });
+            const { default: html2canvas } = await import("html2canvas");
             await new Promise((r) => setTimeout(r, 150));
             const canvas = await html2canvas(snapRef.current, {
                 backgroundColor: "#F6F1E8",
@@ -574,6 +577,10 @@ const qrDataUrlRef = useRef(null);
     const [generateSnapshot, generatingProposal] = useSubmitOnce(async () => {
     try {
         toast.loading("Generating your proposal…", { id: "snap" });
+        const [{ default: html2canvas }, { default: jsPDF }] = await Promise.all([
+            import("html2canvas"),
+            import("jspdf"),
+        ]);
         // Ensure QR data URL is ready before capturing pages
         let waitAttempts = 0;
         while (!qrDataUrlRef.current && waitAttempts < 30) {

@@ -1,4 +1,4 @@
-import React from "react";
+import React, { lazy, Suspense } from "react";
 import SEO from "@/components/SEO";
 import Navbar from "@/components/Navbar";
 import Hero from "@/components/Hero";
@@ -13,9 +13,14 @@ import Partnership from "@/components/Partnership";
 import Contact from "@/components/Contact";
 import Footer from "@/components/Footer";
 import FloatingActions from "@/components/FloatingActions";
-import AIChat from "@/components/AIChat";
 import LeadPopup from "@/components/LeadPopup";
 import WhatsAppCommunityPopup from "@/components/WhatsAppCommunityPopup";
+
+// AIChat pulls in jsPDF/html2canvas/qrcode.react (heavy) but renders
+// nothing visible until the user opens it via a global event dispatched
+// from FloatingActions — safe to defer entirely off the initial homepage
+// bundle, no loading fallback needed since there's nothing to show yet.
+const AIChat = lazy(() => import("@/components/AIChat"));
 
 export default function Home() {
     return (
@@ -41,7 +46,9 @@ export default function Home() {
             </main>
             <Footer />
             <FloatingActions />
-            <AIChat />
+            <Suspense fallback={null}>
+                <AIChat />
+            </Suspense>
             <LeadPopup />
             <WhatsAppCommunityPopup />
         </div>

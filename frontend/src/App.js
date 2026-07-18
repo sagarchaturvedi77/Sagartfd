@@ -1,98 +1,120 @@
 import "./App.css";
-import React from "react";
+import React, { lazy, Suspense } from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
-import Home from "./pages/Home";
-import CareerPage from "./pages/CareerPage";
-import AboutPage from "./pages/AboutPage";
-import CalculatorsPage from "./pages/CalculatorsPage";
-import TopFundsPage from "./pages/TopFundsPage";
-import ServicesPage from "./pages/ServicesPage";
-import ReviewsPage from "./pages/ReviewsPage";
-import ContactPage from "./pages/ContactPage";
 import { Toaster } from "sonner";
 import { ModalProvider } from "./context/ModalContext";
 import { LanguageProvider } from "./context/LanguageContext";
-import EducationPortal from './pages/EducationPortal';
-import EmployeeTasks from "./pages/EmployeeTasks";
 // Staff Portal (Admin + Employee)
 import { AuthProvider } from "./context/AuthContext";
 import { CallReturnProvider } from "./context/CallReturnContext";
 import { ThemeProvider } from "./context/ThemeContext";
 import ProtectedRoute from "./components/ProtectedRoute";
-import PortalLogin from "./pages/PortalLogin";
-import ForgotPassword from "./pages/ForgotPassword";
-import ResetPassword from "./pages/ResetPassword";
-import AdminDashboard from "./pages/AdminDashboard";
-import AdminEmployeeList from "./pages/AdminEmployeeList";
-import AdminStorageStatus from "./pages/AdminStorageStatus";
-import AdminProfile from "./pages/AdminProfile";
-import AdminDataCleanup from "./pages/AdminDataCleanup";
-import AdminCertificates from "./pages/AdminCertificates";
-import AdminInvoices from "./pages/AdminInvoices";
-import AdminCalculators from "./pages/AdminCalculators";
-import AdminLetterheads from "./pages/AdminLetterheads";
-import AdminDocumentSearch from "./pages/AdminDocumentSearch";
-import AdminAttendance from "./pages/AdminAttendance";
-import AdminTargets from "./pages/AdminTargets";
-import EmployeeDashboard from "./pages/EmployeeDashboard";
-import EmployeeAttendance from "./pages/EmployeeAttendance";
-import EmployeeTargets from "./pages/EmployeeTargets";
-import EmployeeSettings from "./pages/EmployeeSettings";
-import AdminSettings from "./pages/AdminSettings";
-import EmployeeLeads from "./pages/EmployeeLeads";
-import EmployeeSalary from "./pages/EmployeeSalary";
-import AdminAnnounce from "./pages/AdminAnnounce";
-import AdminWebsite from "./pages/AdminWebsite";
-import AdminLeads from "./pages/AdminLeads";
-import AdminServices from "./pages/AdminServices";
-import AdminSalary from "./pages/AdminSalary";
-import AdminTasks from "./pages/AdminTasks";
-import AdminReports from "./pages/AdminReports";
-import AdminDocuments from "./pages/AdminDocuments";
-import AdminAccounts from "./pages/AdminAccounts";
 import AnalyticsTracker from "./components/AnalyticsTracker";
 import WebsiteNotificationPrompt from "./components/WebsiteNotificationPrompt";
-import EmployeeOnboarding from "./pages/EmployeeOnboarding";
-import EmployeeProfile from "./pages/EmployeeProfile";
-import EmployeeAchievements from "./pages/EmployeeAchievements";
-import AdminWebsiteContent from "./pages/AdminWebsiteContent";
-import AdminPipelines from "./pages/AdminPipelines";
-import AdminEmployeeProfile from "./pages/AdminEmployeeProfile";
-import AdminChat from "./pages/AdminChat";
-import AdminLeaveManagement from "./pages/AdminLeaveManagement";
-import AdminAccessControl from "./pages/AdminAccessControl";
-import EmployeeCalculators from "./pages/EmployeeCalculators";
-import EmployeeChat from "./pages/EmployeeChat";
-import EmployeeLeaveRequest from "./pages/EmployeeLeaveRequest";
-import EmployeeIDCardPage from "./pages/EmployeeIDCardPage";
-import EmployeeAgreement from "./pages/EmployeeAgreement";
-import PublicVerifyEmployee from "./pages/PublicVerifyEmployee";
-import PublicVerify from "./pages/PublicVerify";
-import InternApplicationPage from "./pages/InternApplicationPage";
-import InternshipLandingPage from "./pages/InternshipLandingPage";
-import InternshipSignup from "./pages/InternshipSignup";
-import InternshipLogin from "./pages/InternshipLogin";
-import InternshipForgotPassword from "./pages/InternshipForgotPassword";
-import InternshipResetPassword from "./pages/InternshipResetPassword";
-import StudentDashboard from "./pages/StudentDashboard";
-import StudentOnboarding from "./pages/StudentOnboarding";
-import StudentMissions from "./pages/StudentMissions";
-import TaskWorkspace from "./pages/TaskWorkspace";
-import StudentProfile from "./pages/StudentProfile";
-import InternIDCardPage from "./pages/InternIDCardPage";
-import StudentQuiz from "./pages/StudentQuiz";
-import StudentLeaderboard from "./pages/StudentLeaderboard";
-import StudentReport from "./pages/StudentReport";
-import StudentCertificate from "./pages/StudentCertificate";
-import PublicVerifyIntern from "./pages/PublicVerifyIntern";
-import AdminInternship from "./pages/AdminInternship";
 import { InternshipAuthProvider } from "./portal/student/InternshipAuthContext";
 import StudentProtectedRoute from "./portal/student/StudentProtectedRoute";
 
-import TermInsurancePage from "./pages/TermInsurancePage";
-import HealthInsurancePage from "./pages/HealthInsurancePage";
-import MotorInsurancePage from "./pages/MotorInsurancePage";
-import PartnerPage from "./pages/PartnerPage";
+
+function RouteLoadingFallback() {
+  return (
+    <div style={{ minHeight: "40vh", display: "flex", alignItems: "center", justifyContent: "center" }}>
+      <div
+        style={{
+          width: 32,
+          height: 32,
+          border: "3px solid #E2D8C2",
+          borderTopColor: "#024396",
+          borderRadius: "50%",
+          animation: "spin 0.8s linear infinite",
+        }}
+      />
+    </div>
+  );
+}
+
+
+// Route-level code splitting — each page is its own chunk, only
+// downloaded when a visitor actually navigates there. A public-site
+// visitor never triggers the Admin/Employee/Student portal chunks at all.
+const Home = lazy(() => import("./pages/Home"));
+const CareerPage = lazy(() => import("./pages/CareerPage"));
+const AboutPage = lazy(() => import("./pages/AboutPage"));
+const CalculatorsPage = lazy(() => import("./pages/CalculatorsPage"));
+const TopFundsPage = lazy(() => import("./pages/TopFundsPage"));
+const ServicesPage = lazy(() => import("./pages/ServicesPage"));
+const ReviewsPage = lazy(() => import("./pages/ReviewsPage"));
+const ContactPage = lazy(() => import("./pages/ContactPage"));
+const EducationPortal = lazy(() => import("./pages/EducationPortal"));
+const EmployeeTasks = lazy(() => import("./pages/EmployeeTasks"));
+const PortalLogin = lazy(() => import("./pages/PortalLogin"));
+const ForgotPassword = lazy(() => import("./pages/ForgotPassword"));
+const ResetPassword = lazy(() => import("./pages/ResetPassword"));
+const AdminDashboard = lazy(() => import("./pages/AdminDashboard"));
+const AdminEmployeeList = lazy(() => import("./pages/AdminEmployeeList"));
+const AdminStorageStatus = lazy(() => import("./pages/AdminStorageStatus"));
+const AdminProfile = lazy(() => import("./pages/AdminProfile"));
+const AdminDataCleanup = lazy(() => import("./pages/AdminDataCleanup"));
+const AdminCertificates = lazy(() => import("./pages/AdminCertificates"));
+const AdminInvoices = lazy(() => import("./pages/AdminInvoices"));
+const AdminCalculators = lazy(() => import("./pages/AdminCalculators"));
+const AdminLetterheads = lazy(() => import("./pages/AdminLetterheads"));
+const AdminDocumentSearch = lazy(() => import("./pages/AdminDocumentSearch"));
+const AdminAttendance = lazy(() => import("./pages/AdminAttendance"));
+const AdminTargets = lazy(() => import("./pages/AdminTargets"));
+const EmployeeDashboard = lazy(() => import("./pages/EmployeeDashboard"));
+const EmployeeAttendance = lazy(() => import("./pages/EmployeeAttendance"));
+const EmployeeTargets = lazy(() => import("./pages/EmployeeTargets"));
+const EmployeeSettings = lazy(() => import("./pages/EmployeeSettings"));
+const AdminSettings = lazy(() => import("./pages/AdminSettings"));
+const EmployeeLeads = lazy(() => import("./pages/EmployeeLeads"));
+const EmployeeSalary = lazy(() => import("./pages/EmployeeSalary"));
+const AdminAnnounce = lazy(() => import("./pages/AdminAnnounce"));
+const AdminWebsite = lazy(() => import("./pages/AdminWebsite"));
+const AdminLeads = lazy(() => import("./pages/AdminLeads"));
+const AdminServices = lazy(() => import("./pages/AdminServices"));
+const AdminSalary = lazy(() => import("./pages/AdminSalary"));
+const AdminTasks = lazy(() => import("./pages/AdminTasks"));
+const AdminReports = lazy(() => import("./pages/AdminReports"));
+const AdminDocuments = lazy(() => import("./pages/AdminDocuments"));
+const AdminAccounts = lazy(() => import("./pages/AdminAccounts"));
+const EmployeeOnboarding = lazy(() => import("./pages/EmployeeOnboarding"));
+const EmployeeProfile = lazy(() => import("./pages/EmployeeProfile"));
+const EmployeeAchievements = lazy(() => import("./pages/EmployeeAchievements"));
+const AdminWebsiteContent = lazy(() => import("./pages/AdminWebsiteContent"));
+const AdminPipelines = lazy(() => import("./pages/AdminPipelines"));
+const AdminEmployeeProfile = lazy(() => import("./pages/AdminEmployeeProfile"));
+const AdminChat = lazy(() => import("./pages/AdminChat"));
+const AdminLeaveManagement = lazy(() => import("./pages/AdminLeaveManagement"));
+const AdminAccessControl = lazy(() => import("./pages/AdminAccessControl"));
+const EmployeeCalculators = lazy(() => import("./pages/EmployeeCalculators"));
+const EmployeeChat = lazy(() => import("./pages/EmployeeChat"));
+const EmployeeLeaveRequest = lazy(() => import("./pages/EmployeeLeaveRequest"));
+const EmployeeIDCardPage = lazy(() => import("./pages/EmployeeIDCardPage"));
+const EmployeeAgreement = lazy(() => import("./pages/EmployeeAgreement"));
+const PublicVerifyEmployee = lazy(() => import("./pages/PublicVerifyEmployee"));
+const PublicVerify = lazy(() => import("./pages/PublicVerify"));
+const InternApplicationPage = lazy(() => import("./pages/InternApplicationPage"));
+const InternshipLandingPage = lazy(() => import("./pages/InternshipLandingPage"));
+const InternshipSignup = lazy(() => import("./pages/InternshipSignup"));
+const InternshipLogin = lazy(() => import("./pages/InternshipLogin"));
+const InternshipForgotPassword = lazy(() => import("./pages/InternshipForgotPassword"));
+const InternshipResetPassword = lazy(() => import("./pages/InternshipResetPassword"));
+const StudentDashboard = lazy(() => import("./pages/StudentDashboard"));
+const StudentOnboarding = lazy(() => import("./pages/StudentOnboarding"));
+const StudentMissions = lazy(() => import("./pages/StudentMissions"));
+const TaskWorkspace = lazy(() => import("./pages/TaskWorkspace"));
+const StudentProfile = lazy(() => import("./pages/StudentProfile"));
+const InternIDCardPage = lazy(() => import("./pages/InternIDCardPage"));
+const StudentQuiz = lazy(() => import("./pages/StudentQuiz"));
+const StudentLeaderboard = lazy(() => import("./pages/StudentLeaderboard"));
+const StudentReport = lazy(() => import("./pages/StudentReport"));
+const StudentCertificate = lazy(() => import("./pages/StudentCertificate"));
+const PublicVerifyIntern = lazy(() => import("./pages/PublicVerifyIntern"));
+const AdminInternship = lazy(() => import("./pages/AdminInternship"));
+const TermInsurancePage = lazy(() => import("./pages/TermInsurancePage"));
+const HealthInsurancePage = lazy(() => import("./pages/HealthInsurancePage"));
+const MotorInsurancePage = lazy(() => import("./pages/MotorInsurancePage"));
+const PartnerPage = lazy(() => import("./pages/PartnerPage"));
 
 function App() {
   return (
@@ -106,6 +128,7 @@ function App() {
             <BrowserRouter>
               <AnalyticsTracker />
               <WebsiteNotificationPrompt />
+              <Suspense fallback={<RouteLoadingFallback />}>
               <Routes>
                 {/* 🏠 Main Homepage */}
                 <Route path="/" element={<Home />} />
@@ -602,6 +625,7 @@ element={
                     the /about-us/ bug report. */}
                 <Route path="*" element={<Navigate to="/" replace />} />
               </Routes>
+              </Suspense>
             </BrowserRouter>
             <Toaster
               position="bottom-center"
