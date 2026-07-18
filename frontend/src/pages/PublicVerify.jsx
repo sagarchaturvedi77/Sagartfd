@@ -3,6 +3,7 @@ import { useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
 import { Search, CheckCircle2, XCircle, ShieldCheck, RefreshCw, ChevronDown, ChevronUp, ClipboardList, NotebookPen, Award, Mail } from "lucide-react";
 import { openCashfreeCheckout } from "../lib/cashfree";
+import SEO from "../components/SEO";
 
 const API_BASE = process.env.REACT_APP_BACKEND_URL || "";
 const LOGO_URL = "/assets/logos/TFD-MAIN-LOGO.png";
@@ -71,6 +72,12 @@ export default function PublicVerify() {
 
   return (
     <div className="min-h-screen bg-[#F5F1EB] flex flex-col items-center px-4 py-10">
+      <SEO
+        title="The Financial Doctor | Verify Certificate / Employee ID"
+        description="Verify authenticity of TFD certificates, internship letters, and employee IDs."
+        keywords="verify certificate, verify employee ID, TFD certificate verification"
+        path="/verify"
+      />
       <div className="w-full max-w-md">
         <div className="text-center mb-6">
           <img src={LOGO_URL} alt="The Financial Doctor" className="h-16 mx-auto rounded-xl object-contain mb-3" />

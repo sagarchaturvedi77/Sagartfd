@@ -1,4 +1,5 @@
 import React from "react";
+import SEO from "@/components/SEO";
 import Navbar from "@/components/Navbar";
 import TopFunds from "@/components/TopFunds";
 import Footer from "@/components/Footer";
@@ -42,6 +43,12 @@ const fundsFAQ = {
 export default function TopFundsPage() {
   return (
     <div className="relative" data-testid="top-funds-page-root">
+      <SEO
+        title="The Financial Doctor | Top Mutual Funds & Returns - Compare & Invest"
+        description="Explore top-performing mutual funds across Large Cap, Mid Cap, Small Cap, Flexi Cap, ELSS, Debt & Hybrid categories — live returns, fund comparison, and expert-picked schemes to invest in."
+        keywords="top mutual funds, best mutual funds India, mutual fund returns, compare mutual funds, large cap fund, small cap fund, ELSS fund, debt fund, hybrid fund"
+        path="/top-funds"
+      />
       <Navbar />
       <main className="pt-24">
         <TopFunds />

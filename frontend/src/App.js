@@ -89,11 +89,10 @@ import AdminInternship from "./pages/AdminInternship";
 import { InternshipAuthProvider } from "./portal/student/InternshipAuthContext";
 import StudentProtectedRoute from "./portal/student/StudentProtectedRoute";
 
-// 🩺 TEMPORARY PLACEHOLDERS (Design ready hone par inhe alag files me daal denge)
-const TermInsurancePage = () => <div className="min-h-screen bg-[#FBF7EE] p-20 text-center text-3xl font-serif">Term Insurance Solutions (Coming Soon)</div>;
-const HealthInsurancePage = () => <div className="min-h-screen bg-[#FBF7EE] p-20 text-center text-3xl font-serif">Health Insurance (Mediclaim) (Coming Soon)</div>;
-const MotorInsurancePage = () => <div className="min-h-screen bg-[#FBF7EE] p-20 text-center text-3xl font-serif">Motor (Car/Bike) Insurance (Coming Soon)</div>;
-const PartnerPage = () => <div className="min-h-screen bg-[#FBF7EE] p-20 text-center text-3xl font-serif">Partner With TFD Team (Coming Soon)</div>;
+import TermInsurancePage from "./pages/TermInsurancePage";
+import HealthInsurancePage from "./pages/HealthInsurancePage";
+import MotorInsurancePage from "./pages/MotorInsurancePage";
+import PartnerPage from "./pages/PartnerPage";
 
 function App() {
   return (

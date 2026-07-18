@@ -1,4 +1,5 @@
 import React from "react";
+import SEO from "@/components/SEO";
 import Navbar from "@/components/Navbar";
 import Reviews from "@/components/Reviews";
 import Footer from "@/components/Footer";
@@ -32,6 +33,12 @@ const reviewsFAQ = {
 export default function ReviewsPage() {
   return (
     <div className="relative" data-testid="reviews-page-root">
+      <SEO
+        title="The Financial Doctor | Client Reviews & Testimonials"
+        description="See what our clients say about mutual fund and insurance advisory with The Financial Doctor — real reviews from real investors."
+        keywords="mutual fund advisor reviews, financial advisor testimonials, best insurance advisor"
+        path="/reviews"
+      />
       <Navbar />
       <main className="pt-24">
         <Reviews />

@@ -1,4 +1,5 @@
 import React from "react";
+import SEO from "@/components/SEO";
 import Navbar from "@/components/Navbar";
 import Services from "@/components/Services";
 import Footer from "@/components/Footer";
@@ -83,6 +84,12 @@ const servicesFAQ = {
 export default function ServicesPage() {
   return (
     <div className="relative" data-testid="services-page-root">
+      <SEO
+        title="The Financial Doctor | Mutual Fund & Insurance Services"
+        description="Our services — Mutual Fund investment advisory, SIP planning, Term Insurance, Health Insurance, Motor Insurance, and complete financial planning under one roof."
+        keywords="term insurance plan, health insurance policy, motor insurance, car insurance, two wheeler insurance, life insurance, best insurance advisor, mutual fund advisor"
+        path="/services"
+      />
       <Navbar />
       <main className="pt-24">
         <Services />

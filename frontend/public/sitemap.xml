@@ -9,12 +9,12 @@
   <url>
     <loc>https://thefinancialdoctor.in/about</loc>
     <changefreq>monthly</changefreq>
-    <priority>0.8</priority>
+    <priority>0.7</priority>
   </url>
   <url>
     <loc>https://thefinancialdoctor.in/contact</loc>
     <changefreq>monthly</changefreq>
-    <priority>0.8</priority>
+    <priority>0.6</priority>
   </url>
   <url>
     <loc>https://thefinancialdoctor.in/services</loc>
@@ -24,12 +24,17 @@
   <url>
     <loc>https://thefinancialdoctor.in/reviews</loc>
     <changefreq>weekly</changefreq>
-    <priority>0.8</priority>
+    <priority>0.7</priority>
   </url>
   <url>
     <loc>https://thefinancialdoctor.in/career</loc>
-    <changefreq>monthly</changefreq>
+    <changefreq>weekly</changefreq>
     <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://thefinancialdoctor.in/partner-with-us</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
   </url>
 
   <!-- Top Funds Page -->
@@ -39,31 +44,48 @@
     <priority>0.9</priority>
   </url>
 
+  <!-- Insurance Pages -->
+  <url>
+    <loc>https://thefinancialdoctor.in/term-insurance</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.9</priority>
+  </url>
+  <url>
+    <loc>https://thefinancialdoctor.in/health-insurance</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.9</priority>
+  </url>
+  <url>
+    <loc>https://thefinancialdoctor.in/motor-insurance</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.9</priority>
+  </url>
+
   <!-- Main Calculators Page -->
   <url>
     <loc>https://thefinancialdoctor.in/calculators</loc>
     <changefreq>weekly</changefreq>
-    <priority>0.9</priority>
+    <priority>1.0</priority>
   </url>
 
-  <!-- All Calculator Dynamic Pages -->
+  <!-- All Calculator Dynamic Pages (must match Calculators.jsx's actual tab ids) -->
   <url>
     <loc>https://thefinancialdoctor.in/calculators/sip</loc>
     <changefreq>monthly</changefreq>
-    <priority>0.8</priority>
+    <priority>0.9</priority>
+  </url>
+  <url>
+    <loc>https://thefinancialdoctor.in/calculators/daily</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
   </url>
   <url>
     <loc>https://thefinancialdoctor.in/calculators/lumpsum</loc>
     <changefreq>monthly</changefreq>
-    <priority>0.8</priority>
+    <priority>0.9</priority>
   </url>
   <url>
-    <loc>https://thefinancialdoctor.in/calculators/retirement</loc>
-    <changefreq>monthly</changefreq>
-    <priority>0.8</priority>
-  </url>
-  <url>
-    <loc>https://thefinancialdoctor.in/calculators/emi</loc>
+    <loc>https://thefinancialdoctor.in/calculators/swp</loc>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
@@ -73,13 +95,44 @@
     <priority>0.8</priority>
   </url>
   <url>
+    <loc>https://thefinancialdoctor.in/calculators/emi</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.9</priority>
+  </url>
+  <url>
     <loc>https://thefinancialdoctor.in/calculators/tax</loc>
     <changefreq>monthly</changefreq>
-    <priority>0.8</priority>
+    <priority>0.9</priority>
   </url>
   <url>
     <loc>https://thefinancialdoctor.in/calculators/gst</loc>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://thefinancialdoctor.in/calculators/inflation</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+
+  <!-- Internship Program -->
+  <url>
+    <loc>https://thefinancialdoctor.in/internship</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+
+  <!-- Research & Learning Hub -->
+  <url>
+    <loc>https://thefinancialdoctor.in/research-learning-hub</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+
+  <!-- Certificate / ID Verification -->
+  <url>
+    <loc>https://thefinancialdoctor.in/verify</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.4</priority>
   </url>
 </urlset>

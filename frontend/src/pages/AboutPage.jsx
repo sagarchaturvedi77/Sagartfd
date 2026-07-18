@@ -1,4 +1,5 @@
 import React from "react";
+import SEO from "@/components/SEO";
 import Navbar from "@/components/Navbar";
 import About from "@/components/About";
 import Footer from "@/components/Footer";
@@ -53,6 +54,12 @@ const aboutFAQ = {
 export default function AboutPage() {
   return (
     <div className="relative" data-testid="about-page-root">
+      <SEO
+        title="The Financial Doctor | About Us - Financial Advisory"
+        description="Meet The Financial Doctor — an AMFI-registered mutual fund and insurance advisory led by Sagar Chaturvedi, built on transparent, goal-based financial planning."
+        keywords="financial advisor India, mutual fund advisor, about The Financial Doctor"
+        path="/about"
+      />
       <Navbar />
       <main className="pt-24">
         <About />

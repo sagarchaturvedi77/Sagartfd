@@ -1,0 +1,11 @@
+User-agent: *
+Allow: /
+
+# Authenticated staff/student portal areas — no public SEO value, and
+# everything past the login screen requires auth anyway, so crawling them
+# just wastes crawl budget on pages Google could never actually see.
+Disallow: /portal/admin
+Disallow: /portal/employee
+Disallow: /portal/student
+
+Sitemap: https://thefinancialdoctor.in/sitemap.xml

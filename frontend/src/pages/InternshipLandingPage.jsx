@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
+import SEO from "../components/SEO";
 import {
   ArrowLeft, ArrowUpRight, ShieldCheck, MapPinned, FileCheck2,
   TrendingUp, Landmark, Megaphone, Heart, Star, Users2,
@@ -391,6 +392,13 @@ export default function InternshipLandingPage() {
 
   return (
     <div className="min-h-screen bg-[#050B16] text-white overflow-x-hidden relative">
+      <SEO
+        title="The Financial Doctor | Internship Program - Finance, HR, Marketing, Sales"
+        description="90-day gamified internship program — real corporate experience in Finance, HR, Marketing, and Sales. Certificate + Letter of Recommendation."
+        keywords="internship finance, internship near me, summer internship, internship certificate, internship in mutual fund company, HR internship, sales internship, marketing internship"
+        path="/internship"
+        ogImage={`https://thefinancialdoctor.in${INTERNSHIP_LOGO_URL}`}
+      />
       <NetworkBackground />
 
       <div className="relative z-10">

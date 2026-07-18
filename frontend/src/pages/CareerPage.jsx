@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { Upload, CheckCircle, Briefcase, Award, ArrowUpRight, ArrowLeft, ChevronLeft, Users, ShieldCheck, TrendingUp, Clock, Check } from "lucide-react";
 import { toast } from "sonner";
 import { useSubmitOnce } from "../lib/useSubmitOnce";
+import SEO from "../components/SEO";
 
 const LOGO_URL = "https://customer-assets.emergentagent.com/job_advisor-phase4-build/artifacts/buhrts3f_IMG_2870.png";
 
@@ -237,6 +238,13 @@ export default function CareerPage() {
 
   return (
     <div className="min-h-screen bg-[#FBF7EE] py-8 px-4 sm:px-6 lg:px-8">
+      <SEO
+        title="The Financial Doctor | Careers & Job Openings"
+        description="Job opportunities at The Financial Doctor — Sales, Marketing, Finance, and HR roles in Sehore, MP. Apply for jobs in the financial services sector."
+        keywords="jobs near me, financial services jobs, sales job, career opportunities, job openings finance sector"
+        path="/career"
+        ogImage="https://thefinancialdoctor.in/assets/logos/TFD-WORKSPACE-LOGO.png"
+      />
       <div className="max-w-3xl mx-auto">
         <div className="flex items-center justify-between border-b border-[#E2D8C2] pb-5 mb-8">
           <a href="/" className="flex items-center gap-3 group">

@@ -1,4 +1,5 @@
 import React from "react";
+import SEO from "@/components/SEO";
 import Navbar from "@/components/Navbar";
 import Contact from "@/components/Contact";
 import Footer from "@/components/Footer";
@@ -35,6 +36,12 @@ const contactFAQ = {
 export default function ContactPage() {
   return (
     <div className="relative" data-testid="contact-page-root">
+      <SEO
+        title="The Financial Doctor | Contact Us"
+        description="Get in touch with The Financial Doctor for mutual fund, SIP, and insurance advisory — free first consultation, quick response over call, WhatsApp, or email."
+        keywords="contact financial advisor, mutual fund advisor near me, free consultation"
+        path="/contact"
+      />
       <Navbar />
       <main className="pt-24">
         <Contact />

@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
+import SEO from "../components/SEO";
 import BrandLogo from "../components/BrandLogo";
 import WelcomeAnimation from "../components/WelcomeAnimation";
 import { Input } from "../components/ui/input";
@@ -47,6 +48,7 @@ export default function PortalLogin() {
 
   return (
     <>
+      <SEO title="The Financial Doctor | Employee Portal Login" path="/portal/login" />
       {showWelcome && (
         <WelcomeAnimation userName={loggedInUser?.name} onComplete={handleWelcomeComplete} />
       )}

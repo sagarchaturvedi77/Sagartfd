@@ -1,5 +1,6 @@
 import React, { useState, useRef } from "react";
 import jsPDF from "jspdf";
+import SEO from "@/components/SEO";
 
 /* ============================================================
    TFD RESEARCH LEARNING HUB — Educational Subscription Page
@@ -180,6 +181,12 @@ export default function EducationPortal() {
 
     return (
         <div className="min-h-screen bg-[#0A0F1E] text-[#E9ECF1]">
+            <SEO
+                title="The Financial Doctor | Research & Learning Hub"
+                description="Stock market research and learning resources from The Financial Doctor — educational content on investing, financial planning, and market fundamentals."
+                keywords="stock market learning, financial education India, investing basics"
+                path="/research-learning-hub"
+            />
             {/* ===== Top SEBI strip ===== */}
             <div className="bg-[#C7102E] text-white text-center text-[12px] sm:text-[13px] font-medium py-2 px-4">
                 Educational content only — Not investment advice. Stock market investments are subject to market risk.

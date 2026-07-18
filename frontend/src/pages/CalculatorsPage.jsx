@@ -1,5 +1,6 @@
-import React, { useEffect } from "react";
+import React from "react";
 import { useParams } from "react-router-dom"; // 👈 useParams ko import kiya
+import SEO from "@/components/SEO";
 import Navbar from "@/components/Navbar";
 import Calculators from "@/components/Calculators";
 import Footer from "@/components/Footer";
@@ -7,13 +8,21 @@ import FloatingActions from "@/components/FloatingActions";
 import FAQSection from "@/components/FAQSection";
 import LanguageToggle from "@/components/LanguageToggle";
 
+// Kept in sync with the real tab ids in components/Calculators.jsx (sip,
+// daily, lumpsum, swp, goal, emi, tax, gst, inflation) — every H3 heading
+// below is real, crawlable text naming the actual calculator, and each
+// title/description pair also doubles as the per-type SEO copy so a search
+// for any one of these calculators can land directly on this page.
 const calcInfo = [
-  { title: "SIP Calculator", text: "Estimate the future value of your monthly SIP investments based on expected annual returns and investment duration." },
-  { title: "Lumpsum Calculator", text: "See how a one-time investment can grow over the years with the power of compounding." },
-  { title: "Retirement Calculator", text: "Find out how much corpus you'll need to maintain your lifestyle after retirement, adjusted for inflation." },
-  { title: "EMI Calculator", text: "Calculate your monthly loan EMI for home, car, or personal loans before you commit." },
-  { title: "Goal Planning Calculator", text: "Reverse-calculate the monthly SIP needed to hit a specific future goal amount, like a child's education fund." },
-  { title: "Tax Saving Calculator", text: "Compare old vs new tax regime and estimate potential savings through 80C investments." },
+  { id: "sip", title: "SIP Calculator", text: "Estimate the future value of your monthly SIP investments based on expected annual returns and investment duration.", description: "Free SIP Calculator — estimate the future value of your monthly SIP investment with expected returns, powered by The Financial Doctor's mutual fund advisory." },
+  { id: "daily", title: "Daily SIP Calculator", text: "See how small daily investments compound into a large corpus over time — a lighter alternative to a monthly SIP.", description: "Free Daily SIP Calculator — project how small daily mutual fund investments grow over time with compounding." },
+  { id: "lumpsum", title: "Lumpsum Calculator", text: "See how a one-time investment can grow over the years with the power of compounding.", description: "Free Lumpsum Calculator — see how a one-time mutual fund investment can grow over the years with compounding." },
+  { id: "swp", title: "SWP Calculator", text: "Plan a Systematic Withdrawal Plan — see how long your corpus lasts with regular withdrawals and expected returns.", description: "Free SWP (Systematic Withdrawal Plan) Calculator — plan regular withdrawals from your mutual fund corpus and see how long it lasts." },
+  { id: "goal", title: "Goal Planning Calculator", text: "Reverse-calculate the monthly SIP needed to hit a specific future goal amount, like a child's education fund.", description: "Free Goal-Based Investment Calculator — work out the monthly SIP needed to reach any future financial goal." },
+  { id: "emi", title: "EMI / Loan Calculator", text: "Calculate your monthly loan EMI for home, car, or personal loans before you commit.", description: "Free EMI Calculator — calculate your monthly loan EMI for home, car, or personal loans instantly." },
+  { id: "tax", title: "Income Tax Calculator", text: "Compare old vs new tax regime and estimate potential savings through 80C investments.", description: "Free Income Tax Calculator — compare Old vs New tax regime and estimate your savings through 80C investments." },
+  { id: "gst", title: "GST Calculator", text: "Quickly work out GST-inclusive or GST-exclusive amounts for any transaction.", description: "Free GST Calculator online — instantly calculate GST-inclusive or GST-exclusive amounts." },
+  { id: "inflation", title: "Future Goal (Inflation) Calculator", text: "See what today's goal amount will really cost in the future once inflation is factored in.", description: "Free Future Goal Calculator — see what your financial goal will really cost after adjusting for inflation." },
 ];
 
 const calcFAQ = {
@@ -37,26 +46,23 @@ const calcFAQ = {
   ],
 };
 
+const DEFAULT_SEO = {
+  title: "The Financial Doctor | SIP, Tax, Loan & EMI Calculator - Free Online Tools",
+  description: "Free online calculators — SIP Calculator, Income Tax Calculator, EMI/Loan Calculator, Lumpsum Calculator, SWP Calculator, GST Calculator, Goal Planner — all in one place, instant results.",
+  keywords: "SIP calculator, EMI calculator, loan calculator, income tax calculator, lumpsum calculator, SWP calculator, GST calculator online, mutual fund calculator, goal based investment calculator",
+};
+
 export default function CalculatorsPage() {
   // 1. URL parameter ko read karega (jaise 'sip', 'gst', 'loan-emi')
-  const { calculatorType } = useParams(); 
-
-  // 2. Dynamic SEO Title Setup: Jaise hi URL badlega, browser ka title badal jayega!
-  useEffect(() => {
-    if (calculatorType) {
-      // Slugs ko clean karke achha dikhane ke liye (e.g. loan-emi -> Loan Emi)
-      const cleanTitle = calculatorType
-        .split("-")
-        .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-        .join(" ");
-      document.title = `${cleanTitle} Calculator - The Financial Doctor`;
-    } else {
-      document.title = "Online Financial Calculators - The Financial Doctor";
-    }
-  }, [calculatorType]);
+  const { calculatorType } = useParams();
+  const match = calcInfo.find((c) => c.id === calculatorType);
+  const seo = match
+    ? { title: `${match.title} - Free Online Tool | The Financial Doctor`, description: match.description, keywords: DEFAULT_SEO.keywords }
+    : DEFAULT_SEO;
 
   return (
     <div className="relative" data-testid="calculators-page-root">
+      <SEO title={seo.title} description={seo.description} keywords={seo.keywords} path={`/calculators${calculatorType ? `/${calculatorType}` : ""}`} />
       <Navbar />
       <main className="pt-24">
         {/* 3. Hum activeType prop ke roop me calculatorType bhej rahe hain */}
