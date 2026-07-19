@@ -4,17 +4,14 @@
 // for the internship section.
 export async function onRequest(context) {
   const { request, env } = context;
-  const url = new URL(request.url);
-  const indexRequest = new Request(new URL("/index.html", url.origin).toString(), request);
-  const assetResponse = await env.ASSETS.fetch(indexRequest);
-  const html = await assetResponse.text();
-  return new Response(html, {
-    status: 200,
-    headers: {
-      "Content-Type": "text/html; charset=utf-8",
-      "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0",
-      "CDN-Cache-Control": "no-store",
-      "Pragma": "no-cache",
-    },
-  });
+  const origin = new URL(request.url).origin;
+  const assetResponse = await env.ASSETS.fetch(origin + "/index.html");
+  const headers = new Headers(assetResponse.headers);
+  headers.set("Content-Type", "text/html; charset=utf-8");
+  headers.set("Cache-Control", "no-store, no-cache, must-revalidate, max-age=0");
+  headers.set("CDN-Cache-Control", "no-store");
+  headers.set("Pragma", "no-cache");
+  headers.delete("ETag");
+  headers.delete("Last-Modified");
+  return new Response(assetResponse.body, { status: 200, headers });
 }
