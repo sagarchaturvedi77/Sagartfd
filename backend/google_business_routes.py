@@ -21,8 +21,9 @@ STATE_SETTINGS_ID = "google_business_oauth_state"
 
 @router.get("/status")
 async def status(_admin: dict = Depends(require_admin)):
-    if not gb.google_business_configured():
-        return {"connected": False, "configured": False, "reason": "GOOGLE_OAUTH_CLIENT_ID/SECRET or BACKEND_PUBLIC_URL not set"}
+    missing = gb.missing_config_vars()
+    if missing:
+        return {"connected": False, "configured": False, "missing_env_vars": missing}
     result = await gb.get_connection_status()
     result["configured"] = True
     return result

@@ -182,7 +182,10 @@ export default function AdminSettings() {
           {gbLoading ? (
             <p className="text-xs text-[#5C677D] dark:text-[#8E99AC]">Checking connection status...</p>
           ) : gbStatus?.configured === false ? (
-            <p className="text-xs text-amber-600 dark:text-amber-400">Not set up yet — GOOGLE_OAUTH_CLIENT_ID/SECRET aren't configured on the backend.</p>
+            <p className="text-xs text-amber-600 dark:text-amber-400">
+              Not set up yet — the backend can't see: <strong>{(gbStatus.missing_env_vars || []).join(", ") || "GOOGLE_OAUTH_CLIENT_ID/SECRET"}</strong>.
+              Check these are set in Render's Environment tab on the exact service serving this API, then redeploy.
+            </p>
           ) : gbStatus?.connected ? (
             <div className="flex flex-col gap-2">
               <p className="text-xs text-green-600 dark:text-green-400">

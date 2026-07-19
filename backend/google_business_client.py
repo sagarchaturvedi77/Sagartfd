@@ -49,6 +49,21 @@ def google_business_configured() -> bool:
     return bool(GOOGLE_OAUTH_CLIENT_ID and GOOGLE_OAUTH_CLIENT_SECRET and BACKEND_PUBLIC_URL)
 
 
+def missing_config_vars() -> list[str]:
+    """Named so a "not configured" admin-settings message can say exactly
+    which variable is absent, instead of a generic message that leaves the
+    actual cause (typo'd name, wrong service, stale process, ...) a guessing
+    game between three separate variables."""
+    missing = []
+    if not GOOGLE_OAUTH_CLIENT_ID:
+        missing.append("GOOGLE_OAUTH_CLIENT_ID")
+    if not GOOGLE_OAUTH_CLIENT_SECRET:
+        missing.append("GOOGLE_OAUTH_CLIENT_SECRET")
+    if not BACKEND_PUBLIC_URL:
+        missing.append("BACKEND_PUBLIC_URL")
+    return missing
+
+
 def build_authorize_url(state: str) -> str:
     params = {
         "client_id": GOOGLE_OAUTH_CLIENT_ID,
