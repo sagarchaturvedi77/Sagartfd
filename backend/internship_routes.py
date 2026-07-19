@@ -2569,6 +2569,83 @@ async def _get_or_generate_quiz_set(student: dict, week_number: int, force_new: 
     return questions, now_iso
 
 
+_STUDY_MATERIAL_SYSTEM_PROMPT = """You write a short study/reference sheet (Markdown) preparing a student
+for a quiz on the SPECIFIC tasks they were just assigned this week — not a generic subject primer.
+Cover, using the task briefs given: (1) the key formulas/frameworks/steps actually needed to do these
+exact tasks, (2) 1-2 short worked mini-examples illustrating the trickiest part of each task, (3) common
+mistakes to avoid (use each task's own "why it matters"/mistake notes if given). Keep it tight and
+skimmable — headings, bullet points, short worked numbers — not paragraphs of prose. Do not invent tasks
+that weren't given. Output ONLY the Markdown content, no commentary before or after."""
+
+
+async def _generate_study_material(tasks: list[dict]) -> str:
+    if not tasks:
+        return ""
+    prompt_input = "\n\n---\n\n".join(
+        f"TASK: {t.get('title')}\nBrief: {t.get('brief')}\nWhy it matters: {t.get('why_it_matters') or ''}\n"
+        f"Common mistake: {t.get('mistake_explanation') or ''}"
+        for t in tasks
+    )
+    text_out = await _call_gemini(_STUDY_MATERIAL_SYSTEM_PROMPT, prompt_input, temperature=0.3)
+    return (text_out or "").strip()
+
+
+async def _get_or_generate_study_material(student: dict, week_number: int) -> str:
+    """Cached per (student, week) on student.study_material.{week} — same
+    lazy-once pattern as _assign_week_tasks/_get_or_generate_quiz_set, keyed
+    off that week's actual assigned tasks (post-randomization, so the
+    scenario the student was given matches what the notes reference)."""
+    key = str(week_number)
+    cached = (student.get("study_material") or {}).get(key)
+    if cached:
+        return cached
+
+    tasks = await _assign_week_tasks(student, week_number)
+    tasks = [_randomize_task_for_student(t, student["id"]) for t in tasks]
+    material = await _generate_study_material(tasks)
+    if not material:
+        material = "Study material couldn't be generated right now — re-open this tab to try again, or go ahead and start the quiz using what you learned while completing this week's tasks."
+
+    await internship_students_collection.update_one(
+        {"id": student["id"]},
+        {"$set": {f"study_material.{key}": material, "updated_at": datetime.now(timezone.utc)}},
+    )
+    return material
+
+
+@router.get("/study-material/current")
+async def get_current_study_material(payload: dict = Depends(get_current_student_payload)):
+    student = await internship_students_collection.find_one({"id": payload["sub"]})
+    if not student:
+        raise HTTPException(status_code=404, detail="Student profile not found")
+    if not student.get("track"):
+        raise HTTPException(status_code=400, detail="Please select a track first")
+    current_day, current_week_by_days = _compute_progress(student)
+    if current_week_by_days == 0:
+        return {"week_number": 0, "content": "", "viewed": False}
+
+    effective_week, _ = await _effective_unlocked_week(student, current_week_by_days)
+    content = await _get_or_generate_study_material(student, effective_week)
+    viewed = bool((student.get("study_material_viewed") or {}).get(str(effective_week)))
+    return {"week_number": effective_week, "content": content, "viewed": viewed}
+
+
+@router.post("/study-material/mark-viewed")
+async def mark_study_material_viewed(payload: dict = Depends(get_current_student_payload)):
+    student = await internship_students_collection.find_one({"id": payload["sub"]})
+    if not student:
+        raise HTTPException(status_code=404, detail="Student profile not found")
+    current_day, current_week_by_days = _compute_progress(student)
+    if current_week_by_days == 0:
+        return {"ok": True}
+    effective_week, _ = await _effective_unlocked_week(student, current_week_by_days)
+    await internship_students_collection.update_one(
+        {"id": student["id"]},
+        {"$set": {f"study_material_viewed.{effective_week}": True, "updated_at": datetime.now(timezone.utc)}},
+    )
+    return {"ok": True}
+
+
 @router.get("/quiz/current")
 async def get_current_quiz(reset: bool = Query(default=False), payload: dict = Depends(get_current_student_payload)):
     student = await internship_students_collection.find_one({"id": payload["sub"]})
@@ -2582,6 +2659,18 @@ async def get_current_quiz(reset: bool = Query(default=False), payload: dict = D
 
     effective_week, _ = await _effective_unlocked_week(student, current_week_by_days)
     already_passed = await _week_quiz_passed(student["id"], effective_week)
+
+    if not already_passed:
+        # Backend-enforced version of the Study Material gate — the
+        # frontend also blocks the "Start Quiz" button, but this stops the
+        # timer-starting quiz-set generation below from ever running via a
+        # direct API call before the student has opened this week's notes.
+        viewed = bool((student.get("study_material_viewed") or {}).get(str(effective_week)))
+        if not viewed:
+            return {
+                "week_number": effective_week, "questions": [], "already_passed": False,
+                "study_material_required": True,
+            }
 
     questions_full, started_at = await _get_or_generate_quiz_set(student, effective_week, force_new=reset)
     questions = [

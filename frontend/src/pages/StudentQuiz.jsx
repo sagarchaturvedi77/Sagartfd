@@ -45,6 +45,10 @@ export default function StudentQuiz() {
 
     useEffect(() => { load(); }, [load]);
 
+    useEffect(() => {
+        if (quiz?.study_material_required) navigate("/portal/student/study-material");
+    }, [quiz, navigate]);
+
     const submit = useCallback(async (autoFailed = false) => {
         if (submittedRef.current || !quiz?.questions?.length) return;
         submittedRef.current = true;
@@ -129,6 +133,14 @@ export default function StudentQuiz() {
         return (
             <StudentLayout activeKey="missions">
                 <div className="text-white/50 text-sm">Loading quiz...</div>
+            </StudentLayout>
+        );
+    }
+
+    if (quiz?.study_material_required) {
+        return (
+            <StudentLayout activeKey="missions">
+                <div className="text-white/50 text-sm">Redirecting to this week's study material...</div>
             </StudentLayout>
         );
     }

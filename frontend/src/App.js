@@ -108,6 +108,7 @@ const TaskWorkspace = lazy(() => import("./pages/TaskWorkspace"));
 const StudentProfile = lazy(() => import("./pages/StudentProfile"));
 const InternIDCardPage = lazy(() => import("./pages/InternIDCardPage"));
 const StudentQuiz = lazy(() => import("./pages/StudentQuiz"));
+const StudentStudyMaterial = lazy(() => import("./pages/StudentStudyMaterial"));
 const StudentLeaderboard = lazy(() => import("./pages/StudentLeaderboard"));
 const StudentReport = lazy(() => import("./pages/StudentReport"));
 const StudentCertificate = lazy(() => import("./pages/StudentCertificate"));
@@ -571,6 +572,14 @@ element={
                   element={
                     <StudentProtectedRoute>
                       <StudentQuiz />
+                    </StudentProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/portal/student/study-material"
+                  element={
+                    <StudentProtectedRoute>
+                      <StudentStudyMaterial />
                     </StudentProtectedRoute>
                   }
                 />
