@@ -1458,6 +1458,7 @@ async def _to_task_pool_out(doc: dict) -> TaskPoolOut:
         # matching English-locked restriction.
         hints=None if is_blindfold else doc.get("hints"),
         sample_solution=None if is_blindfold else doc.get("sample_solution"),
+        interactive_tool=doc.get("interactive_tool"), tool_seed_data=doc.get("tool_seed_data"),
     )
 
 

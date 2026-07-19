@@ -958,6 +958,64 @@ MARKETING_TASKS = [
                                 "objective like 'increase awareness' with no measurable target is functionally "
                                 "impossible to grade as successful or not.",
     },
+
+    # Interactive tool task — a real ad-copy + audience-targeting workspace,
+    # for a fictional brand. No real audience is ever targeted and nothing
+    # is published anywhere; the tool just structures the creative brief.
+    # deliverable_type stays "text": graded by the same AI text grader as
+    # every other Marketing task.
+    {
+        "track": "marketing", "title": "Launch Your First Ad Campaign Brief", "phase": 1, "is_blindfold": False,
+        "difficulty": "medium", "points_value": 90, "deliverable_type": "text", "requires_geotag": False,
+        "estimated_duration": "2-2.5 hours",
+        "interactive_tool": "ad_copy_workspace",
+        "tool_seed_data": {
+            "company": "Nimbus Home Decor",
+            "campaign_brief": "New festive-season home decor collection launch — cushions, wall art, and lighting.",
+            "audience_options": {
+                "age": ["18-24", "25-34", "35-44", "45+"],
+                "income": ["Budget-conscious", "Mid-income", "Premium"],
+                "location": ["Metro cities", "Tier-2 cities", "Pan-India"],
+            },
+        },
+        "brief": (
+            "Nimbus Home Decor (fictional e-commerce brand) is launching a festive-season collection. Use the "
+            "workspace below to write 3 ad hooks/headlines, a short caption for each, and select the audience "
+            "targeting (age, income group, location) you'd actually run this to."
+        ),
+        "why_it_matters": (
+            "Writing a hook that stops someone mid-scroll, then pairing it with audience targeting that actually "
+            "matches who'd care about that hook, is the entire job of a performance-marketing creative role — "
+            "most campaigns fail on the hook and the targeting, not the product itself."
+        ),
+        "instructions": (
+            "Step 1: Write 3 different hook/headline options for the same collection — vary the angle (e.g. one "
+            "price-led, one aspirational/lifestyle-led, one urgency-led) rather than writing 3 versions of the "
+            "same idea.\n"
+            "Step 2: Write a 1-2 line caption to go with each hook.\n"
+            "Step 3: Select the audience (age, income group, location) you'd target for this campaign, and note "
+            "in your answer WHY that audience fits a festive home-decor collection specifically.\n"
+            "Step 4: In the answer box, write 150+ words explaining which of your 3 hooks you'd lead with as the "
+            "primary ad and why, and how you'd know within the first week if it was working."
+        ),
+        "hints": [
+            "Hint 1: A hook that could apply to literally any product (\"Shop Now!\", \"Limited Time Offer!\") "
+            "isn't doing its job — a good hook is specific to what makes THIS collection worth stopping for.",
+            "Hint 2: Festive home decor skews toward people who already own a home/rent long-term and have "
+            "some discretionary spend — think about what age/income combination that actually points to.",
+            "Hint 3: 'How you'd know if it was working' should name an actual number (click-through rate, cost "
+            "per lead, add-to-cart rate) — not just 'if people like it.'",
+        ],
+        "sample_solution": (
+            "Worked example for a different product (a budget fitness tracker): Hook A (price-led): 'Rs 1,499. "
+            "One month of data. Zero excuses.' Hook B (lifestyle-led): 'The tracker that fits the plan you "
+            "actually keep.' Hook C (urgency-led): 'Festive price ends Sunday — your next streak starts Monday.' "
+            "Audience: 22-34, budget-conscious to mid-income, Tier-2 + metro — first-time fitness buyers, not "
+            "serious athletes who'd want premium features. Primary pick reasoning: Hook A tests best for a "
+            "budget-positioned product because price IS the differentiator here — the written answer should say "
+            "that explicitly, not just declare a favorite."
+        ),
+    },
 ]
 
 
@@ -1744,6 +1802,71 @@ SALES_TASKS = [
             "wrong target market or a channel that never had a real chance of hitting the revenue number."
         ),
     },
+
+    # Interactive tool task — a real Kanban pipeline UI, entirely fictional
+    # leads (invented businesses, not real people, not TFD's own pipeline).
+    # deliverable_type stays "text": the tool composes a summary into the
+    # student's answer, graded by the same AI text grader as every other
+    # Sales task — no separate grading path.
+    {
+        "track": "sales", "title": "Run Your First Sales Pipeline", "phase": 1, "is_blindfold": False,
+        "difficulty": "medium", "points_value": 90, "deliverable_type": "text", "requires_geotag": False,
+        "estimated_duration": "2-2.5 hours",
+        "interactive_tool": "kanban_crm",
+        "tool_seed_data": {
+            "company": "Solstice CRM",
+            "stages": ["New Lead", "Contacted", "Demo Scheduled", "Deal Won", "Deal Lost"],
+            "leads": [
+                {"id": "l1", "name": "Rajesh Malhotra", "business": "Malhotra Auto Showroom, Bhopal",
+                 "note": "Visited the trade show booth, interested in inventory tracking for spare parts."},
+                {"id": "l2", "name": "Kavita Rathi", "business": "Sunrise Jewellers, Sehore",
+                 "note": "Inbound call — wants a billing software demo covering 2 store locations."},
+                {"id": "l3", "name": "Vikram Oberoi", "business": "Metro Textiles Wholesale, Indore",
+                 "note": "LinkedIn inquiry — budget confirmed for this quarter, evaluating 2 vendors."},
+                {"id": "l4", "name": "Anita Sharma", "business": "Om Sai Distributors, Bhopal",
+                 "note": "Referral from an existing client — no urgency mentioned yet."},
+                {"id": "l5", "name": "Suresh Yadav", "business": "Green Leaf Grocers, Sehore",
+                 "note": "Cold outreach response — price-sensitive, actively comparing 2 vendors."},
+            ],
+        },
+        "brief": (
+            "You're a Business Development Executive at Solstice CRM (fictional — cloud inventory + billing "
+            "software for small/mid retail businesses). 5 leads are loaded into your pipeline board below. Work "
+            "each one through the stages — New Lead, Contacted, Demo Scheduled, Deal Won, or Deal Lost — adding a "
+            "short note each time you move a card explaining why, based on what you know about that lead."
+        ),
+        "why_it_matters": (
+            "Moving a deal through pipeline stages with a clear reason at each step — not just clicking a card "
+            "forward — is literally what every CRM (Salesforce, HubSpot, Zoho) is built around, and it's the "
+            "single habit that separates an organized rep's pipeline from a messy one."
+        ),
+        "instructions": (
+            "Step 1: Open each of the 5 leads and read their note carefully.\n"
+            "Step 2: Move each card to the stage that reflects where you'd realistically put it right now given "
+            "only the information provided — don't jump straight to 'Deal Won' without a reason.\n"
+            "Step 3: For every move, write a one-line reason (e.g. 'Moved to Demo Scheduled — budget already "
+            "confirmed, just needs to see the product').\n"
+            "Step 4: In the answer box below, write 150+ words on your overall pipeline strategy — which lead "
+            "you'd prioritize calling first and why, which one needs more qualification before it can move "
+            "forward, and how you'd handle the price-sensitive lead differently from the budget-confirmed one."
+        ),
+        "hints": [
+            "Hint 1: A lead with a confirmed budget and clear urgency (like a contract renewal or approved "
+            "spend) should move faster through your pipeline than one that's still just 'interested.'",
+            "Hint 2: 'Comparing 2 vendors' isn't a reason to give up on a lead — it's a reason to move fast and "
+            "differentiate, not a reason to leave it sitting in 'New Lead.'",
+            "Hint 3: Not every lead needs to end at 'Deal Won' in your answer — a realistic pipeline has leads at "
+            "different stages, and honestly assessing which ones aren't ready yet is as valuable as closing.",
+        ],
+        "sample_solution": (
+            "Worked example with a different lead: 'Inbound call, mentioned their current Excel-based tracking "
+            "caused a stock mismatch that cost them money last month.' This is a strong signal — a specific, "
+            "recent, costly pain point — so this lead moves to 'Contacted' immediately with a note like 'Has a "
+            "clear, recent pain point (stock mismatch loss) — prioritize this call, lead with how we prevent "
+            "exactly that problem.' The written strategy should explain WHY that pain point makes this lead "
+            "worth prioritizing over a vaguer 'just browsing' inquiry, not just restate the note."
+        ),
+    },
 ]
 
 
@@ -2333,6 +2456,67 @@ HR_TASKS = [
             "feel that leave approval depends on who your manager is rather than on a fair, written rule."
         ),
     },
+
+    # Interactive tool task — a real roster/screening UI, entirely fictional
+    # candidates (invented profiles, never scraped from LinkedIn/Indeed or
+    # any real person). deliverable_type stays "text": graded by the same
+    # AI text grader as every other HR task.
+    {
+        "track": "hr", "title": "Screen & Structure Your First Hiring Roster", "phase": 1, "is_blindfold": False,
+        "difficulty": "medium", "points_value": 90, "deliverable_type": "text", "requires_geotag": False,
+        "estimated_duration": "2-2.5 hours",
+        "interactive_tool": "roster_processor",
+        "tool_seed_data": {
+            "company": "Meridian Textiles Ltd",
+            "role": "Junior Accountant — Finance Dept",
+            "budget": "Rs 18,000 - 22,000 / month",
+            "candidates": [
+                {"id": "c1", "name": "Ankit Verma", "summary": "B.Com 2023, fresher, self-taught Tally, based in Sehore, salary expectation not specified"},
+                {"id": "c2", "name": "Sneha Patil", "summary": "B.Com 2021, 2 yrs Junior Accountant, Tally ERP9 + GST, immediate joiner, expects Rs 20,000"},
+                {"id": "c3", "name": "Mohammed Irfan", "summary": "B.Com 2018, 6 yrs experience, Accounts Manager level, expects Rs 45,000 (well above budget)"},
+                {"id": "c4", "name": "Kavya Reddy", "summary": "B.Com 2022, 1.5 yrs same-industry (textiles) experience, Advanced Excel certified, expects Rs 19,000"},
+            ],
+            "salary_breakup_defaults": {"basic_pct": 50, "hra_pct": 20, "bonus_pct": 10},
+        },
+        "brief": (
+            "Meridian Textiles Ltd (fictional) needs to fill a Junior Accountant role, budget Rs 18,000-22,000/month. "
+            "4 candidate profiles are loaded into the roster board below. For each one, decide Screen In or Reject "
+            "with a one-line reason, then use the salary breakup calculator to work out what a Basic/HRA/Bonus split "
+            "would look like for your final pick at their expected salary."
+        ),
+        "why_it_matters": (
+            "Screening against a role's real constraints (not just years of experience) and being able to break a "
+            "gross salary into Basic/HRA/Bonus components are both everyday HR-desk skills — the second one "
+            "specifically feeds directly into how offer letters and payroll actually get structured."
+        ),
+        "instructions": (
+            "Step 1: Review each candidate against the role's budget and requirements.\n"
+            "Step 2: Mark each one Screen In or Reject with a one-line reason tied to a specific fact (budget fit, "
+            "relevant experience, availability) — not a vague impression.\n"
+            "Step 3: For your top pick, use the salary calculator to compute a Basic/HRA/Bonus breakup at their "
+            "expected monthly salary.\n"
+            "Step 4: In the answer box, write 150+ words explaining your final shortlist — who you'd move to "
+            "interview and why, and what risk (if any) you'd flag about your top choice even though you screened "
+            "them in."
+        ),
+        "hints": [
+            "Hint 1: A candidate expecting more than double the budget ceiling is very unlikely to accept an offer "
+            "even if the interview goes well — flag this before anything else.",
+            "Hint 2: Same-industry experience (textiles, in this case) is a real advantage for a junior role even "
+            "when the candidate has fewer total years than someone from an unrelated industry.",
+            "Hint 3: A fresher with zero experience isn't automatically a reject for a junior role with a tight "
+            "budget — weigh it against candidates whose salary expectations don't fit at all.",
+        ],
+        "sample_solution": (
+            "Worked example for a different role (Sales Coordinator, budget Rs 22,000-25,000): Candidate expects "
+            "Rs 24,000, has 2 years of directly relevant coordination experience, and is an immediate joiner — "
+            "Screen In, strong fit on budget and relevance. Candidate expects Rs 40,000 with 5 years of unrelated "
+            "field-sales experience — Reject, over-budget and the experience doesn't transfer cleanly. For the "
+            "screened-in candidate at Rs 24,000: Basic (50%) = Rs 12,000, HRA (20%) = Rs 4,800, Bonus (10%) = "
+            "Rs 2,400, remainder as other allowances. The written summary should name the trade-off, not just "
+            "declare the pick \"good.\""
+        ),
+    },
 ]
 
 
@@ -2362,6 +2546,8 @@ async def seed():
             "mistake_explanation": t.get("mistake_explanation"),
             "hints": t.get("hints"),
             "sample_solution": t.get("sample_solution"),
+            "interactive_tool": t.get("interactive_tool"),
+            "tool_seed_data": t.get("tool_seed_data"),
             "created_by": "seed_script",
             "created_at": datetime.now(timezone.utc),
         }

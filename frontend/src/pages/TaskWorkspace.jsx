@@ -12,6 +12,20 @@ import { useSubmitOnce } from "../lib/useSubmitOnce";
 import { DIFFICULTY_STYLES, AntiCheatTextarea, Section, LanguageToggle, NO_COPY_PROPS } from "../portal/student/taskUi";
 import SpreadsheetGrid from "../components/SpreadsheetGrid";
 import { buildSubmissionPayload } from "../lib/miniSpreadsheet";
+import KanbanCrm, { buildKanbanSummary } from "../components/KanbanCrm";
+import RosterProcessor, { buildRosterSummary } from "../components/RosterProcessor";
+import AdCopyWorkspace, { buildAdCopySummary } from "../components/AdCopyWorkspace";
+
+// Sales/HR/Marketing practice tools (Kanban CRM, Roster Processor, Ad Copy
+// Workspace) — each is a controlled widget over its own local state, keyed
+// by `task.interactive_tool`. deliverable_type stays "text" for these
+// tasks, so there's no separate structured grading path: the tool's state
+// is composed into a text summary and merged with the student's own typed
+// "My Analysis" at submit/draft-save time only (never written back into
+// textAnswer itself, so reloading never double-prepends it).
+const TOOL_COMPONENTS = { kanban_crm: KanbanCrm, roster_processor: RosterProcessor, ad_copy_workspace: AdCopyWorkspace };
+const TOOL_SUMMARY_BUILDERS = { kanban_crm: buildKanbanSummary, roster_processor: buildRosterSummary, ad_copy_workspace: buildAdCopySummary };
+const TOOL_LABELS = { kanban_crm: "Sales Pipeline (CRM Studio)", roster_processor: "Hiring Roster (Roster Processor)", ad_copy_workspace: "Ad Campaign Brief (Growth Suite)" };
 
 const API_BASE = process.env.REACT_APP_BACKEND_URL || "";
 const AUTOSAVE_DEBOUNCE_MS = 3000;
@@ -35,6 +49,7 @@ export default function TaskWorkspace() {
 
   const [textAnswer, setTextAnswer] = useState("");
   const [spreadsheetValue, setSpreadsheetValue] = useState({});
+  const [toolValue, setToolValue] = useState({});
   const [photoFile, setPhotoFile] = useState(null);
   const [saveState, setSaveState] = useState("idle"); // idle | saving | saved | error
   const [hintsRevealed, setHintsRevealed] = useState(0);
@@ -82,12 +97,26 @@ export default function TaskWorkspace() {
   const needsText = task && (task.deliverable_type === "text" || task.deliverable_type === "text_and_photo" || task.deliverable_type === "text_and_spreadsheet");
   const needsPhoto = task && (task.deliverable_type === "photo" || task.deliverable_type === "text_and_photo");
   const needsSpreadsheet = task && (task.deliverable_type === "spreadsheet" || task.deliverable_type === "text_and_spreadsheet");
+  const needsTool = task && !!task.interactive_tool;
+  const ToolComponent = task && TOOL_COMPONENTS[task.interactive_tool];
   const canSubmit = task && (!task.submission_status || task.submission_status === "rejected" || task.submission_status === "draft");
 
   const buildSpreadsheetDataString = useCallback(() => {
     if (!needsSpreadsheet || !task?.spreadsheet_template) return "";
     return JSON.stringify(buildSubmissionPayload(task.spreadsheet_template, spreadsheetValue));
   }, [needsSpreadsheet, task, spreadsheetValue]);
+
+  // Composes the tool's current state + the student's own typed analysis
+  // into one string — this is what actually gets saved/graded as
+  // text_answer. Never written back into `textAnswer` state itself (that
+  // stays purely the student's own writing), so reloading never
+  // double-prepends the tool summary.
+  const buildComposedTextAnswer = useCallback(() => {
+    if (!needsTool) return textAnswer;
+    const summaryFn = TOOL_SUMMARY_BUILDERS[task.interactive_tool];
+    const summary = summaryFn ? summaryFn(task.tool_seed_data, toolValue) : "";
+    return `${summary}\n\n---\nMy Analysis:\n${textAnswer}`;
+  }, [needsTool, task, toolValue, textAnswer]);
 
   // Auto-save: extends the existing draft endpoint (SubmissionDraftIn),
   // no new persistence layer — see backend/internship_routes.py's
@@ -102,7 +131,7 @@ export default function TaskWorkspace() {
         method: "PUT",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
         body: JSON.stringify({
-          task_id: task.id, week_number: weekNumber, text_answer: textAnswer,
+          task_id: task.id, week_number: weekNumber, text_answer: buildComposedTextAnswer(),
           spreadsheet_data: needsSpreadsheet ? buildSpreadsheetDataString() : undefined,
         }),
       });
@@ -116,7 +145,7 @@ export default function TaskWorkspace() {
       setSaveState("error");
     }
     savingRef.current = false;
-  }, [task, canSubmit, token, weekNumber, textAnswer, needsSpreadsheet, buildSpreadsheetDataString]);
+  }, [task, canSubmit, token, weekNumber, needsSpreadsheet, buildSpreadsheetDataString, buildComposedTextAnswer]);
 
   // Debounced save a few seconds after the last edit...
   useEffect(() => {
@@ -126,7 +155,7 @@ export default function TaskWorkspace() {
     const t = setTimeout(() => saveDraft(false), AUTOSAVE_DEBOUNCE_MS);
     return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [textAnswer, spreadsheetValue]);
+  }, [textAnswer, spreadsheetValue, toolValue]);
 
   // ...plus a periodic fallback so a student who never pauses typing for
   // 3 seconds still gets saved regularly.
@@ -168,7 +197,7 @@ export default function TaskWorkspace() {
       const form = new FormData();
       form.append("task_id", task.id);
       form.append("week_number", String(weekNumber));
-      form.append("text_answer", textAnswer);
+      form.append("text_answer", buildComposedTextAnswer());
       form.append("client_timestamp", new Date().toISOString());
       if (needsSpreadsheet) form.append("spreadsheet_data", buildSpreadsheetDataString());
       if (loc) {
@@ -373,10 +402,24 @@ export default function TaskWorkspace() {
                 </div>
               )}
 
+              {needsTool && ToolComponent && (
+                <div>
+                  <p className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wide text-[#14E0A0] mb-2">
+                    <Table2 size={13} /> {TOOL_LABELS[task.interactive_tool]}
+                  </p>
+                  <ToolComponent
+                    seedData={task.tool_seed_data}
+                    value={toolValue}
+                    onChange={(a, b) => setToolValue((prev) => (b === undefined ? a : { ...prev, [a]: { ...prev[a], ...b } }))}
+                    disabled={submitting}
+                  />
+                </div>
+              )}
+
               {needsText && (
                 <div>
                   <p className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wide text-[#14E0A0] mb-2">
-                    <FileEdit size={13} /> {needsSpreadsheet ? "Reasoning / Analysis — justify your numbers" : "Your Answer"}
+                    <FileEdit size={13} /> {needsSpreadsheet ? "Reasoning / Analysis — justify your numbers" : needsTool ? "Your Analysis" : "Your Answer"}
                   </p>
                   <AntiCheatTextarea
                     value={textAnswer}

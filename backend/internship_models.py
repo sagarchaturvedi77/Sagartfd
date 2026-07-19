@@ -285,6 +285,16 @@ class TaskPoolIn(BaseModel):
     # blindfold-stripping as hints. Not a graded field; free text, can
     # reference formulas/values in prose for spreadsheet tasks.
     sample_solution: Optional[str] = None
+    # Optional rich practice tool rendered above the answer box (Sales/HR/
+    # Marketing equivalent of the Finance track's spreadsheet_template) —
+    # entirely fictional seed data (companies/leads/candidates invented for
+    # the exercise, never real people or TFD's actual business/pipeline).
+    # deliverable_type stays "text": the tool composes a summary into the
+    # student's typed answer, graded by the existing AI text grader — no
+    # separate grading path needed. See KanbanCrm/RosterProcessor/
+    # AdCopyWorkspace.jsx.
+    interactive_tool: Optional[Literal["kanban_crm", "roster_processor", "ad_copy_workspace"]] = None
+    tool_seed_data: Optional[dict] = None
 
 
 class TaskPoolOut(BaseModel):
@@ -310,6 +320,8 @@ class TaskPoolOut(BaseModel):
     # student — see _to_task_pool_out in internship_routes.py.
     hints: Optional[list[str]] = None
     sample_solution: Optional[str] = None
+    interactive_tool: Optional[Literal["kanban_crm", "roster_processor", "ad_copy_workspace"]] = None
+    tool_seed_data: Optional[dict] = None
 
 
 class TaskPoolAdminOut(TaskPoolOut):
