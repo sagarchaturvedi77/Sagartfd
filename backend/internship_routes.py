@@ -2364,11 +2364,134 @@ async def create_submission(
 
 # ── Weekly quiz + drip-lock ────────────────────────────────────────────
 
-QUIZ_QUESTIONS_PER_ATTEMPT = 5
+QUIZ_QUESTIONS_PER_ATTEMPT = 50
+QUIZ_TIME_LIMIT_MINUTES = 120
+
+_QUIZ_GEN_SYSTEM_PROMPT = """You write multiple-choice quiz questions testing whether a student
+genuinely understood ONE SPECIFIC task they were just assigned this week — not generic trivia about
+the subject in general. Every question must be answerable ONLY by someone who actually read and
+understood THIS task's brief (its specific numbers, terms, scenario, or reasoning) — not guessable
+from general knowledge of finance/marketing/sales/HR.
+
+Respond with ONLY a JSON array, no markdown fences, no commentary. Each item exactly this shape:
+{"question_text": "...", "options": ["...", "...", "...", "..."], "correct_index": 0, "category": "communication"}
+
+"category" must be exactly one of: communication, finance, technical, integrity, execution_speed.
+"correct_index" is 0-3, pointing at the correct entry in "options" (always exactly 4 options).
+"""
+
+
+async def _generate_questions_for_task(task: dict, count: int) -> list[dict]:
+    prompt_input = (
+        f"TASK: {task.get('title')}\nBrief: {task.get('brief')}\n"
+        f"Why it matters: {task.get('why_it_matters') or ''}\n\n"
+        f"Write exactly {count} questions about THIS task."
+    )
+    text_out = await _call_gemini(_QUIZ_GEN_SYSTEM_PROMPT, prompt_input, temperature=0.4)
+    if not text_out:
+        return []
+    cleaned = text_out.strip()
+    if cleaned.startswith("```"):
+        parts = cleaned.split("```")
+        cleaned = parts[1] if len(parts) > 1 else cleaned
+        if cleaned.lower().startswith("json"):
+            cleaned = cleaned[4:]
+    try:
+        raw = json.loads(cleaned)
+    except (ValueError, TypeError):
+        return []
+    if not isinstance(raw, list):
+        return []
+
+    out = []
+    for item in raw:
+        if not isinstance(item, dict):
+            continue
+        options = item.get("options")
+        idx = item.get("correct_index")
+        category = item.get("category")
+        question_text = item.get("question_text")
+        if (
+            isinstance(options, list) and len(options) == 4
+            and isinstance(idx, int) and 0 <= idx <= 3
+            and question_text and category in RADAR_CATEGORY_LABELS
+        ):
+            out.append({
+                "id": str(uuid.uuid4()), "question_text": question_text,
+                "options": options, "correct_index": idx, "category": category,
+            })
+    return out
+
+
+async def _generate_task_quiz_questions(tasks: list[dict], total_count: int) -> list[dict]:
+    """Per-task Gemini calls run in parallel (smaller structured output per
+    call is more reliable than asking for 50 at once, and it's a stronger
+    guarantee that every batch is genuinely about one specific task) —
+    falls back to whatever came back successfully; the caller tops up any
+    shortfall from the static pool, so a partial/total Gemini failure never
+    blocks a student from taking the quiz."""
+    if not tasks:
+        return []
+    per_task = max(1, round(total_count / len(tasks)))
+    batches = await asyncio.gather(
+        *[_generate_questions_for_task(t, per_task) for t in tasks], return_exceptions=True
+    )
+    out = []
+    for batch in batches:
+        if isinstance(batch, list):
+            out.extend(batch)
+    return out[:total_count] if len(out) > total_count else out
+
+
+async def _get_or_generate_quiz_set(student: dict, week_number: int, force_new: bool = False) -> tuple[list[dict], str]:
+    """(questions_with_answers, started_at_iso) — cached on the student doc
+    per week (generated_quiz_questions.{week} / quiz_started_at.{week}),
+    same lazy-once pattern as _assign_week_tasks. Regenerated on first
+    request, on force_new (a detected cheat attempt reset), or once the
+    QUIZ_TIME_LIMIT_MINUTES window from the cached start time has expired."""
+    key = str(week_number)
+    generated = (student.get("generated_quiz_questions") or {}).get(key)
+    started_at = (student.get("quiz_started_at") or {}).get(key)
+
+    expired = False
+    if started_at:
+        start_dt = started_at if isinstance(started_at, datetime) else datetime.fromisoformat(started_at)
+        if start_dt.tzinfo is None:
+            start_dt = start_dt.replace(tzinfo=timezone.utc)
+        expired = (datetime.now(timezone.utc) - start_dt) > timedelta(minutes=QUIZ_TIME_LIMIT_MINUTES)
+
+    if generated and not force_new and not expired:
+        return generated, started_at if isinstance(started_at, str) else started_at.isoformat()
+
+    tasks = await _assign_week_tasks(student, week_number)
+    tasks = [_randomize_task_for_student(t, student["id"]) for t in tasks]
+    questions = await _generate_task_quiz_questions(tasks, QUIZ_QUESTIONS_PER_ATTEMPT)
+
+    if len(questions) < QUIZ_QUESTIONS_PER_ATTEMPT:
+        pool = [q async for q in internship_quiz_questions_collection.find({"track": student["track"], "is_active": True})]
+        shortfall = QUIZ_QUESTIONS_PER_ATTEMPT - len(questions)
+        if pool:
+            rng = random.Random(f"quiz-fallback:{student['id']}:{week_number}:{datetime.now(timezone.utc).timestamp()}")
+            picks = rng.choices(pool, k=shortfall) if shortfall > len(pool) else rng.sample(pool, shortfall)
+            for q in picks:
+                questions.append({
+                    "id": str(uuid.uuid4()), "question_text": q["question_text"],
+                    "options": q["options"], "correct_index": q["correct_index"], "category": q["category"],
+                })
+
+    now_iso = datetime.now(timezone.utc).isoformat()
+    await internship_students_collection.update_one(
+        {"id": student["id"]},
+        {"$set": {
+            f"generated_quiz_questions.{key}": questions, f"quiz_started_at.{key}": now_iso,
+            "updated_at": datetime.now(timezone.utc),
+        }},
+    )
+    return questions, now_iso
 
 
 @router.get("/quiz/current")
-async def get_current_quiz(payload: dict = Depends(get_current_student_payload)):
+async def get_current_quiz(reset: bool = Query(default=False), payload: dict = Depends(get_current_student_payload)):
     student = await internship_students_collection.find_one({"id": payload["sub"]})
     if not student:
         raise HTTPException(status_code=404, detail="Student profile not found")
@@ -2381,16 +2504,17 @@ async def get_current_quiz(payload: dict = Depends(get_current_student_payload))
     effective_week, _ = await _effective_unlocked_week(student, current_week_by_days)
     already_passed = await _week_quiz_passed(student["id"], effective_week)
 
-    pool = [
-        q async for q in internship_quiz_questions_collection.find({"track": student["track"], "is_active": True})
-    ]
-    rng = random.Random(f"quiz:{student['id']}:{effective_week}")
-    sample = rng.sample(pool, min(QUIZ_QUESTIONS_PER_ATTEMPT, len(pool)))
+    questions_full, started_at = await _get_or_generate_quiz_set(student, effective_week, force_new=reset)
     questions = [
-        QuizQuestionOut(id=q["id"], track=q["track"], question_text=q["question_text"], options=q["options"], category=q["category"])
-        for q in sample
+        QuizQuestionOut(id=q["id"], track=student["track"], question_text=q["question_text"], options=q["options"], category=q["category"])
+        for q in questions_full
     ]
-    return {"week_number": effective_week, "questions": questions, "already_passed": already_passed, "pass_threshold": QUIZ_PASS_THRESHOLD}
+    expires_at = (datetime.fromisoformat(started_at) + timedelta(minutes=QUIZ_TIME_LIMIT_MINUTES)).isoformat()
+    return {
+        "week_number": effective_week, "questions": questions, "already_passed": already_passed,
+        "pass_threshold": QUIZ_PASS_THRESHOLD, "started_at": started_at, "expires_at": expires_at,
+        "time_limit_minutes": QUIZ_TIME_LIMIT_MINUTES,
+    }
 
 
 @router.post("/quiz/submit", response_model=QuizAttemptOut)
@@ -2401,11 +2525,30 @@ async def submit_quiz(data: QuizSubmitIn, payload: dict = Depends(get_current_st
     if not data.answers:
         raise HTTPException(status_code=400, detail="No answers submitted")
 
+    key = str(data.week_number)
+    generated = {q["id"]: q for q in ((student.get("generated_quiz_questions") or {}).get(key) or [])}
     question_ids = [a.question_id for a in data.answers]
-    questions = {
-        q["id"]: q
-        async for q in internship_quiz_questions_collection.find({"id": {"$in": question_ids}})
-    }
+    missing_ids = [qid for qid in question_ids if qid not in generated]
+    if missing_ids:
+        # Covers a request racing a reset, or the (now-legacy) case of a
+        # static-pool id — the per-student generated set is the primary
+        # source of truth.
+        async for q in internship_quiz_questions_collection.find({"id": {"$in": missing_ids}}):
+            generated[q["id"]] = q
+    questions = generated
+
+    # A cheat detection (tab-switch/fullscreen-exit, flagged client-side)
+    # or the 2-hour window having expired both force-fail this attempt —
+    # same outcome either way, just a different reason surfaced to the
+    # student, and both burn the current question set for a fresh reset.
+    started_at = (student.get("quiz_started_at") or {}).get(key)
+    time_expired = False
+    if started_at:
+        start_dt = started_at if isinstance(started_at, datetime) else datetime.fromisoformat(started_at)
+        if start_dt.tzinfo is None:
+            start_dt = start_dt.replace(tzinfo=timezone.utc)
+        time_expired = (datetime.now(timezone.utc) - start_dt) > timedelta(minutes=QUIZ_TIME_LIMIT_MINUTES)
+    auto_failed = data.auto_failed or time_expired
 
     category_correct: dict[str, int] = {}
     category_total: dict[str, int] = {}
@@ -2422,7 +2565,7 @@ async def submit_quiz(data: QuizSubmitIn, payload: dict = Depends(get_current_st
 
     total = len(data.answers)
     score_percent = round((correct_count / total) * 100, 1) if total else 0.0
-    passed = (not data.auto_failed) and score_percent >= QUIZ_PASS_THRESHOLD
+    passed = (not auto_failed) and score_percent >= QUIZ_PASS_THRESHOLD
     category_scores = {
         cat: round((category_correct.get(cat, 0) / tot) * 100, 1) for cat, tot in category_total.items()
     }
@@ -2431,7 +2574,7 @@ async def submit_quiz(data: QuizSubmitIn, payload: dict = Depends(get_current_st
     attempt = {
         "id": str(uuid.uuid4()), "student_id": student["id"], "week_number": data.week_number,
         "score_percent": score_percent, "passed": passed, "category_scores": category_scores,
-        "tab_switch_violations": data.tab_switch_violations, "auto_failed": data.auto_failed,
+        "tab_switch_violations": data.tab_switch_violations, "auto_failed": auto_failed,
         "started_at": now, "submitted_at": now,
     }
     await internship_quiz_attempts_collection.insert_one(attempt)
@@ -2448,6 +2591,11 @@ async def submit_quiz(data: QuizSubmitIn, payload: dict = Depends(get_current_st
     update = {"radar_scores": radar, "last_quiz_score": score_percent, "updated_at": now}
     if passed:
         update["quiz_pass_count"] = student.get("quiz_pass_count", 0) + 1
+    if auto_failed:
+        # Burns the cached set so the next GET /quiz/current draws a
+        # genuinely fresh one instead of re-serving what was just failed.
+        update[f"generated_quiz_questions.{key}"] = None
+        update[f"quiz_started_at.{key}"] = None
     await internship_students_collection.update_one({"id": student["id"]}, {"$set": update})
 
     attempt.pop("_id", None)
