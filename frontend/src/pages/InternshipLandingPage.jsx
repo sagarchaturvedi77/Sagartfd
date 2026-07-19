@@ -3,6 +3,7 @@ import { createPortal } from "react-dom";
 import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import SEO from "../components/SEO";
+import { LINKS } from "../lib/links";
 import {
   ArrowLeft, ArrowUpRight, ShieldCheck, Languages, XCircle, CheckCircle,
   TrendingUp, Landmark, Megaphone, Heart, Star, Users2,
@@ -10,7 +11,15 @@ import {
   MessageSquare, Calculator, HandCoins, PenTool, Mic2, Puzzle,
   FileText, ThumbsUp, Network, Video, LayoutDashboard, Rocket,
   Trophy, Award, QrCode, CheckCircle2, Flame, Target,
+  Instagram, Youtube, Linkedin, Mail,
 } from "lucide-react";
+
+const FOOTER_TRACKS = [
+  { value: "finance", label: "Finance" },
+  { value: "marketing", label: "Marketing" },
+  { value: "sales", label: "Sales" },
+  { value: "hr", label: "HR" },
+];
 
 const INTERNSHIP_LOGO_URL = "/assets/logos/TFD-INTERNSHIP-LOGO.webp";
 
@@ -148,19 +157,37 @@ const STATS = [
   { value: "0", label: "Chances to Fake It" },
 ];
 
+// Every card array below carries both an English and a Hinglish copy of
+// its title/text (title_hi/text_hi/label_hi) so the header's EN/Hinglish
+// toggle can swap 100% of the page, not just the hero/comparison/pricing
+// blocks — picked at render time via `pick(item, "title", lang)` below.
+function pick(item, field, lang) {
+  if (lang === "hinglish" && item[`${field}_hi`]) return item[`${field}_hi`];
+  return item[field];
+}
+
 const HOW_WE_WORK = [
-  { icon: ClipboardCheck, title: "Apply & Secure Your Slot", text: "Sign up, pick your track, and reserve your seat for the next 90-day batch." },
-  { icon: Users2, title: "Get Matched With Real Work", text: "Every intern gets their own set of practical, domain-specific tasks — no two journeys are identical." },
-  { icon: GraduationCap, title: "Learn, Execute, Get Evaluated", text: "Short practical lessons, real tasks, and weekly quizzes keep you progressing day by day." },
-  { icon: BadgeCheck, title: "Graduate With a Verified Certificate", text: "Finish your program and receive a certificate with a public QR audit trail employers can verify instantly." },
-  { icon: Video, title: "Share a Video Review at the End", text: "Near the end of your internship, share a short review video of your experience — small clips from wherever you were working are welcome. Just a link, no big upload." },
+  { icon: ClipboardCheck, title: "Apply & Secure Your Slot", text: "Sign up, pick your track, and reserve your seat for the next 90-day batch.",
+    title_hi: "Apply Karo & Apna Slot Secure Karo", text_hi: "Sign up karo, apna track pick karo, aur agle 90-din ke batch mein apni seat reserve karo." },
+  { icon: Users2, title: "Get Matched With Real Work", text: "Every intern gets their own set of practical, domain-specific tasks — no two journeys are identical.",
+    title_hi: "Real Work Ke Saath Match Ho Jao", text_hi: "Har intern ko apne practical, domain-specific tasks milte hain — koi do journeys ek jaisi nahi hoti." },
+  { icon: GraduationCap, title: "Learn, Execute, Get Evaluated", text: "Short practical lessons, real tasks, and weekly quizzes keep you progressing day by day.",
+    title_hi: "Sikho, Karo, Evaluate Ho Jao", text_hi: "Short practical lessons, real tasks, aur weekly quizzes se aap din-ba-din aage badhte ho." },
+  { icon: BadgeCheck, title: "Graduate With a Verified Certificate", text: "Finish your program and receive a certificate with a public QR audit trail employers can verify instantly.",
+    title_hi: "Verified Certificate Ke Saath Graduate Karo", text_hi: "Apna program finish karo aur ek aisa certificate paao jise employers QR code se instantly verify kar sakein." },
+  { icon: Video, title: "Share a Video Review at the End", text: "Near the end of your internship, share a short review video of your experience — small clips from wherever you were working are welcome. Just a link, no big upload.",
+    title_hi: "Aakhir Mein Ek Video Review Do", text_hi: "Internship khatam hone ke kareeb, apne experience ka ek chhota video review share karo — jahan se bhi kaam kiya wahan ke clips chalenge. Bas ek link, koi bada upload nahi." },
 ];
 
 const WHY_JOIN = [
-  { icon: Briefcase, title: "Real Corporate Exposure", text: "Work on genuine client-facing and hands-on tasks, not busywork — the kind of experience that actually shows up on a resume." },
-  { icon: ClipboardCheck, title: "Instant, Automatic Feedback", text: "Every task is auto-verified the moment you submit — no waiting days for a reviewer to get back to you." },
-  { icon: Star, title: "Mentorship That Matters", text: "Guidance from people who actually work in mutual funds, insurance, marketing, and finance — not generic course content." },
-  { icon: Sparkles, title: "A Certificate Employers Trust", text: "Publicly verifiable via QR — no more \"is this internship even real?\" doubts from recruiters." },
+  { icon: Briefcase, title: "Real Corporate Exposure", text: "Work on genuine client-facing and hands-on tasks, not busywork — the kind of experience that actually shows up on a resume.",
+    title_hi: "Real Corporate Exposure", text_hi: "Genuine client-facing aur hands-on tasks pe kaam karo, busywork nahi — waisa experience jo resume mein actually dikhta hai." },
+  { icon: ClipboardCheck, title: "Instant, Automatic Feedback", text: "Every task is auto-verified the moment you submit — no waiting days for a reviewer to get back to you.",
+    title_hi: "Instant, Automatic Feedback", text_hi: "Submit karte hi har task auto-verify ho jaata hai — kisi reviewer ka din-din intezaar nahi karna padta." },
+  { icon: Star, title: "Mentorship That Matters", text: "Guidance from people who actually work in mutual funds, insurance, marketing, and finance — not generic course content.",
+    title_hi: "Mentorship Jo Matter Karti Hai", text_hi: "Un logon se guidance jo actually mutual funds, insurance, marketing, aur finance mein kaam karte hain — generic course content nahi." },
+  { icon: Sparkles, title: "A Certificate Employers Trust", text: "Publicly verifiable via QR — no more \"is this internship even real?\" doubts from recruiters.",
+    title_hi: "Ek Certificate Jispe Employers Trust Karte Hain", text_hi: "QR se publicly verifiable — recruiters ke \"kya ye internship real bhi hai?\" wale doubts khatam." },
 ];
 
 const TRACKS = [
@@ -177,29 +204,137 @@ const DURATIONS = [
 ];
 
 const SKILLS = [
-  { icon: MessageSquare, label: "Professional Communication" },
-  { icon: Calculator, label: "Financial & Market Literacy" },
-  { icon: HandCoins, label: "Sales & Client Handling" },
-  { icon: Users2, label: "Team Coordination" },
-  { icon: PenTool, label: "MS Excel & Reporting" },
-  { icon: Mic2, label: "Public Speaking & Pitching" },
-  { icon: Puzzle, label: "Real-World Problem Solving" },
-  { icon: FileText, label: "Business Email Writing" },
+  { icon: MessageSquare, label: "Professional Communication", label_hi: "Professional Communication" },
+  { icon: Calculator, label: "Financial & Market Literacy", label_hi: "Financial & Market Literacy" },
+  { icon: HandCoins, label: "Sales & Client Handling", label_hi: "Sales & Client Handling" },
+  { icon: Users2, label: "Team Coordination", label_hi: "Team Coordination" },
+  { icon: PenTool, label: "MS Excel & Reporting", label_hi: "MS Excel & Reporting" },
+  { icon: Mic2, label: "Public Speaking & Pitching", label_hi: "Public Speaking & Pitching" },
+  { icon: Puzzle, label: "Real-World Problem Solving", label_hi: "Real-World Problem Solving" },
+  { icon: FileText, label: "Business Email Writing", label_hi: "Business Email Writing" },
 ];
 
 const GROWTH_BENEFITS = [
-  { icon: FileText, title: "A Resume That Actually Stands Out", text: "Not \"attended internship\" — a verifiable record of real tasks completed, gradeable and QR-checkable by any recruiter or college placement cell." },
-  { icon: ThumbsUp, title: "Letter of Recommendation", text: "Consistently strong performers can earn a personal recommendation letter — genuinely useful for higher studies or your first job application." },
-  { icon: Briefcase, title: "A Shot at Working With TFD", text: "Standout interns are considered first when we hire for Sales, Marketing, HR, or Finance roles at The Financial Doctor." },
-  { icon: Network, title: "A Professional Network, Early", text: "Direct interaction with working professionals and mentors — the kind of network most students only start building after college." },
+  { icon: FileText, title: "A Resume That Actually Stands Out", text: "Not \"attended internship\" — a verifiable record of real tasks completed, gradeable and QR-checkable by any recruiter or college placement cell.",
+    title_hi: "Ek Resume Jo Actually Stand Out Kare", text_hi: "\"Internship attend ki\" nahi — real tasks completed ka verifiable record, jise koi bhi recruiter ya college placement cell QR se check kar sake." },
+  { icon: ThumbsUp, title: "Letter of Recommendation", text: "Consistently strong performers can earn a personal recommendation letter — genuinely useful for higher studies or your first job application.",
+    title_hi: "Letter of Recommendation", text_hi: "Consistently strong performers ek personal recommendation letter earn kar sakte hain — higher studies ya first job application ke liye genuinely useful." },
+  { icon: Briefcase, title: "A Shot at Working With TFD", text: "Standout interns are considered first when we hire for Sales, Marketing, HR, or Finance roles at The Financial Doctor.",
+    title_hi: "TFD Ke Saath Kaam Karne Ka Mauka", text_hi: "Jab TFD Sales, Marketing, HR, ya Finance roles ke liye hire karta hai, standout interns ko sabse pehle consider kiya jaata hai." },
+  { icon: Network, title: "A Professional Network, Early", text: "Direct interaction with working professionals and mentors — the kind of network most students only start building after college.",
+    title_hi: "Ek Professional Network, Jaldi", text_hi: "Working professionals aur mentors se direct interaction — waisa network jo zyada tar students college ke baad hi banana shuru karte hain." },
+];
+
+// Tabs for the merged "Program Highlights" section — combines what used to
+// be three separate full-width sections (Why Join / Skills / Growth) behind
+// one tab switcher, so the page reads shorter without cutting any content.
+const HIGHLIGHT_TABS = [
+  { key: "why", label: "Why Join", label_hi: "Kyun Join Karein" },
+  { key: "skills", label: "Skills You'll Build", label_hi: "Skills Jo Banoge" },
+  { key: "growth", label: "Your Growth", label_hi: "Aapki Growth" },
 ];
 
 const MOBILE_SCREENS = [
-  { key: "overview", label: "Overview", icon: LayoutDashboard },
-  { key: "missions", label: "Missions", icon: Rocket },
-  { key: "leaderboard", label: "Radar", icon: Trophy },
-  { key: "certificate", label: "Certificate", icon: Award },
+  { key: "overview", label: "Overview", label_hi: "Overview", icon: LayoutDashboard },
+  { key: "missions", label: "Missions", label_hi: "Missions", icon: Rocket },
+  { key: "leaderboard", label: "Radar", label_hi: "Radar", icon: Trophy },
+  { key: "certificate", label: "Certificate", label_hi: "Certificate", icon: Award },
 ];
+
+// Every static section heading/label/button on the page (everything that
+// ISN'T already one of the per-lang content dicts above) lives here, so
+// the EN/Hinglish toggle switches the whole page, not just hero/comparison/
+// pricing — that was the reported bug (only half the page used to switch).
+const UI_TEXT = {
+  english: {
+    applicationsOpen: "Applications Open",
+    studentLogin: "Student Login",
+    home: "Home",
+    chooseTrackTitle: "Choose Your Track",
+    chooseTrackSub: "Four specialisations, four different 90-day roadmaps. Open one to see exactly what you'll work on, day by day.",
+    openSeeDetails: "Open & See Details",
+    swipeTracks: "Swipe to see all 4 tracks →",
+    madeInIndiaTitle: "Proudly Built for Indian Students",
+    madeInIndiaBody: "Designed in India, priced in rupees, mentored by people who work in Indian finance and business — not a generic template borrowed from anywhere else. This is India's internship program, built the way it should be.",
+    swipePoints: "Swipe for all 10 points →",
+    howWeWorkTitle: "How We Work",
+    howWeWorkSub: "From sign-up to certificate, here's exactly what your program looks like.",
+    swipeSteps: "Swipe through all 5 steps →",
+    highlightsTitle: "Program Highlights",
+    highlightsSub: "Why you should join, what you'll actually learn, and where it takes you next.",
+    swipeMore: "Swipe to see more →",
+    mobileFirstTag: "Built Mobile-First",
+    mobilePreviewTitle: "Your Whole Internship, In Your Pocket",
+    mobilePreviewSub: "Log in after signing up and here's exactly what you'll see — your real progress, missions, skill radar, and certificate, live.",
+    certTitle: "See What a Verified Certificate Looks Like",
+    certSub: "Anyone — a recruiter, a college, or you yourself — can search your certificate number and see the full, real story behind it.",
+    certButton: "Open the Real Verification Page",
+    programScore: "Program Score",
+    tasksDone: "Tasks Done",
+    quizzesPassed: "Quizzes Passed",
+    collegeIdOnFile: "College ID",
+    onFile: "On File",
+    finalCtaTitle: "Ready to Start Your Internship?",
+    finalCtaSub: "India ka best internship program — seats are limited per batch. Pick your track and secure your slot today.",
+    applyNow: "Apply Now",
+    alreadyWithUs: "Already With Us?",
+    alreadyHaveAccount: "Already have an account?",
+    logInHere: "Log in here",
+    verifyCert: "Verify Your Certificate",
+    footerTagline: "India ka best internship program — proudly built for Indian students. Internship karo, seekho, aur aage badho.",
+    footerTracks: "Tracks",
+    footerProgram: "Program",
+    footerContact: "Contact",
+    footerVerify: "Verify Certificate",
+    footerMainSite: "TFD Main Site",
+    poweredBy: "Powered by The Financial Doctor · ARN-290298",
+    allRightsReserved: "All rights reserved.",
+  },
+  hinglish: {
+    applicationsOpen: "Applications Open Hain",
+    studentLogin: "Student Login",
+    home: "Home",
+    chooseTrackTitle: "Apna Track Choose Karo",
+    chooseTrackSub: "Chaar specialisations, chaar alag 90-din ke roadmaps. Ek kholo aur dekho ki din-ba-din exactly kya kaam karoge.",
+    openSeeDetails: "Kholo & Details Dekho",
+    swipeTracks: "Sabhi 4 tracks dekhne ke liye swipe karo →",
+    madeInIndiaTitle: "Proudly Built for Indian Students",
+    madeInIndiaBody: "India mein design kiya gaya, rupaye mein priced, aur un logon se mentor kiya jaata hai jo Indian finance aur business mein kaam karte hain — kahin se copy kiya gaya generic template nahi. Yeh India ka internship program hai, jaisa hona chahiye waisa banaya gaya.",
+    swipePoints: "Sabhi 10 points ke liye swipe karo →",
+    howWeWorkTitle: "Hum Kaise Kaam Karte Hain",
+    howWeWorkSub: "Sign-up se lekar certificate tak, yeh hai aapka program bilkul exactly kaisa dikhega.",
+    swipeSteps: "Sabhi 5 steps ke liye swipe karo →",
+    highlightsTitle: "Program Highlights",
+    highlightsSub: "Kyun join karna chahiye, kya actually seekhoge, aur aage kahan le jaayega.",
+    swipeMore: "Aur dekhne ke liye swipe karo →",
+    mobileFirstTag: "Mobile-First Banaya Gaya",
+    mobilePreviewTitle: "Aapki Poori Internship, Aapki Jeb Mein",
+    mobilePreviewSub: "Sign up karne ke baad login karo aur yeh hai bilkul jo dikhega — aapki real progress, missions, skill radar, aur certificate, live.",
+    certTitle: "Dekho Ek Verified Certificate Kaisa Dikhta Hai",
+    certSub: "Koi bhi — recruiter, college, ya khud aap — apna certificate number search karke iske peeche ki poori, real story dekh sakte hain.",
+    certButton: "Real Verification Page Kholo",
+    programScore: "Program Score",
+    tasksDone: "Tasks Complete",
+    quizzesPassed: "Quizzes Pass Kiye",
+    collegeIdOnFile: "College ID",
+    onFile: "File Mein Hai",
+    finalCtaTitle: "Apni Internship Shuru Karne Ke Liye Ready Ho?",
+    finalCtaSub: "India ka best internship program — seats har batch mein limited hain. Apna track pick karo aur aaj hi apni slot secure karo.",
+    applyNow: "Apply Karo",
+    alreadyWithUs: "Pehle Se Hamare Saath Ho?",
+    alreadyHaveAccount: "Pehle se account hai?",
+    logInHere: "Yahan login karo",
+    verifyCert: "Apna Certificate Verify Karo",
+    footerTagline: "India ka best internship program — proudly built for Indian students. Internship karo, seekho, aur aage badho.",
+    footerTracks: "Tracks",
+    footerProgram: "Program",
+    footerContact: "Contact",
+    footerVerify: "Certificate Verify Karo",
+    footerMainSite: "TFD Main Site",
+    poweredBy: "Powered by The Financial Doctor · ARN-290298",
+    allRightsReserved: "Sabhi rights reserved.",
+  },
+};
 
 const fadeUp = {
   hidden: { opacity: 0, y: 24 },
@@ -373,16 +508,18 @@ export default function InternshipLandingPage() {
   const navigate = useNavigate();
   const [activeScreen, setActiveScreen] = useState("overview");
   const [lang, setLang] = useState("english");
+  const [highlightTab, setHighlightTab] = useState("why");
   const hero = HERO_CONTENT[lang];
   const comparison = COMPARISON_TABLE[lang];
   const pricingPitch = PRICING_PITCH[lang];
+  const t = UI_TEXT[lang];
 
   return (
     <div className="min-h-screen bg-[#050B16] text-white overflow-x-hidden relative">
       <SEO
-        title="The Financial Doctor | Internship Program - Finance, HR, Marketing, Sales"
-        description="90-day gamified internship program — real corporate experience in Finance, HR, Marketing, and Sales. Certificate + Letter of Recommendation."
-        keywords="internship finance, internship near me, summer internship, internship certificate, internship in mutual fund company, HR internship, sales internship, marketing internship"
+        title="TFD Internship 2026 | 90-Day Finance, HR, Marketing & Sales Internship with Certificate"
+        description="India's most verified 90-day internship program — real corporate tasks in Finance, HR, Marketing & Sales, weekly evaluation, mentorship, and a QR-verifiable certificate employers trust."
+        keywords="internship 2026, online internship with certificate, finance internship, HR internship, marketing internship, sales internship, internship near me, summer internship India, internship in mutual fund company, verified internship certificate, internship with stipend, internship for college students, best internship program India, corporate internship program, work from home internship, internship in Madhya Pradesh, internship in Sehore"
         path="/internship"
         ogImage={`https://thefinancialdoctor.in${INTERNSHIP_LOGO_URL}`}
       />
@@ -405,7 +542,7 @@ export default function InternshipLandingPage() {
                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#14E0A0] opacity-75" />
                   <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-[#14E0A0]" />
                 </span>
-                Applications Open
+                {t.applicationsOpen}
               </span>
 
               {/* Full-page EN/Hinglish toggle — switches every pre-written
@@ -437,13 +574,13 @@ export default function InternshipLandingPage() {
                 onClick={() => navigate("/internship/login")}
                 className="text-sm sm:text-sm font-semibold text-white/60 hover:text-white transition-colors"
               >
-                Student Login
+                {t.studentLogin}
               </button>
               <button
                 onClick={() => navigate("/")}
                 className="flex items-center gap-1.5 text-sm sm:text-sm font-semibold text-white/60 hover:text-white transition-colors"
               >
-                <ArrowLeft size={16} /> <span className="hidden sm:inline">Home</span>
+                <ArrowLeft size={16} /> <span className="hidden sm:inline">{t.home}</span>
               </button>
             </div>
           </div>
@@ -528,7 +665,7 @@ export default function InternshipLandingPage() {
             >
               <div className="absolute -inset-4 rounded-[2rem] bg-[#14E0A0]/10 blur-2xl" aria-hidden="true" />
               <div className="relative rounded-3xl border border-[#14E0A0]/30 bg-white/[0.04] backdrop-blur-md p-6 sm:p-7">
-                <p className="text-xs font-bold uppercase tracking-wide text-white/35 mb-3">90-Day Program</p>
+                <p className="text-xs font-bold uppercase tracking-wide text-white/45 mb-3">90-Day Program</p>
                 <p className="text-4xl font-bold text-white mb-1">₹5,000</p>
                 <p className="text-white/40 text-sm mb-5">One-time, all-inclusive</p>
                 <button
@@ -538,7 +675,7 @@ export default function InternshipLandingPage() {
                   Apply Now <ArrowUpRight size={18} />
                 </button>
 
-                <p className="text-xs font-bold uppercase tracking-wide text-white/35 mb-3">Live Program Snapshot</p>
+                <p className="text-xs font-bold uppercase tracking-wide text-white/45 mb-3">Live Program Snapshot</p>
                 <div className="rounded-2xl bg-gradient-to-br from-[#14E0A0]/15 to-transparent border border-[#14E0A0]/20 p-4 mb-4">
                   <p className="text-[11px] text-white/50">Program Progress</p>
                   <p className="text-2xl font-bold text-white">Day 36 <span className="text-sm text-white/40 font-normal">of 90</span></p>
@@ -575,33 +712,37 @@ export default function InternshipLandingPage() {
             inline panel — click straight through, no in-page tab state. */}
         <Section className="pt-4 border-t-0">
           <div className="max-w-5xl mx-auto">
-            <motion.div variants={fadeUp} className="text-center mb-5">
-              <h2 className="font-display text-2xl sm:text-3xl font-bold mb-2">Choose Your Track</h2>
+            <motion.div key={`track-head-${lang}`} variants={fadeUp} className="text-center mb-5">
+              <h2 className="font-display text-2xl sm:text-3xl font-bold mb-2">{t.chooseTrackTitle}</h2>
               <p className="text-white/45 text-sm sm:text-base max-w-xl mx-auto">
-                Four specialisations, four different 90-day roadmaps. Open one to see exactly what you'll work on, day by day.
+                {t.chooseTrackSub}
               </p>
             </motion.div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
-              {TRACKS.map((t, i) => (
+            {/* Mobile: horizontal snap-scroll carousel (swipe through tracks).
+                Desktop (sm+): plain 4-up grid — the same data, two distinct
+                interaction patterns rather than one squeezed layout. */}
+            <div className="flex sm:grid sm:grid-cols-4 gap-3 sm:gap-4 overflow-x-auto sm:overflow-visible snap-x snap-mandatory sm:snap-none no-scrollbar -mx-5 px-5 sm:mx-0 sm:px-0 pb-2 sm:pb-0">
+              {TRACKS.map((track, i) => (
                 <motion.div
-                  key={t.value}
+                  key={track.value}
                   custom={i}
                   variants={fadeUp}
                   whileHover={{ y: -6 }}
                   transition={{ type: "spring", stiffness: 300, damping: 20 }}
-                  className="rounded-2xl p-5 bg-gradient-to-b from-white/[0.06] to-white/[0.02] border border-white/10 hover:border-[#14E0A0]/50 hover:shadow-[0_10px_30px_rgba(20,224,160,0.15)] transition-all cursor-pointer"
-                  onClick={() => navigate(`/internship/tracks/${t.value}`)}
+                  className="w-full sm:w-auto shrink-0 sm:shrink snap-start rounded-2xl p-5 bg-gradient-to-b from-white/[0.06] to-white/[0.02] border border-white/10 hover:border-[#14E0A0]/50 hover:shadow-[0_10px_30px_rgba(20,224,160,0.15)] transition-all cursor-pointer"
+                  onClick={() => navigate(`/internship/tracks/${track.value}`)}
                 >
                   <div className="w-10 h-10 rounded-xl bg-[#14E0A0]/10 flex items-center justify-center text-[#14E0A0] mb-3">
-                    <t.icon size={20} />
+                    <track.icon size={20} />
                   </div>
-                  <p className="text-sm sm:text-base font-semibold leading-snug mb-1.5">{t.label}</p>
+                  <p className="text-sm sm:text-base font-semibold leading-snug mb-1.5">{track.label}</p>
                   <p className="inline-flex items-center gap-1 text-xs font-bold uppercase tracking-wide text-[#14E0A0]">
-                    Open &amp; See Details <ArrowUpRight size={13} />
+                    {t.openSeeDetails} <ArrowUpRight size={13} />
                   </p>
                 </motion.div>
               ))}
             </div>
+            <p className="sm:hidden text-center text-[11px] text-white/40 mt-2">{t.swipeTracks}</p>
           </div>
         </Section>
 
@@ -609,6 +750,7 @@ export default function InternshipLandingPage() {
         <Section className="pt-4 border-t-0">
           <div className="max-w-3xl mx-auto">
             <motion.div
+              key={`made-in-india-${lang}`}
               variants={fadeUp}
               className="relative rounded-3xl overflow-hidden border border-white/10 bg-white/[0.03]"
             >
@@ -622,10 +764,9 @@ export default function InternshipLandingPage() {
                   ₹
                 </div>
                 <div>
-                  <p className="font-display text-lg sm:text-xl font-bold">Proudly Built for Indian Students</p>
+                  <p className="font-display text-lg sm:text-xl font-bold">{t.madeInIndiaTitle}</p>
                   <p className="text-white/50 text-sm sm:text-base mt-1 leading-relaxed">
-                    Designed in India, priced in rupees, mentored by people who work in Indian finance and business — not a
-                    generic template borrowed from anywhere else. This is India's internship program, built the way it should be.
+                    {t.madeInIndiaBody}
                   </p>
                 </div>
               </div>
@@ -640,35 +781,35 @@ export default function InternshipLandingPage() {
               <h2 className="font-display text-2xl sm:text-3xl font-bold mb-2">{comparison.heading}</h2>
               <p className="text-white/45 text-sm sm:text-base max-w-xl mx-auto">{comparison.subheading}</p>
             </motion.div>
-            <div key={`why-cards-${lang}`} className="grid grid-cols-1 sm:grid-cols-3 gap-5 mb-8">
+            <div key={`why-cards-${lang}`} className="flex sm:grid sm:grid-cols-3 gap-4 sm:gap-5 overflow-x-auto sm:overflow-visible snap-x snap-mandatory sm:snap-none no-scrollbar -mx-5 px-5 sm:mx-0 sm:px-0 pb-2 sm:pb-0 mb-8">
               {comparison.whyDifferent.map((w, i) => (
-                <motion.div key={w.title} custom={i} variants={fadeUp} className="rounded-2xl p-6 bg-white/[0.04] backdrop-blur-md border border-white/10 hover:border-[#14E0A0]/40 hover:-translate-y-1 transition-all">
+                <motion.div key={w.title} custom={i} variants={fadeUp} className="w-full sm:w-auto shrink-0 sm:shrink snap-start rounded-2xl p-6 bg-white/[0.04] backdrop-blur-md border border-white/10 hover:border-[#14E0A0]/40 hover:-translate-y-1 transition-all">
                   <div className="w-11 h-11 rounded-xl bg-[#14E0A0]/10 flex items-center justify-center text-[#14E0A0] mb-4">
                     <w.icon size={22} />
                   </div>
                   <h3 className="font-bold text-base mb-2">{w.title}</h3>
-                  <p className="text-white/50 text-sm leading-relaxed">{w.text}</p>
+                  <p className="text-white/60 text-sm leading-relaxed">{w.text}</p>
                 </motion.div>
               ))}
             </div>
 
-            {/* Comparison grid — 2 cards per row (not one long stacked
-                list) so 10 points fit in 5 rows of height instead of 10,
-                each card still contrasts Other (muted) vs TFD (highlighted)
-                side by side inside itself. */}
-            <div key={`cmp-rows-${lang}`} className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {/* Comparison grid — mobile: swipe carousel (one card per
+                feature); desktop: 2 cards per row so 10 points fit in 5
+                rows of height instead of 10. Each card contrasts Other
+                (muted) vs TFD (highlighted) side by side inside itself. */}
+            <div key={`cmp-rows-${lang}`} className="flex sm:grid sm:grid-cols-2 gap-4 overflow-x-auto sm:overflow-visible snap-x snap-mandatory sm:snap-none no-scrollbar -mx-5 px-5 sm:mx-0 sm:px-0 pb-2 sm:pb-0">
               {comparison.rows.map((row, i) => (
                 <motion.div
                   key={row.feature}
                   custom={i}
                   variants={fadeUp}
-                  className="rounded-2xl border border-white/10 overflow-hidden bg-[#0B1424]"
+                  className="w-full sm:w-auto shrink-0 sm:shrink snap-start rounded-2xl border border-white/10 overflow-hidden bg-[#0B1424]"
                 >
-                  <p className="text-sm font-bold uppercase tracking-wide text-white/50 px-4 pt-3 pb-2 border-b border-white/10">{row.feature}</p>
+                  <p className="text-sm font-bold uppercase tracking-wide text-white/60 px-4 pt-3 pb-2 border-b border-white/10">{row.feature}</p>
                   <div className="grid grid-cols-2 divide-x divide-white/10">
                     <div className="p-3.5">
-                      <p className="text-xs font-bold uppercase tracking-wide text-white/35 mb-1 flex items-center gap-1"><XCircle size={13} /> Other</p>
-                      <p className="text-sm text-white/50 leading-snug">{row.other}</p>
+                      <p className="text-xs font-bold uppercase tracking-wide text-white/45 mb-1 flex items-center gap-1"><XCircle size={13} /> Other</p>
+                      <p className="text-sm text-white/60 leading-snug">{row.other}</p>
                     </div>
                     <div className="p-3.5 border-l-2 border-[#14E0A0]/40">
                       <p className="text-xs font-bold uppercase tracking-wide text-[#14E0A0] mb-1 flex items-center gap-1"><CheckCircle size={13} /> TFD</p>
@@ -678,28 +819,33 @@ export default function InternshipLandingPage() {
                 </motion.div>
               ))}
             </div>
+            <p className="sm:hidden text-center text-[11px] text-white/40 mt-2">Swipe for all 10 points →</p>
           </div>
         </Section>
 
         {/* How We Work */}
         <Section>
           <div className="max-w-5xl mx-auto">
-            <motion.div variants={fadeUp} className="text-center mb-6">
-              <h2 className="font-display text-2xl sm:text-3xl font-bold mb-2">How We Work</h2>
-              <p className="text-white/45 text-sm sm:text-base max-w-xl mx-auto">From sign-up to certificate, here's exactly what your program looks like.</p>
+            <motion.div key={`how-head-${lang}`} variants={fadeUp} className="text-center mb-6">
+              <h2 className="font-display text-2xl sm:text-3xl font-bold mb-2">{t.howWeWorkTitle}</h2>
+              <p className="text-white/45 text-sm sm:text-base max-w-xl mx-auto">{t.howWeWorkSub}</p>
             </motion.div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+            {/* Mobile: swipeable step carousel. Desktop: 3-up grid so all 5
+                steps read as a connected sequence rather than a long
+                two-column stack. */}
+            <div key={`how-steps-${lang}`} className="flex sm:grid sm:grid-cols-3 gap-4 sm:gap-5 overflow-x-auto sm:overflow-visible snap-x snap-mandatory sm:snap-none no-scrollbar -mx-5 px-5 sm:mx-0 sm:px-0 pb-2 sm:pb-0">
               {HOW_WE_WORK.map((step, i) => (
-                <motion.div key={step.title} custom={i} variants={fadeUp} className="relative rounded-2xl p-5 bg-gradient-to-b from-white/[0.05] to-white/[0.01] border border-white/10">
+                <motion.div key={step.title} custom={i} variants={fadeUp} className="w-full sm:w-auto shrink-0 sm:shrink snap-start relative rounded-2xl p-5 bg-gradient-to-b from-white/[0.05] to-white/[0.01] border border-white/10">
                   <div className="absolute -top-3 -left-1 text-sm font-bold text-[#050B16] bg-[#14E0A0] w-6 h-6 rounded-full flex items-center justify-center">{i + 1}</div>
                   <div className="w-10 h-10 rounded-xl bg-[#14E0A0]/10 flex items-center justify-center text-[#14E0A0] mb-3 mt-2">
                     <step.icon size={20} />
                   </div>
-                  <h3 className="font-bold text-base mb-1.5">{step.title}</h3>
-                  <p className="text-white/50 text-sm leading-relaxed">{step.text}</p>
+                  <h3 className="font-bold text-base mb-1.5">{pick(step, "title", lang)}</h3>
+                  <p className="text-white/60 text-sm leading-relaxed">{pick(step, "text", lang)}</p>
                 </motion.div>
               ))}
             </div>
+            <p className="sm:hidden text-center text-[11px] text-white/40 mt-2">{t.swipeSteps}</p>
           </div>
         </Section>
 
@@ -725,91 +871,105 @@ export default function InternshipLandingPage() {
           </div>
         </Section>
 
-        {/* Why join us */}
+        {/* Program Highlights — Why Join / Skills / Growth merged behind one
+            tab switcher instead of three stacked full-width sections. Same
+            content, a fraction of the scroll height. */}
         <Section>
           <div className="max-w-5xl mx-auto">
-            <motion.div variants={fadeUp} className="text-center mb-6">
-              <h2 className="font-display text-2xl sm:text-3xl font-bold mb-2">Why You Should Join TFD Internship</h2>
-              <p className="text-white/45 text-sm sm:text-base max-w-xl mx-auto">Not just a certificate — real skills, real proof, and feedback you can act on immediately.</p>
-            </motion.div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-              {WHY_JOIN.map((w, i) => (
-                <motion.div key={w.title} custom={i} variants={fadeUp} className="flex gap-4 rounded-2xl p-5 bg-white/[0.03] border border-white/10 hover:border-[#14E0A0]/30 transition-colors">
-                  <div className="w-10 h-10 rounded-xl bg-[#14E0A0]/10 flex items-center justify-center text-[#14E0A0] shrink-0">
-                    <w.icon size={20} />
-                  </div>
-                  <div>
-                    <h3 className="font-bold text-base mb-1">{w.title}</h3>
-                    <p className="text-white/50 text-sm leading-relaxed">{w.text}</p>
-                  </div>
-                </motion.div>
-              ))}
-            </div>
-          </div>
-        </Section>
-
-        {/* Skills you'll build */}
-        <Section>
-          <div className="max-w-4xl mx-auto">
-            <motion.div variants={fadeUp} className="text-center mb-6">
-              <h2 className="font-display text-2xl sm:text-3xl font-bold mb-2">Skills You'll Actually Build</h2>
-              <p className="text-white/45 text-sm sm:text-base max-w-xl mx-auto">
-                Beyond your college syllabus — the practical, job-ready skills recruiters look for.
+            <motion.div key={`highlights-head-${lang}`} variants={fadeUp} className="text-center mb-6">
+              <h2 className="font-display text-2xl sm:text-3xl font-bold mb-2">{t.highlightsTitle}</h2>
+              <p className="text-white/50 text-sm sm:text-base max-w-xl mx-auto">
+                {t.highlightsSub}
               </p>
             </motion.div>
-            <div className="grid grid-cols-2 gap-3">
-              {SKILLS.map((s, i) => (
-                <motion.div
-                  key={s.label}
-                  custom={i}
-                  variants={fadeUp}
-                  className="flex flex-col items-center text-center gap-2.5 rounded-2xl p-4 bg-white/[0.03] border border-white/10 hover:border-[#14E0A0]/30 transition-colors"
-                >
-                  <div className="w-10 h-10 rounded-xl bg-[#14E0A0]/10 flex items-center justify-center text-[#14E0A0]">
-                    <s.icon size={20} />
-                  </div>
-                  <p className="text-sm sm:text-sm font-semibold leading-snug">{s.label}</p>
-                </motion.div>
-              ))}
-            </div>
-          </div>
-        </Section>
 
-        {/* Growth after the internship */}
-        <Section>
-          <div className="max-w-5xl mx-auto">
-            <motion.div variants={fadeUp} className="text-center mb-6">
-              <h2 className="font-display text-2xl sm:text-3xl font-bold mb-2">Your Growth After This Internship</h2>
-              <p className="text-white/45 text-sm sm:text-base max-w-xl mx-auto">
-                This is built to actually move your career forward — not just fill a summer.
-              </p>
-            </motion.div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-              {GROWTH_BENEFITS.map((g, i) => (
-                <motion.div key={g.title} custom={i} variants={fadeUp} className="flex gap-4 rounded-2xl p-5 bg-gradient-to-b from-white/[0.05] to-white/[0.01] border border-white/10 hover:border-[#14E0A0]/30 transition-colors">
-                  <div className="w-10 h-10 rounded-xl bg-[#14E0A0]/10 flex items-center justify-center text-[#14E0A0] shrink-0">
-                    <g.icon size={20} />
-                  </div>
-                  <div>
-                    <h3 className="font-bold text-base mb-1">{g.title}</h3>
-                    <p className="text-white/50 text-sm leading-relaxed">{g.text}</p>
-                  </div>
-                </motion.div>
-              ))}
+            <div className="flex justify-center mb-7">
+              <div
+                role="tablist"
+                aria-label="Program highlights"
+                className="flex items-center gap-1 rounded-full border border-white/15 bg-white/5 p-1 overflow-x-auto no-scrollbar max-w-full"
+              >
+                {HIGHLIGHT_TABS.map((tab) => (
+                  <button
+                    key={tab.key}
+                    role="tab"
+                    aria-selected={highlightTab === tab.key}
+                    onClick={() => setHighlightTab(tab.key)}
+                    className={`whitespace-nowrap px-4 py-2 rounded-full text-xs sm:text-sm font-bold transition-colors ${
+                      highlightTab === tab.key ? "bg-[#14E0A0] text-[#050B16]" : "text-white/55 hover:text-white"
+                    }`}
+                  >
+                    {pick(tab, "label", lang)}
+                  </button>
+                ))}
+              </div>
             </div>
+
+            {highlightTab === "why" && (
+              <div key={`why-${lang}`} className="flex sm:grid sm:grid-cols-2 gap-4 sm:gap-5 overflow-x-auto sm:overflow-visible snap-x snap-mandatory sm:snap-none no-scrollbar -mx-5 px-5 sm:mx-0 sm:px-0 pb-2 sm:pb-0">
+                {WHY_JOIN.map((w, i) => (
+                  <motion.div key={w.title} custom={i} initial="hidden" animate="visible" variants={fadeUp} className="w-full sm:w-auto shrink-0 sm:shrink snap-start flex gap-4 rounded-2xl p-5 bg-white/[0.03] border border-white/10 hover:border-[#14E0A0]/30 transition-colors">
+                    <div className="w-10 h-10 rounded-xl bg-[#14E0A0]/10 flex items-center justify-center text-[#14E0A0] shrink-0">
+                      <w.icon size={20} />
+                    </div>
+                    <div>
+                      <h3 className="font-bold text-base mb-1">{pick(w, "title", lang)}</h3>
+                      <p className="text-white/60 text-sm leading-relaxed">{pick(w, "text", lang)}</p>
+                    </div>
+                  </motion.div>
+                ))}
+              </div>
+            )}
+
+            {highlightTab === "skills" && (
+              <div key={`skills-${lang}`} className="flex sm:grid sm:grid-cols-4 gap-3 overflow-x-auto sm:overflow-visible snap-x snap-mandatory sm:snap-none no-scrollbar -mx-5 px-5 sm:mx-0 sm:px-0 pb-2 sm:pb-0">
+                {SKILLS.map((s, i) => (
+                  <motion.div
+                    key={s.label}
+                    custom={i}
+                    initial="hidden"
+                    animate="visible"
+                    variants={fadeUp}
+                    className="w-[47%] sm:w-auto shrink-0 sm:shrink snap-start flex flex-col items-center text-center gap-2.5 rounded-2xl p-4 bg-white/[0.03] border border-white/10 hover:border-[#14E0A0]/30 transition-colors"
+                  >
+                    <div className="w-10 h-10 rounded-xl bg-[#14E0A0]/10 flex items-center justify-center text-[#14E0A0]">
+                      <s.icon size={20} />
+                    </div>
+                    <p className="text-sm font-semibold leading-snug">{pick(s, "label", lang)}</p>
+                  </motion.div>
+                ))}
+              </div>
+            )}
+
+            {highlightTab === "growth" && (
+              <div key={`growth-${lang}`} className="flex sm:grid sm:grid-cols-2 gap-4 sm:gap-5 overflow-x-auto sm:overflow-visible snap-x snap-mandatory sm:snap-none no-scrollbar -mx-5 px-5 sm:mx-0 sm:px-0 pb-2 sm:pb-0">
+                {GROWTH_BENEFITS.map((g, i) => (
+                  <motion.div key={g.title} custom={i} initial="hidden" animate="visible" variants={fadeUp} className="w-full sm:w-auto shrink-0 sm:shrink snap-start flex gap-4 rounded-2xl p-5 bg-gradient-to-b from-white/[0.05] to-white/[0.01] border border-white/10 hover:border-[#14E0A0]/30 transition-colors">
+                    <div className="w-10 h-10 rounded-xl bg-[#14E0A0]/10 flex items-center justify-center text-[#14E0A0] shrink-0">
+                      <g.icon size={20} />
+                    </div>
+                    <div>
+                      <h3 className="font-bold text-base mb-1">{pick(g, "title", lang)}</h3>
+                      <p className="text-white/60 text-sm leading-relaxed">{pick(g, "text", lang)}</p>
+                    </div>
+                  </motion.div>
+                ))}
+              </div>
+            )}
+            <p className="sm:hidden text-center text-[11px] text-white/40 mt-2">{t.swipeMore}</p>
           </div>
         </Section>
 
         {/* Mobile interface preview */}
         <Section>
           <div className="max-w-5xl mx-auto">
-            <motion.div variants={fadeUp} className="text-center mb-6">
+            <motion.div key={`mobile-head-${lang}`} variants={fadeUp} className="text-center mb-6">
               <div className="inline-flex items-center gap-2 text-[#14E0A0] text-sm font-bold uppercase tracking-wider mb-3">
-                <Smartphone size={16} /> Built Mobile-First
+                <Smartphone size={16} /> {t.mobileFirstTag}
               </div>
-              <h2 className="font-display text-2xl sm:text-3xl font-bold mb-2">Your Whole Internship, In Your Pocket</h2>
+              <h2 className="font-display text-2xl sm:text-3xl font-bold mb-2">{t.mobilePreviewTitle}</h2>
               <p className="text-white/45 text-sm sm:text-base max-w-xl mx-auto">
-                Log in after signing up and here's exactly what you'll see — your real progress, missions, skill radar, and certificate, live.
+                {t.mobilePreviewSub}
               </p>
             </motion.div>
             <div className="flex flex-col sm:flex-row items-center justify-center gap-8">
@@ -832,7 +992,7 @@ export default function InternshipLandingPage() {
                       activeScreen === s.key ? "bg-[#14E0A0] text-[#050B16]" : "bg-white/5 text-white/60 hover:bg-white/10"
                     }`}
                   >
-                    <s.icon size={17} /> {s.label}
+                    <s.icon size={17} /> {pick(s, "label", lang)}
                   </button>
                 ))}
               </motion.div>
@@ -844,10 +1004,10 @@ export default function InternshipLandingPage() {
             left, live certificate-card preview on the right */}
         <Section>
           <div className="max-w-5xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-10 items-center">
-            <motion.div variants={fadeUp} className="text-center lg:text-left">
-              <h2 className="font-display text-2xl sm:text-3xl font-bold mb-2">See What a Verified Certificate Looks Like</h2>
+            <motion.div key={`cert-head-${lang}`} variants={fadeUp} className="text-center lg:text-left">
+              <h2 className="font-display text-2xl sm:text-3xl font-bold mb-2">{t.certTitle}</h2>
               <p className="text-white/45 text-sm sm:text-base">
-                Anyone — a recruiter, a college, or you yourself — can search your certificate number and see the full, real story behind it.
+                {t.certSub}
               </p>
             </motion.div>
             <motion.div variants={fadeUp} className="relative rounded-2xl overflow-hidden border border-[#14E0A0]/25 bg-gradient-to-b from-[#14E0A0]/[0.06] to-white/[0.02] max-w-md mx-auto lg:mx-0 w-full">
@@ -862,18 +1022,18 @@ export default function InternshipLandingPage() {
                     <p className="text-white/40 text-sm">HR Track &middot; 90-Day Program &middot; TFD/INTP/2026/851840</p>
                   </div>
                 </div>
-                <div className="mb-1 flex justify-between text-sm"><span className="text-white/50">Program Score</span><span className="text-[#14E0A0] font-bold">88.2%</span></div>
+                <div className="mb-1 flex justify-between text-sm"><span className="text-white/50">{t.programScore}</span><span className="text-[#14E0A0] font-bold">88.2%</span></div>
                 <div className="h-2 rounded-full bg-white/10 overflow-hidden mb-4"><div className="h-full w-[88%] bg-gradient-to-r from-[#14E0A0] to-[#5EEAD4] rounded-full" /></div>
                 <div className="grid grid-cols-3 gap-2 text-center mb-4">
-                  <div className="rounded-lg bg-white/5 py-2"><p className="text-sm font-bold">42</p><p className="text-[10px] text-white/40">Tasks Done</p></div>
-                  <div className="rounded-lg bg-white/5 py-2"><p className="text-sm font-bold">6</p><p className="text-[10px] text-white/40">Quizzes Passed</p></div>
-                  <div className="rounded-lg bg-white/5 py-2"><p className="text-sm font-bold">College ID</p><p className="text-[10px] text-white/40">On File</p></div>
+                  <div className="rounded-lg bg-white/5 py-2"><p className="text-sm font-bold">42</p><p className="text-[10px] text-white/40">{t.tasksDone}</p></div>
+                  <div className="rounded-lg bg-white/5 py-2"><p className="text-sm font-bold">6</p><p className="text-[10px] text-white/40">{t.quizzesPassed}</p></div>
+                  <div className="rounded-lg bg-white/5 py-2"><p className="text-sm font-bold">{t.collegeIdOnFile}</p><p className="text-[10px] text-white/40">{t.onFile}</p></div>
                 </div>
                 <button
                   onClick={() => navigate("/verify")}
                   className="w-full flex items-center justify-center gap-1.5 bg-white/10 hover:bg-white/15 text-white text-sm font-semibold py-2.5 rounded-xl transition-colors"
                 >
-                  <QrCode size={15} /> Open the Real Verification Page
+                  <QrCode size={15} /> {t.certButton}
                 </button>
               </div>
             </motion.div>
@@ -885,47 +1045,111 @@ export default function InternshipLandingPage() {
             secondary actions (login/verify) on the right */}
         <Section className="border-t border-white/5">
           <div className="max-w-4xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
-            <div className="text-center lg:text-left">
-              <h2 className="font-display text-2xl sm:text-3xl font-bold mb-3">Ready to Start Your Internship?</h2>
-              <p className="text-white/50 text-base mb-7">India ka best internship program — seats are limited per batch. Pick your track and secure your slot today.</p>
+            <div key={`final-cta-${lang}`} className="text-center lg:text-left">
+              <h2 className="font-display text-2xl sm:text-3xl font-bold mb-3">{t.finalCtaTitle}</h2>
+              <p className="text-white/50 text-base mb-7">{t.finalCtaSub}</p>
               <button
                 onClick={() => navigate("/internship/apply")}
                 className="inline-flex items-center gap-2 bg-[#14E0A0] hover:bg-[#0FCB8F] text-[#050B16] font-bold text-base px-6 py-3 rounded-2xl shadow-[0_8px_24px_rgba(20,224,160,0.3)] transition-all hover:scale-[1.03]"
               >
-                Apply Now <ArrowUpRight size={18} />
+                {t.applyNow} <ArrowUpRight size={18} />
               </button>
             </div>
             <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-6 text-center lg:text-left">
-              <p className="text-xs font-bold uppercase tracking-wide text-white/35 mb-3">Already With Us?</p>
+              <p className="text-xs font-bold uppercase tracking-wide text-white/50 mb-3">{t.alreadyWithUs}</p>
               <button onClick={() => navigate("/internship/login")} className="block text-white/70 hover:text-white text-base font-semibold mb-3 transition-colors">
-                Already have an account? <span className="text-[#14E0A0]">Log in here</span>
+                {t.alreadyHaveAccount} <span className="text-[#14E0A0]">{t.logInHere}</span>
               </button>
               <button
                 onClick={() => navigate("/verify")}
-                className="inline-flex items-center gap-1.5 text-white/45 hover:text-[#14E0A0] text-sm font-semibold transition-colors"
+                className="inline-flex items-center gap-1.5 text-white/55 hover:text-[#14E0A0] text-sm font-semibold transition-colors"
               >
-                <ShieldCheck size={15} /> Verify Your Certificate
+                <ShieldCheck size={15} /> {t.verifyCert}
               </button>
             </div>
           </div>
         </Section>
 
-        {/* Footer */}
-        <footer className="px-5 py-10 border-t border-white/10">
-          <div className="max-w-5xl mx-auto flex flex-col items-center gap-4 text-center">
-            <div className="flex items-center gap-3">
-              <div className="bg-white rounded-xl p-1.5">
-                <img src={INTERNSHIP_LOGO_URL} alt="TFD Internship" width={500} height={246} className="h-6 w-auto object-contain" />
+        {/* Footer — richer than a single centered line: brand block, quick
+            links (tracks, apply, login, verify), and socials, all still on
+            the internship's own dark/green theme (distinct from the main
+            site's navy footer). Grid on desktop, stacked on mobile. */}
+        <footer className="px-5 sm:px-10 lg:px-16 pt-12 pb-8 border-t border-white/10">
+          <div className="max-w-5xl mx-auto grid grid-cols-1 sm:grid-cols-[1.3fr_1fr_1fr_1fr] gap-8 sm:gap-6 text-center sm:text-left">
+            <div className="flex flex-col items-center sm:items-start">
+              <div className="flex items-center gap-3">
+                <div className="bg-white rounded-xl p-1.5 shrink-0">
+                  <img src={INTERNSHIP_LOGO_URL} alt="TFD Internship" width={500} height={246} className="h-7 w-auto object-contain" />
+                </div>
+                <div className="text-left leading-tight">
+                  <div className="text-sm font-bold text-white">TFD Internship</div>
+                  <div className="text-[11px] text-[#14E0A0] font-semibold">Learn. Build. Launch.</div>
+                </div>
               </div>
-              <div className="text-left leading-tight">
-                <div className="text-sm font-bold text-white">TFD Internship</div>
-                <div className="text-[11px] text-[#14E0A0] font-semibold">Learn. Build. Launch.</div>
+              <p className="text-white/45 text-sm max-w-xs leading-relaxed mt-4">
+                {t.footerTagline}
+              </p>
+              <div className="flex items-center gap-2 mt-4">
+                {[
+                  { href: LINKS.instagram, icon: Instagram },
+                  { href: LINKS.youtube, icon: Youtube },
+                  { href: LINKS.linkedin, icon: Linkedin },
+                ].map(({ href, icon: Icon }, i) => (
+                  <a
+                    key={i}
+                    href={href}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="w-8 h-8 rounded-full border border-white/15 flex items-center justify-center text-white/60 hover:text-[#14E0A0] hover:border-[#14E0A0]/40 transition-colors"
+                  >
+                    <Icon size={14} />
+                  </a>
+                ))}
               </div>
             </div>
-            <p className="text-white/35 text-sm max-w-md leading-relaxed">
-              India ka best internship program &middot; Proudly built for Indian students &middot; Internship karo, seekho, aur aage badho.
-            </p>
-            <p className="text-white/25 text-xs">Powered by The Financial Doctor</p>
+
+            <div>
+              <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-[#14E0A0] mb-3">{t.footerTracks}</p>
+              <ul className="space-y-2 text-sm">
+                {FOOTER_TRACKS.map((track) => (
+                  <li key={track.value}>
+                    <button onClick={() => navigate(`/internship/tracks/${track.value}`)} className="text-white/55 hover:text-white transition-colors">
+                      {track.label}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            <div>
+              <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-[#14E0A0] mb-3">{t.footerProgram}</p>
+              <ul className="space-y-2 text-sm">
+                <li><button onClick={() => navigate("/internship/apply")} className="text-white/55 hover:text-white transition-colors">{t.applyNow}</button></li>
+                <li><button onClick={() => navigate("/internship/login")} className="text-white/55 hover:text-white transition-colors">{t.studentLogin}</button></li>
+                <li><button onClick={() => navigate("/verify")} className="text-white/55 hover:text-white transition-colors">{t.footerVerify}</button></li>
+                <li><button onClick={() => navigate("/")} className="text-white/55 hover:text-white transition-colors">{t.footerMainSite}</button></li>
+              </ul>
+            </div>
+
+            {/* Contact: email only — phone number intentionally left off
+                this page per request, to avoid displaying it to every
+                internship applicant (WhatsApp/email already cover contact
+                elsewhere on the main site). */}
+            <div>
+              <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-[#14E0A0] mb-3">{t.footerContact}</p>
+              <ul className="space-y-2 text-sm">
+                <li>
+                  <a href={`mailto:${LINKS.email}`} className="text-white/55 hover:text-white transition-colors inline-flex items-center gap-1.5 justify-center sm:justify-start">
+                    <Mail size={13} className="shrink-0" /> <span className="truncate">{LINKS.email}</span>
+                  </a>
+                </li>
+              </ul>
+            </div>
+          </div>
+
+          <div className="max-w-5xl mx-auto border-t border-white/10 mt-8 pt-5 flex flex-col sm:flex-row items-center justify-between gap-2 text-center sm:text-left">
+            <p className="text-white/45 text-xs">{t.poweredBy}</p>
+            <p className="text-white/45 text-xs">&copy; {new Date().getFullYear()} TFD Internship. {t.allRightsReserved}</p>
           </div>
         </footer>
       </div>

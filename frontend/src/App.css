@@ -22,3 +22,14 @@
 .animate-float-slow {
   animation: float-slow 12s ease-in-out infinite;
 }
+
+/* Hides the scrollbar on horizontal snap-scroll carousels (internship
+   landing/dashboard mobile card rows) while keeping the row scrollable —
+   the scrollbar itself is just visual noise on a touch-swipe carousel. */
+.no-scrollbar {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}

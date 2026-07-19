@@ -193,7 +193,7 @@ function DemoGuideWidget({ open, onClose }) {
               </button>
             ))}
           </div>
-          <p className="text-[10px] text-white/35 mt-1.5">Switching resets this demo's tasks/quizzes to a fresh state for the new track.</p>
+          <p className="text-[10px] text-white/50 mt-1.5">Switching resets this demo's tasks/quizzes to a fresh state for the new track.</p>
         </div>
 
         <div className="mb-5">
@@ -223,7 +223,7 @@ function DemoGuideWidget({ open, onClose }) {
               Final Day
             </button>
           </div>
-          <p className="text-[10px] text-white/35 mt-1.5">All weeks unlock automatically here — no quiz needed to see the next week's tasks (real accounts still need to pass each quiz).</p>
+          <p className="text-[10px] text-white/50 mt-1.5">All weeks unlock automatically here — no quiz needed to see the next week's tasks (real accounts still need to pass each quiz).</p>
         </div>
 
         <div className="mb-5">
@@ -234,7 +234,7 @@ function DemoGuideWidget({ open, onClose }) {
           >
             <Award size={15} /> {graduating ? "Generating..." : student?.status === "graduated" ? "Already Graduated This Session" : "Instant Graduate — Show Certificate"}
           </button>
-          <p className="text-[10px] text-white/35 mt-1.5 text-center">Skips the score/duration requirement entirely — for demo purposes only.</p>
+          <p className="text-[10px] text-white/50 mt-1.5 text-center">Skips the score/duration requirement entirely — for demo purposes only.</p>
         </div>
 
         <p className="text-white/70 text-xs font-semibold mb-2">Walkthrough — what to show, in order</p>
@@ -247,7 +247,7 @@ function DemoGuideWidget({ open, onClose }) {
           ))}
         </div>
 
-        <p className="text-[10px] text-white/30 mt-4 text-center">
+        <p className="text-[10px] text-white/45 mt-4 text-center">
           This account resets to a clean Day-1 state every time anyone logs in — nothing you do here is ever permanent.
         </p>
       </div>
