@@ -58,6 +58,33 @@ async def run_scheduled_tasks(
     import scheduler_worker
     try:
         result = await run_in_threadpool(scheduler_worker.run_due_checks)
-        return {"status": "ok", "ran": result.get("ran", []), "checked_at": result.get("checked_at")}
+        ran = result.get("ran", [])
     except Exception as e:
         return {"status": "error", "error": str(e)[:200]}
+
+    # Auto-graduation runs here (not in scheduler_worker.py) because it
+    # needs internship_routes.py's own _graduation_eligibility /
+    # _generate_graduation_documents — reusing those directly, on this
+    # same async event loop, beats re-implementing certificate/PDF/R2
+    # generation a second time against scheduler_worker.py's separate sync
+    # pymongo client. Errors here are caught per-student so one student's
+    # PDF/R2 failure can't stop everyone else's certificate from issuing.
+    try:
+        from internship_routes import _graduation_eligibility, _generate_graduation_documents
+        from database import internship_students_collection
+
+        graduated_count = 0
+        error_count = 0
+        async for student in internship_students_collection.find({"status": "active", "is_demo": {"$ne": True}}):
+            try:
+                check = await _graduation_eligibility(student)
+                if check.eligible:
+                    await _generate_graduation_documents(student, check, "auto-scheduler")
+                    graduated_count += 1
+            except Exception:
+                error_count += 1
+        ran.append(f"internship_auto_graduate ({graduated_count} graduated, {error_count} errors)")
+    except Exception as e:
+        ran.append(f"internship_auto_graduate (failed: {str(e)[:150]})")
+
+    return {"status": "ok", "ran": ran, "checked_at": result.get("checked_at")}
