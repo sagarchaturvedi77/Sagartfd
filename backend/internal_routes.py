@@ -95,4 +95,19 @@ async def run_scheduled_tasks(
     except Exception as e:
         ran.append(f"internship_auto_graduate (failed: {str(e)[:150]})")
 
+    # AI Manager: one daily check-in per active student (idempotent via
+    # last_manager_checkin_date), plus the "manager is waiting for your
+    # reply" follow-up for un-replied messages — see internship_manager_
+    # routes.py's run_daily_manager_checkins docstring for the idempotency
+    # details.
+    try:
+        from internship_manager_routes import run_daily_manager_checkins
+        checkin_result = await run_daily_manager_checkins()
+        ran.append(
+            f"internship_manager_checkins ({checkin_result['checkins_sent']} sent, "
+            f"{checkin_result['followups_sent']} follow-ups, {checkin_result['errors']} errors)"
+        )
+    except Exception as e:
+        ran.append(f"internship_manager_checkins (failed: {str(e)[:150]})")
+
     return {"status": "ok", "ran": ran, "checked_at": result.get("checked_at")}

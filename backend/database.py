@@ -54,6 +54,9 @@ internship_reports_collection = db["internship_reports"]
 # — pending_review until an admin approves it, only then does it ever reach
 # the real public website. See internship_content_routes.py.
 internship_content_collection = db["internship_content"]
+# AI Manager chat history — one document per message (student or manager
+# role), see internship_manager_routes.py.
+internship_manager_chat_collection = db["internship_manager_chat"]
 # Cashfree Payment Gateway orders — generic across payment_type values
 # ("internship_signup", "certificate_regeneration", ...), see cashfree_client.py.
 payment_orders_collection = db["payment_orders"]
