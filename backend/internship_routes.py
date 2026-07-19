@@ -1654,6 +1654,8 @@ async def get_current_tasks(payload: dict = Depends(get_current_student_payload)
             "submission_status": sub["status"] if sub else None,
             "submission_id": sub["id"] if sub else None,
             "submission_note": sub.get("admin_note") if sub else None,
+            "points_awarded": sub.get("points_awarded") if sub else None,
+            "attempt_count": sub.get("attempt_count") if sub else None,
             "draft_text": sub.get("text_answer") if sub and sub.get("status") == "draft" else None,
             "draft_spreadsheet_data": sub.get("spreadsheet_data") if sub and sub.get("status") == "draft" else None,
         })
@@ -1710,6 +1712,8 @@ async def get_all_assigned_tasks(payload: dict = Depends(get_current_student_pay
                 "submission_status": sub["status"] if sub else None,
                 "submission_id": sub["id"] if sub else None,
                 "submission_note": sub.get("admin_note") if sub else None,
+            "points_awarded": sub.get("points_awarded") if sub else None,
+            "attempt_count": sub.get("attempt_count") if sub else None,
                 "draft_text": sub.get("text_answer") if sub and sub.get("status") == "draft" else None,
                 "draft_spreadsheet_data": sub.get("spreadsheet_data") if sub and sub.get("status") == "draft" else None,
             })
@@ -1931,6 +1935,17 @@ async def _auto_verify_text(task: dict, text_answer: str) -> tuple[bool, str, st
 # hurt the program's credibility rather than help it.
 _SPREADSHEET_PASS_THRESHOLD = 0.70
 _SPREADSHEET_PASS_THRESHOLD_BLINDFOLD = 0.85
+
+# Full points only for a first-attempt pass — everyone can still keep
+# resubmitting freely and pass with no cap (the point is to help people
+# learn, not to lock anyone out), but points taper a little with each
+# attempt it took, floored so it never turns into a real punishment.
+_ATTEMPT_SCORE_FLOOR = 0.60
+_ATTEMPT_SCORE_STEP = 0.10
+
+
+def _attempt_score_multiplier(attempt_count: int) -> float:
+    return max(_ATTEMPT_SCORE_FLOOR, 1.0 - (max(1, attempt_count) - 1) * _ATTEMPT_SCORE_STEP)
 
 
 def _auto_verify_spreadsheet(task: dict, spreadsheet_data: dict) -> tuple[bool, str]:
@@ -2187,6 +2202,7 @@ async def create_submission(
     existing = await internship_submissions_collection.find_one({"student_id": student["id"], "task_id": task_id})
     if existing and existing.get("status") in ("pending", "approved"):
         raise HTTPException(status_code=409, detail="You've already submitted this task")
+    attempt_count = (existing.get("attempt_count", 0) if existing else 0) + 1
 
     photo_r2_key = None
     if photo:
@@ -2237,6 +2253,20 @@ async def create_submission(
     if content_rejected and task.get("mistake_explanation"):
         reason = f"{reason}\n\nWhy this matters: {task['mistake_explanation']}"
 
+    # Full points only for a first-attempt pass — resubmitting is always
+    # free and uncapped (this never blocks passing), but points taper a
+    # little per attempt it took, floored at _ATTEMPT_SCORE_FLOOR. Told to
+    # the student directly rather than just silently shorting their score.
+    score_multiplier = _attempt_score_multiplier(attempt_count)
+    base_points = task.get("points_value", 0)
+    awarded_points = 0 if is_practice else round(base_points * score_multiplier)
+    if approved and not is_practice and score_multiplier < 1.0:
+        reason = (
+            f"{reason}\n\nScore note: {awarded_points}/{base_points} points — this took {attempt_count} attempts "
+            f"to pass. First-attempt passes earn full points; resubmitting is always free and never blocks you "
+            f"from passing, but the score reflects that it took a few tries."
+        )
+
     doc = {
         "id": existing["id"] if existing else str(uuid.uuid4()),
         "student_id": student["id"], "student_name": student["name"],
@@ -2251,8 +2281,8 @@ async def create_submission(
         # points, so they can never inflate a score or the certificate
         # percentage (_graduation_eligibility sums points_awarded across
         # every approved submission with no other filter).
-        "points_awarded": (0 if is_practice else task.get("points_value", 0)) if approved else None,
-        "is_practice": is_practice, "reviewed_at": now,
+        "points_awarded": awarded_points if approved else None,
+        "attempt_count": attempt_count, "is_practice": is_practice, "reviewed_at": now,
     }
     if existing:
         await internship_submissions_collection.update_one({"id": existing["id"]}, {"$set": doc})

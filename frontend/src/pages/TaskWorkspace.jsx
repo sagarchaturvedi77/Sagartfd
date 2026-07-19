@@ -391,9 +391,22 @@ export default function TaskWorkspace() {
           )}
 
           {task.submission_status === "approved" && (
-            <div className="rounded-xl bg-emerald-500/10 border border-emerald-500/30 p-3 flex items-center gap-2">
-              <CheckCircle2 size={16} className="text-emerald-400 shrink-0" />
-              <p className="text-emerald-300 text-xs">This task is verified and marked complete.</p>
+            <div className="rounded-xl bg-emerald-500/10 border border-emerald-500/30 p-3">
+              <div className="flex items-center gap-2">
+                <CheckCircle2 size={16} className="text-emerald-400 shrink-0" />
+                <p className="text-emerald-300 text-xs">
+                  This task is verified and marked complete.
+                  {task.points_awarded != null && !task.is_practice && (
+                    <span className="text-emerald-300/70"> {task.points_awarded}/{task.points_value} points.</span>
+                  )}
+                </p>
+              </div>
+              {task.attempt_count > 1 && !task.is_practice && (
+                <p className="text-emerald-200/60 text-[11px] mt-1.5 leading-relaxed">
+                  Passed on attempt {task.attempt_count} — first-attempt passes earn full points; resubmitting is
+                  always free and never blocks you from passing, this just reflects it took a few tries.
+                </p>
+              )}
             </div>
           )}
           {task.submission_status === "pending" && (
