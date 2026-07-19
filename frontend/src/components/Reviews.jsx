@@ -101,6 +101,7 @@ export default function Reviews() {
     }));
     const [hoverStar, setHoverStar] = useState(0);
     const [loading, setLoading] = useState(false);
+    const [lastSubmitted, setLastSubmitted] = useState(null);
 
     useEffect(() => {
         api.listReviews()
@@ -118,36 +119,34 @@ export default function Reviews() {
 
     const onSubmit = async (e) => {
         e.preventDefault();
+        if (!form.name.trim()) {
+            toast.error("Apna naam likhein.");
+            return;
+        }
         if (form.message.length < 10) {
             toast.error("Review thoda lamba likhein (min 10 chars).");
             return;
         }
         setLoading(true);
-        // Copy message to clipboard so user can paste on Google
         try {
-            if (navigator.clipboard) await navigator.clipboard.writeText(form.message);
-        } catch (err) {
-            // Clipboard not available (insecure context / unsupported browser) — non-fatal.
-            console.warn("clipboard.writeText failed:", err);
-        }
-        // Save locally for analytics (not displayed — only Google reviews shown)
-        try {
+            // Submitting on the site IS the review — saved + shown live below,
+            // with an instant auto-reply from the team (no Google redirect needed).
             const created = await api.createReview(form);
             setList((cur) => [created, ...cur]);
+            setLastSubmitted(created);
+            setStats((s) => ({ ...s, count: s.count + 1 }));
+            setSubmitted(true);
+            setForm({
+                name: "",
+                location: "Sehore",
+                rating: 5,
+                message: pickRandomTemplate(),
+            });
+            toast.success("Review published — thanks! ⭐");
         } catch (err) {
-            // Backend save is best-effort; the Google redirect is the primary action.
             console.warn("createReview failed:", err);
+            toast.error("Review submit nahi ho paya. Please try again.");
         }
-        // Redirect to Google review page in a new tab — primary action
-        window.open(LINKS.googleReviews, "_blank", "noopener,noreferrer");
-        setSubmitted(true);
-        setForm({
-            name: "",
-            location: "Sehore",
-            rating: 5,
-            message: pickRandomTemplate(),
-        });
-        toast.success("Review copied! Paste it on Google to publish ⭐");
         setLoading(false);
     };
 
@@ -200,12 +199,12 @@ export default function Reviews() {
                             Rate The Financial Doctor.
                         </h3>
                         <p className="text-[#F6F1E8]/70 mt-1.5 sm:mt-2 text-[12px] sm:text-sm leading-relaxed">
-                            We showcase only <strong>verified Google reviews</strong>. Pick a template
-                            below and tap Publish — your review opens directly on Google with the text
-                            ready to paste.
+                            Rate us & write your review <strong>right here</strong> — it goes live on
+                            this page instantly and our team auto-replies within seconds. You can
+                            also post the same review on Google below.
                         </p>
 
-                        {/* Primary: Google review CTA */}
+                        {/* Secondary: Google review CTA */}
                         <a
                             href={LINKS.googleReviews}
                             target="_blank"
@@ -219,34 +218,51 @@ export default function Reviews() {
                             }}
                         >
                             <span className="inline-flex items-center gap-1.5 min-w-0">
-                                <GoogleG /> <span className="truncate">Write a Google Review</span>
+                                <GoogleG /> <span className="truncate">Also Write a Google Review</span>
                             </span>
                             <ExternalLink size={14} className="shrink-0" />
                         </a>
 
                         <div className="my-4 sm:my-5 flex items-center gap-3 text-[9.5px] sm:text-[10px] tracking-[0.18em] uppercase text-[#F6F1E8]/40">
                             <span className="h-px flex-1 bg-[#F6F1E8]/15" />
-                            <span className="hidden xs:inline">or</span> prep your review
+                            <span className="hidden xs:inline">or</span> rate us on this website
                             <span className="h-px flex-1 bg-[#F6F1E8]/15" />
                         </div>
 
                         {submitted ? (
                             <div className="bg-[#024396] rounded-xl p-5 flex items-start gap-3">
-                                <CheckCircle2 className="text-white mt-0.5" size={20} />
-                                <div>
-                                    <div className="font-display text-lg">Thanks for the note ⭐</div>
+                                <CheckCircle2 className="text-white mt-0.5 shrink-0" size={20} />
+                                <div className="min-w-0">
+                                    <div className="font-display text-lg">Your review is live ⭐</div>
                                     <div className="text-sm opacity-85 mt-1">
-                                        Mind dropping the same review on Google? It really helps families
-                                        in MP discover us.
+                                        Thanks for sharing your experience — it's already showing in the
+                                        list on the right.
                                     </div>
-                                    <a
-                                        href={LINKS.googleReviews}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className="inline-flex items-center gap-1.5 mt-3 text-xs bg-white text-[#0E1B2C] px-3 py-1.5 rounded-full font-medium"
-                                    >
-                                        <GoogleG /> Post on Google
-                                    </a>
+                                    {lastSubmitted?.reply && (
+                                        <div className="mt-3 bg-white/10 rounded-lg p-3 text-xs leading-relaxed">
+                                            <div className="uppercase tracking-[0.16em] text-[10px] opacity-70 mb-1">
+                                                Reply from The Financial Doctor
+                                            </div>
+                                            {lastSubmitted.reply}
+                                        </div>
+                                    )}
+                                    <div className="flex items-center gap-2 mt-3">
+                                        <a
+                                            href={LINKS.googleReviews}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="inline-flex items-center gap-1.5 text-xs bg-white text-[#0E1B2C] px-3 py-1.5 rounded-full font-medium"
+                                        >
+                                            <GoogleG /> Also post on Google
+                                        </a>
+                                        <button
+                                            type="button"
+                                            onClick={() => setSubmitted(false)}
+                                            className="text-xs text-white/70 hover:text-white px-2"
+                                        >
+                                            Write another
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
                         ) : (
@@ -344,21 +360,18 @@ export default function Reviews() {
                                 />
                                 <button
                                     type="submit"
-                                    disabled={loading || form.message.length < 10}
+                                    disabled={loading || form.message.length < 10 || !form.name.trim()}
                                     data-testid={IDS.reviews.submit}
-                                    className="flex items-center justify-between gap-2 w-full rounded-full px-4 py-3 text-[13px] sm:text-sm font-semibold disabled:opacity-50 transition-opacity"
+                                    className="flex items-center justify-center gap-2 w-full rounded-full px-4 py-3 text-[13px] sm:text-sm font-semibold disabled:opacity-50 transition-opacity"
                                     style={{ background: "#C7102E", color: "#fff" }}
                                 >
-                                    <span className="inline-flex items-center gap-1.5 min-w-0">
-                                        <Send size={15} className="shrink-0" />
-                                        <span className="truncate">
-                                            {loading ? "Opening…" : "Publish on Google"}
-                                        </span>
+                                    <Send size={15} className="shrink-0" />
+                                    <span className="truncate">
+                                        {loading ? "Submitting…" : "Submit Review"}
                                     </span>
-                                    <ExternalLink size={14} className="shrink-0" />
                                 </button>
                                 <p className="text-[10px] text-[#F6F1E8]/55 text-center leading-relaxed">
-                                    Tapping Publish opens Google Review with your text auto-copied — just paste &amp; post.
+                                    Your review publishes instantly on this page — our team auto-replies right away.
                                 </p>
                             </div>
                         )}
@@ -384,16 +397,35 @@ export default function Reviews() {
                                             />
                                         ))}
                                     </div>
-                                    <span
-                                        className="inline-flex items-center gap-1 text-[9px] tracking-[0.16em] uppercase text-[#5C677D] bg-[#F6F1E8] border border-[#E2D8C2] px-1.5 sm:px-2 py-0.5 rounded-full"
-                                        title="Sourced from Google reviews"
-                                    >
-                                        <GoogleG size={9} /> Google
-                                    </span>
+                                    {String(r.id).startsWith("g-") ? (
+                                        <span
+                                            className="inline-flex items-center gap-1 text-[9px] tracking-[0.16em] uppercase text-[#5C677D] bg-[#F6F1E8] border border-[#E2D8C2] px-1.5 sm:px-2 py-0.5 rounded-full"
+                                            title="Sourced from Google reviews"
+                                        >
+                                            <GoogleG size={9} /> Google
+                                        </span>
+                                    ) : (
+                                        <span
+                                            className="inline-flex items-center gap-1 text-[9px] tracking-[0.16em] uppercase text-[#024396] bg-[#E9F0FB] border border-[#C9DCF5] px-1.5 sm:px-2 py-0.5 rounded-full"
+                                            title="Submitted directly on this website"
+                                        >
+                                            Website Review
+                                        </span>
+                                    )}
                                 </div>
                                 <p className="text-[13px] sm:text-[14.5px] text-[#2A364B] leading-relaxed flex-1">
                                     “{r.message}”
                                 </p>
+                                {r.reply && (
+                                    <div className="mt-3 bg-[#F6F1E8] border border-[#E2D8C2] rounded-lg p-2.5 sm:p-3">
+                                        <div className="text-[9px] sm:text-[9.5px] uppercase tracking-[0.16em] text-[#C7102E] font-semibold mb-1">
+                                            Reply from The Financial Doctor
+                                        </div>
+                                        <p className="text-[11.5px] sm:text-[12.5px] text-[#5C677D] leading-relaxed">
+                                            {r.reply}
+                                        </p>
+                                    </div>
+                                )}
                                 <div className="mt-3 sm:mt-4 pt-3 sm:pt-4 border-t border-[#E2D8C2] flex items-center gap-2.5 sm:gap-3">
                                     <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-[#024396] text-[#F6F1E8] grid place-items-center text-xs sm:text-sm font-display">
                                         {initials(r.name)}

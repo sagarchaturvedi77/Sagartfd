@@ -48,6 +48,8 @@ class Review(BaseModel):
     message: str
     created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
     approved: bool = True  # auto-approved per user choice
+    reply: Optional[str] = None
+    replied_at: Optional[str] = None
 
 
 class ReviewCreate(BaseModel):
@@ -55,6 +57,28 @@ class ReviewCreate(BaseModel):
     location: Optional[str] = Field(default="Sehore", max_length=80)
     rating: int = Field(ge=1, le=5)
     message: str = Field(min_length=10, max_length=600)
+
+
+# Auto-reply templates posted instantly under every new review, toned by
+# star rating (happy vs. apologetic) so the reviews section always looks
+# actively managed without needing a human to reply first.
+POSITIVE_REPLY_TEMPLATES = [
+    "Thank you so much, {name}! It truly means a lot to us. We're glad we could help you plan your finances better — looking forward to serving you for years to come. 🙏",
+    "Dhanyavaad, {name}! Aapka feedback hamare liye bahut important hai. We'll keep working hard to make your financial journey smoother. 😊",
+    "We really appreciate you taking the time to share this, {name}! It's reviews like yours that keep us motivated to serve Sehore & MP families better.",
+    "Thank you, {name}! Your trust means everything to us — we're always here whenever you need us for your financial planning.",
+]
+NEUTRAL_REPLY_TEMPLATES = [
+    "Thank you for your feedback, {name}. We'd love to understand more and make things better — please reach out to us directly so we can help.",
+    "Thanks for sharing this, {name}. We take all feedback seriously and will work on improving your experience. Feel free to contact us anytime.",
+]
+
+
+def generate_auto_reply(name: str, rating: int) -> str:
+    import random
+    templates = POSITIVE_REPLY_TEMPLATES if rating >= 4 else NEUTRAL_REPLY_TEMPLATES
+    first_name = (name or "").strip().split(" ")[0] or "there"
+    return random.choice(templates).format(name=first_name)
 
 
 class ContactRequest(BaseModel):
@@ -87,6 +111,8 @@ async def root():
 @api_router.post("/reviews", response_model=Review)
 async def create_review(payload: ReviewCreate):
     review = Review(**payload.model_dump())
+    review.reply = generate_auto_reply(review.name, review.rating)
+    review.replied_at = datetime.now(timezone.utc).isoformat()
     await db.reviews.insert_one(review.model_dump())
     return review
 
