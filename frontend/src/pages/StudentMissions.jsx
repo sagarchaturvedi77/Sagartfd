@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   CheckCircle2, Clock3, MapPin, Eye, ChevronDown, ChevronUp, Timer,
-  GraduationCap, ArrowUpRight,
+  GraduationCap, ArrowUpRight, Sparkles, RefreshCw,
 } from "lucide-react";
 import StudentLayout from "../portal/student/StudentLayout";
 import { useInternshipAuth } from "../portal/student/InternshipAuthContext";
@@ -89,6 +89,8 @@ export default function StudentMissions() {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [practice, setPractice] = useState(null);
+  const [practiceLoading, setPracticeLoading] = useState(false);
 
   const load = useCallback(async () => {
     try {
@@ -102,7 +104,19 @@ export default function StudentMissions() {
     setLoading(false);
   }, [token]);
 
-  useEffect(() => { load(); }, [load]);
+  const loadPractice = useCallback(async () => {
+    setPracticeLoading(true);
+    try {
+      const res = await fetch(`${API_BASE}/api/internship/tasks/practice`, { headers: { Authorization: `Bearer ${token}` } });
+      const json = await res.json().catch(() => ({}));
+      setPractice(json);
+    } catch {
+      // Non-fatal — practice tasks are a bonus, not a core flow.
+    }
+    setPracticeLoading(false);
+  }, [token]);
+
+  useEffect(() => { load(); loadPractice(); }, [load, loadPractice]);
 
   const hasMissedTasks = data?.weeks?.some((w) => w.week_number < data.current_week && w.approved_count < w.total_count);
 
@@ -153,6 +167,33 @@ export default function StudentMissions() {
             <WeekSection key={week.week_number} week={week} isCurrent={week.week_number === data.current_week} />
           ))}
         </div>
+
+        {practice?.available && (
+          <div className="rounded-2xl border border-amber-400/25 overflow-hidden">
+            <div className="flex items-center justify-between gap-3 p-4 bg-amber-400/10">
+              <div className="flex items-center gap-2.5">
+                <Sparkles size={16} className="text-amber-300" />
+                <div>
+                  <span className="text-sm font-bold text-amber-200">Practice Zone</span>
+                  <p className="text-[11px] text-amber-200/60 mt-0.5">Finished this week already? Extra tasks, real feedback, never affects your score.</p>
+                </div>
+              </div>
+              <button
+                onClick={loadPractice}
+                disabled={practiceLoading}
+                aria-label="Get new practice tasks"
+                className="text-amber-300 hover:text-amber-200 disabled:opacity-50 shrink-0"
+              >
+                <RefreshCw size={15} className={practiceLoading ? "animate-spin" : ""} />
+              </button>
+            </div>
+            <div className="p-4 space-y-3 bg-black/20">
+              {practice.tasks.map((task) => (
+                <TaskCard key={task.id} task={task} weekNumber={practice.week_number} />
+              ))}
+            </div>
+          </div>
+        )}
 
         {data?.current_week > 0 && (
           <button

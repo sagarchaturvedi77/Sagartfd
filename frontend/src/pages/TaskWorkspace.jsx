@@ -64,7 +64,18 @@ export default function TaskWorkspace() {
       const json = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(json.detail || "Could not load this task");
 
-      const matches = (json.weeks || []).flatMap((w) => w.tasks.filter((t) => t.id === taskId).map((t) => ({ ...t, __week: w.week_number })));
+      let matches = (json.weeks || []).flatMap((w) => w.tasks.filter((t) => t.id === taskId).map((t) => ({ ...t, __week: w.week_number })));
+
+      // Not a required task for any week — check practice tasks before
+      // giving up (practice tasks live outside /tasks/all on purpose, see
+      // GET /internship/tasks/practice).
+      if (!matches.length) {
+        const pRes = await fetch(`${API_BASE}/api/internship/tasks/practice`, { headers: { Authorization: `Bearer ${token}` } });
+        const pJson = await pRes.json().catch(() => ({}));
+        const practiceMatch = (pJson.tasks || []).find((t) => t.id === taskId);
+        if (practiceMatch) matches = [{ ...practiceMatch, __week: pJson.week_number }];
+      }
+
       if (!matches.length) {
         setError("This task isn't in your assigned list — it may have rotated out. Head back to Missions.");
         setLoading(false);
@@ -286,6 +297,18 @@ export default function TaskWorkspace() {
         </div>
 
         <div className="space-y-4">
+          {task.is_practice && (
+            <div className="rounded-xl bg-amber-400/10 border border-amber-400/30 p-3.5 flex items-start gap-2.5">
+              <Sparkles size={16} className="text-amber-300 shrink-0 mt-0.5" />
+              <div>
+                <p className="text-amber-200 text-xs font-bold">Practice Task — doesn't affect your score</p>
+                <p className="text-amber-200/70 text-xs leading-relaxed mt-0.5">
+                  This one's just for extra practice since you finished this week's required tasks — feedback is
+                  real, but it's never worth points and never counts toward your certificate percentage.
+                </p>
+              </div>
+            </div>
+          )}
           {task.is_blindfold && (
             <div className="rounded-xl bg-purple-500/10 border border-purple-400/30 p-3.5 flex items-start gap-2.5">
               <EyeOff size={16} className="text-purple-300 shrink-0 mt-0.5" />

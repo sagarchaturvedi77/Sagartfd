@@ -1533,6 +1533,70 @@ async def _assign_week_tasks(student: dict, week_number: int) -> list[dict]:
     return sample
 
 
+async def _assign_practice_tasks(student: dict, week_number: int) -> list[dict]:
+    """Extra, ungraded tasks a student can pull once all TASKS_PER_WEEK
+    required tasks for the week have been attempted (submitted, any
+    status) — so finishing a week early means more practice, not idle
+    days waiting for next week's calendar-gated unlock. Never counted
+    toward points/certificate (see create_submission's is_practice
+    handling) and never gates progression either way."""
+    required = await _assign_week_tasks(student, week_number)
+    required_ids = {t["id"] for t in required}
+    submitted_ids = {
+        s["task_id"]
+        async for s in internship_submissions_collection.find(
+            {"student_id": student["id"], "week_number": week_number}, {"task_id": 1}
+        )
+    }
+    if not required_ids.issubset(submitted_ids):
+        return []  # still working through the required tasks
+
+    practice = student.get("practice_tasks") or {}
+    key = str(week_number)
+    served_ids = practice.get(key) or []
+
+    # Hand back any already-offered practice task that hasn't been
+    # attempted yet, rather than piling on more before those are done.
+    unattempted = [tid for tid in served_ids if tid not in submitted_ids]
+    if unattempted:
+        docs = []
+        for tid in unattempted:
+            doc = await internship_task_pool_collection.find_one({"id": tid})
+            if doc:
+                docs.append(doc)
+        if docs:
+            return docs
+
+    pool = [doc async for doc in internship_task_pool_collection.find({"track": student["track"], "is_active": True})]
+    if not pool:
+        return []
+    phase_tagged = any(t.get("phase") is not None for t in pool)
+    if phase_tagged:
+        phase, is_blindfold_week = _phase_for_week(week_number)
+        working_pool = [t for t in pool if t.get("phase") == phase and bool(t.get("is_blindfold", False)) == is_blindfold_week] or pool
+    else:
+        working_pool = pool
+
+    rng = random.Random(f"{student['id']}:{week_number}:practice:{len(served_ids)}")
+    fresh_pool = [t for t in working_pool if t["id"] not in required_ids and t["id"] not in served_ids]
+    if not fresh_pool:
+        # Every distinct task in this phase has already been offered as
+        # practice — repeats are still genuinely useful practice, so allow
+        # them rather than dead-ending "unlimited" practice.
+        fresh_pool = [t for t in working_pool if t["id"] not in required_ids]
+    if not fresh_pool:
+        return []
+    rng.shuffle(fresh_pool)
+    batch = fresh_pool[:TASKS_PER_WEEK]
+
+    new_served = served_ids + [t["id"] for t in batch]
+    await internship_students_collection.update_one(
+        {"id": student["id"]},
+        {"$set": {f"practice_tasks.{key}": new_served, "updated_at": datetime.now(timezone.utc)}},
+    )
+    return batch
+
+
 async def _week_quiz_passed(student_id: str, week_number: int) -> bool:
     attempt = await internship_quiz_attempts_collection.find_one(
         {"student_id": student_id, "week_number": week_number, "passed": True}
@@ -1659,6 +1723,45 @@ async def get_all_assigned_tasks(payload: dict = Depends(get_current_student_pay
         "weeks": weeks_out, "current_week": effective_week, "current_day": current_day,
         "is_locked_on_quiz": is_locked, "quiz_passed_this_week": quiz_passed_this_week, "message": message,
     }
+
+
+@router.get("/tasks/practice")
+async def get_practice_tasks(payload: dict = Depends(get_current_student_payload)):
+    """Extra tasks for a student who finished this week's required ones
+    early — never graded/pointed, purely for skill practice while they
+    wait for next week's calendar-gated unlock. See _assign_practice_tasks."""
+    student = await internship_students_collection.find_one({"id": payload["sub"]})
+    if not student:
+        raise HTTPException(status_code=404, detail="Student profile not found")
+    if not student.get("track"):
+        raise HTTPException(status_code=400, detail="Please select a track first")
+    current_day, current_week_by_days = _compute_progress(student)
+    if current_week_by_days == 0:
+        return {"available": False, "tasks": [], "message": "Your program hasn't started yet."}
+
+    effective_week, _ = await _effective_unlocked_week(student, current_week_by_days)
+    tasks = await _assign_practice_tasks(student, effective_week)
+    if not tasks:
+        return {
+            "available": False, "tasks": [], "week_number": effective_week,
+            "message": "Finish this week's required tasks first — practice tasks unlock right after, for as long as you want.",
+        }
+
+    tasks = [_randomize_task_for_student(t, student["id"]) for t in tasks]
+    submissions = {
+        s["task_id"]: s
+        async for s in internship_submissions_collection.find({"student_id": student["id"], "week_number": effective_week})
+    }
+    tasks_with_status = []
+    for t in tasks:
+        t_out = await _to_task_pool_out(t)
+        sub = submissions.get(t_out.id)
+        tasks_with_status.append({
+            **t_out.dict(), "is_practice": True,
+            "submission_status": sub["status"] if sub else None,
+            "submission_id": sub["id"] if sub else None,
+        })
+    return {"available": True, "week_number": effective_week, "tasks": tasks_with_status}
 
 
 # ── Manager's Feed — a small, track-specific rotating message board ──────
@@ -1996,8 +2099,10 @@ async def save_submission_draft(data: SubmissionDraftIn, payload: dict = Depends
     if not task:
         raise HTTPException(status_code=404, detail="Task not found")
 
-    assigned = (student.get("assigned_tasks") or {}).get(str(data.week_number), [])
-    if data.task_id not in assigned:
+    week_key = str(data.week_number)
+    assigned = (student.get("assigned_tasks") or {}).get(week_key, [])
+    practice_assigned = (student.get("practice_tasks") or {}).get(week_key, [])
+    if data.task_id not in assigned and data.task_id not in practice_assigned:
         raise HTTPException(status_code=400, detail="This task isn't assigned to you for this week")
 
     existing = await internship_submissions_collection.find_one({"student_id": student["id"], "task_id": data.task_id})
@@ -2056,8 +2161,11 @@ async def create_submission(
     # generated from (see _randomize_task_for_student).
     task = _randomize_task_for_student(task, student["id"])
 
-    assigned = (student.get("assigned_tasks") or {}).get(str(week_number), [])
-    if task_id not in assigned:
+    week_key = str(week_number)
+    assigned = (student.get("assigned_tasks") or {}).get(week_key, [])
+    practice_assigned = (student.get("practice_tasks") or {}).get(week_key, [])
+    is_practice = task_id not in assigned and task_id in practice_assigned
+    if task_id not in assigned and task_id not in practice_assigned:
         raise HTTPException(status_code=400, detail="This task isn't assigned to you for this week")
 
     if task["deliverable_type"] in ("text", "text_and_photo", "text_and_spreadsheet") and not text_answer.strip():
@@ -2139,7 +2247,12 @@ async def create_submission(
         "gps": gps, "client_timestamp": client_timestamp or None,
         "submitted_at": now, "status": "approved" if approved else "rejected",
         "verified_by": verified_by, "admin_reviewer_id": None, "admin_note": reason,
-        "points_awarded": task.get("points_value", 0) if approved else None, "reviewed_at": now,
+        # Practice tasks are real, real-graded feedback — just never worth
+        # points, so they can never inflate a score or the certificate
+        # percentage (_graduation_eligibility sums points_awarded across
+        # every approved submission with no other filter).
+        "points_awarded": (0 if is_practice else task.get("points_value", 0)) if approved else None,
+        "is_practice": is_practice, "reviewed_at": now,
     }
     if existing:
         await internship_submissions_collection.update_one({"id": existing["id"]}, {"$set": doc})
