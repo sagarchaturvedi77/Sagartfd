@@ -111,8 +111,12 @@ const StudentQuiz = lazy(() => import("./pages/StudentQuiz"));
 const StudentLeaderboard = lazy(() => import("./pages/StudentLeaderboard"));
 const StudentReport = lazy(() => import("./pages/StudentReport"));
 const StudentCertificate = lazy(() => import("./pages/StudentCertificate"));
+const StudentContentStudio = lazy(() => import("./pages/StudentContentStudio"));
 const PublicVerifyIntern = lazy(() => import("./pages/PublicVerifyIntern"));
 const AdminInternship = lazy(() => import("./pages/AdminInternship"));
+const AdminInternshipContent = lazy(() => import("./pages/AdminInternshipContent"));
+const PublicBlog = lazy(() => import("./pages/PublicBlog"));
+const PublicFAQ = lazy(() => import("./pages/PublicFAQ"));
 const TermInsurancePage = lazy(() => import("./pages/TermInsurancePage"));
 const HealthInsurancePage = lazy(() => import("./pages/HealthInsurancePage"));
 const MotorInsurancePage = lazy(() => import("./pages/MotorInsurancePage"));
@@ -151,6 +155,11 @@ function App() {
 
                 {/* 🛠️ Services */}
                 <Route path="/services" element={<ServicesPage />} />
+
+                {/* ✍️ Blog + FAQ — written by TFD Internship students, admin-approved */}
+                <Route path="/blog" element={<PublicBlog />} />
+                <Route path="/blog/:contentId" element={<PublicBlog />} />
+                <Route path="/faq" element={<PublicFAQ />} />
 
                 {/* ⭐ Reviews */}
                 <Route path="/reviews" element={<ReviewsPage />} />
@@ -590,10 +599,26 @@ element={
                   }
                 />
                 <Route
+                  path="/portal/student/content-studio"
+                  element={
+                    <StudentProtectedRoute>
+                      <StudentContentStudio />
+                    </StudentProtectedRoute>
+                  }
+                />
+                <Route
                   path="/portal/admin/internship"
                   element={
                     <ProtectedRoute requiredRole="admin">
                       <AdminInternship />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/portal/admin/internship/content"
+                  element={
+                    <ProtectedRoute requiredRole="admin">
+                      <AdminInternshipContent />
                     </ProtectedRoute>
                   }
                 />

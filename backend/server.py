@@ -559,6 +559,9 @@ app.include_router(document_search_router)
 from internship_routes import router as internship_router
 app.include_router(internship_router)
 
+from internship_content_routes import router as internship_content_router
+app.include_router(internship_content_router)
+
 app.add_middleware(
     CORSMiddleware,
     allow_credentials=True,

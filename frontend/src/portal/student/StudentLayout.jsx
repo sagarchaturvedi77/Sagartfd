@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useInternshipAuth } from "./InternshipAuthContext";
 import {
   LayoutDashboard, Rocket, PlayCircle, Trophy, Award, UserCircle, LogOut, Lock, LifeBuoy, X, Send,
-  Sparkles, Landmark, Megaphone, TrendingUp, Heart, RefreshCw,
+  Sparkles, Landmark, Megaphone, TrendingUp, Heart, RefreshCw, PenSquare,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useSubmitOnce } from "../../lib/useSubmitOnce";
@@ -16,11 +16,18 @@ const INTERNSHIP_LOGO_URL = "/assets/logos/TFD-INTERNSHIP-LOGO.webp";
 const NAV_ITEMS = [
   { key: "overview", label: "Dashboard Overview", icon: LayoutDashboard, live: true, path: "/portal/student" },
   { key: "missions", label: "Active Missions", icon: Rocket, live: true, path: "/portal/student/missions" },
+  { key: "content", label: "Content Studio", icon: PenSquare, live: true, path: "/portal/student/content-studio" },
   { key: "profile", label: "My Profile", icon: UserCircle, live: true, path: "/portal/student/profile" },
   { key: "videos", label: "Video Hub", icon: PlayCircle, live: false },
   { key: "leaderboard", label: "Leaderboard", icon: Trophy, live: true, path: "/portal/student/leaderboard" },
   { key: "certificate", label: "Certificate Hub", icon: Award, live: true, path: "/portal/student/certificate" },
 ];
+
+// The mobile bottom nav has real width constraints (6+ equal-width tabs
+// gets cramped on a narrow screen) — drop the still-locked/coming-soon
+// Video Hub placeholder there specifically; the desktop sidebar has room
+// to keep showing it as a "coming soon" preview.
+const MOBILE_NAV_ITEMS = NAV_ITEMS.filter((item) => item.key !== "videos");
 
 function SupportWidget({ open, onClose }) {
   const { token } = useInternshipAuth();
@@ -362,7 +369,7 @@ export default function StudentLayout({ activeKey = "overview", children }) {
           the md breakpoint, so every nav item needs an equivalent here or
           mobile users have no way to move between sections at all. */}
       <nav className="md:hidden fixed bottom-0 inset-x-0 z-40 bg-[#0A0F1A] border-t border-white/10 flex items-stretch shadow-[0_-4px_16px_rgba(0,0,0,0.35)]">
-        {NAV_ITEMS.map((item) => {
+        {MOBILE_NAV_ITEMS.map((item) => {
           const Icon = item.icon;
           const active = item.key === activeKey;
           return (

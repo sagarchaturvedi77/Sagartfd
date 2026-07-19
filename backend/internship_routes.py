@@ -2643,13 +2643,21 @@ async def _graduation_eligibility(student: dict) -> GraduationCheckOut:
         tasks = await _assign_week_tasks(student, week_num)
         for t in tasks:
             task_points_by_id[t["id"]] = t.get("points_value", 0)
-    total_points = sum(task_points_by_id.values())
+
+    # Blog/FAQ content is scored and capped separately (see
+    # internship_content_routes.py's CONTENT_BONUS_CAP) — added here as a
+    # fixed-weight bonus pool so quality content genuinely moves the
+    # certificate percentage without letting a flood of submissions dwarf
+    # the actual task curriculum.
+    from internship_content_routes import CONTENT_BONUS_CAP
+    total_points = sum(task_points_by_id.values()) + CONTENT_BONUS_CAP
 
     earned_points = 0
     async for sub in internship_submissions_collection.find(
         {"student_id": student["id"], "status": "approved"}, {"points_awarded": 1}
     ):
         earned_points += sub.get("points_awarded") or 0
+    earned_points += min(CONTENT_BONUS_CAP, student.get("content_bonus_points", 0))
 
     percentage = round((earned_points / total_points) * 100, 1) if total_points else 0.0
 

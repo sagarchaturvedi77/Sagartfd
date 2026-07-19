@@ -50,6 +50,10 @@ internship_submissions_collection = db["internship_submissions"]
 internship_quiz_questions_collection = db["internship_quiz_questions"]
 internship_quiz_attempts_collection = db["internship_quiz_attempts"]
 internship_reports_collection = db["internship_reports"]
+# Student-written blog/FAQ content (mutual fund / financial planning topics)
+# — pending_review until an admin approves it, only then does it ever reach
+# the real public website. See internship_content_routes.py.
+internship_content_collection = db["internship_content"]
 # Cashfree Payment Gateway orders — generic across payment_type values
 # ("internship_signup", "certificate_regeneration", ...), see cashfree_client.py.
 payment_orders_collection = db["payment_orders"]
