@@ -1104,11 +1104,321 @@ def _generate_balance_sheet_variant(rng: random.Random) -> tuple[dict, dict]:
     return template, answer_key
 
 
+def _generate_pl_statement_variant(rng: random.Random) -> tuple[dict, dict]:
+    """Monthly P&L — a straight sum-of-lines report, no cross-balancing
+    identity needed (unlike the balance sheet): every line is jittered
+    independently and the totals are pure arithmetic of those lines."""
+    product_sales = _jitter(rng, 280000, pct=0.2)
+    service_income = _jitter(rng, 45000, pct=0.25, step=500)
+    cogs = _jitter(rng, 165000, pct=0.15)
+    rent = _jitter(rng, 30000, pct=0.15, step=500)
+    salaries = _jitter(rng, 55000, pct=0.15, step=500)
+    utilities = _jitter(rng, 8000, pct=0.2, step=250)
+    marketing = _jitter(rng, 12000, pct=0.25, step=500)
+    misc_admin = _jitter(rng, 5000, pct=0.3, step=250)
+
+    total_revenue = product_sales + service_income
+    total_expenses = cogs + rent + salaries + utilities + marketing + misc_admin
+    net_profit = total_revenue - total_expenses
+    net_margin = round(net_profit / total_revenue * 100, 2)
+
+    prefilled = {
+        "A1": "Item", "B1": "Amount",
+        "A2": "Product Sales", "B2": product_sales, "A3": "Service Income", "B3": service_income,
+        "A4": "Total Revenue",
+        "A6": "Cost of Goods Sold", "B6": cogs, "A7": "Rent", "B7": rent, "A8": "Salaries", "B8": salaries,
+        "A9": "Utilities", "B9": utilities, "A10": "Marketing", "B10": marketing, "A11": "Misc Admin", "B11": misc_admin,
+        "A12": "Total Expenses",
+        "A14": "Net Profit / Loss", "A15": "Net Profit Margin %",
+    }
+    locked = ["A1", "B1", "A2", "B2", "A3", "B3", "A4", "A6", "B6", "A7", "B7", "A8", "B8",
+              "A9", "B9", "A10", "B10", "A11", "B11", "A12", "A14", "A15"]
+    template = {"rows": 16, "cols": 2, "headers": ["Item", "Amount"], "prefilled": prefilled, "locked_cells": locked}
+    answer_key = {"cells": {
+        "B4": {"expected": total_revenue, "tolerance": 1}, "B12": {"expected": total_expenses, "tolerance": 1},
+        "B14": {"expected": net_profit, "tolerance": 1}, "B15": {"expected": net_margin, "tolerance": 0.5},
+    }}
+    return template, answer_key
+
+
+def _generate_gst_invoice_variant(rng: random.Random) -> tuple[dict, dict]:
+    """Invoice & GST — Type (inclusive/exclusive) stays fixed per client so
+    the IF-formula lesson the task teaches doesn't change, only the amounts
+    do. Only F7 (Total GST Collected) is actually graded."""
+    clients = [
+        ("Client A", "Consulting Services", 1, 50000), ("Client B", "Software License", 0, 118000),
+        ("Client C", "Design Services", 1, 25000), ("Client D", "Maintenance Contract", 0, 35400),
+        ("Client E", "Training Workshop", 1, 80000),
+    ]
+    prefilled = {"A1": "Client", "B1": "Description", "C1": "Type (1=Excl,0=Incl)", "D1": "Given Amount",
+                 "E1": "Base Amount", "F1": "GST (18%)", "G1": "Total Amount"}
+    locked = ["A1", "B1", "C1", "D1", "E1", "F1", "G1"]
+    total_gst = 0.0
+    for i, (client, desc, typ, base_amount) in enumerate(clients):
+        r = i + 2
+        amount = _jitter(rng, base_amount, pct=0.3, step=500)
+        prefilled.update({f"A{r}": client, f"B{r}": desc, f"C{r}": typ, f"D{r}": amount})
+        locked += [f"A{r}", f"B{r}", f"C{r}", f"D{r}"]
+        gst = amount * 0.18 if typ == 1 else amount - amount / 1.18
+        total_gst += gst
+    prefilled["A7"] = "Total GST Collected"
+    locked.append("A7")
+    total_gst = round(total_gst, 2)
+
+    template = {"rows": 8, "cols": 7,
+                "headers": ["Client", "Description", "Type (1=Excl,0=Incl)", "Given Amount", "Base Amount", "GST (18%)", "Total Amount"],
+                "prefilled": prefilled, "locked_cells": locked}
+    answer_key = {"cells": {"F7": {
+        "expected": total_gst, "tolerance": 10,
+        "mistake_note": "Your total GST doesn't check out — a common real mistake here is applying the wrong rate direction "
+                         "(e.g. treating an inclusive amount as exclusive, or using 5% instead of 18%). In a real company, "
+                         "this exact mistake means the wrong GST gets filed — leading to a tax audit flag and a real penalty.",
+    }}}
+    return template, answer_key
+
+
+def _generate_bank_reconciliation_variant(rng: random.Random) -> tuple[dict, dict]:
+    """Bank Reconciliation — each adjustment's sign (add-back vs subtract)
+    is a fixed real-world fact about what that item IS, not something that
+    varies per instance, so only magnitudes randomize. The Bank Statement
+    Balance is SOLVED FOR from the adjusted cash book balance, so the
+    reconciliation always ties out to a difference of exactly 0."""
+    cash_book_balance = _jitter(rng, 124500, pct=0.15, step=500)
+    uncleared_cheque = _jitter(rng, 8000, pct=0.3, step=100)
+    bank_charges = _jitter(rng, 450, pct=0.4, step=50)
+    duplicate_error = _jitter(rng, 1200, pct=0.3, step=100)
+    deposit_in_transit = _jitter(rng, 2050, pct=0.3, step=50)
+
+    net_adjustment = uncleared_cheque - bank_charges + duplicate_error - deposit_in_transit
+    adjusted_balance = cash_book_balance + net_adjustment
+
+    prefilled = {
+        "A1": "Item", "B1": "Amount", "C1": "Sign (+1 Add / -1 Subtract)",
+        "A2": "Cash Book Closing Balance (starting point)", "B2": cash_book_balance,
+        "A3": "Uncleared cheque (issued, not yet presented to bank)", "B3": uncleared_cheque,
+        "A4": "Bank charges not yet recorded in cash book", "B4": bank_charges,
+        "A5": "Duplicate payment entry error in cash book", "B5": duplicate_error,
+        "A6": "Deposit in transit (cheque deposited, not yet credited)", "B6": deposit_in_transit,
+        "A8": "Adjusted Cash Book Balance", "A9": "Bank Statement Balance (given)", "B9": adjusted_balance,
+        "A10": "Difference (should be 0 if correctly reconciled)",
+    }
+    locked = ["A1", "B1", "C1", "A2", "B2", "A3", "B3", "A4", "B4", "A5", "B5", "A6", "B6", "A8", "A9", "B9", "A10"]
+    template = {"rows": 11, "cols": 3, "headers": ["Item", "Amount", "Sign (+1 Add / -1 Subtract)"], "prefilled": prefilled, "locked_cells": locked}
+    answer_key = {"cells": {"B8": {"expected": adjusted_balance, "tolerance": 1}, "B10": {"expected": 0, "tolerance": 1}}}
+    return template, answer_key
+
+
+_EXPENSE_ROWS_BASE = [
+    ("05-Mar", "Ola Cabs - Client Meeting", 850), ("05-Mar", "Ola Cabs - Client Meeting", 850),
+    ("06-Mar", "IndiGo Flight - Mumbai Trip", 6200), ("08-Mar", "Uber - Airport Transfer", 650),
+    ("12-Mar", "Hotel Stay - Mumbai (2 nights)", 4800),
+    ("02-Mar", "Stationery World - Printer Paper & Pens", 1200), ("07-Mar", "Amazon Business - Toner Cartridges", 3400),
+    ("14-Mar", "Local Vendor - Whiteboard Markers", 350), ("18-Mar", "Office Depot - Filing Cabinets", 5600),
+    ("22-Mar", "Amazon Business - Desk Organizers", 800),
+    ("04-Mar", "Client Lunch - Taj Restaurant", 3200), ("09-Mar", "Team Lunch - Office Order", 1800),
+    ("15-Mar", "Client Dinner - Business Meeting", 4500), ("19-Mar", "Coffee with Vendor", 450),
+    ("25-Mar", "Team Celebration Lunch", 2200),
+    ("01-Mar", "Electricity Bill - March", 12000), ("01-Mar", "Internet & Broadband - March", 2500),
+    ("01-Mar", "Water Bill - March", 800), ("15-Mar", "Mobile/Phone Bill - Office Lines", 3200),
+    ("28-Mar", "Generator Fuel/Diesel", 1500),
+    ("03-Mar", "Facebook Ads - March Campaign", 8000), ("10-Mar", "Local Newspaper Ad", 4500),
+    ("16-Mar", "Printing - Flyers & Banners", 2800), ("20-Mar", "Instagram Influencer Collab", 6000),
+    ("27-Mar", "Google Ads - March Campaign", 7500),
+    ("05-Mar", "Courier Charges", 400), ("11-Mar", "Bank Processing Fees", 250),
+    ("17-Mar", "Cash Advance - Field Staff (no receipt attached)", 10000), ("23-Mar", "Office Cleaning Service", 1500),
+    ("29-Mar", "Miscellaneous Repairs", 900),
+]
+# Category boundaries (5 rows each: Travel, Office Supplies, Meals &
+# Entertainment, Utilities, Marketing, Misc/Admin) and which row-within-
+# category is the intentional duplicate/suspicious entry to exclude —
+# these positions are fixed facts about the exercise, not randomized.
+_EXPENSE_CATEGORY_EXCLUSIONS = [{1}, set(), set(), set(), set(), {2}]
+
+
+def _generate_expense_audit_variant(rng: random.Random) -> tuple[dict, dict]:
+    """Expense Audit — amounts randomize, but the intentional duplicate
+    pair (rows 1-2, same vendor/date) stays equal to itself, and the
+    suspicious round-number entry (Cash Advance, no receipt) stays a round
+    figure, so the exercise's actual lesson survives randomization."""
+    amounts = [amt for _, _, amt in _EXPENSE_ROWS_BASE]
+    dup_amount = _jitter(rng, amounts[0], pct=0.3, step=50)
+    new_amounts = list(amounts)
+    new_amounts[0] = dup_amount
+    new_amounts[1] = dup_amount
+    for i in range(2, len(amounts)):
+        new_amounts[i] = _jitter(rng, amounts[i], pct=0.3, step=1000 if i == 27 else 50)
+
+    prefilled = {"A1": "Date", "B1": "Vendor / Description", "C1": "Amount", "D1": "Category Code (1-6)",
+                 "E1": "Flag (1=duplicate/suspicious)", "F1": "Adjusted Amount"}
+    locked = ["A1", "B1", "C1", "D1", "E1", "F1"]
+    for i, (date, desc, _) in enumerate(_EXPENSE_ROWS_BASE):
+        r = i + 2
+        prefilled.update({f"A{r}": date, f"B{r}": desc, f"C{r}": new_amounts[i]})
+        locked += [f"A{r}", f"B{r}", f"C{r}"]
+    prefilled.update({
+        "A33": "CATEGORY TOTALS (using Adjusted Amount, excluding flagged entries)",
+        "A34": "Travel Total", "A35": "Office Supplies Total", "A36": "Meals & Entertainment Total",
+        "A37": "Utilities Total", "A38": "Marketing Total", "A39": "Misc/Admin Total", "A40": "Grand Total (Adjusted)",
+    })
+    locked += ["A33", "A34", "A35", "A36", "A37", "A38", "A39", "A40"]
+
+    categories = [new_amounts[0:5], new_amounts[5:10], new_amounts[10:15], new_amounts[15:20], new_amounts[20:25], new_amounts[25:30]]
+    category_totals = [
+        sum(a for idx, a in enumerate(cat) if idx not in excl)
+        for cat, excl in zip(categories, _EXPENSE_CATEGORY_EXCLUSIONS)
+    ]
+    grand_total = sum(category_totals)
+
+    template = {"rows": 41, "cols": 6,
+                "headers": ["Date", "Vendor / Description", "Amount", "Category Code (1-6)", "Flag (1=duplicate/suspicious)", "Adjusted Amount"],
+                "prefilled": prefilled, "locked_cells": locked}
+    answer_key = {"cells": {
+        f"B{34 + i}": {"expected": total, "tolerance": 1} for i, total in enumerate(category_totals + [grand_total])
+    }}
+    return template, answer_key
+
+
+def _generate_budget_variance_variant(rng: random.Random) -> tuple[dict, dict]:
+    """Budget Variance — Budgeted and Actual are independent real-world
+    inputs (a department can over- or under-spend for any reason), so no
+    plug variable is needed; the variance/% and totals are pure arithmetic
+    of whatever the two independent draws land on."""
+    depts = [("Marketing", 300000, 365000), ("Sales", 450000, 470000), ("Operations", 600000, 615000),
+             ("HR", 150000, 142000), ("IT", 200000, 258000), ("Admin", 100000, 96000)]
+    prefilled = {"A1": "Department", "B1": "Budgeted", "C1": "Actual", "D1": "Variance (Actual-Budgeted)", "E1": "Variance %"}
+    locked = ["A1", "B1", "C1", "D1", "E1"]
+    cells = {}
+    total_budgeted = total_actual = 0
+    for i, (name, base_bud, base_act) in enumerate(depts):
+        r = i + 2
+        budgeted = _jitter(rng, base_bud, pct=0.15, step=5000)
+        actual = _jitter(rng, base_act, pct=0.15, step=5000)
+        prefilled.update({f"A{r}": name, f"B{r}": budgeted, f"C{r}": actual})
+        locked += [f"A{r}", f"B{r}", f"C{r}"]
+        variance = actual - budgeted
+        cells[f"D{r}"] = {"expected": variance, "tolerance": 1}
+        cells[f"E{r}"] = {"expected": round(variance / budgeted * 100, 2), "tolerance": 0.5}
+        total_budgeted += budgeted
+        total_actual += actual
+    prefilled.update({"A9": "Total Budgeted", "A10": "Total Actual", "A11": "Total Variance"})
+    locked += ["A9", "A10", "A11"]
+    cells.update({
+        "B9": {"expected": total_budgeted, "tolerance": 1}, "B10": {"expected": total_actual, "tolerance": 1},
+        "B11": {"expected": total_actual - total_budgeted, "tolerance": 1},
+    })
+
+    template = {"rows": 12, "cols": 5,
+                "headers": ["Department", "Budgeted", "Actual", "Variance (Actual-Budgeted)", "Variance %"],
+                "prefilled": prefilled, "locked_cells": locked}
+    return template, {"cells": cells}
+
+
+def _generate_ratio_analysis_variant(rng: random.Random) -> tuple[dict, dict]:
+    """Ratio Analysis — Shareholders' Equity is SOLVED FOR (Total Assets
+    minus Total Liabilities) so the underlying balance sheet always
+    balances, same principle as the Trial Balance task. Net Profit is
+    drawn as a random 6-12% margin of Revenue rather than fully
+    independently, so the profitability ratios always land somewhere
+    realistic instead of occasionally going negative or absurd."""
+    cash = _jitter(rng, 180000, pct=0.2, step=5000)
+    ar = _jitter(rng, 220000, pct=0.2, step=5000)
+    inventory = _jitter(rng, 300000, pct=0.2, step=5000)
+    fixed_assets = _jitter(rng, 950000, pct=0.15, step=10000)
+    ap = _jitter(rng, 250000, pct=0.2, step=5000)
+    short_term_loan = _jitter(rng, 150000, pct=0.2, step=5000)
+    long_term_debt = _jitter(rng, 500000, pct=0.15, step=10000)
+
+    total_assets = cash + ar + inventory + fixed_assets
+    total_liabilities = ap + short_term_loan + long_term_debt
+    equity = total_assets - total_liabilities
+
+    revenue = _jitter(rng, 2400000, pct=0.2, step=10000)
+    margin_pct = rng.uniform(6, 12)
+    net_profit = int(round(revenue * margin_pct / 100 / 1000)) * 1000
+
+    current_ratio = round((cash + ar + inventory) / (ap + short_term_loan), 2)
+    quick_ratio = round((cash + ar) / (ap + short_term_loan), 2)
+    net_margin = round(net_profit / revenue * 100, 2)
+    roi = round(net_profit / equity * 100, 2)
+
+    prefilled = {
+        "A1": "Item", "B1": "Amount",
+        "A2": "Cash", "B2": cash, "A3": "Accounts Receivable", "B3": ar, "A4": "Inventory", "B4": inventory,
+        "A5": "Fixed Assets", "B5": fixed_assets, "A6": "Accounts Payable", "B6": ap, "A7": "Short-term Loan", "B7": short_term_loan,
+        "A8": "Long-term Debt", "B8": long_term_debt, "A9": "Shareholders' Equity", "B9": equity,
+        "A10": "Revenue", "B10": revenue, "A11": "Net Profit", "B11": net_profit,
+        "A13": "RATIO CALCULATIONS",
+        "A14": "Current Ratio (Current Assets ÷ Current Liabilities)",
+        "A15": "Quick Ratio ((Current Assets - Inventory) ÷ Current Liabilities)",
+        "A16": "Net Profit Margin %", "A17": "ROI % (Net Profit ÷ Equity)",
+    }
+    locked = ["A1", "B1", "A2", "B2", "A3", "B3", "A4", "B4", "A5", "B5", "A6", "B6", "A7", "B7", "A8", "B8", "A9", "B9",
+              "A10", "B10", "A11", "B11", "A13", "A14", "A15", "A16", "A17"]
+    template = {"rows": 18, "cols": 2, "headers": ["Item", "Amount"], "prefilled": prefilled, "locked_cells": locked}
+    answer_key = {"cells": {
+        "B14": {"expected": current_ratio, "tolerance": 0.05}, "B15": {"expected": quick_ratio, "tolerance": 0.05},
+        "B16": {"expected": net_margin, "tolerance": 0.2}, "B17": {"expected": roi, "tolerance": 0.5},
+    }}
+    return template, answer_key
+
+
+_DASH_CATEGORIES = ["Office Rent", "Vendor Payment", "Software Subscription", "Utility Bill", "Staff Reimbursement", "Marketing Spend", "Courier Charges", "Maintenance"]
+
+
+def _generate_dashboard_variant(rng: random.Random) -> tuple[dict, dict]:
+    """Monthly Financial Dashboard — 110 transactions redrawn per student
+    (same income/expense position pattern and description style as the
+    original, different amounts), with the summary totals computed
+    directly from that same draw so they can never drift out of sync."""
+    prefilled = {"A1": "Date", "B1": "Description", "C1": "Type (1=Income,0=Expense)", "D1": "Amount",
+                 "E1": "Income (if Type=1)", "F1": "Expense (if Type=0)"}
+    locked = ["A1", "B1", "C1", "D1", "E1", "F1"]
+    total_income = 0
+    total_expenses = 0
+    for i in range(1, 111):
+        r = i + 1
+        is_income = (i % 3 == 0)
+        day = (i % 28) + 1
+        date = f"{day:02d}-Apr"
+        if is_income:
+            amount = rng.randint(15000, 35000)
+            desc = f"Client Payment - Invoice #{1000 + i}"
+            total_income += amount
+        else:
+            amount = rng.randint(500, 8500)
+            desc = f"{_DASH_CATEGORIES[i % 8]} - Ref{i:03d}"
+            total_expenses += amount
+        prefilled.update({f"A{r}": date, f"B{r}": desc, f"C{r}": 1 if is_income else 0, f"D{r}": amount})
+        locked += [f"A{r}", f"B{r}", f"C{r}", f"D{r}"]
+    prefilled.update({
+        "A113": "MONTHLY DASHBOARD", "A114": "Total Income", "A115": "Total Expenses",
+        "A116": "Net Cash Flow", "A117": "Average Transaction Size",
+    })
+    locked += ["A113", "A114", "A115", "A116", "A117"]
+
+    net_cash_flow = total_income - total_expenses
+    avg_transaction = round((total_income + total_expenses) / 110, 2)
+
+    template = {"rows": 118, "cols": 6,
+                "headers": ["Date", "Description", "Type (1=Income,0=Expense)", "Amount", "Income (if Type=1)", "Expense (if Type=0)"],
+                "prefilled": prefilled, "locked_cells": locked}
+    answer_key = {"cells": {
+        "B114": {"expected": total_income, "tolerance": 5}, "B115": {"expected": total_expenses, "tolerance": 5},
+        "B116": {"expected": net_cash_flow, "tolerance": 5}, "B117": {"expected": avg_transaction, "tolerance": 5},
+    }}
+    return template, answer_key
+
+
 # Keyed by task title (stable/readable) rather than the opaque pool `id`.
-# Add an entry here for each additional task worth randomizing — every
-# task NOT listed here is served exactly as before, unchanged.
 _SPREADSHEET_VARIANT_GENERATORS = {
     "Trial Balance to Balance Sheet": _generate_balance_sheet_variant,
+    "Monthly P&L Statement": _generate_pl_statement_variant,
+    "Invoice & GST Calculation": _generate_gst_invoice_variant,
+    "Bank Reconciliation Statement": _generate_bank_reconciliation_variant,
+    "Expense Audit": _generate_expense_audit_variant,
+    "Budget Variance Analysis": _generate_budget_variance_variant,
+    "Ratio Analysis Report": _generate_ratio_analysis_variant,
+    "Build a Monthly Financial Dashboard": _generate_dashboard_variant,
 }
 
 
