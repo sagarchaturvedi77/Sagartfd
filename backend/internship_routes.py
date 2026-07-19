@@ -1024,6 +1024,111 @@ async def admin_list_regenerations(_admin: dict = Depends(require_admin)):
     return docs
 
 
+# ── Per-student spreadsheet task randomization ───────────────────────────
+# Finance-track tasks whose title appears in _SPREADSHEET_VARIANT_GENERATORS
+# get their spreadsheet_template/spreadsheet_answer_key regenerated with
+# randomized numbers for every student, instead of the one shared template
+# every student assigned that pool task would otherwise see identically.
+# No DB writes/schema change needed: each generator is a pure function of a
+# random.Random seeded from (student_id, task_id), so calling it again at
+# grading time reproduces the exact same numbers the student was shown —
+# same trick already used for weekly task selection (_assign_week_tasks).
+
+def _jitter(rng: random.Random, base: int, pct: float = 0.25, step: int = 1000) -> int:
+    """Randomize `base` by up to +/-pct, rounded to the nearest `step` so
+    the numbers still look like realistic round figures on the sheet."""
+    lo, hi = base * (1 - pct), base * (1 + pct)
+    return int(round(rng.uniform(lo, hi) / step)) * step
+
+
+def _generate_balance_sheet_variant(rng: random.Random) -> tuple[dict, dict]:
+    """Trial Balance -> Balance Sheet, randomized. Owner's Capital is
+    SOLVED FOR rather than randomized independently, so Total Assets always
+    equals Total Liabilities + Equity for whatever the rest of the draw
+    produces — the books balance by construction, not by luck."""
+    cash = _jitter(rng, 85000)
+    ar = _jitter(rng, 45000)
+    inventory = _jitter(rng, 120000)
+    furniture = _jitter(rng, 60000, pct=0.15)
+    ap = _jitter(rng, 38000)
+    bank_loan = _jitter(rng, 100000)
+    sales = _jitter(rng, 340000)
+    cogs = _jitter(rng, 210000, pct=0.2)
+    rent = _jitter(rng, 36000, pct=0.1, step=500)
+    salaries = _jitter(rng, 60000, pct=0.15, step=500)
+    drawings = _jitter(rng, 12000, pct=0.3, step=500)
+
+    net_profit = sales - cogs - rent - salaries
+    total_assets = cash + ar + inventory + furniture
+    total_liabilities = ap + bank_loan
+    closing_capital = total_assets - total_liabilities  # forces balance
+    capital = closing_capital - net_profit + drawings
+
+    rows = [
+        ("Cash", cash, None), ("Accounts Receivable", ar, None), ("Inventory", inventory, None),
+        ("Furniture & Fixtures", furniture, None), ("Accounts Payable", None, ap), ("Bank Loan", None, bank_loan),
+        ("Owner's Capital", None, capital), ("Sales Revenue", None, sales), ("Cost of Goods Sold", cogs, None),
+        ("Rent Expense", rent, None), ("Salaries Expense", salaries, None), ("Owner's Drawings", drawings, None),
+    ]
+    prefilled = {"A1": "Item", "B1": "Debit", "C1": "Credit"}
+    locked = ["A1", "B1", "C1"]
+    for i, (label, debit, credit) in enumerate(rows):
+        r = i + 2
+        prefilled[f"A{r}"] = label
+        locked.append(f"A{r}")
+        if debit is not None:
+            prefilled[f"B{r}"] = debit
+            locked.append(f"B{r}")
+        if credit is not None:
+            prefilled[f"C{r}"] = credit
+            locked.append(f"C{r}")
+    prefilled.update({
+        "A15": "Net Profit (Revenue - COGS - Rent - Salaries)",
+        "A17": "BALANCE SHEET", "A18": "Total Assets (Cash+AR+Inventory+Furniture)",
+        "A19": "Total Liabilities (AP+Bank Loan)", "A20": "Closing Capital (Capital+Net Profit-Drawings)",
+        "A21": "Total Liabilities + Equity",
+    })
+    locked += ["A15", "A17", "A18", "A19", "A20", "A21"]
+
+    template = {"rows": 22, "cols": 3, "headers": ["Item", "Debit", "Credit"], "prefilled": prefilled, "locked_cells": locked}
+    answer_key = {
+        "cells": {
+            "B15": {"expected": net_profit, "tolerance": 1, "mistake_note": "Net Profit should be Revenue minus COGS, Rent, and Salaries."},
+            "B18": {"expected": total_assets, "tolerance": 1, "mistake_note": "Total Assets should add up Cash, Accounts Receivable, Inventory, and Furniture."},
+            "B19": {"expected": total_liabilities, "tolerance": 1, "mistake_note": "Total Liabilities should add up Accounts Payable and Bank Loan."},
+            "B20": {"expected": closing_capital, "tolerance": 1, "mistake_note": "Closing Capital should be Capital plus Net Profit minus Drawings."},
+            "B21": {"expected": total_assets, "tolerance": 1, "mistake_note": "Total Liabilities + Equity should equal Total Assets for the books to balance."},
+        },
+        "checks": [{"left": "B18", "right": "B21", "tolerance": 1, "label": "Total Assets should equal Total Liabilities + Equity"}],
+    }
+    return template, answer_key
+
+
+# Keyed by task title (stable/readable) rather than the opaque pool `id`.
+# Add an entry here for each additional task worth randomizing — every
+# task NOT listed here is served exactly as before, unchanged.
+_SPREADSHEET_VARIANT_GENERATORS = {
+    "Trial Balance to Balance Sheet": _generate_balance_sheet_variant,
+}
+
+
+def _randomize_task_for_student(task: dict, student_id: str) -> dict:
+    """Returns `task` unchanged unless it has a registered variant
+    generator, in which case a new dict is returned with
+    spreadsheet_template/spreadsheet_answer_key swapped for a per-student
+    randomized variant. Deterministically seeded by (student_id, task_id):
+    the same student always sees the same numbers for that task across
+    requests, but two students assigned the same pool task see different
+    ones — and re-deriving the same seed at grading time reproduces the
+    exact answer key the student's template was built from."""
+    generator = _SPREADSHEET_VARIANT_GENERATORS.get(task.get("title"))
+    if not generator:
+        return task
+    rng = random.Random(f"{student_id}:{task['id']}")
+    template, answer_key = generator(rng)
+    return {**task, "spreadsheet_template": template, "spreadsheet_answer_key": answer_key}
+
+
 # ── Weekly task engine & submissions ──────────────────────────────────
 
 async def _to_task_pool_out(doc: dict) -> TaskPoolOut:
@@ -1157,6 +1262,7 @@ async def get_current_tasks(payload: dict = Depends(get_current_student_payload)
     effective_week, is_locked = await _effective_unlocked_week(student, current_week_by_days)
 
     tasks = await _assign_week_tasks(student, effective_week)
+    tasks = [_randomize_task_for_student(t, student["id"]) for t in tasks]
     task_outs = [await _to_task_pool_out(t) for t in tasks]
 
     # Merge in this student's own submission status per task, so the UI can
@@ -1219,6 +1325,7 @@ async def get_all_assigned_tasks(payload: dict = Depends(get_current_student_pay
     weeks_out = []
     for week_num in range(1, effective_week + 1):
         tasks = await _assign_week_tasks(student, week_num)
+        tasks = [_randomize_task_for_student(t, student["id"]) for t in tasks]
         tasks_with_status = []
         for t in tasks:
             t_out = await _to_task_pool_out(t)
@@ -1633,6 +1740,10 @@ async def create_submission(
     task = await internship_task_pool_collection.find_one({"id": task_id})
     if not task:
         raise HTTPException(status_code=404, detail="Task not found")
+    # Same seed as when the task was rendered to this student, so a
+    # randomized task grades against the exact answer key its template was
+    # generated from (see _randomize_task_for_student).
+    task = _randomize_task_for_student(task, student["id"])
 
     assigned = (student.get("assigned_tasks") or {}).get(str(week_number), [])
     if task_id not in assigned:
