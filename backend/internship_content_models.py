@@ -11,14 +11,18 @@ from typing import Literal, Optional
 from pydantic import BaseModel, Field
 import uuid
 
-ContentType = Literal["blog", "faq"]
+ContentType = Literal["blog", "faq", "poster", "reel"]
 
 ContentTopic = Literal[
     "sip", "lumpsum", "swp", "financial_planning", "term_insurance",
     "health_insurance", "elss_tax_saving", "retirement_planning",
-    "general_investing", "other",
+    "general_investing", "awareness", "brand_comparison", "other",
 ]
 
+# poster/reel is a design CONCEPT — headline/message/disclaimer written
+# here, the actual artwork (if any) lives at design_link (Canva/Drive
+# share link) — same "just a link, no file upload" pattern already used
+# for the video-review consent flow (InternshipSignup.jsx).
 ContentStatus = Literal["pending_review", "approved", "rejected", "merged", "published"]
 
 TOPIC_LABELS: dict[str, str] = {
@@ -31,6 +35,8 @@ TOPIC_LABELS: dict[str, str] = {
     "elss_tax_saving": "ELSS / Tax Saving",
     "retirement_planning": "Retirement Planning",
     "general_investing": "General Investing",
+    "awareness": "General Awareness",
+    "brand_comparison": "Why TFD / Comparison",
     "other": "Other",
 }
 
@@ -47,6 +53,8 @@ TOPIC_PRODUCT_LINKS: dict[str, Optional[str]] = {
     "elss_tax_saving": "/calculators/tax",
     "retirement_planning": "/calculators/goal",
     "general_investing": "/top-funds",
+    "awareness": "/",
+    "brand_comparison": "/about-us",
     "other": None,
 }
 
@@ -56,8 +64,13 @@ class ContentSubmitIn(BaseModel):
     topic: ContentTopic
     # FAQ: title = the question, body = the answer.
     # Blog: title = the headline, body = the full post.
+    # Poster/Reel: title = headline/hook, body = full concept description
+    # (key message, disclaimer text used, how logo/website are placed).
     title: str = Field(min_length=8, max_length=200)
     body: str = Field(min_length=40, max_length=8000)
+    # Optional Canva/Drive/social share link to the actual artwork —
+    # poster/reel only, never required (concept alone is a valid submission).
+    design_link: Optional[str] = Field(default=None, max_length=500)
 
 
 class ContentReviewIn(BaseModel):
@@ -74,6 +87,7 @@ class ContentInDB(BaseModel):
     topic: ContentTopic
     title: str
     body: str
+    design_link: Optional[str] = None
     status: ContentStatus = "pending_review"
     quality_score: Optional[float] = None          # 0-100, from Gemini
     gemini_feedback: Optional[str] = None
@@ -95,6 +109,7 @@ class ContentOut(BaseModel):
     topic: ContentTopic
     title: str
     body: str
+    design_link: Optional[str] = None
     status: ContentStatus
     quality_score: Optional[float] = None
     gemini_feedback: Optional[str] = None

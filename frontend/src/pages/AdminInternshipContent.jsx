@@ -83,7 +83,7 @@ export default function AdminInternshipContent() {
                                     <div>
                                         <div className="flex items-center gap-2 flex-wrap mb-1">
                                             <span className="text-[10px] font-bold uppercase tracking-wide text-[#024396] dark:text-[#7CB0FF] bg-[#024396]/5 dark:bg-white/10 px-2 py-0.5 rounded-full">
-                                                {c.content_type === "faq" ? "FAQ" : "Blog"}
+                                                {{ faq: "FAQ", blog: "Blog", poster: "Poster", reel: "Reel" }[c.content_type] || c.content_type}
                                             </span>
                                             <span className="text-[10px] font-bold uppercase tracking-wide text-[#2A364B]/50 dark:text-[#8E99AC] border border-[#E2D8C2] dark:border-white/15 px-2 py-0.5 rounded-full">
                                                 {c.topic}
@@ -112,7 +112,18 @@ export default function AdminInternshipContent() {
                                     <p className="text-xs text-[#2A364B]/50 dark:text-[#8E99AC] italic mb-3">AI note: {c.gemini_feedback}</p>
                                 )}
 
-                                {c.status === "published" && (
+                                {c.design_link && (
+                                    <a
+                                        href={c.design_link}
+                                        target="_blank"
+                                        rel="noreferrer"
+                                        className="inline-flex items-center gap-1 text-xs font-medium text-[#024396] dark:text-[#7CB0FF] hover:underline mb-3"
+                                    >
+                                        View design <ExternalLink size={11} />
+                                    </a>
+                                )}
+
+                                {c.status === "published" && (c.content_type === "blog" || c.content_type === "faq") && (
                                     <a
                                         href={c.content_type === "blog" ? `/blog/${c.id}` : "/faq"}
                                         target="_blank"
@@ -121,6 +132,11 @@ export default function AdminInternshipContent() {
                                     >
                                         View live <ExternalLink size={11} />
                                     </a>
+                                )}
+                                {c.status === "published" && (c.content_type === "poster" || c.content_type === "reel") && (
+                                    <p className="text-xs font-medium text-emerald-700 dark:text-emerald-400">
+                                        ✓ Approved for TFD's use — no separate public page for these.
+                                    </p>
                                 )}
 
                                 {c.status === "pending_review" && (

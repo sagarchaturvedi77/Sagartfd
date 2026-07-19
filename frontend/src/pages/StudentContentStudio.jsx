@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
-import { FileText, MessageCircleQuestion, Sparkles, CheckCircle2, Clock3, XCircle, Merge } from "lucide-react";
+import { FileText, MessageCircleQuestion, Sparkles, CheckCircle2, Clock3, XCircle, Merge, Image as ImageIcon, Link2 } from "lucide-react";
 import StudentLayout from "../portal/student/StudentLayout";
 import { useInternshipAuth } from "../portal/student/InternshipAuthContext";
 import { useSubmitOnce } from "../lib/useSubmitOnce";
@@ -14,8 +14,14 @@ const STATUS_META = {
     merged: { label: "Merged With Another", icon: Merge, cls: "text-white/60 border-white/15 bg-white/5" },
 };
 
+const CONTENT_TYPE_TABS = [
+    ["faq", "Write an FAQ", MessageCircleQuestion],
+    ["blog", "Write a Blog", FileText],
+    ["poster", "Poster Concept", ImageIcon],
+];
+
 export default function StudentContentStudio() {
-    const { token } = useInternshipAuth();
+    const { token, student } = useInternshipAuth();
     const [topics, setTopics] = useState([]);
     const [mine, setMine] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -23,6 +29,9 @@ export default function StudentContentStudio() {
     const [topic, setTopic] = useState("");
     const [title, setTitle] = useState("");
     const [body, setBody] = useState("");
+    const [designLink, setDesignLink] = useState("");
+    const isPoster = contentType === "poster";
+    const isMarketing = student?.track === "marketing";
 
     const load = useCallback(async () => {
         try {
@@ -46,13 +55,13 @@ export default function StudentContentStudio() {
 
     const [handleSubmit, submitting] = useSubmitOnce(async () => {
         if (!topic) { toast.error("Pick a topic first."); return; }
-        if (title.trim().length < 8) { toast.error(contentType === "faq" ? "Write a real question (8+ characters)." : "Write a real headline (8+ characters)."); return; }
-        if (body.trim().length < 40) { toast.error("Your answer/post is too short — write at least a few real sentences."); return; }
+        if (title.trim().length < 8) { toast.error(isPoster ? "Write a real headline/hook (8+ characters)." : contentType === "faq" ? "Write a real question (8+ characters)." : "Write a real headline (8+ characters)."); return; }
+        if (body.trim().length < 40) { toast.error(isPoster ? "Describe the concept properly — key message, disclaimer text, logo/website placement." : "Your answer/post is too short — write at least a few real sentences."); return; }
         try {
             const res = await fetch(`${API_BASE}/api/internship/content`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-                body: JSON.stringify({ content_type: contentType, topic, title: title.trim(), body: body.trim() }),
+                body: JSON.stringify({ content_type: contentType, topic, title: title.trim(), body: body.trim(), design_link: designLink.trim() || undefined }),
             });
             const data = await res.json().catch(() => ({}));
             if (!res.ok) throw new Error(data.detail || "Submission failed");
@@ -63,6 +72,7 @@ export default function StudentContentStudio() {
             );
             setTitle("");
             setBody("");
+            setDesignLink("");
             load();
         } catch (err) {
             toast.error(err.message || "Submission failed");
@@ -77,20 +87,21 @@ export default function StudentContentStudio() {
                         <Sparkles size={20} className="text-[#14E0A0]" /> Content Studio
                     </h1>
                     <p className="text-white/50 text-sm mt-1">
-                        Write blogs and FAQs about SIP, lumpsum, SWP, financial planning, and TFD's products — real,
-                        AI-reviewed writing that (once an admin approves it) gets published on the real website,
-                        with your name on it.
+                        Write blogs and FAQs about SIP, lumpsum, SWP, financial planning, and TFD's products, or
+                        design a marketing poster concept — real, AI-reviewed work that (once an admin approves it)
+                        gets published/used for real, with your name on it.
                     </p>
                 </div>
 
                 <div className="rounded-2xl border border-[#14E0A0]/20 bg-[#14E0A0]/5 p-4 text-[#14E0A0]/90 text-xs leading-relaxed">
-                    Suggested pace: <strong>2 FAQs a day</strong>, <strong>3 blog posts a week</strong> — but there's
-                    no hard limit or penalty either way, write as much genuinely good content as you want.
+                    Suggested pace: <strong>2 FAQs a day</strong>, <strong>3 blog posts a week</strong>
+                    {isMarketing ? <> , and <strong>1-2 poster concepts a week</strong> (Marketing track)</> : <> — try a poster concept occasionally too</>}.
+                    No hard limit or penalty either way, write as much genuinely good content as you want.
                 </div>
 
                 <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-5 space-y-4">
                     <div className="flex gap-2">
-                        {[["faq", "Write an FAQ", MessageCircleQuestion], ["blog", "Write a Blog", FileText]].map(([val, label, Icon]) => (
+                        {CONTENT_TYPE_TABS.map(([val, label, Icon]) => (
                             <button
                                 key={val}
                                 type="button"
@@ -122,28 +133,50 @@ export default function StudentContentStudio() {
 
                     <div>
                         <label className="block text-[11px] font-semibold text-white/50 uppercase tracking-wide mb-1.5">
-                            {contentType === "faq" ? "The Question" : "Headline"}
+                            {isPoster ? "Headline / Hook" : contentType === "faq" ? "The Question" : "Headline"}
                         </label>
                         <input
                             value={title}
                             onChange={(e) => setTitle(e.target.value)}
-                            placeholder={contentType === "faq" ? "e.g. What is a SIP and how does it work?" : "e.g. 5 Things First-Time Investors Get Wrong About SIPs"}
+                            placeholder={isPoster ? "e.g. Don't Let Inflation Eat Your Savings — Start a SIP Today" : contentType === "faq" ? "e.g. What is a SIP and how does it work?" : "e.g. 5 Things First-Time Investors Get Wrong About SIPs"}
                             className="w-full bg-white/5 border border-white/15 rounded-xl px-3 py-2.5 text-sm text-white placeholder:text-white/25 focus:outline-none focus:border-[#14E0A0]/60"
                         />
                     </div>
 
                     <div>
                         <label className="block text-[11px] font-semibold text-white/50 uppercase tracking-wide mb-1.5">
-                            {contentType === "faq" ? "The Answer" : "Full Post"}
+                            {isPoster ? "Concept Description" : contentType === "faq" ? "The Answer" : "Full Post"}
                         </label>
                         <textarea
                             value={body}
                             onChange={(e) => setBody(e.target.value)}
-                            rows={contentType === "faq" ? 5 : 10}
-                            placeholder="Write it in your own words — this gets AI-reviewed for accuracy and quality before it ever reaches an admin."
+                            rows={isPoster ? 6 : contentType === "faq" ? 5 : 10}
+                            placeholder={
+                                isPoster
+                                    ? "Describe the poster/reel: key message, visual layout, where the TFD logo and website go, and the exact disclaimer text you're including (e.g. 'Mutual fund investments are subject to market risks, read all scheme related documents carefully')."
+                                    : "Write it in your own words — this gets AI-reviewed for accuracy and quality before it ever reaches an admin."
+                            }
                             className="w-full bg-white/5 border border-white/15 rounded-xl px-3 py-2.5 text-sm text-white placeholder:text-white/25 focus:outline-none focus:border-[#14E0A0]/60 resize-none"
                         />
                     </div>
+
+                    {isPoster && (
+                        <div>
+                            <label className="block text-[11px] font-semibold text-white/50 uppercase tracking-wide mb-1.5 flex items-center gap-1.5">
+                                <Link2 size={11} /> Design Link (optional)
+                            </label>
+                            <input
+                                value={designLink}
+                                onChange={(e) => setDesignLink(e.target.value)}
+                                placeholder="Canva / Google Drive / Instagram share link, if you've already designed it"
+                                className="w-full bg-white/5 border border-white/15 rounded-xl px-3 py-2.5 text-sm text-white placeholder:text-white/25 focus:outline-none focus:border-[#14E0A0]/60"
+                            />
+                            <p className="text-[10px] text-white/35 mt-1.5">
+                                Not required — a well-described concept alone is a valid submission. Nothing gets
+                                posted anywhere by you; TFD only uses it after an admin approves it here.
+                            </p>
+                        </div>
+                    )}
 
                     <button
                         onClick={handleSubmit}
@@ -170,7 +203,7 @@ export default function StudentContentStudio() {
                                         <div className="flex items-start justify-between gap-2">
                                             <div className="min-w-0">
                                                 <p className="text-xs font-bold text-white truncate">{c.title}</p>
-                                                <p className="text-[10px] text-white/40 mt-0.5">{c.content_type === "faq" ? "FAQ" : "Blog"} &middot; {c.topic}</p>
+                                                <p className="text-[10px] text-white/40 mt-0.5">{{ faq: "FAQ", blog: "Blog", poster: "Poster", reel: "Reel" }[c.content_type] || c.content_type} &middot; {c.topic}</p>
                                             </div>
                                             <span className={`flex items-center gap-1 text-[10px] font-bold border rounded-full px-2 py-0.5 shrink-0 ${meta.cls}`}>
                                                 <Icon size={10} /> {meta.label}
