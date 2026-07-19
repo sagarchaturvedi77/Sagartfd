@@ -110,4 +110,13 @@ async def run_scheduled_tasks(
     except Exception as e:
         ran.append(f"internship_manager_checkins (failed: {str(e)[:150]})")
 
+    # TFD Mailbox: deliver any simulated client auto-response whose delay
+    # window has elapsed — see internship_mailbox_routes.py.
+    try:
+        from internship_mailbox_routes import process_pending_mailbox_responses
+        mail_result = await process_pending_mailbox_responses()
+        ran.append(f"internship_mailbox_responses ({mail_result['sent']} sent, {mail_result['errors']} errors)")
+    except Exception as e:
+        ran.append(f"internship_mailbox_responses (failed: {str(e)[:150]})")
+
     return {"status": "ok", "ran": ran, "checked_at": result.get("checked_at")}

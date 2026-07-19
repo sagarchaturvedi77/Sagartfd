@@ -565,6 +565,9 @@ app.include_router(internship_content_router)
 from internship_manager_routes import router as internship_manager_router
 app.include_router(internship_manager_router)
 
+from internship_mailbox_routes import router as internship_mailbox_router
+app.include_router(internship_mailbox_router)
+
 app.add_middleware(
     CORSMiddleware,
     allow_credentials=True,

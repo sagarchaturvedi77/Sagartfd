@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useInternshipAuth } from "./InternshipAuthContext";
 import {
   LayoutDashboard, Rocket, PlayCircle, Trophy, Award, UserCircle, LogOut, Lock, LifeBuoy, X, Send,
-  Sparkles, Landmark, Megaphone, TrendingUp, Heart, RefreshCw, PenSquare,
+  Sparkles, Landmark, Megaphone, TrendingUp, Heart, RefreshCw, PenSquare, Mail,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useSubmitOnce } from "../../lib/useSubmitOnce";
@@ -17,6 +17,7 @@ const INTERNSHIP_LOGO_URL = "/assets/logos/TFD-INTERNSHIP-LOGO.webp";
 const NAV_ITEMS = [
   { key: "overview", label: "Dashboard Overview", icon: LayoutDashboard, live: true, path: "/portal/student" },
   { key: "missions", label: "Active Missions", icon: Rocket, live: true, path: "/portal/student/missions" },
+  { key: "mailbox", label: "TFD Mailbox", icon: Mail, live: true, path: "/portal/student/mailbox" },
   { key: "content", label: "Content Studio", icon: PenSquare, live: true, path: "/portal/student/content-studio" },
   { key: "profile", label: "My Profile", icon: UserCircle, live: true, path: "/portal/student/profile" },
   { key: "videos", label: "Video Hub", icon: PlayCircle, live: false },
@@ -273,6 +274,7 @@ export default function StudentLayout({ activeKey = "overview", children }) {
   const [supportOpen, setSupportOpen] = useState(false);
   const [guideOpen, setGuideOpen] = useState(false);
   const [pendingCount, setPendingCount] = useState(0);
+  const [mailUnread, setMailUnread] = useState(0);
 
   // Powers the little "something needs attention" badge on the Missions
   // nav item — never-submitted or rejected-and-waiting tasks for the
@@ -292,6 +294,23 @@ export default function StudentLayout({ activeKey = "overview", children }) {
     const id = setInterval(loadPending, 60000);
     return () => { cancelled = true; clearInterval(id); };
   }, [token]);
+
+  useEffect(() => {
+    if (!token) return;
+    let cancelled = false;
+    const loadMailUnread = async () => {
+      try {
+        const res = await fetch(`${API_BASE}/api/internship/mailbox/unread-count`, { headers: { Authorization: `Bearer ${token}` } });
+        const json = await res.json().catch(() => ({}));
+        if (!cancelled) setMailUnread(json.unread || 0);
+      } catch { /* silent — non-critical polling */ }
+    };
+    loadMailUnread();
+    const id = setInterval(loadMailUnread, 60000);
+    return () => { cancelled = true; clearInterval(id); };
+  }, [token]);
+
+  const navBadgeCount = (key) => (key === "missions" ? pendingCount : key === "mailbox" ? mailUnread : 0);
 
   return (
     <NotificationGate>
@@ -324,9 +343,9 @@ export default function StudentLayout({ activeKey = "overview", children }) {
                 <span className="flex items-center gap-2.5">
                   <Icon size={16} /> {item.label}
                 </span>
-                {item.key === "missions" && pendingCount > 0 && (
+                {navBadgeCount(item.key) > 0 && (
                   <span className="min-w-[18px] h-[18px] px-1 rounded-full bg-[#C7102E] text-white text-[10px] font-bold flex items-center justify-center">
-                    {pendingCount}
+                    {navBadgeCount(item.key)}
                   </span>
                 )}
                 {!item.live && <Lock size={12} />}
@@ -410,9 +429,9 @@ export default function StudentLayout({ activeKey = "overview", children }) {
               <Icon size={18} strokeWidth={active ? 2.4 : 1.8} />
               <span className="leading-tight text-center px-0.5">{item.label.split(" ")[0]}</span>
               {!item.live && <Lock size={8} className="absolute top-1.5 right-[18%]" />}
-              {item.key === "missions" && pendingCount > 0 && (
+              {navBadgeCount(item.key) > 0 && (
                 <span className="absolute top-1 right-[22%] min-w-[15px] h-[15px] px-0.5 rounded-full bg-[#C7102E] text-white text-[8px] font-bold flex items-center justify-center">
-                  {pendingCount}
+                  {navBadgeCount(item.key)}
                 </span>
               )}
             </button>
