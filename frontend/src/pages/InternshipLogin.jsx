@@ -32,7 +32,7 @@ export default function InternshipLogin() {
   return (
     <div className="min-h-screen bg-[#050B16] text-white px-4 py-10 flex flex-col">
       <div className="max-w-sm w-full mx-auto flex-1 flex flex-col justify-center">
-        <div className="flex items-center justify-start gap-3 mb-8">
+        <div className="flex items-center justify-center gap-3 mb-8">
           <img src={INTERNSHIP_LOGO_URL} alt="TFD Internship" width={500} height={246} className="h-9 w-auto object-contain" />
           <div className="text-left leading-tight">
             <div className="text-base font-bold text-white">TFD Internship</div>
