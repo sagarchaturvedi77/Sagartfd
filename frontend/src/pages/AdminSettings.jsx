@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import PortalLayout from "../components/PortalLayout";
 import { useAuth } from "../context/AuthContext";
 import { DashboardCustomizerPanel } from "../components/DashboardCustomizer";
@@ -8,8 +9,16 @@ import { useSubmitOnce } from "../lib/useSubmitOnce";
 
 const API_BASE = process.env.REACT_APP_BACKEND_URL || "";
 
+const GB_CALLBACK_MESSAGES = {
+  connected: { text: "✅ Google Business connected!", ok: true },
+  denied: { text: "❌ Consent was denied — connect again and approve access to finish.", ok: false },
+  invalid_state: { text: "❌ That connection attempt expired or was invalid — try connecting again.", ok: false },
+  error: { text: "❌ Something went wrong while connecting — check backend logs.", ok: false },
+};
+
 export default function AdminSettings() {
   const { user, token } = useAuth();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [showCustomizer, setShowCustomizer] = useState(false);
   const [pwForm, setPwForm] = useState({ current: "", newPw: "", confirm: "" });
   const [pwMsg, setPwMsg] = useState("");
@@ -17,6 +26,50 @@ export default function AdminSettings() {
   const [officeForm, setOfficeForm] = useState({ lat: "", lng: "", radius_m: 200, enforce: false });
   const [officeMsg, setOfficeMsg] = useState("");
   const [officeLoaded, setOfficeLoaded] = useState(false);
+  const [gbStatus, setGbStatus] = useState(null);
+  const [gbLoading, setGbLoading] = useState(true);
+  const [gbConnecting, setGbConnecting] = useState(false);
+  const gbCallbackMsg = GB_CALLBACK_MESSAGES[searchParams.get("google_business")];
+
+  const loadGbStatus = React.useCallback(async () => {
+    try {
+      const res = await fetch(`${API_BASE}/api/admin/google-business/status`, { headers: { Authorization: `Bearer ${token}` } });
+      if (res.ok) setGbStatus(await res.json());
+    } catch { /* silent */ }
+    setGbLoading(false);
+  }, [token]);
+
+  useEffect(() => { loadGbStatus(); }, [loadGbStatus]);
+
+  // Clear the ?google_business= query param once shown, so a page refresh
+  // doesn't keep re-showing a stale connect/error message.
+  useEffect(() => {
+    if (!gbCallbackMsg) return;
+    loadGbStatus();
+    const next = new URLSearchParams(searchParams);
+    next.delete("google_business");
+    setSearchParams(next, { replace: true });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const connectGoogleBusiness = async () => {
+    setGbConnecting(true);
+    try {
+      const res = await fetch(`${API_BASE}/api/admin/google-business/authorize`, { headers: { Authorization: `Bearer ${token}` } });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.detail || "Could not start connection");
+      window.location.href = data.authorize_url;
+    } catch (err) {
+      setGbConnecting(false);
+      alert(err.message || "Could not start connection");
+    }
+  };
+
+  const disconnectGoogleBusiness = async () => {
+    if (!window.confirm("Disconnect Google Business? Reviews/location sync will stop until reconnected.")) return;
+    await fetch(`${API_BASE}/api/admin/google-business/disconnect`, { method: "POST", headers: { Authorization: `Bearer ${token}` } });
+    loadGbStatus();
+  };
 
   // Load the currently saved geofence so the form doesn't render blank and
   // silently wipe out an already-configured office location on save.
@@ -117,6 +170,31 @@ export default function AdminSettings() {
               {saving ? "Saving..." : "Change Password"}
             </Button>
           </form>
+        </div>
+
+        {/* Google Business Profile */}
+        <div className="bg-white dark:bg-[#101D2E] rounded-2xl border border-[#E2D8C2] dark:border-white/10 p-5 mb-4 shadow-sm">
+          <h3 className="text-sm font-bold text-[#0E1B2C] dark:text-[#F1EDE3] mb-1.5">🏢 Google Business Profile</h3>
+          <p className="text-xs text-[#5C677D] dark:text-[#8E99AC] mb-3.5">Connect your Google Business listing to pull location details and reviews into the portal.</p>
+          {gbCallbackMsg && (
+            <p className={`text-xs mb-3 ${gbCallbackMsg.ok ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"}`}>{gbCallbackMsg.text}</p>
+          )}
+          {gbLoading ? (
+            <p className="text-xs text-[#5C677D] dark:text-[#8E99AC]">Checking connection status...</p>
+          ) : gbStatus?.configured === false ? (
+            <p className="text-xs text-amber-600 dark:text-amber-400">Not set up yet — GOOGLE_OAUTH_CLIENT_ID/SECRET aren't configured on the backend.</p>
+          ) : gbStatus?.connected ? (
+            <div className="flex flex-col gap-2">
+              <p className="text-xs text-green-600 dark:text-green-400">
+                ✅ Connected{gbStatus.location_title ? ` — ${gbStatus.location_title}` : ""}
+              </p>
+              <Button onClick={disconnectGoogleBusiness} variant="outline" className="w-fit">Disconnect</Button>
+            </div>
+          ) : (
+            <Button onClick={connectGoogleBusiness} disabled={gbConnecting} className="bg-gradient-to-r from-[#024396] to-[#0356c4]">
+              {gbConnecting ? "Redirecting to Google..." : "Connect Google Business"}
+            </Button>
+          )}
         </div>
 
         {/* Office Location Settings */}
