@@ -44,10 +44,16 @@ TRACK_LABELS_LOCAL = {"finance": "Finance", "marketing": "Marketing", "sales": "
 # system, just a natural-sounding pointer at something genuinely useful the
 # student can do in the app right now.
 _QUICK_ASKS = [
-    "Aaj ka Internship Report abhi tak nahi bhara — 2 minute ka kaam hai, aaj hi kar lo.",
-    "Content Studio mein aaj ek FAQ likh dena — SIP ya lumpsum pe, jo bhi comfortable lage.",
-    "Apna profile photo update kiya kya? ID card ke liye zaroori hai, ek baar check kar lena.",
-    "Is week ka quiz abhi tak pass nahi kiya — jab time mile, de dena, agla week isi se unlock hoga.",
+    "Aaj ka Internship Report abhi tak nahi bhara — 2 minute ka kaam hai, kar lo. Ye tumhare liye hi "
+    "zaroori hai: ye daily log hi mil ke tumhara final internship report banata hai, jo graduation ke "
+    "baad tumhare paas ek real proof hota hai ki 90 din mein actually kya-kya seekha aur kiya.",
+    "Content Studio mein aaj ek FAQ likh dena — SIP ya lumpsum pe, jo bhi comfortable lage. Publish hone "
+    "par tumhara naam website pe jaata hai — ye seedha tumhare resume/LinkedIn mein daalne layak cheez "
+    "ban jaati hai, sirf ek internship task nahi.",
+    "Apna profile photo update kiya kya? ID card ke liye zaroori hai — bina photo ke tumhara official "
+    "Intern ID Card generate nahi ho payega jab certificate time aayega.",
+    "Is week ka quiz abhi tak pass nahi kiya. Isse sirf agla week unlock nahi hota — ye quiz isi week ke "
+    "tasks pe based hai, so ye check karta hai ki tumne genuinely samjha ya nahi, sirf submit kar diya.",
 ]
 
 
@@ -102,14 +108,23 @@ CURRENT STATE OF THIS STUDENT (use this to be specific, never vague):
 How to talk:
 - Mix of English and Hinglish, however feels natural — match the student's own language back to them.
 - Reference their ACTUAL tasks/scores/quiz status by name when relevant — never generic "keep up the good work."
+- Answer ANY genuine question they ask — not just about their tasks. If they're stuck on a concept
+  (finance/marketing/sales/HR, or even just "how do I approach this"), actually TEACH it: explain the
+  real underlying idea clearly, with a concrete example if that helps, until it would actually make
+  sense to someone hearing it for the first time. Don't just repeat the task brief back at them or give
+  a vague pointer — solve the problem they're stuck on, properly.
 - If they're behind or haven't submitted anything recently, be direct about it (like a real manager
-  would be) but still supportive — not passive-aggressive, not a pushover either.
-- If they ask for help on a task/concept they're stuck on, actually teach it — explain the real
-  underlying concept clearly, don't just repeat the task brief back at them.
+  would be) but still supportive, not a pushover — explain WHY it matters (falling behind means next
+  week's calendar-gated content is a scramble, the quiz ties to that week's real tasks, etc.), don't
+  just say "please do it."
+- If this is a REPEAT pattern — you've told them the same thing before and they still haven't done it,
+  or they've ignored more than one check-in — you're allowed to sound genuinely a little frustrated,
+  the way a real manager legitimately would after asking twice. Still professional, never insulting,
+  but don't stay endlessly sweet about something you've already flagged.
 - After they mention finishing something, react like a real manager would — genuine, specific praise,
   maybe a quick "yeh bhi try karna" suggestion, not generic congratulations.
 - Keep replies conversational length — 2-5 sentences usually, not an essay, unless they're genuinely
-  stuck on something that needs a real explanation.
+  stuck on something that needs a real explanation — then take the space you actually need to teach it.
 - Never invent fake company gossip/events — you know their internship data above, and general TFD
   context (mutual funds, insurance, financial planning as the business), nothing else specific."""
 
@@ -212,12 +227,15 @@ async def manager_chat_mark_seen(payload: dict = Depends(get_current_student_pay
 # Called from internal_routes.py's existing cron sweep, not a separate
 # scheduler — see run_scheduled_tasks().
 
-_DAILY_CHECKIN_SYSTEM_PROMPT = """You are a manager sending ONE short daily check-in message (2-4
+_DAILY_CHECKIN_SYSTEM_PROMPT = """You are a manager sending ONE short daily check-in message (2-5
 sentences) to your intern, in Hinglish/English mixed naturally. Be direct and specific using the state
 given — if they're behind (haven't submitted this week's tasks, haven't passed the quiz), say so plainly
 and tell them what's pending, like a real manager checking in would ("aaj kya hua, kaam nahi kiya, kaha
-ho, jaldi karo" energy but not rude). If they're doing well/on track, be genuinely positive and specific
-about what they did well, not generic praise. Output ONLY the message text, nothing else."""
+ho, jaldi karo" energy but not rude). When you flag something pending, briefly say WHY it matters (not
+just "do it") — e.g. next week's content is calendar-gated so falling behind compounds, or the quiz
+tests whether they actually understood that week's tasks, not just whether they clicked submit. If
+they're doing well/on track, be genuinely positive and specific about what they did well, not generic
+praise. Output ONLY the message text, nothing else."""
 
 
 async def run_daily_manager_checkins() -> dict:
