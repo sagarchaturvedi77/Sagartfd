@@ -60,6 +60,9 @@ internship_manager_chat_collection = db["internship_manager_chat"]
 # TFD Mailbox — one document per email message (student <-> fictional
 # client), see internship_mailbox_routes.py.
 internship_mailbox_collection = db["internship_mailbox"]
+# TFD Connect — one document per (student, contact) WhatsApp-style chat
+# thread, messages embedded — see internship_connect_routes.py.
+internship_connect_threads_collection = db["internship_connect_threads"]
 # Cashfree Payment Gateway orders — generic across payment_type values
 # ("internship_signup", "certificate_regeneration", ...), see cashfree_client.py.
 payment_orders_collection = db["payment_orders"]

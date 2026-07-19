@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useInternshipAuth } from "./InternshipAuthContext";
 import {
   LayoutDashboard, Rocket, PlayCircle, Trophy, Award, UserCircle, LogOut, Lock, LifeBuoy, X, Send,
-  Sparkles, Landmark, Megaphone, TrendingUp, Heart, RefreshCw, PenSquare, Mail,
+  Sparkles, Landmark, Megaphone, TrendingUp, Heart, RefreshCw, PenSquare, Mail, MessageCircle,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useSubmitOnce } from "../../lib/useSubmitOnce";
@@ -18,6 +18,7 @@ const NAV_ITEMS = [
   { key: "overview", label: "Dashboard Overview", icon: LayoutDashboard, live: true, path: "/portal/student" },
   { key: "missions", label: "Active Missions", icon: Rocket, live: true, path: "/portal/student/missions" },
   { key: "mailbox", label: "TFD Mailbox", icon: Mail, live: true, path: "/portal/student/mailbox" },
+  { key: "connect", label: "TFD Connect", icon: MessageCircle, live: true, path: "/portal/student/connect" },
   { key: "content", label: "Content Studio", icon: PenSquare, live: true, path: "/portal/student/content-studio" },
   { key: "profile", label: "My Profile", icon: UserCircle, live: true, path: "/portal/student/profile" },
   { key: "videos", label: "Video Hub", icon: PlayCircle, live: false },

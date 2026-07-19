@@ -568,6 +568,9 @@ app.include_router(internship_manager_router)
 from internship_mailbox_routes import router as internship_mailbox_router
 app.include_router(internship_mailbox_router)
 
+from internship_connect_routes import router as internship_connect_router
+app.include_router(internship_connect_router)
+
 app.add_middleware(
     CORSMiddleware,
     allow_credentials=True,

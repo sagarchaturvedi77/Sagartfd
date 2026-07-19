@@ -110,6 +110,7 @@ const InternIDCardPage = lazy(() => import("./pages/InternIDCardPage"));
 const StudentQuiz = lazy(() => import("./pages/StudentQuiz"));
 const StudentStudyMaterial = lazy(() => import("./pages/StudentStudyMaterial"));
 const StudentMailbox = lazy(() => import("./pages/StudentMailbox"));
+const StudentConnect = lazy(() => import("./pages/StudentConnect"));
 const StudentLeaderboard = lazy(() => import("./pages/StudentLeaderboard"));
 const StudentReport = lazy(() => import("./pages/StudentReport"));
 const StudentCertificate = lazy(() => import("./pages/StudentCertificate"));
@@ -589,6 +590,14 @@ element={
                   element={
                     <StudentProtectedRoute>
                       <StudentMailbox />
+                    </StudentProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/portal/student/connect"
+                  element={
+                    <StudentProtectedRoute>
+                      <StudentConnect />
                     </StudentProtectedRoute>
                   }
                 />
