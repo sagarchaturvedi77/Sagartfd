@@ -15,6 +15,7 @@ Employee:
 """
 
 import io
+import json
 import logging
 import random
 import re
@@ -25,7 +26,7 @@ from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile, File, Request
 from pydantic import BaseModel, Field
 
-from lead_models import LeadCreate, LeadUpdate, LeadStatusUpdate, LeadNameUpdate, LeadAlternatePhoneUpdate, LeadInDB, LeadOut, CallOutcomeIn, TransferIn
+from lead_models import LeadCreate, LeadUpdate, LeadStatusUpdate, LeadNameUpdate, LeadAlternatePhoneUpdate, LeadCustomFieldsUpdate, LeadInDB, LeadOut, CallOutcomeIn, TransferIn
 from notification_models import NotificationInDB
 from auth_utils import get_current_user_payload, require_admin
 from database import leads_collection, users_collection, db, reminders_collection, pipelines_collection, lead_batches_collection, notifications_collection
@@ -683,6 +684,24 @@ async def update_lead_alternate_phone(
     return {"status": "updated", "alternate_phone": alt}
 
 
+@router.put("/{lead_id}/custom-fields")
+async def update_lead_custom_fields(lead_id: str, data: LeadCustomFieldsUpdate, admin: dict = Depends(require_admin)):
+    """Admin-only — add/edit/remove the extra columns that weren't mapped
+    during Excel import (or add one that wasn't in the file at all).
+    Visible to the assigned employee on the lead's own profile, read-only,
+    same as any other lead field they don't own."""
+    doc = await leads_collection.find_one({"id": lead_id})
+    if not doc:
+        raise HTTPException(status_code=404, detail="Lead not found")
+
+    # Drop blank labels/values so an admin clearing a field's text actually
+    # removes it rather than leaving an empty-string entry behind.
+    cleaned = {k.strip(): v for k, v in data.custom_fields.items() if k.strip() and str(v).strip()}
+    now = datetime.now(timezone.utc).isoformat()
+    await leads_collection.update_one({"id": lead_id}, {"$set": {"custom_fields": cleaned or None, "updated_at": now}})
+    return {"status": "updated", "custom_fields": cleaned}
+
+
 class QuickNoteIn(BaseModel):
     note: str
 
@@ -1236,6 +1255,10 @@ async def import_leads_excel(
     source_col: Optional[int] = Query(default=None),
     service_interest_col: Optional[int] = Query(default=None),
     city_col: Optional[int] = Query(default=None),
+    # JSON-encoded list of extra columns that don't map to any fixed field
+    # above, e.g. '[{"label":"Company Size","col":6}]' — from the import
+    # screen's "+ Add Custom Column" rows. Stored per-lead as custom_fields.
+    custom_fields_map: Optional[str] = Query(default=None),
     admin: dict = Depends(require_admin),
 ):
     import openpyxl
@@ -1267,6 +1290,19 @@ async def import_leads_excel(
     # in later from the employee portal (PUT /{lead_id}/name).
     if "phone" not in col_map:
         raise HTTPException(status_code=400, detail="Couldn't find a Phone/Contact column — please map one in the import screen.")
+
+    custom_col_mappings = []  # [{"label": str, "col": int}, ...] — extra columns beyond the fixed fields
+    if custom_fields_map:
+        try:
+            parsed = json.loads(custom_fields_map)
+            if isinstance(parsed, list):
+                custom_col_mappings = [
+                    {"label": str(m["label"]).strip(), "col": int(m["col"])}
+                    for m in parsed
+                    if isinstance(m, dict) and str(m.get("label", "")).strip() and m.get("col") is not None
+                ]
+        except (ValueError, TypeError, KeyError):
+            pass  # malformed mapping — import still proceeds with just the fixed fields
 
     # Determine assignment targets — importing without assigning to someone
     # (self or one/more employees) is no longer allowed.
@@ -1324,6 +1360,16 @@ async def import_leads_excel(
             return ""
         return str(row[idx]).strip()
 
+    def _custom_fields_for_row(row):
+        result = {}
+        for m in custom_col_mappings:
+            idx = m["col"]
+            if idx < len(row) and row[idx] is not None:
+                val = str(row[idx]).strip()
+                if val:
+                    result[m["label"]] = val
+        return result or None
+
     for row in rows:
         name = _cell(row, "name")
         phone = _cell(row, "phone")
@@ -1348,15 +1394,16 @@ async def import_leads_excel(
             existing_id = existing_phone_to_id.get(norm_phone)
             if existing_id:
                 eid = target_employees[imported % len(target_employees)]
-                await leads_collection.update_one(
-                    {"id": existing_id},
-                    {"$set": {
-                        "assigned_to": eid, "assigned_to_name": emp_names.get(eid, ""),
-                        "pipeline_id": emp_pipelines.get(eid), "pipeline_stage_id": None,
-                        "batch_id": batch_id, "batch_date": now_iso,
-                        "updated_at": now_iso,
-                    }},
-                )
+                row_custom_fields = _custom_fields_for_row(row)
+                update_set = {
+                    "assigned_to": eid, "assigned_to_name": emp_names.get(eid, ""),
+                    "pipeline_id": emp_pipelines.get(eid), "pipeline_stage_id": None,
+                    "batch_id": batch_id, "batch_date": now_iso,
+                    "updated_at": now_iso,
+                }
+                if row_custom_fields:
+                    update_set["custom_fields"] = row_custom_fields
+                await leads_collection.update_one({"id": existing_id}, {"$set": update_set})
                 imported += 1
                 reassigned_existing += 1
                 imported_ids.append(existing_id)
@@ -1369,6 +1416,7 @@ async def import_leads_excel(
             source=_cell(row, "source") or "excel",
             service_interest=_cell(row, "service_interest") or None,
             city=_cell(row, "city") or None,
+            custom_fields=_custom_fields_for_row(row),
         )
         lead_doc = lead.model_dump()
         lead_doc["batch_id"] = batch_id

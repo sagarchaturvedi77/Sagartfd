@@ -53,6 +53,11 @@ export default function AdminLeads() {
   const [importPreview, setImportPreview] = useState(null);
   const [previewLoading, setPreviewLoading] = useState(false);
   const [colMap, setColMap] = useState({ name: "", phone: "", email: "", source: "", service_interest: "", city: "" });
+  // Extra Excel columns that don't map to any fixed field above — each is
+  // { label, col }, admin-named, sent alongside colMap and stored per-lead
+  // as custom_fields. Lets the file's own columns just get an "Edit"
+  // (add-a-row) escape hatch instead of being silently dropped.
+  const [customFieldMappings, setCustomFieldMappings] = useState([]);
 
   const [batches, setBatches] = useState([]);
   const [openBatch, setOpenBatch] = useState(null);
@@ -61,6 +66,10 @@ export default function AdminLeads() {
   const [batchLoading, setBatchLoading] = useState(false);
 
   const [detailLead, setDetailLead] = useState(null);
+  // Editing a lead's custom_fields from the detail modal — for a column
+  // that wasn't mapped during import, or needs updating afterward.
+  const [editingCustomFields, setEditingCustomFields] = useState(false);
+  const [customFieldsDraft, setCustomFieldsDraft] = useState([]);
   const [detailCareerLead, setDetailCareerLead] = useState(null);
 
   const [form, setForm] = useState({ name: "", phone: "", email: "", city: "", source: "manual", service_interest: "", notes: "", assigned_to: "" });
@@ -187,6 +196,30 @@ export default function AdminLeads() {
     load(); loadMyLeads();
   });
 
+  const openCustomFieldsEditor = (lead) => {
+    const entries = Object.entries(lead.custom_fields || {});
+    setCustomFieldsDraft(entries.length ? entries.map(([label, value]) => ({ label, value })) : [{ label: "", value: "" }]);
+    setEditingCustomFields(true);
+  };
+
+  const [saveCustomFields, savingCustomFields] = useSubmitOnce(async () => {
+    const custom_fields = {};
+    for (const { label, value } of customFieldsDraft) {
+      if (label.trim() && String(value).trim()) custom_fields[label.trim()] = value;
+    }
+    const res = await fetch(`${API_BASE}/api/leads/${detailLead.id}/custom-fields`, {
+      method: "PUT", headers,
+      body: JSON.stringify({ custom_fields }),
+    });
+    if (res.ok) {
+      setDetailLead((prev) => (prev ? { ...prev, custom_fields } : prev));
+      setEditingCustomFields(false);
+      load(); loadMyLeads();
+    } else {
+      alert("Could not save these fields — please try again.");
+    }
+  });
+
   const handleFileSelect = async (file) => {
     if (!file) return;
     setImportFile(file);
@@ -211,6 +244,7 @@ export default function AdminLeads() {
           service_interest: data.auto_map.service_interest ?? "",
           city: data.auto_map.city ?? "",
         });
+        setCustomFieldMappings([]);
       } else {
         const err = await res.json().catch(() => ({}));
         alert(err.detail || "Could not read this Excel file.");
@@ -253,6 +287,10 @@ export default function AdminLeads() {
     for (const [field, idx] of Object.entries(colMap)) {
       url += `&${field}_col=${idx === "" ? -1 : idx}`;
     }
+    const validCustomFields = customFieldMappings.filter((m) => m.label.trim() && m.col !== "");
+    if (validCustomFields.length > 0) {
+      url += `&custom_fields_map=${encodeURIComponent(JSON.stringify(validCustomFields.map((m) => ({ label: m.label.trim(), col: Number(m.col) }))))}`;
+    }
     try {
       const res = await fetch(url, {
         method: "POST",
@@ -281,6 +319,7 @@ export default function AdminLeads() {
     setSelectedAssignEmps([]);
     setImportPreview(null);
     setColMap({ name: "", phone: "", email: "", source: "", service_interest: "", city: "" });
+    setCustomFieldMappings([]);
   });
 
   const openBatchDetail = async (batch) => {
@@ -453,7 +492,7 @@ export default function AdminLeads() {
         {/* Import Column Mapping */}
         <PortalModal
           open={showMappingDialog}
-          onOpenChange={(v) => { setShowMappingDialog(v); if (!v) { setImportFile(null); setImportPreview(null); } }}
+          onOpenChange={(v) => { setShowMappingDialog(v); if (!v) { setImportFile(null); setImportPreview(null); setCustomFieldMappings([]); } }}
           title="Import Leads — Match Columns"
           maxWidth="max-w-lg"
         >
@@ -489,6 +528,61 @@ export default function AdminLeads() {
                 ))}
               </div>
 
+              {/* Extra columns the file has that don't fit any fixed field
+                  above — admin names each one and picks its column; stored
+                  per-lead and shown on the lead's profile to whoever it's
+                  assigned to. */}
+              <div className="border-t border-[#E2D8C2] dark:border-white/10 pt-3">
+                <div className="flex items-center justify-between mb-2">
+                  <p className="text-xs font-semibold text-[#0E1B2C] dark:text-[#F1EDE3]">
+                    Other columns in this file (optional)
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => setCustomFieldMappings((prev) => [...prev, { label: "", col: "" }])}
+                    className="text-xs font-medium text-[#024396] dark:text-[#7CB0FF] hover:underline"
+                  >
+                    + Add Custom Column
+                  </button>
+                </div>
+                {customFieldMappings.length === 0 ? (
+                  <p className="text-[11px] text-[#2A364B]/50 dark:text-[#8E99AC]">
+                    If the Excel has more columns you want saved on the lead (e.g. "Company Size", "Referral Code"), add them here.
+                  </p>
+                ) : (
+                  <div className="space-y-2">
+                    {customFieldMappings.map((m, i) => (
+                      <div key={i} className="flex items-center gap-2">
+                        <input
+                          value={m.label}
+                          onChange={(e) => setCustomFieldMappings((prev) => prev.map((x, xi) => (xi === i ? { ...x, label: e.target.value } : x)))}
+                          placeholder="Field name (e.g. Company Size)"
+                          className="w-40 shrink-0 border border-[#E2D8C2] dark:border-white/15 dark:bg-white/5 dark:text-[#F1EDE3] rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#024396]/30"
+                        />
+                        <select
+                          value={m.col}
+                          onChange={(e) => setCustomFieldMappings((prev) => prev.map((x, xi) => (xi === i ? { ...x, col: e.target.value === "" ? "" : Number(e.target.value) } : x)))}
+                          className="flex-1 border border-[#E2D8C2] dark:border-white/15 dark:bg-white/5 dark:text-[#F1EDE3] rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#024396]/30"
+                        >
+                          <option value="">— Which column? —</option>
+                          {importPreview.headers.map((h, hi) => (
+                            <option key={hi} value={hi}>{h || `Column ${hi + 1}`}</option>
+                          ))}
+                        </select>
+                        <button
+                          type="button"
+                          onClick={() => setCustomFieldMappings((prev) => prev.filter((_, xi) => xi !== i))}
+                          className="text-xs text-red-500 hover:text-red-600 px-1.5"
+                          aria-label="Remove this custom column"
+                        >
+                          ✕
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
               {importPreview.sample_rows.length > 0 && (
                 <div className="bg-[#FBF7EE] dark:bg-white/5 rounded-lg p-2.5 overflow-x-auto">
                   <p className="text-[10px] font-semibold uppercase tracking-wide text-[#2A364B]/50 dark:text-[#8E99AC] mb-1.5">Preview (first rows)</p>
@@ -506,7 +600,7 @@ export default function AdminLeads() {
               )}
 
               <div className="flex gap-3 pt-2">
-                <Button variant="outline" className="flex-1" onClick={() => { setShowMappingDialog(false); setImportFile(null); setImportPreview(null); }}>Cancel</Button>
+                <Button variant="outline" className="flex-1" onClick={() => { setShowMappingDialog(false); setImportFile(null); setImportPreview(null); setCustomFieldMappings([]); }}>Cancel</Button>
                 <Button className="flex-1 bg-gradient-to-r from-[#024396] to-[#0356c4]" onClick={confirmMapping}>Next: Assign →</Button>
               </div>
             </>
@@ -603,7 +697,7 @@ export default function AdminLeads() {
         {/* Lead Detail Modal */}
         <PortalModal
           open={!!detailLead}
-          onOpenChange={(v) => !v && setDetailLead(null)}
+          onOpenChange={(v) => { if (!v) { setDetailLead(null); setEditingCustomFields(false); } }}
           title={detailLead?.name}
           description={detailLead ? `${detailLead.phone}${detailLead.email ? ` | ${detailLead.email}` : ""}` : ""}
           maxWidth="max-w-lg"
@@ -629,6 +723,73 @@ export default function AdminLeads() {
                 </div>
               )}
               {detailLead.notes && <p className="text-xs text-[#2A364B]/70 dark:text-[#C7CEDA] bg-[#FBF7EE] dark:bg-white/5 p-2 rounded-lg">{detailLead.notes}</p>}
+
+              {/* Extra columns from Excel import (or added later) — shown
+                  to whoever this lead is assigned to as well, admin can
+                  edit here any time (e.g. a column wasn't mapped at import). */}
+              <div>
+                <div className="flex items-center justify-between mb-1.5">
+                  <h4 className="text-xs font-semibold text-[#0E1B2C] dark:text-[#F1EDE3]">Other Details</h4>
+                  {!editingCustomFields && (
+                    <button
+                      type="button"
+                      onClick={() => openCustomFieldsEditor(detailLead)}
+                      className="text-[11px] font-medium text-[#024396] dark:text-[#7CB0FF] hover:underline"
+                    >
+                      Edit
+                    </button>
+                  )}
+                </div>
+                {editingCustomFields ? (
+                  <div className="space-y-2 bg-[#FBF7EE] dark:bg-white/5 rounded-lg p-2.5">
+                    {customFieldsDraft.map((row, i) => (
+                      <div key={i} className="flex items-center gap-2">
+                        <input
+                          value={row.label}
+                          onChange={(e) => setCustomFieldsDraft((prev) => prev.map((r, ri) => (ri === i ? { ...r, label: e.target.value } : r)))}
+                          placeholder="Field name"
+                          className="w-32 shrink-0 border border-[#E2D8C2] dark:border-white/15 dark:bg-white/5 dark:text-[#F1EDE3] rounded-lg px-2.5 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-[#024396]/30"
+                        />
+                        <input
+                          value={row.value}
+                          onChange={(e) => setCustomFieldsDraft((prev) => prev.map((r, ri) => (ri === i ? { ...r, value: e.target.value } : r)))}
+                          placeholder="Value"
+                          className="flex-1 border border-[#E2D8C2] dark:border-white/15 dark:bg-white/5 dark:text-[#F1EDE3] rounded-lg px-2.5 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-[#024396]/30"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setCustomFieldsDraft((prev) => prev.filter((_, ri) => ri !== i))}
+                          className="text-xs text-red-500 hover:text-red-600 px-1"
+                          aria-label="Remove"
+                        >
+                          ✕
+                        </button>
+                      </div>
+                    ))}
+                    <button
+                      type="button"
+                      onClick={() => setCustomFieldsDraft((prev) => [...prev, { label: "", value: "" }])}
+                      className="text-[11px] font-medium text-[#024396] dark:text-[#7CB0FF] hover:underline"
+                    >
+                      + Add field
+                    </button>
+                    <div className="flex gap-2 pt-1">
+                      <Button variant="outline" className="flex-1 !py-1.5 !text-xs" onClick={() => setEditingCustomFields(false)}>Cancel</Button>
+                      <Button className="flex-1 !py-1.5 !text-xs bg-gradient-to-r from-[#024396] to-[#0356c4]" onClick={saveCustomFields} disabled={savingCustomFields}>
+                        {savingCustomFields ? "Saving..." : "Save"}
+                      </Button>
+                    </div>
+                  </div>
+                ) : detailLead.custom_fields && Object.keys(detailLead.custom_fields).length > 0 ? (
+                  <div className="bg-[#FBF7EE] dark:bg-white/5 rounded-lg p-2.5 text-xs space-y-1">
+                    {Object.entries(detailLead.custom_fields).map(([label, value]) => (
+                      <p key={label} className="text-[#0E1B2C] dark:text-[#F1EDE3]">{label}: <strong>{value}</strong></p>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-[11px] text-[#2A364B]/50 dark:text-[#8E99AC]">No extra fields on this lead yet.</p>
+                )}
+              </div>
               {detailLead.status_history && detailLead.status_history.length > 0 && (
                 <div>
                   <h4 className="text-xs font-semibold text-[#0E1B2C] dark:text-[#F1EDE3] mb-2 mt-3">Update History</h4>

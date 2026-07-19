@@ -75,6 +75,13 @@ class LeadAlternatePhoneUpdate(BaseModel):
     alternate_phone: str
 
 
+class LeadCustomFieldsUpdate(BaseModel):
+    # Full replacement of the lead's custom_fields map (not a partial
+    # merge) — the admin UI always sends the complete current set, since
+    # it's also how a field gets removed (just omit it).
+    custom_fields: dict
+
+
 class LeadInDB(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     name: str
@@ -109,6 +116,11 @@ class LeadInDB(BaseModel):
     service_price: Optional[float] = None
     call_touched: bool = False                  # False until first call attempt — used for the "10 at a time" queue
     reassign_count: int = 0                     # how many times auto-reassigned for not-connected non-response (caps at 2, then lost)
+    # Arbitrary extra columns from an Excel import that don't map to any of
+    # the fixed fields above (e.g. "Company Size", "Referral Code") — label
+    # -> value, admin-defined per import or edited later on an existing
+    # lead. Visible to the assigned employee on the lead's profile too.
+    custom_fields: Optional[dict] = None
 
 
 class LeadOut(BaseModel):
@@ -146,3 +158,4 @@ class LeadOut(BaseModel):
     reassign_count: int = 0
     batch_id: Optional[str] = None
     batch_date: Optional[str] = None
+    custom_fields: Optional[dict] = None

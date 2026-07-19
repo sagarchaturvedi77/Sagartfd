@@ -615,6 +615,18 @@ export default function EmployeeLeads() {
                 </div>
               )}
 
+              {/* Extra columns from the admin's Excel import (or added
+                  later) — read-only here, admin edits these from their own
+                  lead detail view. */}
+              {detailLead.custom_fields && Object.keys(detailLead.custom_fields).length > 0 && (
+                <div className="bg-[#FBF7EE] dark:bg-white/5 rounded-lg p-2.5 text-xs space-y-1 mt-2">
+                  <p className="text-[10px] font-semibold uppercase tracking-wide text-[#2A364B]/50 dark:text-[#8E99AC] mb-1">Other Details</p>
+                  {Object.entries(detailLead.custom_fields).map(([label, value]) => (
+                    <p key={label} className="text-[#0E1B2C] dark:text-[#F1EDE3]">{label}: <strong>{value}</strong></p>
+                  ))}
+                </div>
+              )}
+
               <div className="flex gap-2 mt-4 flex-wrap">
                 <button
                   onClick={() => { setDetailLead(null); setStatusLead(detailLead); setStatusForm({ status: "", follow_up_note: "", follow_up_date: "", service_interest: "", code_name: "", service_price: "", service_duration_months: "" }); }}
