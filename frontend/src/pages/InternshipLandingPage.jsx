@@ -457,7 +457,7 @@ export default function InternshipLandingPage() {
             the container runs edge-to-edge (no mx-auto max-width squeeze)
             so the asymmetry actually reads on a real desktop screen. */}
         <section className="relative px-5 sm:px-10 lg:px-16 pt-14 pb-16 sm:pt-20 sm:pb-24">
-          <div className="w-full lg:grid lg:grid-cols-[1.7fr_1fr] gap-10 lg:gap-16 items-start relative">
+          <div className="w-full grid grid-cols-1 lg:grid-cols-[1.7fr_1fr] gap-10 lg:gap-16 items-start relative">
             <div className="text-left max-w-2xl">
               <motion.div
                 initial={{ opacity: 0, y: -12 }}
