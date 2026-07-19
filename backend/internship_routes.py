@@ -1426,21 +1426,74 @@ _SPREADSHEET_VARIANT_GENERATORS = {
 }
 
 
+# Marketing/Sales/HR task pools are small enough (2-4 tasks per curriculum
+# phase) that the same task legitimately gets re-assigned across every week
+# of a phase (see _assign_week_tasks's "repeats identically within a phase"
+# note) — but unlike Finance, these are prose tasks with no numbers to
+# jitter, so a literal repeat looked identical week to week. Rather than
+# rewriting all ~26 task briefs into {}-template form, each repeat instead
+# gets a deterministically-picked "this week's scenario" pack (different
+# company/persona/numbers) injected as a clearly-labeled override block, so
+# the skill being practiced repeats but what the student has to apply it to
+# is fresh every time. Same seeding trick as Finance: (student_id, task_id).
+_SCENARIO_PACKS = [
+    {"company": "Solstice Retail Co.", "industry": "small retail chain (3 outlets)", "size": "18 employees",
+     "budget_or_pay": "monthly marketing/ops budget of about Rs 40,000", "pain_point": "inconsistent stock tracking across outlets, first time buying any software/process tooling"},
+    {"company": "Northgate Wholesale Traders", "industry": "B2B wholesale distributor", "size": "45 employees",
+     "budget_or_pay": "annual budget of about Rs 6 lakh for this function", "pain_point": "still runs everything on spreadsheets and WhatsApp, skeptical of vendors after being oversold before"},
+    {"company": "Bloom & Co. Bakery", "industry": "D2C food/bakery brand, 2 physical stores + Instagram sales", "size": "9 employees",
+     "budget_or_pay": "tight monthly budget of about Rs 15,000", "pain_point": "founder-run, very price sensitive, decides everything personally and fast"},
+    {"company": "Vertex Manufacturing Pvt Ltd", "industry": "small-scale manufacturing unit", "size": "60 employees",
+     "budget_or_pay": "budget/salary band around Rs 8 lakh annually for this role/function", "pain_point": "traditional, slow-moving management, resistant to change unless the ROI is spelled out plainly"},
+    {"company": "Rhea Fashions", "industry": "boutique clothing brand, online + one flagship store", "size": "12 employees",
+     "budget_or_pay": "modest budget of about Rs 25,000 a month", "pain_point": "recently burned by a bad vendor/hire, now extra cautious and asks a lot of questions before committing"},
+    {"company": "Kavya Learning Center", "industry": "local coaching/education institute", "size": "22 employees",
+     "budget_or_pay": "budget of about Rs 30,000 a month for this", "pain_point": "busy owner, very short attention span, wants the bottom line fast and no jargon"},
+]
+
+
+def _pick_scenario_pack(student_id: str, task_id: str) -> dict:
+    rng = random.Random(f"scenario:{student_id}:{task_id}")
+    return rng.choice(_SCENARIO_PACKS)
+
+
+def _inject_scenario_variant(task: dict, student_id: str) -> dict:
+    """Prepends a per-student/per-assignment scenario override block to a
+    non-Finance text task's brief, instead of leaving the exact same
+    hand-written example company/persona in place every time the task
+    repeats across weeks within a phase. The task's actual skill-steps
+    (`instructions`) are left untouched — only which company/persona/numbers
+    the skill gets applied to changes."""
+    pack = _pick_scenario_pack(student_id, task["id"])
+    override = (
+        f"**This week's specific scenario (apply the task below to THIS, not any other company/persona "
+        f"mentioned elsewhere in the brief):**\n"
+        f"Company: {pack['company']} — {pack['industry']}, {pack['size']}.\n"
+        f"Relevant context: {pack['budget_or_pay']}. {pack['pain_point']}.\n\n"
+        f"---\n\n"
+    )
+    return {**task, "brief": override + (task.get("brief") or "")}
+
+
 def _randomize_task_for_student(task: dict, student_id: str) -> dict:
-    """Returns `task` unchanged unless it has a registered variant
-    generator, in which case a new dict is returned with
-    spreadsheet_template/spreadsheet_answer_key swapped for a per-student
-    randomized variant. Deterministically seeded by (student_id, task_id):
-    the same student always sees the same numbers for that task across
-    requests, but two students assigned the same pool task see different
-    ones — and re-deriving the same seed at grading time reproduces the
-    exact answer key the student's template was built from."""
+    """Returns `task` unchanged unless it needs per-student variation, in
+    which case a new dict is returned — spreadsheet_template/answer_key
+    swapped for Finance tasks with a registered generator (see
+    _SPREADSHEET_VARIANT_GENERATORS), or a scenario-override block injected
+    into the brief for repeatable non-Finance text tasks (see
+    _inject_scenario_variant). Deterministically seeded by (student_id,
+    task_id): the same student always sees the same variant for that task
+    across requests, but two students assigned the same pool task see
+    different ones — and re-deriving the same seed at grading time
+    reproduces the exact variant the student's task was built from."""
     generator = _SPREADSHEET_VARIANT_GENERATORS.get(task.get("title"))
-    if not generator:
-        return task
-    rng = random.Random(f"{student_id}:{task['id']}")
-    template, answer_key = generator(rng)
-    return {**task, "spreadsheet_template": template, "spreadsheet_answer_key": answer_key}
+    if generator:
+        rng = random.Random(f"{student_id}:{task['id']}")
+        template, answer_key = generator(rng)
+        return {**task, "spreadsheet_template": template, "spreadsheet_answer_key": answer_key}
+    if task.get("track") != "finance" and not task.get("interactive_tool") and task.get("deliverable_type") in ("text", "text_and_photo"):
+        return _inject_scenario_variant(task, student_id)
+    return task
 
 
 # ── Weekly task engine & submissions ──────────────────────────────────
