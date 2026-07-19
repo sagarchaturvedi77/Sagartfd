@@ -220,7 +220,7 @@ export default function InternshipSignup() {
                     No, keep it private
                   </button>
                 </div>
-                <p className="text-[10px] text-white/35 mt-1.5">You can change your answer later, right when you submit the actual video.</p>
+                <p className="text-[10px] text-white/50 mt-1.5">You can change your answer later, right when you submit the actual video.</p>
               </div>
             </div>
 
