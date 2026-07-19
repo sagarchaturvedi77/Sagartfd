@@ -7,6 +7,8 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { useSubmitOnce } from "../../lib/useSubmitOnce";
+import NotificationBell from "./NotificationBell";
+import NotificationGate from "./NotificationGate";
 
 const API_BASE = process.env.REACT_APP_BACKEND_URL || "";
 const INTERNSHIP_LOGO_URL = "/assets/logos/TFD-INTERNSHIP-LOGO.webp";
@@ -264,6 +266,7 @@ export default function StudentLayout({ activeKey = "overview", children }) {
   const [guideOpen, setGuideOpen] = useState(false);
 
   return (
+    <NotificationGate>
     <div className="min-h-screen bg-[#050B16] text-white flex">
       <aside className="hidden md:flex flex-col w-[230px] shrink-0 border-r border-white/10 bg-white/[0.02] p-4">
         <div className="flex items-center gap-2.5 mb-8 px-1">
@@ -336,6 +339,7 @@ export default function StudentLayout({ activeKey = "overview", children }) {
                 <Sparkles size={13} /> <span className="hidden sm:inline">Demo Guide</span>
               </button>
             )}
+            <NotificationBell />
             <button
               onClick={() => setSupportOpen(true)}
               className="flex items-center gap-1.5 text-xs font-semibold text-[#14E0A0] bg-[#14E0A0]/10 border border-[#14E0A0]/25 rounded-full px-2.5 sm:px-3 py-1.5 hover:bg-[#14E0A0]/15 transition-colors shrink-0"
@@ -381,5 +385,6 @@ export default function StudentLayout({ activeKey = "overview", children }) {
       <SupportWidget open={supportOpen} onClose={() => setSupportOpen(false)} />
       {student?.is_demo && <DemoGuideWidget open={guideOpen} onClose={() => setGuideOpen(false)} />}
     </div>
+    </NotificationGate>
   );
 }

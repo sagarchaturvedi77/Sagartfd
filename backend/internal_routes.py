@@ -72,6 +72,7 @@ async def run_scheduled_tasks(
     try:
         from internship_routes import _graduation_eligibility, _generate_graduation_documents
         from database import internship_students_collection
+        from notification_service import create_notification
 
         graduated_count = 0
         error_count = 0
@@ -81,6 +82,13 @@ async def run_scheduled_tasks(
                 if check.eligible:
                     await _generate_graduation_documents(student, check, "auto-scheduler")
                     graduated_count += 1
+                    await create_notification(
+                        user_id=student["id"],
+                        title="Your certificate is ready! 🎓",
+                        body=f"You graduated with a {check.percentage}% score — your certificate is ready to download.",
+                        n_type="internship_certificate",
+                        link="/portal/student/certificate",
+                    )
             except Exception:
                 error_count += 1
         ran.append(f"internship_auto_graduate ({graduated_count} graduated, {error_count} errors)")

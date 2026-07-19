@@ -59,9 +59,13 @@ from database import (
     internship_students_collection,
     internship_submissions_collection,
     internship_task_pool_collection,
+    notifications_collection,
     password_resets_collection,
     payment_orders_collection,
+    push_subscriptions_collection,
 )
+from notification_models import PushSubscriptionIn
+from notification_service import create_notification, push_enabled, VAPID_PUBLIC_KEY
 from internship_models import (
     DURATION_PRICING,
     GRADUATION_THRESHOLD,
@@ -1993,6 +1997,72 @@ def _auto_verify_spreadsheet(task: dict, spreadsheet_data: dict) -> tuple[bool, 
     )
 
 
+# ── Notifications (student-facing) ────────────────────────────────────
+# Thin wrappers over the exact same notifications_collection/
+# push_subscriptions_collection/create_notification the staff portal uses
+# (see notification_service.py) — that layer is already keyed by a plain
+# user_id string with nothing staff-specific about it, so interns share
+# the real delivery pipeline (in-app bell + VAPID web push) rather than a
+# parallel one. Only the auth dependency differs (get_current_student_
+# payload vs get_current_user_payload), since interns carry a completely
+# separate JWT/role from staff.
+
+@router.get("/notifications")
+async def list_student_notifications(payload: dict = Depends(get_current_student_payload)):
+    cursor = notifications_collection.find({"user_id": payload["sub"]}).sort("created_at", -1).limit(50)
+    docs = []
+    async for doc in cursor:
+        doc.pop("_id", None)
+        docs.append(doc)
+    return docs
+
+
+@router.get("/notifications/unread-count")
+async def student_unread_count(payload: dict = Depends(get_current_student_payload)):
+    count = await notifications_collection.count_documents({"user_id": payload["sub"], "read": False})
+    return {"unread": count}
+
+
+@router.post("/notifications/mark-read/{notification_id}")
+async def student_mark_read(notification_id: str, payload: dict = Depends(get_current_student_payload)):
+    await notifications_collection.update_one(
+        {"id": notification_id, "user_id": payload["sub"]}, {"$set": {"read": True}}
+    )
+    return {"status": "ok"}
+
+
+@router.post("/notifications/mark-all-read")
+async def student_mark_all_read(payload: dict = Depends(get_current_student_payload)):
+    await notifications_collection.update_many(
+        {"user_id": payload["sub"], "read": False}, {"$set": {"read": True}}
+    )
+    return {"status": "ok"}
+
+
+@router.get("/notifications/vapid-public-key")
+async def student_vapid_public_key():
+    """Same VAPID keypair as the staff portal — one server keypair, any
+    number of independent subscriptions (staff, interns, website visitors)
+    can be registered against it."""
+    return {"key": VAPID_PUBLIC_KEY, "enabled": push_enabled()}
+
+
+@router.post("/notifications/subscribe")
+async def student_subscribe(sub: PushSubscriptionIn, payload: dict = Depends(get_current_student_payload)):
+    await push_subscriptions_collection.update_one(
+        {"endpoint": sub.endpoint},
+        {"$set": {"user_id": payload["sub"], "endpoint": sub.endpoint, "keys": sub.keys}},
+        upsert=True,
+    )
+    return {"status": "subscribed"}
+
+
+@router.post("/notifications/unsubscribe")
+async def student_unsubscribe(sub: PushSubscriptionIn, payload: dict = Depends(get_current_student_payload)):
+    await push_subscriptions_collection.delete_one({"endpoint": sub.endpoint, "user_id": payload["sub"]})
+    return {"status": "unsubscribed"}
+
+
 # ── Voice explain (Hindi + English) ─────────────────────────────────────
 # A short, spoken-style explanation of the task in two languages, read
 # aloud client-side via the browser's Web Speech API (hi-IN / en-IN voices)
@@ -2756,6 +2826,13 @@ async def admin_graduate_student(student_id: str, data: GraduateIn, admin: dict 
         admin["sub"], "internship_certificate_generated",
         f"Graduated internship student {student['name']} ({check.percentage}% score) — issued certificate {result['cert_number']}",
         link="/portal/admin/internship",
+    )
+    await create_notification(
+        user_id=student["id"],
+        title="Your certificate is ready! 🎓",
+        body=f"You graduated with a {check.percentage}% score — your certificate is ready to download.",
+        n_type="internship_certificate",
+        link="/portal/student/certificate",
     )
 
     updated = await internship_students_collection.find_one({"id": student_id})
