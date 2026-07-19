@@ -1,26 +1,35 @@
 import React, { useEffect, useRef, useState } from "react";
 import { MessageSquare, Send, X, Sparkles } from "lucide-react";
 import { toast } from "sonner";
-import { useInternshipAuth } from "../portal/student/InternshipAuthContext";
-import { useSubmitOnce } from "../lib/useSubmitOnce";
+import { useInternshipAuth } from "./InternshipAuthContext";
+import { useSubmitOnce } from "../../lib/useSubmitOnce";
 
 const API_BASE = process.env.REACT_APP_BACKEND_URL || "";
+const UNREAD_POLL_MS = 30000;
 
-// Real two-way chat with an AI-played manager persona, briefed on this
-// specific student's own tasks/performance (see backend's
-// internship_manager_routes.py). Honestly labeled "AI Manager" throughout —
-// persona immersion and disclosure aren't in conflict, same line the
-// public site's TFD-AI already draws.
-export default function ManagerFeedWidget() {
+// Persistent floating chat launcher — visible on every /portal/student/*
+// page (mounted once in StudentLayout), not buried inside one dashboard
+// card. Real two-way chat with an AI-played manager persona, briefed on
+// this specific student's own tasks/performance (see backend's
+// internship_manager_routes.py). Honestly labeled "AI Manager" throughout.
+export default function ManagerChatBubble() {
     const { token } = useInternshipAuth();
     const [persona, setPersona] = useState(null);
     const [messages, setMessages] = useState([]);
     const [open, setOpen] = useState(false);
     const [draft, setDraft] = useState("");
-    const [loading, setLoading] = useState(true);
+    const [unread, setUnread] = useState(0);
     const scrollRef = useRef(null);
 
-    const load = async () => {
+    const loadUnread = async () => {
+        try {
+            const res = await fetch(`${API_BASE}/api/internship/manager-chat/unread-count`, { headers: { Authorization: `Bearer ${token}` } });
+            const json = await res.json().catch(() => ({}));
+            setUnread(json.unread || 0);
+        } catch { /* silent — non-critical polling */ }
+    };
+
+    const loadMessages = async () => {
         try {
             const res = await fetch(`${API_BASE}/api/internship/manager-chat`, { headers: { Authorization: `Bearer ${token}` } });
             if (res.ok) {
@@ -28,18 +37,27 @@ export default function ManagerFeedWidget() {
                 setPersona({ name: data.persona_name, role: data.persona_role });
                 setMessages(data.messages || []);
             }
-        } catch {
-            // silent — nice-to-have widget, not critical path
-        }
-        setLoading(false);
+        } catch { /* silent */ }
     };
 
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    useEffect(() => { load(); }, [token]);
+    useEffect(() => {
+        if (!token) return;
+        loadUnread();
+        const id = setInterval(loadUnread, UNREAD_POLL_MS);
+        return () => clearInterval(id);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [token]);
 
     useEffect(() => {
         if (open && scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }, [messages, open]);
+
+    const openChat = async () => {
+        setOpen(true);
+        await loadMessages();
+        await fetch(`${API_BASE}/api/internship/manager-chat/mark-seen`, { method: "POST", headers: { Authorization: `Bearer ${token}` } }).catch(() => {});
+        setUnread(0);
+    };
 
     const [handleSend, sending] = useSubmitOnce(async () => {
         const text = draft.trim();
@@ -55,34 +73,31 @@ export default function ManagerFeedWidget() {
             const data = await res.json().catch(() => ({}));
             if (!res.ok) throw new Error(data.detail || "Could not send message");
             setMessages((prev) => [...prev, data.reply]);
+            await fetch(`${API_BASE}/api/internship/manager-chat/mark-seen`, { method: "POST", headers: { Authorization: `Bearer ${token}` } }).catch(() => {});
         } catch (err) {
             toast.error(err.message || "Message failed to send");
         }
     });
 
-    if (loading || !persona) return null;
-
-    const lastMessage = messages[messages.length - 1];
-
     return (
         <>
-            <button
-                onClick={() => setOpen(true)}
-                className="w-full text-left rounded-2xl border border-white/10 bg-white/[0.03] hover:border-[#14E0A0]/30 transition-colors p-5 flex items-start gap-3"
-            >
-                <div className="w-10 h-10 rounded-xl bg-[#14E0A0]/10 flex items-center justify-center text-[#14E0A0] shrink-0">
-                    <MessageSquare size={17} />
-                </div>
-                <div className="min-w-0 flex-1">
-                    <p className="text-[11px] font-semibold text-white/45 flex items-center gap-1.5">
-                        {persona.name}, {persona.role}
-                        <span className="text-[9px] uppercase tracking-wide text-[#14E0A0]/70 border border-[#14E0A0]/25 rounded-full px-1.5 py-0.5">AI Manager</span>
-                    </p>
-                    <p className="text-sm text-white/80 leading-relaxed mt-1 truncate">
-                        {lastMessage ? lastMessage.text : "Tap to chat with your manager — ask about any task, or just say hi."}
-                    </p>
-                </div>
-            </button>
+            {/* Floating launcher — bottom-right, cleared above the mobile
+                bottom nav (which is ~64px tall) so it never overlaps it. */}
+            {!open && (
+                <button
+                    onClick={openChat}
+                    aria-label="Chat with your AI Manager"
+                    data-testid="manager-chat-bubble"
+                    className="fixed bottom-20 right-4 md:bottom-6 md:right-6 z-40 w-14 h-14 rounded-full bg-[#14E0A0] hover:bg-[#0FCB8F] text-[#050B16] shadow-[0_8px_24px_rgba(20,224,160,0.4)] flex items-center justify-center transition-transform hover:scale-105"
+                >
+                    <MessageSquare size={22} />
+                    {unread > 0 && (
+                        <span className="absolute -top-1 -right-1 min-w-[20px] h-5 px-1 rounded-full bg-[#C7102E] text-white text-[10px] font-bold flex items-center justify-center border-2 border-[#050B16]">
+                            {unread > 9 ? "9+" : unread}
+                        </span>
+                    )}
+                </button>
+            )}
 
             {open && (
                 <div className="fixed inset-0 z-[100] bg-black/60 flex items-end sm:items-center justify-center p-0 sm:p-4" onClick={() => setOpen(false)}>
@@ -96,8 +111,8 @@ export default function ManagerFeedWidget() {
                                     <Sparkles size={15} />
                                 </div>
                                 <div className="min-w-0">
-                                    <p className="text-sm font-bold text-white truncate">{persona.name}</p>
-                                    <p className="text-[10px] text-white/40 truncate">{persona.role} · AI Manager, not a real person</p>
+                                    <p className="text-sm font-bold text-white truncate">{persona?.name || "Your Manager"}</p>
+                                    <p className="text-[10px] text-white/40 truncate">{persona?.role || ""} · AI Manager, not a real person</p>
                                 </div>
                             </div>
                             <button onClick={() => setOpen(false)} className="text-white/40 hover:text-white shrink-0"><X size={18} /></button>
@@ -106,7 +121,7 @@ export default function ManagerFeedWidget() {
                         <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 space-y-3">
                             {messages.length === 0 && (
                                 <p className="text-white/35 text-xs text-center py-8">
-                                    Say hi to {persona.name} — ask about a task, your progress, or anything you're stuck on.
+                                    Say hi to {persona?.name || "your manager"} — ask about a task, your progress, or anything you're stuck on.
                                 </p>
                             )}
                             {messages.map((m) => (

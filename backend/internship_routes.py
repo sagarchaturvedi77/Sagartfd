@@ -1716,8 +1716,8 @@ async def get_all_assigned_tasks(payload: dict = Depends(get_current_student_pay
                 "submission_status": sub["status"] if sub else None,
                 "submission_id": sub["id"] if sub else None,
                 "submission_note": sub.get("admin_note") if sub else None,
-            "points_awarded": sub.get("points_awarded") if sub else None,
-            "attempt_count": sub.get("attempt_count") if sub else None,
+                "points_awarded": sub.get("points_awarded") if sub else None,
+                "attempt_count": sub.get("attempt_count") if sub else None,
                 "draft_text": sub.get("text_answer") if sub and sub.get("status") == "draft" else None,
                 "draft_spreadsheet_data": sub.get("spreadsheet_data") if sub and sub.get("status") == "draft" else None,
             })
@@ -1731,6 +1731,32 @@ async def get_all_assigned_tasks(payload: dict = Depends(get_current_student_pay
         "weeks": weeks_out, "current_week": effective_week, "current_day": current_day,
         "is_locked_on_quiz": is_locked, "quiz_passed_this_week": quiz_passed_this_week, "message": message,
     }
+
+
+@router.get("/tasks/pending-count")
+async def get_pending_tasks_count(payload: dict = Depends(get_current_student_payload)):
+    """Count of this week's required tasks the student hasn't dealt with
+    yet — never submitted, or rejected and waiting on a resubmit. Powers
+    the little badge on the Missions nav item so "something needs your
+    attention" is visible at a glance without opening the page."""
+    student = await internship_students_collection.find_one({"id": payload["sub"]})
+    if not student or not student.get("track"):
+        return {"pending": 0}
+    current_day, current_week_by_days = _compute_progress(student)
+    if current_week_by_days == 0:
+        return {"pending": 0}
+
+    effective_week, _ = await _effective_unlocked_week(student, current_week_by_days)
+    tasks = await _assign_week_tasks(student, effective_week)
+    submissions = {
+        s["task_id"]: s
+        async for s in internship_submissions_collection.find({"student_id": student["id"], "week_number": effective_week})
+    }
+    pending = sum(
+        1 for t in tasks
+        if not submissions.get(t["id"]) or submissions[t["id"]]["status"] in ("rejected", "draft")
+    )
+    return {"pending": pending}
 
 
 @router.get("/tasks/practice")

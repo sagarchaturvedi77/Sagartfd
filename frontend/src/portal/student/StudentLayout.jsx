@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useInternshipAuth } from "./InternshipAuthContext";
 import {
@@ -9,6 +9,7 @@ import { toast } from "sonner";
 import { useSubmitOnce } from "../../lib/useSubmitOnce";
 import NotificationBell from "./NotificationBell";
 import NotificationGate from "./NotificationGate";
+import ManagerChatBubble from "./ManagerChatBubble";
 
 const API_BASE = process.env.REACT_APP_BACKEND_URL || "";
 const INTERNSHIP_LOGO_URL = "/assets/logos/TFD-INTERNSHIP-LOGO.webp";
@@ -267,10 +268,30 @@ function DemoGuideWidget({ open, onClose }) {
 // Deliberately NOT PortalLayout — an immersive, game-like shell for the
 // student-facing program, distinct from the internal staff CRM look.
 export default function StudentLayout({ activeKey = "overview", children }) {
-  const { student, logout } = useInternshipAuth();
+  const { student, token, logout } = useInternshipAuth();
   const navigate = useNavigate();
   const [supportOpen, setSupportOpen] = useState(false);
   const [guideOpen, setGuideOpen] = useState(false);
+  const [pendingCount, setPendingCount] = useState(0);
+
+  // Powers the little "something needs attention" badge on the Missions
+  // nav item — never-submitted or rejected-and-waiting tasks for the
+  // current week. Polled, not just loaded once, so finishing a task
+  // clears the badge without needing a full page reload.
+  useEffect(() => {
+    if (!token) return;
+    let cancelled = false;
+    const loadPending = async () => {
+      try {
+        const res = await fetch(`${API_BASE}/api/internship/tasks/pending-count`, { headers: { Authorization: `Bearer ${token}` } });
+        const json = await res.json().catch(() => ({}));
+        if (!cancelled) setPendingCount(json.pending || 0);
+      } catch { /* silent — non-critical polling */ }
+    };
+    loadPending();
+    const id = setInterval(loadPending, 60000);
+    return () => { cancelled = true; clearInterval(id); };
+  }, [token]);
 
   return (
     <NotificationGate>
@@ -303,6 +324,11 @@ export default function StudentLayout({ activeKey = "overview", children }) {
                 <span className="flex items-center gap-2.5">
                   <Icon size={16} /> {item.label}
                 </span>
+                {item.key === "missions" && pendingCount > 0 && (
+                  <span className="min-w-[18px] h-[18px] px-1 rounded-full bg-[#C7102E] text-white text-[10px] font-bold flex items-center justify-center">
+                    {pendingCount}
+                  </span>
+                )}
                 {!item.live && <Lock size={12} />}
               </button>
             );
@@ -384,6 +410,11 @@ export default function StudentLayout({ activeKey = "overview", children }) {
               <Icon size={18} strokeWidth={active ? 2.4 : 1.8} />
               <span className="leading-tight text-center px-0.5">{item.label.split(" ")[0]}</span>
               {!item.live && <Lock size={8} className="absolute top-1.5 right-[18%]" />}
+              {item.key === "missions" && pendingCount > 0 && (
+                <span className="absolute top-1 right-[22%] min-w-[15px] h-[15px] px-0.5 rounded-full bg-[#C7102E] text-white text-[8px] font-bold flex items-center justify-center">
+                  {pendingCount}
+                </span>
+              )}
             </button>
           );
         })}
@@ -391,6 +422,7 @@ export default function StudentLayout({ activeKey = "overview", children }) {
 
       <SupportWidget open={supportOpen} onClose={() => setSupportOpen(false)} />
       {student?.is_demo && <DemoGuideWidget open={guideOpen} onClose={() => setGuideOpen(false)} />}
+      <ManagerChatBubble />
     </div>
     </NotificationGate>
   );

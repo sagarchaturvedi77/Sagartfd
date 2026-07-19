@@ -6,7 +6,6 @@ import StudentLayout from "../portal/student/StudentLayout";
 import { useInternshipAuth } from "../portal/student/InternshipAuthContext";
 import { openCashfreeCheckout } from "../lib/cashfree";
 import { useSubmitOnce } from "../lib/useSubmitOnce";
-import ManagerFeedWidget from "../components/ManagerFeedWidget";
 
 const API_BASE = process.env.REACT_APP_BACKEND_URL || "";
 
@@ -243,8 +242,6 @@ export default function StudentDashboard() {
                 <div className="h-full bg-gradient-to-r from-[#14E0A0] to-[#5EEAD4] rounded-full transition-all" style={{ width: `${progressPct}%` }} />
               </div>
             </div>
-
-            {!pendingPayment && <ManagerFeedWidget />}
 
             {/* Locked sections preview */}
             <div>

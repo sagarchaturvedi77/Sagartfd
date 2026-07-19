@@ -83,9 +83,12 @@ async def _build_student_briefing(student: dict) -> str:
     )
 
 
-def _persona_system_prompt(persona: dict, track: str, briefing: str) -> str:
+def _persona_system_prompt(persona: dict, track: str, student_name: str, briefing: str) -> str:
+    first_name = (student_name or "").strip().split(" ")[0] or "there"
     return f"""You are {persona['name']}, the {persona['role']} at The Financial Doctor (TFD) — you are
-this intern's actual manager for their {TRACK_LABELS_LOCAL.get(track, track)} track internship.
+{first_name}'s actual manager for their {TRACK_LABELS_LOCAL.get(track, track)} track internship. Address
+them by name ("{first_name}") the way a real manager naturally would — at the start of a conversation,
+when giving direct feedback, or when the moment calls for it — not stiffly in literally every message.
 
 You are an AI playing this role for a training program — if the student directly asks whether you're a
 real person/AI, say so plainly and honestly (e.g. "Main ek AI hoon jo {persona['name']} ka role play kar
@@ -161,7 +164,7 @@ async def send_manager_chat(data: ManagerChatIn, payload: dict = Depends(get_cur
     )
 
     briefing = await _build_student_briefing(student)
-    system_prompt = _persona_system_prompt(persona, student["track"], briefing)
+    system_prompt = _persona_system_prompt(persona, student["track"], student.get("name", ""), briefing)
 
     history_cursor = internship_manager_chat_collection.find(
         {"student_id": student["id"]}
@@ -179,13 +182,30 @@ async def send_manager_chat(data: ManagerChatIn, payload: dict = Depends(get_cur
 
     manager_msg = {
         "id": f"{now.timestamp()}-m", "student_id": student["id"], "role": "manager",
-        "text": reply_text.strip(), "created_at": datetime.now(timezone.utc).isoformat(), "awaiting_reply": False,
+        "text": reply_text.strip(), "created_at": datetime.now(timezone.utc).isoformat(),
+        "awaiting_reply": False, "seen": False,
     }
     await internship_manager_chat_collection.insert_one(dict(manager_msg))
 
     student_msg.pop("_id", None)
     manager_msg.pop("_id", None)
     return {"reply": manager_msg}
+
+
+@router.get("/manager-chat/unread-count")
+async def manager_chat_unread_count(payload: dict = Depends(get_current_student_payload)):
+    count = await internship_manager_chat_collection.count_documents(
+        {"student_id": payload["sub"], "role": "manager", "seen": False}
+    )
+    return {"unread": count}
+
+
+@router.post("/manager-chat/mark-seen")
+async def manager_chat_mark_seen(payload: dict = Depends(get_current_student_payload)):
+    await internship_manager_chat_collection.update_many(
+        {"student_id": payload["sub"], "role": "manager", "seen": False}, {"$set": {"seen": True}}
+    )
+    return {"status": "ok"}
 
 
 # ── Scheduled: daily check-in + no-reply follow-up ───────────────────────
@@ -236,6 +256,7 @@ async def run_daily_manager_checkins() -> dict:
             await internship_manager_chat_collection.insert_one({
                 "id": f"{now.timestamp()}-checkin", "student_id": student["id"], "role": "manager",
                 "text": text.strip(), "created_at": now.isoformat(), "awaiting_reply": True, "auto_checkin": True,
+                "seen": False,
             })
             await internship_students_collection.update_one(
                 {"id": student["id"]}, {"$set": {"last_manager_checkin_date": today_str, "updated_at": now}}
