@@ -170,8 +170,8 @@ export default function InternApplicationPage() {
       <div className="absolute bottom-0 right-0 w-96 h-96 bg-[#C7102E]/10 rounded-full blur-3xl translate-x-1/3 translate-y-1/3" />
 
       <div className="relative flex items-center gap-3">
-        <img src={LOGO_URL} alt="The Financial Doctor" width={900} height={235} className="h-11 bg-white rounded-lg p-1.5 object-contain" />
-        <img src={INTERNSHIP_LOGO_URL} alt="TFD Internship" width={500} height={246} className="h-8 object-contain" />
+        <img src={LOGO_URL} alt="The Financial Doctor" width={900} height={235} className="h-11 w-auto bg-white rounded-lg p-1.5 object-contain" />
+        <img src={INTERNSHIP_LOGO_URL} alt="TFD Internship" width={500} height={246} className="h-8 w-auto object-contain" />
         <div className="leading-tight">
           <div className="text-sm font-bold text-white">TFD Internship</div>
           <div className="text-[9px] text-[#14E0A0] font-semibold tracking-wide">Learn. Build. Launch.</div>
@@ -226,9 +226,9 @@ export default function InternApplicationPage() {
         <div className="w-full max-w-xl">
           <div className="lg:hidden text-center mb-6">
             <div className="flex items-center justify-center gap-3 mb-4">
-              <img src={LOGO_URL} alt="The Financial Doctor" width={900} height={235} className="h-12 rounded-xl object-contain" />
+              <img src={LOGO_URL} alt="The Financial Doctor" width={900} height={235} className="h-12 w-auto rounded-xl object-contain" />
               <div className="w-px h-8 bg-[#D8CDB0]" />
-              <img src={INTERNSHIP_LOGO_URL} alt="TFD Internship" width={500} height={246} className="h-9 object-contain" />
+              <img src={INTERNSHIP_LOGO_URL} alt="TFD Internship" width={500} height={246} className="h-9 w-auto object-contain" />
               <div className="text-left leading-tight">
                 <div className="text-sm font-bold text-[#0E1B2C]">TFD Internship</div>
                 <div className="text-[9px] text-[#0E7A55] font-semibold tracking-wide">Learn. Build. Launch.</div>

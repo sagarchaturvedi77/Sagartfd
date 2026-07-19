@@ -134,7 +134,7 @@ export default function InternIDCardPage() {
             <div style={{ background: "linear-gradient(90deg, #14E0A0, #5EEAD4)", height: 12, flexShrink: 0 }} />
 
             <div style={{ padding: "16px", position: "relative", flexShrink: 0, boxSizing: "border-box" }}>
-              <img src={INTERNSHIP_LOGO_URL} alt="TFD Internship" width={500} height={246} style={{ height: 56, margin: "0 auto", display: "block" }} crossOrigin="anonymous" />
+              <img src={INTERNSHIP_LOGO_URL} alt="TFD Internship" width={500} height={246} style={{ height: 56, width: "auto", margin: "0 auto", display: "block" }} crossOrigin="anonymous" />
               <div style={{ textAlign: "center", marginTop: 6 }}>
                 <div style={{ fontSize: 13, fontWeight: 700, color: "#FFFFFF", letterSpacing: 0.3 }}>TFD Internship</div>
                 <div style={{ fontSize: 8.5, fontWeight: 600, color: "#14E0A0", letterSpacing: 0.5, marginTop: 1 }}>LEARN. BUILD. LAUNCH.</div>

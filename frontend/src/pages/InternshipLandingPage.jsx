@@ -470,7 +470,7 @@ export default function InternshipLandingPage() {
                   transition={{ duration: 4.5, repeat: Infinity, ease: "easeInOut" }}
                   className="bg-white rounded-2xl p-2 shadow-[0_0_35px_rgba(20,224,160,0.3)] shrink-0"
                 >
-                  <img src={INTERNSHIP_LOGO_URL} alt="TFD Internship" width={500} height={246} className="h-10 sm:h-12 object-contain" />
+                  <img src={INTERNSHIP_LOGO_URL} alt="TFD Internship" width={500} height={246} className="h-10 sm:h-12 w-auto object-contain" />
                 </motion.div>
                 <div className="text-left leading-tight">
                   <div className="text-xl sm:text-2xl font-bold text-white">TFD Internship</div>
@@ -915,7 +915,7 @@ export default function InternshipLandingPage() {
           <div className="max-w-5xl mx-auto flex flex-col items-center gap-4 text-center">
             <div className="flex items-center gap-3">
               <div className="bg-white rounded-xl p-1.5">
-                <img src={INTERNSHIP_LOGO_URL} alt="TFD Internship" width={500} height={246} className="h-6 object-contain" />
+                <img src={INTERNSHIP_LOGO_URL} alt="TFD Internship" width={500} height={246} className="h-6 w-auto object-contain" />
               </div>
               <div className="text-left leading-tight">
                 <div className="text-sm font-bold text-white">TFD Internship</div>

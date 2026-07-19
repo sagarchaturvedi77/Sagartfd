@@ -267,7 +267,7 @@ export default function StudentLayout({ activeKey = "overview", children }) {
     <div className="min-h-screen bg-[#050B16] text-white flex">
       <aside className="hidden md:flex flex-col w-[230px] shrink-0 border-r border-white/10 bg-white/[0.02] p-4">
         <div className="flex items-center gap-2.5 mb-8 px-1">
-          <img src={INTERNSHIP_LOGO_URL} alt="TFD Internship" width={500} height={246} className="h-7 object-contain" />
+          <img src={INTERNSHIP_LOGO_URL} alt="TFD Internship" width={500} height={246} className="h-7 w-auto object-contain" />
           <div className="leading-tight">
             <div className="text-sm font-bold text-white">TFD Internship</div>
             <div className="text-[9px] text-[#14E0A0] font-semibold tracking-wide">Learn. Build. Launch.</div>
@@ -315,7 +315,7 @@ export default function StudentLayout({ activeKey = "overview", children }) {
       <div className="flex-1 min-w-0 flex flex-col">
         <header className="flex flex-row items-center justify-between gap-2 px-4 py-3.5 border-b border-white/10 bg-white/[0.02]">
           <div className="flex items-center gap-2 min-w-0 md:hidden">
-            <img src={INTERNSHIP_LOGO_URL} alt="TFD Internship" width={500} height={246} className="h-6 object-contain shrink-0" />
+            <img src={INTERNSHIP_LOGO_URL} alt="TFD Internship" width={500} height={246} className="h-6 w-auto object-contain shrink-0" />
             <div className="leading-tight min-w-0">
               <div className="text-xs font-bold text-white truncate">TFD Internship</div>
               <div className="text-[8px] text-[#14E0A0] font-semibold truncate">Learn. Build. Launch.</div>
