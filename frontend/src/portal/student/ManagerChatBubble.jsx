@@ -7,13 +7,25 @@ import { useSubmitOnce } from "../../lib/useSubmitOnce";
 const API_BASE = process.env.REACT_APP_BACKEND_URL || "";
 const UNREAD_POLL_MS = 30000;
 
+// Same persona-per-track mapping as backend's internship_manager_routes.py
+// (_MANAGER_PERSONAS) — kept here too so the real manager name/role shows
+// immediately from the student's own track, instead of a generic "Your
+// Manager" placeholder while waiting on the chat API's first response.
+const MANAGER_PERSONAS = {
+    finance: { name: "Priya Nair", role: "Finance Manager" },
+    marketing: { name: "Karan Mehta", role: "Marketing Head" },
+    sales: { name: "Ritu Desai", role: "Sales Manager" },
+    hr: { name: "Arjun Rao", role: "HR Manager" },
+};
+
 // Persistent floating chat launcher — visible on every /portal/student/*
 // page (mounted once in StudentLayout), not buried inside one dashboard
 // card. Real two-way chat with an AI-played manager persona, briefed on
 // this specific student's own tasks/performance (see backend's
 // internship_manager_routes.py). Honestly labeled "AI Manager" throughout.
 export default function ManagerChatBubble() {
-    const { token } = useInternshipAuth();
+    const { token, student } = useInternshipAuth();
+    const trackPersona = MANAGER_PERSONAS[student?.track] || MANAGER_PERSONAS.finance;
     const [persona, setPersona] = useState(null);
     const [messages, setMessages] = useState([]);
     const [open, setOpen] = useState(false);
@@ -111,8 +123,8 @@ export default function ManagerChatBubble() {
                                     <Sparkles size={15} />
                                 </div>
                                 <div className="min-w-0">
-                                    <p className="text-sm font-bold text-white truncate">{persona?.name || "Your Manager"}</p>
-                                    <p className="text-[10px] text-white/40 truncate">{persona?.role || ""} · AI Manager, not a real person</p>
+                                    <p className="text-sm font-bold text-white truncate">{(persona || trackPersona).name}</p>
+                                    <p className="text-[10px] text-white/40 truncate">{(persona || trackPersona).role} · AI Manager, not a real person</p>
                                 </div>
                             </div>
                             <button onClick={() => setOpen(false)} className="text-white/40 hover:text-white shrink-0"><X size={18} /></button>
@@ -121,7 +133,7 @@ export default function ManagerChatBubble() {
                         <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 space-y-3">
                             {messages.length === 0 && (
                                 <p className="text-white/35 text-xs text-center py-8">
-                                    Say hi to {persona?.name || "your manager"} — ask about a task, your progress, or anything you're stuck on.
+                                    Say hi to {(persona || trackPersona).name} — ask about a task, your progress, or anything you're stuck on.
                                 </p>
                             )}
                             {messages.map((m) => (
