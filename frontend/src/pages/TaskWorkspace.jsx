@@ -12,6 +12,7 @@ import { useSubmitOnce } from "../lib/useSubmitOnce";
 import { DIFFICULTY_STYLES, AntiCheatTextarea, Section, LanguageToggle, NO_COPY_PROPS } from "../portal/student/taskUi";
 import SpreadsheetGrid from "../components/SpreadsheetGrid";
 import { buildSubmissionPayload } from "../lib/miniSpreadsheet";
+import TaskPlaybook from "../components/TaskPlaybook";
 import KanbanCrm, { buildKanbanSummary } from "../components/KanbanCrm";
 import RosterProcessor, { buildRosterSummary } from "../components/RosterProcessor";
 import AdCopyWorkspace, { buildAdCopySummary } from "../components/AdCopyWorkspace";
@@ -346,6 +347,8 @@ export default function TaskWorkspace() {
               />
             </Section>
           )}
+
+          {!task.interactive_tool && <TaskPlaybook taskId={task.id} />}
 
           {task.hints?.length > 0 && (
             <Section icon={Lightbulb} title="Stuck? Hints">

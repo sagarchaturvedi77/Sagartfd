@@ -153,6 +153,47 @@ def _compute_progress(doc: dict) -> tuple[int, int]:
     return current_day, current_week
 
 
+# TFD Mailbox/Connect simulated chat & email data is dummy/fictional and
+# has no reason to be retained forever — purged this many days after a
+# student's program_start_date (see purge_expired_simulated_data below).
+PURGE_AFTER_DAYS = 90
+
+
+async def _student_ids_past_purge_window() -> list[str]:
+    """Students whose program started more than PURGE_AFTER_DAYS ago and
+    whose simulated Mailbox/Connect data hasn't already been purged (see
+    simulated_data_purged_at, set once purge_expired_simulated_data runs
+    for them, so re-running the cron doesn't rescan already-purged
+    students forever)."""
+    cutoff = datetime.now(timezone.utc) - timedelta(days=PURGE_AFTER_DAYS)
+    ids = []
+    async for s in internship_students_collection.find(
+        {"program_start_date": {"$ne": None, "$lte": cutoff}, "simulated_data_purged_at": None},
+        {"id": 1},
+    ):
+        ids.append(s["id"])
+    return ids
+
+
+async def purge_expired_simulated_data() -> dict:
+    """Cron entrypoint (see internal_routes.py's run_scheduled_tasks) —
+    permanently deletes TFD Mailbox/Connect data for students past their
+    90-day window, then marks them so they're not rescanned every run."""
+    student_ids = await _student_ids_past_purge_window()
+    if not student_ids:
+        return {"students": 0, "mailbox_deleted": 0, "connect_deleted": 0}
+
+    from internship_mailbox_routes import purge_expired_mailbox_data
+    from internship_connect_routes import purge_expired_connect_data
+    mailbox_deleted = await purge_expired_mailbox_data(student_ids)
+    connect_deleted = await purge_expired_connect_data(student_ids)
+
+    await internship_students_collection.update_many(
+        {"id": {"$in": student_ids}}, {"$set": {"simulated_data_purged_at": datetime.now(timezone.utc)}}
+    )
+    return {"students": len(student_ids), "mailbox_deleted": mailbox_deleted, "connect_deleted": connect_deleted}
+
+
 def _phase_for_week(week_number: int) -> tuple[int, bool]:
     """(phase, is_blindfold_week). 1 = guided (Day 1-30), 2 = independent
     (Day 31-60), 3 = capstone (Day 61-90+) — mirrors a real career
@@ -2438,6 +2479,13 @@ async def create_submission(
     else:
         await internship_submissions_collection.insert_one(doc)
 
+    if approved:
+        try:
+            from internship_mailbox_routes import lock_mailbox_threads_for_task
+            await lock_mailbox_threads_for_task(student["id"], task_id)
+        except Exception:
+            logger.warning("Failed to lock mailbox threads for task %s / student %s", task_id, student["id"])
+
     return {"status": "submitted", "submission_id": doc["id"], "review_status": doc["status"], "admin_note": reason}
 
 
@@ -3393,6 +3441,13 @@ async def admin_review_submission(submission_id: str, data: SubmissionReviewIn, 
             "points_awarded": points if data.status == "approved" else None, "reviewed_at": now,
         }},
     )
+
+    if data.status == "approved":
+        try:
+            from internship_mailbox_routes import lock_mailbox_threads_for_task
+            await lock_mailbox_threads_for_task(sub["student_id"], sub["task_id"])
+        except Exception:
+            logger.warning("Failed to lock mailbox threads for task %s / student %s", sub["task_id"], sub["student_id"])
 
     updated = await internship_submissions_collection.find_one({"id": submission_id})
     return await _to_submission_out(updated)

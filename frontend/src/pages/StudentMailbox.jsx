@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
 import { Inbox, Send, FileEdit, PenSquare, X, ChevronLeft, Lock, RefreshCw } from "lucide-react";
 import StudentLayout from "../portal/student/StudentLayout";
@@ -22,7 +23,7 @@ function timeAgo(iso) {
     return `${Math.floor(hrs / 24)}d ago`;
 }
 
-function ComposeModal({ open, onClose, contacts, initial, onSent }) {
+function ComposeModal({ open, onClose, contacts, initial, taskId, onSent }) {
     const [to, setTo] = useState("");
     const [subject, setSubject] = useState("");
     const [body, setBody] = useState("");
@@ -44,7 +45,7 @@ function ComposeModal({ open, onClose, contacts, initial, onSent }) {
             const res = await fetch(`${API_BASE}/api/internship/mailbox/compose`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-                body: JSON.stringify({ to_email: to, subject, body, thread_id: threadId, is_draft: isDraft }),
+                body: JSON.stringify({ to_email: to, subject, body, thread_id: threadId, task_id: taskId || null, is_draft: isDraft }),
             });
             const data = await res.json().catch(() => ({}));
             if (!res.ok) throw new Error(data.detail || "Could not send");
@@ -99,6 +100,8 @@ function ComposeModal({ open, onClose, contacts, initial, onSent }) {
 
 export default function StudentMailbox() {
     const { token } = useInternshipAuth();
+    const [searchParams] = useSearchParams();
+    const linkedTaskId = searchParams.get("task_id");
     const [folder, setFolder] = useState("inbox");
     const [messages, setMessages] = useState([]);
     const [contacts, setContacts] = useState([]);
@@ -130,6 +133,11 @@ export default function StudentMailbox() {
 
     useEffect(() => { loadContacts(); }, [loadContacts]);
     useEffect(() => { loadMessages(folder); }, [folder, loadMessages]);
+
+    useEffect(() => {
+        if (linkedTaskId) { setComposeInitial(null); setComposeOpen(true); }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [linkedTaskId]);
 
     const openThread = async (threadId) => {
         setSelectedThread(threadId);
@@ -278,6 +286,7 @@ export default function StudentMailbox() {
                 onClose={() => setComposeOpen(false)}
                 contacts={contacts}
                 initial={composeInitial}
+                taskId={linkedTaskId}
                 onSent={() => loadMessages(folder)}
             />
         </StudentLayout>

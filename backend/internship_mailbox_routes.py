@@ -192,6 +192,26 @@ async def _generate_client_reply(student: dict, contact: dict, outbound: dict, s
     return fallback.get(sentiment, fallback["query"])
 
 
+async def lock_mailbox_threads_for_task(student_id: str, task_id: str) -> None:
+    """Called once a task's submission is graded approved (see
+    internship_routes.py's create_submission and admin_review_submission) —
+    any TFD Mailbox thread the student tied to this task_id (via the
+    Playbook's "Open Mailbox" link) becomes read-only from then on."""
+    await internship_mailbox_collection.update_many(
+        {"student_id": student_id, "task_id": task_id}, {"$set": {"locked": True}}
+    )
+
+
+async def purge_expired_mailbox_data(cutoff_student_ids: list[str]) -> int:
+    """Permanently deletes TFD Mailbox messages for students whose 90-day
+    window has elapsed (see internship_routes.py's PURGE_AFTER_DAYS /
+    run_scheduled_tasks for how cutoff_student_ids is computed)."""
+    if not cutoff_student_ids:
+        return 0
+    result = await internship_mailbox_collection.delete_many({"student_id": {"$in": cutoff_student_ids}})
+    return result.deleted_count
+
+
 async def process_pending_mailbox_responses() -> dict:
     """Cron entrypoint (see internal_routes.py's run_scheduled_tasks) — finds
     sent outbound mails whose simulated response window has elapsed and no

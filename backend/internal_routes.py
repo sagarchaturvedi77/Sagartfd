@@ -119,4 +119,17 @@ async def run_scheduled_tasks(
     except Exception as e:
         ran.append(f"internship_mailbox_responses (failed: {str(e)[:150]})")
 
+    # Simulated TFD Mailbox/Connect data (dummy client emails/chats) is
+    # permanently purged 90 days after enrollment — see internship_routes.py's
+    # purge_expired_simulated_data / PURGE_AFTER_DAYS.
+    try:
+        from internship_routes import purge_expired_simulated_data
+        purge_result = await purge_expired_simulated_data()
+        ran.append(
+            f"internship_simulated_data_purge ({purge_result['students']} students, "
+            f"{purge_result['mailbox_deleted']} mail, {purge_result['connect_deleted']} connect)"
+        )
+    except Exception as e:
+        ran.append(f"internship_simulated_data_purge (failed: {str(e)[:150]})")
+
     return {"status": "ok", "ran": ran, "checked_at": result.get("checked_at")}
