@@ -9,7 +9,6 @@ import { toast } from "sonner";
 import { useSubmitOnce } from "../../lib/useSubmitOnce";
 
 const API_BASE = process.env.REACT_APP_BACKEND_URL || "";
-const MAIN_LOGO_URL = "/assets/logos/TFD-MAIN-LOGO.webp";
 const INTERNSHIP_LOGO_URL = "/assets/logos/TFD-INTERNSHIP-LOGO.webp";
 
 const NAV_ITEMS = [
@@ -314,37 +313,42 @@ export default function StudentLayout({ activeKey = "overview", children }) {
       </aside>
 
       <div className="flex-1 min-w-0 flex flex-col">
-        <header className="flex items-center justify-between px-5 py-3.5 border-b border-white/10 bg-white/[0.02]">
-          <div className="flex items-center gap-2 md:hidden">
-            <img src={INTERNSHIP_LOGO_URL} alt="TFD Internship" width={500} height={246} className="h-6 object-contain" />
-            <div className="leading-tight">
-              <div className="text-xs font-bold text-white">TFD Internship</div>
-              <div className="text-[8px] text-[#14E0A0] font-semibold">Learn. Build. Launch.</div>
+        <header className="flex flex-row items-center justify-between gap-2 px-4 py-3.5 border-b border-white/10 bg-white/[0.02]">
+          <div className="flex items-center gap-2 min-w-0 md:hidden">
+            <img src={INTERNSHIP_LOGO_URL} alt="TFD Internship" width={500} height={246} className="h-6 object-contain shrink-0" />
+            <div className="leading-tight min-w-0">
+              <div className="text-xs font-bold text-white truncate">TFD Internship</div>
+              <div className="text-[8px] text-[#14E0A0] font-semibold truncate">Learn. Build. Launch.</div>
             </div>
           </div>
-          <div className="hidden md:flex items-center gap-2 text-sm text-white/50">
-            Welcome back, <span className="text-white font-semibold">{student?.name || "Intern"}</span>
+          <div className="hidden md:flex items-center gap-2 text-sm text-white/50 min-w-0">
+            <span className="truncate">Welcome back, <span className="text-white font-semibold">{student?.name || "Intern"}</span></span>
             {student?.is_demo && (
-              <span className="text-[10px] font-bold uppercase tracking-wide text-amber-300 bg-amber-400/10 border border-amber-400/30 rounded-full px-2 py-0.5">Demo Mode</span>
+              <span className="shrink-0 text-[10px] font-bold uppercase tracking-wide text-amber-300 bg-amber-400/10 border border-amber-400/30 rounded-full px-2 py-0.5">Demo Mode</span>
             )}
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 sm:gap-3 shrink-0">
             {student?.is_demo && (
               <button
                 onClick={() => setGuideOpen(true)}
-                className="flex items-center gap-1.5 text-xs font-semibold text-amber-300 bg-amber-400/10 border border-amber-400/25 rounded-full px-3 py-1.5 hover:bg-amber-400/15 transition-colors"
+                className="flex items-center gap-1.5 text-xs font-semibold text-amber-300 bg-amber-400/10 border border-amber-400/25 rounded-full px-2.5 sm:px-3 py-1.5 hover:bg-amber-400/15 transition-colors shrink-0"
               >
                 <Sparkles size={13} /> <span className="hidden sm:inline">Demo Guide</span>
               </button>
             )}
             <button
               onClick={() => setSupportOpen(true)}
-              className="flex items-center gap-1.5 text-xs font-semibold text-[#14E0A0] bg-[#14E0A0]/10 border border-[#14E0A0]/25 rounded-full px-3 py-1.5 hover:bg-[#14E0A0]/15 transition-colors"
+              className="flex items-center gap-1.5 text-xs font-semibold text-[#14E0A0] bg-[#14E0A0]/10 border border-[#14E0A0]/25 rounded-full px-2.5 sm:px-3 py-1.5 hover:bg-[#14E0A0]/15 transition-colors shrink-0"
             >
               <LifeBuoy size={13} /> <span className="hidden sm:inline">Support</span>
             </button>
-            <img src={MAIN_LOGO_URL} alt="The Financial Doctor" width={900} height={235} className="h-6 bg-white rounded-md p-0.5 object-contain hidden sm:block" />
-            <button onClick={logout} className="md:hidden text-red-400/80"><LogOut size={18} /></button>
+            {/* Text-only credit, not the old logo-in-a-white-box image — that
+                fixed-size white graphic was what broke the responsive layout
+                (crowded this same row on tablet/mobile widths, forcing
+                overlap/clipping). Plain text scales with the wrapper instead
+                of fighting it. */}
+            <span className="hidden lg:inline text-[10px] text-white/30 whitespace-nowrap shrink-0">Powered by The Financial Doctor</span>
+            <button onClick={logout} className="md:hidden text-red-400/80 shrink-0"><LogOut size={18} /></button>
           </div>
         </header>
         <main className="flex-1 p-4 sm:p-6 pb-24 md:pb-6 overflow-y-auto">{children}</main>
