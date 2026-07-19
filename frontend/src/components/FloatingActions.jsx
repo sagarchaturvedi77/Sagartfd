@@ -9,6 +9,7 @@ import {
     X,
     Users,
     Plus,
+    Navigation,
 } from "lucide-react";
 import { LINKS } from "@/lib/links";
 
@@ -30,6 +31,15 @@ const rightActions = [
         bg: "#FBBC04",
         href: LINKS.googleReviews,
         testid: "fab-google",
+    },
+    {
+        id: "directions",
+        label: "Get Directions",
+        sub: "Visit our Sehore office",
+        icon: Navigation,
+        bg: "#4285F4",
+        href: LINKS.googleMaps,
+        testid: "fab-directions",
     },
     {
         id: "ig",

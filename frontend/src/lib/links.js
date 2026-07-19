@@ -12,6 +12,11 @@ export const LINKS = {
     // Direct Google "Write a Review" deep-link for The Financial Doctor's GBP
     googleReviews: "https://g.page/r/CfuGBYdI9B_BEBE/review",
     googleReviewsFull: "https://g.page/r/CfuGBYdI9B_BEBE/review",
+    // Google Maps listing — office location + turn-by-turn directions
+    googleMaps:
+        "https://www.google.com/maps/place/The+Financial+Doctor/@23.1986103,77.0696476,15z/data=!4m22!1m15!4m14!1m6!1m2!1s0x397cf312d707d7d7:0xc11ff448870586fb!2sThe+Financial+Doctor,+1st+Floor,+New+Bus+Stand,+Sekdakhedi+Road,+above+SK+Finance,+beside+Upadhyay+Honda+Showroom,+Badiyakheri,+Sehore,+Madhya+Pradesh+466001!2m2!1d77.08808!2d23.1985917!1m6!1m2!1s0x397cf312d707d7d7:0xc11ff448870586fb!2sThe+Financial+Doctor,+1st+Floor,+New+Bus+Stand,+Sekdakhedi+Road,+above+SK+Finance,+beside+Upadhyay+Honda+Showroom,+Badiyakheri,+Sehore,+Madhya+Pradesh+466001!2m2!1d77.08808!2d23.1985917!3m5!1s0x397cf312d707d7d7:0xc11ff448870586fb!8m2!3d23.1985917!4d77.08808!16s%2Fg%2F11krbqgqb6?entry=ttu&g_ep=EgoyMDI2MDcxNS4wIKXMDSoASAFQAw%3D%3D",
+    // Google Business Profile — reviews, photos, hours, "Business" panel
+    googleBusiness: "https://share.google/zLB8GGVcqowN9sWKw",
     instagram: "https://www.instagram.com/the_financial.doctor",
     youtube: "https://youtube.com/@the_financial_doctor",
     linkedin: "https://www.linkedin.com/in/sagarchaturvedisehore",

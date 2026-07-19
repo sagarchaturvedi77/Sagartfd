@@ -1,6 +1,7 @@
 import React from "react";
 import { Link } from "react-router-dom";
-import { Instagram, Youtube, Linkedin, MessageCircle, Sparkles, ShieldCheck } from "lucide-react";
+import { Instagram, Youtube, Linkedin, MessageCircle, Sparkles, ShieldCheck, MapPin, Star } from "lucide-react";
+import { LINKS } from "@/lib/links";
 
 const LOGO_URL = "/assets/logos/TFD-MAIN-LOGO.webp";
 const WORKSPACE_LOGO_URL = "/assets/logos/TFD-WORKSPACE-LOGO.webp";
@@ -39,7 +40,21 @@ export default function Footer() {
                         <Social href="https://youtube.com/@the_financial_doctor" icon={Youtube} label="YouTube" />
                         <Social href="https://www.linkedin.com/in/sagarchaturvedisehore" icon={Linkedin} label="LinkedIn" />
                         <Social href="https://chat.whatsapp.com/JEb2Ilngiq45oqyUQDMFSX" icon={MessageCircle} label="WhatsApp Community" />
+                        <Social href={LINKS.googleBusiness} icon={Star} label="Google Business Profile" />
                     </div>
+                    <a
+                        href={LINKS.googleMaps}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-start gap-2 mt-5 text-sm text-[#F6F1E8]/70 hover:text-[#F6F1E8]"
+                        data-testid="footer-map-link"
+                    >
+                        <MapPin size={14} className="mt-0.5 shrink-0" />
+                        <span>
+                            1st Floor, above SK Finance, Sekdakhedi Road, New Bus Stand,
+                            Sehore, MP – 466001
+                        </span>
+                    </a>
                     <a
                         href="#ai-chat"
                         onClick={(e) => {

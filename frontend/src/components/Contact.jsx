@@ -1,8 +1,9 @@
 import React, { useState } from "react";
-import { Phone, Mail, MapPin, Send, MessageCircle } from "lucide-react";
+import { Phone, Mail, MapPin, Send, MessageCircle, Navigation } from "lucide-react";
 import { toast } from "sonner";
 import { api } from "@/lib/api";
 import { IDS } from "@/constants/testIds";
+import { LINKS } from "@/lib/links";
 import { useSubmitOnce } from "../lib/useSubmitOnce";
 
 const SERVICES = [
@@ -86,8 +87,14 @@ export default function Contact() {
                                 </div>
                             </div>
                         </a>
-                        <div className="flex items-start gap-4">
-                            <div className="w-11 h-11 rounded-xl bg-[#0E1B2C] text-[#F6F1E8] grid place-items-center shrink-0">
+                        <a
+                            href={LINKS.googleMaps}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex items-start gap-4 group"
+                            data-testid="contact-map-link"
+                        >
+                            <div className="w-11 h-11 rounded-xl bg-[#0E1B2C] text-[#F6F1E8] grid place-items-center shrink-0 group-hover:bg-[#024396] transition-colors">
                                 <MapPin size={18} />
                             </div>
                             <div>
@@ -103,8 +110,11 @@ export default function Contact() {
                                     <br />
                                     Sehore, Madhya Pradesh – 466001
                                 </div>
+                                <span className="inline-flex items-center gap-1 mt-1.5 text-xs text-[#024396] group-hover:text-[#C7102E] transition-colors">
+                                    <Navigation size={11} /> Get directions on Google Maps
+                                </span>
                             </div>
-                        </div>
+                        </a>
                     </div>
                 </div>
 
