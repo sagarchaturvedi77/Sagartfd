@@ -1557,6 +1557,7 @@ async def _to_task_pool_out(doc: dict) -> TaskPoolOut:
         hints=None if is_blindfold else doc.get("hints"),
         sample_solution=None if is_blindfold else doc.get("sample_solution"),
         interactive_tool=doc.get("interactive_tool"), tool_seed_data=doc.get("tool_seed_data"),
+        playbook=doc.get("playbook"),
     )
 
 
@@ -1615,13 +1616,31 @@ async def _assign_week_tasks(student: dict, week_number: int) -> list[dict]:
     # (harder) work into an earlier week. See plan notes / PRD.
     target_count = min(TASKS_PER_WEEK, len(working_pool))
 
+    # No-repeat guarantee: never hand a student a base task they were already
+    # assigned in an earlier week — sample without replacement across the
+    # whole program. Only once the (phase) pool is exhausted do we allow
+    # reuse, and even then _randomize_task_for_student gives that reused task
+    # a fresh per-week scenario/dataset so it never feels identical. This is
+    # what makes "13 weeks, no repeats" hold as far as the pool allows, and
+    # "no two students the same" hold via the per-(student,task) seeding.
+    already_assigned_ids: set[str] = set()
+    for wk, ids in (assigned or {}).items():
+        if wk != key and ids:
+            already_assigned_ids.update(ids)
+
+    def _prefer_unused(candidates: list[dict]) -> list[dict]:
+        fresh = [t for t in candidates if t["id"] not in already_assigned_ids]
+        used = [t for t in candidates if t["id"] in already_assigned_ids]
+        rng.shuffle(fresh)
+        rng.shuffle(used)
+        return fresh + used  # exhaust never-seen tasks first, reuse only if forced
+
     field_tasks = [t for t in working_pool if t.get("requires_geotag")]
     sample = []
     if field_tasks:
-        sample.append(rng.choice(field_tasks))
+        sample.append(_prefer_unused(field_tasks)[0])
     remaining_pool = [t for t in working_pool if t["id"] not in {s["id"] for s in sample}]
-    rng.shuffle(remaining_pool)
-    sample.extend(remaining_pool[: max(0, target_count - len(sample))])
+    sample.extend(_prefer_unused(remaining_pool)[: max(0, target_count - len(sample))])
 
     task_ids = [t["id"] for t in sample]
     await internship_students_collection.update_one(

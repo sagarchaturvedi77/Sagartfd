@@ -102,6 +102,8 @@ export default function StudentMailbox() {
     const { token } = useInternshipAuth();
     const [searchParams] = useSearchParams();
     const linkedTaskId = searchParams.get("task_id");
+    const prefillTo = searchParams.get("to");
+    const prefillSubject = searchParams.get("subject");
     const [folder, setFolder] = useState("inbox");
     const [messages, setMessages] = useState([]);
     const [contacts, setContacts] = useState([]);
@@ -135,9 +137,12 @@ export default function StudentMailbox() {
     useEffect(() => { loadMessages(folder); }, [folder, loadMessages]);
 
     useEffect(() => {
-        if (linkedTaskId) { setComposeInitial(null); setComposeOpen(true); }
+        if (linkedTaskId || prefillTo || prefillSubject) {
+            setComposeInitial({ to: prefillTo || "", subject: prefillSubject || "" });
+            setComposeOpen(true);
+        }
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [linkedTaskId]);
+    }, [linkedTaskId, prefillTo, prefillSubject]);
 
     const openThread = async (threadId) => {
         setSelectedThread(threadId);

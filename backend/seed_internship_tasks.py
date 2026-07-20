@@ -2520,6 +2520,309 @@ HR_TASKS = [
 ]
 
 
+# ════════════════════════════════════════════════════════════════════
+# PER-TASK GUIDED PLAYBOOKS
+# ════════════════════════════════════════════════════════════════════
+# Each task gets an ordered, concrete workflow so it feels like a real
+# corporate assignment, not a lone worksheet: study → do the work → email
+# the SPECIFIC simulated client (named, real-looking address, pre-filled
+# subject) → handle whatever they send back (on TFD Mailbox or live on TFD
+# Connect) → submit for grading. Steps with an `action` deep-link the
+# student straight into the right tool. Recipients map to MAILBOX_CONTACTS
+# (backend/internship_mailbox_routes.py) so the Compose panel accepts them.
+# Kept in one dict (keyed by track+title) instead of inline on each task so
+# all 34 workflows are reviewable/editable in a single place.
+
+# Simulated client contacts, mirrored from MAILBOX_CONTACTS.
+_C = {
+    "rohan": ("Rohan Verma", "rohan.verma@client-sim.tfd"),
+    "neha": ("Neha Kapoor", "neha.kapoor@client-sim.tfd"),
+    "aditya": ("Aditya Rao", "aditya.rao@client-sim.tfd"),
+    "simran": ("Simran Kaur", "simran.kaur@client-sim.tfd"),
+    "rajesh": ("Rajesh Kumar", "rajesh.kumar@client-sim.tfd"),
+    "priyanka": ("Priyanka Shah", "priyanka.shah@client-sim.tfd"),
+    "manoj": ("Manoj Tiwari", "manoj.tiwari@client-sim.tfd"),
+    "divya": ("Divya Iyer", "divya.iyer@client-sim.tfd"),
+}
+
+
+def _study():
+    return {"title": "Prep — read this week's study sheet",
+            "detail": "Open Study Material for this week first. It has the exact formulas, frameworks and worked mini-examples this task needs — 5 minutes here saves you from getting rejected on a silly miss.",
+            "action": {"type": "study", "label": "Open Study Material"}}
+
+
+def _work(detail):
+    return {"title": "Do the work", "detail": detail}
+
+
+def _mail(who, subject, detail):
+    name, email = _C[who]
+    return {"title": f"Email {name}", "detail": detail,
+            "action": {"type": "mailbox", "label": f"Email {name}", "to_email": email, "to_name": name, "subject": subject}}
+
+
+def _connect(detail, label="Open TFD Connect"):
+    return {"title": "Take it live on Connect", "detail": detail,
+            "action": {"type": "connect", "label": label}}
+
+
+def _reply(detail):
+    return {"title": "Handle their reply", "detail": detail,
+            "action": {"type": "mailbox", "label": "Check Mailbox"}}
+
+
+def _submit(detail="Once the client's questions/corrections are addressed, come back here and submit your final work for instant AI grading. A pass locks the thread read-only — so double-check before you submit."):
+    return {"title": "Submit for grading", "detail": detail,
+            "action": {"type": "submit", "label": "Submit Task"}}
+
+
+TASK_PLAYBOOKS: dict[tuple, list] = {
+    # ── FINANCE — client-facing finance desk (Rohan = reports client, Neha = small-biz owner) ──
+    ("finance", "Trial Balance to Balance Sheet"): [
+        _study(),
+        _work("Build the Balance Sheet in the sheet below from Bright Retail Traders' trial balance. Classify every item as Asset / Liability / Equity and confirm Total Assets = Total Liabilities + Equity before you send anything out."),
+        _mail("rohan", "Balance Sheet — Bright Retail Traders (March)", "Email Rohan a short covering note with the finished Balance Sheet: state Total Assets, Total Liabilities, Closing Capital, and one line confirming the sheet balances. Paste your key figures into the email body (this is your 'attachment')."),
+        _reply("Rohan usually replies within a few hours — he may sign off, or ask why a specific figure moved (e.g. Closing Capital). Answer in plain language, referencing your numbers."),
+        _submit(),
+    ],
+    ("finance", "Monthly P&L Statement"): [
+        _study(),
+        _work("Build the P&L: Total Revenue, Total Expenses, Net Profit and Net Profit Margin %. Write your 150-word view on whether ~15% margin is healthy and what could improve it."),
+        _mail("rohan", "March P&L — Bright Retail Traders", "Email Rohan the P&L summary: Revenue, Expenses, Net Profit, Margin %. Add your one-paragraph read on the margin and a suggestion for next month."),
+        _reply("Rohan may push back — e.g. 'why did expenses jump?' or 'is 15% good for retail?'. Give a specific, numbers-backed answer, not a generic one."),
+        _submit(),
+    ],
+    ("finance", "Invoice & GST Calculation"): [
+        _study(),
+        _work("Work out Base, GST (18%) and Total for all 5 invoices — watch the inclusive vs exclusive flag in column C. Total the GST at the bottom."),
+        _mail("neha", "Your 5 invoices — GST worked out", "Neha runs a small business and isn't sure about inclusive vs exclusive GST. Email her the 5 corrected invoice totals and the total GST, plus 2 lines explaining the inclusive/exclusive difference simply."),
+        _reply("Neha often replies confused about one invoice — re-explain that specific one clearly. This is real client-handholding, do it patiently."),
+        _submit(),
+    ],
+    ("finance", "Bank Reconciliation Statement"): [
+        _study(),
+        _work("Reconcile the cash book to the bank statement using the 4 items — decide add/subtract yourself, land the difference on zero, and explain WHY each item causes a gap."),
+        _mail("rohan", "Bank Reconciliation — March (reconciled to ₹0)", "Email Rohan the reconciled statement: adjusted balance, the difference (should be 0), and a short note on why each of the 4 items caused a mismatch."),
+        _reply("Rohan may ask what to do about an uncleared cheque or a bank charge he didn't expect. Answer concretely."),
+        _submit(),
+    ],
+    ("finance", "Expense Audit"): [
+        _study(),
+        _work("Categorise all 30 expense entries, flag duplicates/suspicious ones (there's more than one), and produce category-wise + grand totals excluding flagged rows."),
+        _mail("neha", "March expense audit — flagged items you should see", "Email Neha your audit: which entries you flagged and why, the corrected category totals, and one recommendation to stop this happening again. This is a sensitive email — be factual, not accusatory."),
+        _reply("Neha may defend a flagged expense or ask how you caught the duplicate. Stand by your reasoning politely, with the specifics."),
+        _submit(),
+    ],
+    ("finance", "Budget Variance Analysis"): [
+        _study(),
+        _work("Compute variance and variance % per department, total everything, and name the top 3 overspends with a reason and a corrective action for each."),
+        _mail("neha", "Q1 budget variance — where we overspent", "Email Neha the variance summary and your top-3 overspend call-outs with a suggested fix for each. Lead with the biggest problem, not the smallest."),
+        _reply("Neha may disagree that a department overspent 'without reason' — back your call with the % and a concrete cause."),
+        _submit(),
+    ],
+    ("finance", "Ratio Analysis Report"): [
+        _study(),
+        _work("Calculate the 4 health-check ratios for Meridian Textiles (Current, Quick, Net Profit Margin %, ROI %) and form a real judgment on whether the company is financially healthy."),
+        _mail("neha", "Meridian Textiles — financial health check", "Neha is considering doing business with Meridian Textiles and wants your read. Email her the 4 ratios, your verdict (healthy / risky), and at least one concern you'd flag before she commits."),
+        _reply("Neha will likely ask a pointed follow-up ('so should I extend them credit or not?'). Give a clear, defensible answer using your ratios."),
+        _submit(),
+    ],
+    ("finance", "Build a Monthly Financial Dashboard"): [
+        _work("Capstone — no hand-holding. From the 110 raw transactions build Total Income, Total Expenses, Net Cash Flow and Average Transaction Size using formulas, plus your 150-word read on the month."),
+        _mail("rohan", "Monthly Financial Dashboard — summary", "Email Rohan the finished dashboard figures and your short summary of what this month's cash flow says about the business, flagging anything worth a closer look."),
+        _reply("Rohan will treat this as your capstone deliverable — expect a sharper question than usual. Answer like an analyst, not a student."),
+        _submit(),
+    ],
+
+    # ── MARKETING — brand clients (Aditya = campaigns/content, Simran = ads/budget) ──
+    ("marketing", "Social Media Caption Writing"): [
+        _study(),
+        _work("Write the caption set exactly as the brief asks — hook, body, CTA and hashtags, matched to the brand's voice."),
+        _mail("aditya", "Caption options for your review", "Email Aditya your caption options with a one-line note on the angle behind each. Clients pick faster when you explain your thinking."),
+        _connect("Aditya likes to react quickly on chat — take it to TFD Connect if he wants edits live ('make #2 punchier', 'drop the emoji')."),
+        _submit(),
+    ],
+    ("marketing", "Competitor Analysis"): [
+        _study(),
+        _work("Complete the competitor analysis — positioning, strengths/gaps, and what the brand can exploit. Make it decision-useful, not a data dump."),
+        _mail("aditya", "Competitor analysis — where we can win", "Email Aditya the summary with your top recommendation up top. He cares about 'so what do we do', not just 'here's what they do'."),
+        _reply("Aditya may challenge a claim ('are you sure they're cheaper?') — back it with the specific you found."),
+        _submit(),
+    ],
+    ("marketing", "Email Campaign Draft"): [
+        _study(),
+        _work("Draft the email campaign — subject line, preview, body and CTA — written to convert, not just to inform."),
+        _mail("simran", "Email campaign draft for approval", "Send Simran the draft with 2 subject-line options and why you'd pick one. She approves campaigns and will judge the hook first."),
+        _reply("Simran often requests a revision ('subject is weak, redo it'). Do the revision and resend on the same thread — don't start a new one."),
+        _submit(),
+    ],
+    ("marketing", "Marketing Budget Allocation"): [
+        _study(),
+        _work("Allocate the ₹2,00,000 across the 6 channels, project leads per channel from the given cost-per-lead, and justify the split."),
+        _mail("simran", "Budget allocation plan — Nimbus Home Decor", "Email Simran your channel split, projected leads, and the reasoning for where the money goes. She'll ask why any channel got the most."),
+        _reply("Simran is numbers-driven — she may say 'cut Channel X, put it in Y'. Respond with the lead-projection impact of doing that."),
+        _submit(),
+    ],
+    ("marketing", "Content Calendar Planning"): [
+        _study(),
+        _work("Build the monthly content calendar — dates, platforms, formats, themes — as a coherent plan, not disconnected posts."),
+        _mail("aditya", "Monthly content calendar — draft", "Email Aditya the calendar with a one-line rationale for the theme flow across the month."),
+        _connect("Aditya may want to shuffle a launch date live — handle it on TFD Connect and confirm the new plan back to him."),
+        _submit(),
+    ],
+    ("marketing", "Ad Performance Analysis"): [
+        _study(),
+        _work("Analyse the ad performance data — CTR, CPC, conversions, ROAS — and recommend what to scale, fix or kill."),
+        _mail("simran", "Ad performance report + recommendations", "Email Simran the report leading with your scale/fix/kill calls and the numbers behind each."),
+        _reply("Simran will push on ROI ('prove this campaign is worth more spend'). Answer with the ROAS/CPC math."),
+        _submit(),
+    ],
+    ("marketing", "Full Campaign Proposal"): [
+        _study(),
+        _work("Build the full campaign proposal — objective, audience, channels, budget, timeline, KPIs — as one pitch-ready document."),
+        _mail("aditya", "Full campaign proposal — for sign-off", "Email Aditya the proposal with a tight executive summary at the top. Decision-makers read the first 5 lines."),
+        _reply("Aditya may negotiate scope or budget before signing off. Respond like you're protecting the campaign's outcomes, not just agreeing."),
+        _submit(),
+    ],
+    ("marketing", "Launch Your First Ad Campaign Brief"): [
+        _study(),
+        _work("Write the launch ad campaign brief — the single-page doc a designer/media buyer would actually execute from."),
+        _mail("aditya", "Launch campaign brief — ready to execute", "Email Aditya the brief and ask him to confirm the objective and audience before you hand it to the team."),
+        _connect("Take last-minute clarifications live on TFD Connect so the launch isn't held up."),
+        _submit(),
+    ],
+
+    # ── SALES — prospects (Rajesh = evaluating pipeline/proposal, Priyanka = price-sensitive) ──
+    ("sales", "Add Leads to CRM"): [
+        _study(),
+        _work("Enter the leads into the CRM tool with clean, complete fields — the way a real pipeline needs so nothing slips."),
+        _connect("Open TFD Connect and send Rajesh a short, professional intro message to open the relationship. First impressions decide whether he replies at all."),
+        _mail("rajesh", "Introduction — following up on your interest", "Email Rajesh a brief intro: who you are, why you're reaching out, and one clear next step. Keep it short."),
+        _submit(),
+    ],
+    ("sales", "Lead Qualification"): [
+        _study(),
+        _work("Qualify the leads using a real framework (budget, authority, need, timeline). Score/rank them and note why each is hot/warm/cold."),
+        _connect("Take one lead live on TFD Connect and ask the qualifying questions naturally — don't interrogate, have a conversation with Rajesh."),
+        _mail("rajesh", "Quick questions before we proceed", "Email Rajesh 2-3 sharp qualifying questions framed around helping him, not around your quota."),
+        _submit(),
+    ],
+    ("sales", "Cold-Call Script Writing"): [
+        _study(),
+        _work("Write the cold-call script — opener, value hook, discovery questions, objection turns and a close. Make it sound human, not read-off-a-page."),
+        _connect("Run your script live on TFD Connect against Priyanka (price-sensitive). See where it stalls and note what you'd change."),
+        _mail("priyanka", "Following up on our conversation", "Email Priyanka a short recap after the call-style chat, reinforcing the value and proposing a next step."),
+        _submit(),
+    ],
+    ("sales", "Objection Handling"): [
+        _study(),
+        _work("Prepare your objection-handling responses for the given objections — acknowledge, reframe, and move forward, without being pushy."),
+        _connect("Priyanka will throw real objections at you on TFD Connect ('too expensive', 'need to think', 'already using someone'). Handle them live — this is the graded skill."),
+        _mail("priyanka", "Addressing your concerns", "Email Priyanka a written follow-up that addresses her main objection with a concrete answer, not a discount reflex."),
+        _submit(),
+    ],
+    ("sales", "Prioritize Lead List"): [
+        _study(),
+        _work("Prioritise the lead list — rank by conversion likelihood and value, and justify your top picks."),
+        _mail("rajesh", "Your prioritised lead list + reasoning", "Email Rajesh your ranked list and why the top 3 are worth chasing first. Sales time is finite — show you're spending it well."),
+        _reply("Rajesh may ask why a lead he likes is ranked low. Defend your ranking with the criteria you used."),
+        _submit(),
+    ],
+    ("sales", "Pipeline Analysis"): [
+        _study(),
+        _work("Analyse the pipeline — stage-wise value, conversion rates, bottlenecks — and recommend where to focus."),
+        _mail("rajesh", "Pipeline analysis — where deals are stuck", "Email Rajesh the analysis leading with the biggest bottleneck and your fix for it."),
+        _reply("Rajesh will want a forecast ('so what closes this month?'). Give a number and the assumption behind it."),
+        _submit(),
+    ],
+    ("sales", "Sales Proposal Writing"): [
+        _study(),
+        _work("Write the sales proposal — problem, solution, pricing, terms — tuned to the prospect's stated budget and need."),
+        _mail("rajesh", "Proposal — [your solution] for your review", "Email Rajesh the proposal with a one-paragraph summary of the value up top and a clear next step at the bottom."),
+        _reply("Rajesh usually negotiates ('can you do better on price?'). Respond protecting your value — trade, don't just cave."),
+        _submit(),
+    ],
+    ("sales", "Go-to-Market Strategy"): [
+        _work("Capstone — no hand-holding. Build the go-to-market strategy: target segment, positioning, pricing, channels and a 90-day rollout. Pick the RIGHT first segment and connect price to their budget."),
+        _mail("rajesh", "Go-to-market strategy — recommendation", "Email Rajesh your GTM recommendation with the single most important decision (the initial segment) argued clearly."),
+        _reply("Expect a capstone-level challenge to your segment choice. Defend it like a strategist."),
+        _submit(),
+    ],
+    ("sales", "Run Your First Sales Pipeline"): [
+        _study(),
+        _work("Run the full pipeline end-to-end in the CRM tool — from lead entry through stages to a forecast — as one connected motion."),
+        _connect("Move a live deal forward on TFD Connect with Rajesh — advance it a stage by handling what he raises."),
+        _mail("rajesh", "Where your deal stands — next steps", "Email Rajesh a clear status: current stage, what's next, and when. Prospects go cold when they don't know what happens next."),
+        _submit(),
+    ],
+
+    # ── HR — Manoj (hiring manager), Divya (employee: onboarding/leave/complaints) ──
+    ("hr", "Resume Shortlisting"): [
+        _study(),
+        _work("Shortlist against the role's real criteria — screen in/out with a reason per candidate, not a gut call."),
+        _mail("manoj", "Shortlist for the [role] — with reasoning", "Email Manoj (hiring manager) your shortlist: who's in, who's out, and why, tied to the job criteria."),
+        _reply("Manoj may push back on a rejection ('why did you drop this one?'). Justify it against the criteria, not opinion."),
+        _submit(),
+    ],
+    ("hr", "Job Description Writing"): [
+        _study(),
+        _work("Write the JD — role summary, responsibilities, must-haves vs nice-to-haves, and what makes it attractive to apply."),
+        _mail("manoj", "Draft JD for the [role] — for approval", "Email Manoj the JD and ask him to confirm the must-haves before it goes live. Wrong must-haves = wrong applicants."),
+        _reply("Manoj often adds/removes a requirement. Update the JD and resend on the same thread."),
+        _submit(),
+    ],
+    ("hr", "Interview Questions Design"): [
+        _study(),
+        _work("Design the interview question set — behavioural + role-specific — each tied to a competency you're actually testing."),
+        _mail("manoj", "Interview question set for the [role]", "Email Manoj the questions grouped by competency, so he can see what each one is meant to reveal."),
+        _connect("Manoj may want to tweak the panel plan live — sort it on TFD Connect."),
+        _submit(),
+    ],
+    ("hr", "Onboarding Checklist Design"): [
+        _study(),
+        _work("Build the onboarding checklist — pre-joining, day 1, week 1, month 1 — so a new hire never feels lost."),
+        _mail("divya", "Your onboarding plan — what to expect", "Divya is a new joiner. Email her a warm, clear onboarding checklist so she knows exactly what happens and when."),
+        _reply("Divya will likely ask a nervous new-joiner question ('what do I need on day 1?'). Reassure her specifically."),
+        _submit(),
+    ],
+    ("hr", "Employee Complaint Handling"): [
+        _study(),
+        _work("Prepare your handling approach for the complaint — acknowledge, investigate fairly, and outline next steps within policy."),
+        _connect("Divya will raise a real workplace complaint on TFD Connect. Handle it live — listen, stay neutral, and commit to concrete next steps. This is the graded skill."),
+        _mail("divya", "Following up on your concern", "Email Divya a written follow-up confirming what you heard, what you'll do, and by when — so she has it in writing."),
+        _submit(),
+    ],
+    ("hr", "Attendance Analysis"): [
+        _study(),
+        _work("Analyse the attendance data — patterns, outliers, policy breaches — and recommend action, fairly and by policy."),
+        _mail("manoj", "Attendance analysis — patterns & flags", "Email Manoj the analysis with the issues that need his attention up top and a suggested action for each."),
+        _reply("Manoj may ask how to handle a specific employee's pattern. Answer within policy, not emotionally."),
+        _submit(),
+    ],
+    ("hr", "Exit Interview Analysis"): [
+        _study(),
+        _work("Analyse the exit interviews across the quarter — connect the dots, find the real themes, and recommend retention fixes."),
+        _mail("manoj", "Exit interview themes — why people are leaving", "Email Manoj the top themes (not one-off gripes) and your retention recommendations, ranked by impact."),
+        _reply("Manoj may resist an uncomfortable finding ('is it really the manager?'). Present the pattern, not the blame."),
+        _submit(),
+    ],
+    ("hr", "Leave Policy Design"): [
+        _work("Capstone — no hand-holding. Design the leave policy: leave types, accrual, approval flow, and how it stays fair and legally sane. Balance employee goodwill with business needs."),
+        _mail("manoj", "Proposed leave policy — for review", "Email Manoj the policy with the 2-3 decisions you expect debate on flagged up front."),
+        _reply("Expect a capstone-level challenge on cost or fairness. Defend your design with reasoning."),
+        _submit(),
+    ],
+    ("hr", "Screen & Structure Your First Hiring Roster"): [
+        _study(),
+        _work("Screen the candidates and structure the hiring roster in the tool — decisions with reasons, and a clean salary structure for the pick."),
+        _mail("manoj", "Hiring roster — screened & structured", "Email Manoj the roster: who's shortlisted, the trade-off behind your top pick, and the proposed salary structure."),
+        _reply("Manoj will probe your top pick's trade-off ('why them over the cheaper option?'). Name the trade-off honestly."),
+        _submit(),
+    ],
+}
+
+
 TASKS = FINANCE_TASKS + MARKETING_TASKS + SALES_TASKS + HR_TASKS
 
 
@@ -2548,6 +2851,7 @@ async def seed():
             "sample_solution": t.get("sample_solution"),
             "interactive_tool": t.get("interactive_tool"),
             "tool_seed_data": t.get("tool_seed_data"),
+            "playbook": TASK_PLAYBOOKS.get((t["track"], t["title"])),
             "created_by": "seed_script",
             "created_at": datetime.now(timezone.utc),
         }

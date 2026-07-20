@@ -243,6 +243,34 @@ VerifiedBy = Literal["ai", "admin"]
 TaskPhase = Literal[1, 2, 3]
 
 
+# ── Guided per-task Playbook ─────────────────────────────────────────────
+# Every task carries an ordered list of concrete steps that turn an
+# otherwise-isolated deliverable into a realistic corporate workflow: do
+# the work, email the SPECIFIC simulated client (by name + address), handle
+# whatever they come back with on Mailbox/Connect, then submit. An action,
+# when present, deep-links the student straight into the right tool with the
+# recipient/subject pre-filled — this replaces the old generic 4-line guide
+# (see frontend TaskPlaybook.jsx) that never said who to email or what to
+# attach. Authored per task in seed_internship_tasks.py's TASK_PLAYBOOKS.
+PlaybookActionType = Literal["study", "mailbox", "connect", "tool", "submit"]
+
+
+class PlaybookAction(BaseModel):
+    type: PlaybookActionType
+    label: str
+    # mailbox only: which simulated client this step emails, pre-filled into
+    # the Compose panel. Must match a MAILBOX_CONTACTS entry for the track.
+    to_email: Optional[str] = None
+    to_name: Optional[str] = None
+    subject: Optional[str] = None
+
+
+class PlaybookStep(BaseModel):
+    title: str
+    detail: str
+    action: Optional[PlaybookAction] = None
+
+
 class TaskPoolIn(BaseModel):
     track: Track
     title: str = Field(min_length=3, max_length=150)
@@ -295,6 +323,9 @@ class TaskPoolIn(BaseModel):
     # AdCopyWorkspace.jsx.
     interactive_tool: Optional[Literal["kanban_crm", "roster_processor", "ad_copy_workspace"]] = None
     tool_seed_data: Optional[dict] = None
+    # Ordered, per-task guided workflow (do work → email named client →
+    # handle reply → submit). See PlaybookStep above.
+    playbook: Optional[list[PlaybookStep]] = None
 
 
 class TaskPoolOut(BaseModel):
@@ -322,6 +353,7 @@ class TaskPoolOut(BaseModel):
     sample_solution: Optional[str] = None
     interactive_tool: Optional[Literal["kanban_crm", "roster_processor", "ad_copy_workspace"]] = None
     tool_seed_data: Optional[dict] = None
+    playbook: Optional[list[PlaybookStep]] = None
 
 
 class TaskPoolAdminOut(TaskPoolOut):

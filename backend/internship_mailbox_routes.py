@@ -51,7 +51,17 @@ businesslike, in the tone of a real {track_label} client/contact. Your reply's s
 — positive means genuinely satisfied and appreciative; query means you have a real specific follow-up
 question about what they sent; revision_request means you want a specific, named change made before you'll
 accept it; negative means you're unhappy about something concrete in what they sent (not just generic
-rudeness). React to the actual content of their email below — don't write a generic reply.
+rudeness). React to the actual content of their LATEST email.
+
+CRITICAL — this is an ongoing conversation. The full thread so far is given below. You MUST:
+- Read what was already said and move the conversation FORWARD — never repeat a point, question or phrase
+  you (or they) already used earlier in the thread.
+- If they answered your earlier question, acknowledge it and either go deeper or move to a new concrete
+  point — do not ask the same thing again.
+- Reference specific numbers/details they actually wrote, and stay in character as {contact_name} with your
+  own consistent personality and stakes across the whole thread.
+- Vary your openings and sentence structure — sound like a real, slightly-different-each-time human, not a
+  template.
 Output ONLY the reply text."""
 
 
@@ -175,12 +185,30 @@ async def send_draft(message_id: str, payload: dict = Depends(get_current_studen
 
 
 async def _generate_client_reply(student: dict, contact: dict, outbound: dict, sentiment: str) -> str:
-    prompt_input = f"Their email —\nSubject: {outbound['subject']}\n\n{outbound['body']}"
+    # Feed the WHOLE thread so the client's reply builds on the conversation
+    # instead of reacting to the last email in isolation (which is what made
+    # long threads repeat the same reply). Ordered oldest→newest.
+    thread_docs = [
+        m async for m in internship_mailbox_collection.find(
+            {"student_id": student["id"], "thread_id": outbound["thread_id"]}
+        ).sort("created_at", 1)
+    ]
+    intern_name = student.get("name") or "The intern"
+    lines = []
+    for m in thread_docs:
+        who = intern_name if m.get("direction") == "outbound" else contact["name"]
+        lines.append(f"{who}: {m.get('body', '').strip()}")
+    history = "\n\n".join(lines) if lines else f"{intern_name}: {outbound['body']}"
+    prompt_input = (
+        f"Conversation so far (oldest first) —\n\n{history}\n\n"
+        f"---\nNow write YOUR next reply as {contact['name']} to {intern_name}'s latest message above. "
+        f"Subject of the thread: {outbound['subject']}."
+    )
     system = _MAIL_REPLY_SYSTEM_PROMPT.format(
         contact_name=contact["name"], contact_role=contact["role"],
         track_label=TRACK_LABELS.get(student.get("track"), student.get("track")), sentiment=sentiment,
     )
-    text_out = await _call_gemini(system, prompt_input, temperature=0.6)
+    text_out = await _call_gemini(system, prompt_input, temperature=0.85)
     if text_out:
         return text_out.strip()
     fallback = {

@@ -51,6 +51,11 @@ Raise realistic objections/questions matching your personality; don't fold insta
 generic question) — you can string them along, ask follow-ups, push back on price, ask for proof, etc.
 Mark "lost" only if they've been dismissive, rude, or ignored your actual concern repeatedly.
 
+CRITICAL — you are mid-conversation. NEVER repeat a message, question, or objection you already sent
+earlier in the thread above. If the intern answered your point, acknowledge it and move to a NEW angle
+(a different objection, a deeper question, a next step) — the conversation must always progress, never
+loop. Vary your wording each time so you sound like a real person, not a bot repeating itself.
+
 Respond with ONLY a JSON object, no markdown fences: {{"reply": "...", "sentiment": "positive|neutral|negative", "status": "in_progress|converted|lost"}}"""
 
 
@@ -123,13 +128,13 @@ async def send_connect_message(contact_id: str, data: ConnectSendIn, payload: di
     student_msg = ConnectMessage(sender="student", text=data.text, created_at=now).dict()
     messages = doc.get("messages", []) + [student_msg]
 
-    history = "\n".join(f"{'Intern' if m['sender'] == 'student' else contact['name']}: {m['text']}" for m in messages[-12:])
+    history = "\n".join(f"{'Intern' if m['sender'] == 'student' else contact['name']}: {m['text']}" for m in messages[-24:])
     system = _CONNECT_SYSTEM_PROMPT.format(
         contact_name=contact["name"], contact_role=contact["role"], temperament=contact["temperament"],
         track_label=TRACK_LABELS.get(student.get("track"), student.get("track")),
         history=history, last_message=data.text,
     )
-    text_out = await _call_gemini(system, "Reply now as the contact, per the instructions above.", temperature=0.7)
+    text_out = await _call_gemini(system, "Reply now as the contact, per the instructions above.", temperature=0.9)
 
     reply_text, sentiment, new_status = None, "neutral", doc.get("status", "new")
     if text_out:
