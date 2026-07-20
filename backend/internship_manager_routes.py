@@ -183,12 +183,17 @@ async def send_manager_chat(data: ManagerChatIn, payload: dict = Depends(get_cur
 
     history_cursor = internship_manager_chat_collection.find(
         {"student_id": student["id"]}
-    ).sort("created_at", -1).limit(12)
+    ).sort("created_at", -1).limit(24)
     history = [doc async for doc in history_cursor]
     history.reverse()
     convo = "\n".join(f"{'Student' if h['role'] == 'student' else persona['name']}: {h['text']}" for h in history)
+    convo += (
+        "\n\n[Reply as the manager to the student's latest message. This is an ongoing chat — do NOT repeat "
+        "anything you already said above; acknowledge what they just wrote and move the conversation forward "
+        "with a new, specific point. Vary your wording so you sound like a real person, not a loop.]"
+    )
 
-    reply_text = await _call_gemini(system_prompt, convo, temperature=0.7)
+    reply_text = await _call_gemini(system_prompt, convo, temperature=0.85)
     if not reply_text:
         reply_text = (
             f"Abhi thoda busy hoon, but I saw your message — {message[:80]}... Thodi der mein "

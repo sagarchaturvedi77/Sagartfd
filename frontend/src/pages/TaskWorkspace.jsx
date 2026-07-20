@@ -324,6 +324,8 @@ export default function TaskWorkspace() {
             </div>
           )}
 
+          <TaskPlaybook task={task} />
+
           <Section icon={ClipboardList} title="What You Need To Do">
             <p className="text-white/75 text-sm leading-relaxed">{task.brief}</p>
           </Section>
@@ -348,7 +350,6 @@ export default function TaskWorkspace() {
             </Section>
           )}
 
-          {!task.interactive_tool && <TaskPlaybook taskId={task.id} />}
 
           {task.hints?.length > 0 && (
             <Section icon={Lightbulb} title="Stuck? Hints">

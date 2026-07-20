@@ -4,6 +4,7 @@ import { useInternshipAuth } from "./InternshipAuthContext";
 import {
   LayoutDashboard, Rocket, PlayCircle, Trophy, Award, UserCircle, LogOut, Lock, LifeBuoy, X, Send,
   Sparkles, Landmark, Megaphone, TrendingUp, Heart, RefreshCw, PenSquare, Mail, MessageCircle,
+  BookOpen, GraduationCap,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useSubmitOnce } from "../../lib/useSubmitOnce";
@@ -17,6 +18,8 @@ const INTERNSHIP_LOGO_URL = "/assets/logos/TFD-INTERNSHIP-LOGO.webp";
 const NAV_ITEMS = [
   { key: "overview", label: "Dashboard Overview", icon: LayoutDashboard, live: true, path: "/portal/student" },
   { key: "missions", label: "Active Missions", icon: Rocket, live: true, path: "/portal/student/missions" },
+  { key: "study", label: "Study Material", icon: BookOpen, live: true, path: "/portal/student/study-material" },
+  { key: "quiz", label: "Weekly Quiz", icon: GraduationCap, live: true, path: "/portal/student/quiz" },
   { key: "mailbox", label: "TFD Mailbox", icon: Mail, live: true, path: "/portal/student/mailbox" },
   { key: "connect", label: "TFD Connect", icon: MessageCircle, live: true, path: "/portal/student/connect" },
   { key: "content", label: "Content Studio", icon: PenSquare, live: true, path: "/portal/student/content-studio" },
@@ -414,7 +417,7 @@ export default function StudentLayout({ activeKey = "overview", children }) {
       {/* Mobile bottom nav — the desktop sidebar (above) is hidden below
           the md breakpoint, so every nav item needs an equivalent here or
           mobile users have no way to move between sections at all. */}
-      <nav className="md:hidden fixed bottom-0 inset-x-0 z-40 bg-[#0A0F1A] border-t border-white/10 flex items-stretch shadow-[0_-4px_16px_rgba(0,0,0,0.35)]">
+      <nav className="md:hidden fixed bottom-0 inset-x-0 z-40 bg-[#0A0F1A] border-t border-white/10 flex items-stretch overflow-x-auto no-scrollbar shadow-[0_-4px_16px_rgba(0,0,0,0.35)]">
         {MOBILE_NAV_ITEMS.map((item) => {
           const Icon = item.icon;
           const active = item.key === activeKey;
@@ -423,7 +426,7 @@ export default function StudentLayout({ activeKey = "overview", children }) {
               key={item.key}
               onClick={() => item.live && navigate(item.path)}
               disabled={!item.live}
-              className={`flex-1 flex flex-col items-center justify-center gap-0.5 py-2.5 text-[9px] font-medium relative ${
+              className={`flex-1 min-w-[62px] flex flex-col items-center justify-center gap-0.5 py-2.5 text-[9px] font-medium relative ${
                 active ? "text-[#14E0A0]" : item.live ? "text-white/50" : "text-white/20"
               }`}
             >
