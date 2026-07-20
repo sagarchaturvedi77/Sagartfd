@@ -154,7 +154,16 @@ async def send_connect_message(contact_id: str, data: ConnectSendIn, payload: di
             new_status = "in_progress" if new_status == "new" else new_status
 
     if not reply_text:
-        reply_text = "Hmm, can you tell me a bit more about that?"
+        # Gemini unavailable — rotate a few prompts by message count so the
+        # chat doesn't get stuck repeating one line.
+        variants = [
+            "Hmm, can you tell me a bit more about that?",
+            "Okay, and why should I go with you over what I'm doing right now?",
+            "I hear you — but what's actually in it for me here?",
+            "Alright. Give me one concrete reason to say yes.",
+            "Not fully convinced yet. What happens if it doesn't work out?",
+        ]
+        reply_text = variants[len(messages) % len(variants)]
         new_status = "in_progress" if new_status == "new" else new_status
     if new_status not in ("in_progress", "converted", "lost"):
         new_status = "in_progress"

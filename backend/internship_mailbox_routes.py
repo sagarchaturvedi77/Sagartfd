@@ -211,13 +211,34 @@ async def _generate_client_reply(student: dict, contact: dict, outbound: dict, s
     text_out = await _call_gemini(system, prompt_input, temperature=0.85)
     if text_out:
         return text_out.strip()
-    fallback = {
-        "positive": "Thanks for sending this over — looks good on my end, appreciate the quick turnaround!",
-        "query": "Thanks for this — quick question though, can you clarify one of the numbers/points before I sign off?",
-        "revision_request": "Thanks for sending this, but I need one change made before I can accept it — can you revise and resend?",
-        "negative": "I went through this and I'm not happy with a couple of things here — can we get on this again properly?",
+    # Gemini unavailable — rotate through several variants per sentiment so
+    # a long thread doesn't keep getting the exact same canned line. Seeded
+    # by how many replies already exist in the thread.
+    reply_index = sum(1 for m in thread_docs if m.get("direction") == "inbound")
+    fallbacks = {
+        "positive": [
+            "Thanks for sending this over — looks good on my end, appreciate the quick turnaround!",
+            "Got it, this works well. Nicely done, exactly what I needed.",
+            "Perfect, thanks. I'll take it from here — good job on this one.",
+        ],
+        "query": [
+            "Thanks for this — quick question though, can you clarify one of the numbers before I sign off?",
+            "Appreciate it. One thing I'm not clear on — can you walk me through how you got that figure?",
+            "Good work. Before I close this, help me understand one line item you've listed here?",
+        ],
+        "revision_request": [
+            "Thanks, but I need one change before I can accept it — can you revise and resend?",
+            "Almost there. Please fix the one point I flagged and send it back on this thread.",
+            "Close, but not quite — tweak that section and resend, then I'll approve.",
+        ],
+        "negative": [
+            "I went through this and I'm not happy with a couple of things — can we go over it again properly?",
+            "This isn't what I expected, honestly. Let's redo the weak parts before we move on.",
+            "I've got concerns here — a few things don't add up. Please rework it.",
+        ],
     }
-    return fallback.get(sentiment, fallback["query"])
+    options = fallbacks.get(sentiment, fallbacks["query"])
+    return options[reply_index % len(options)]
 
 
 async def lock_mailbox_threads_for_task(student_id: str, task_id: str) -> None:

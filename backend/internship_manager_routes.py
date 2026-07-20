@@ -195,10 +195,14 @@ async def send_manager_chat(data: ManagerChatIn, payload: dict = Depends(get_cur
 
     reply_text = await _call_gemini(system_prompt, convo, temperature=0.85)
     if not reply_text:
-        reply_text = (
-            f"Abhi thoda busy hoon, but I saw your message — {message[:80]}... Thodi der mein "
-            f"properly reply karta hoon. Meanwhile apna current task check kar lo."
-        )
+        msg_count = await internship_manager_chat_collection.count_documents({"student_id": student["id"]})
+        variants = [
+            "Abhi thoda busy hoon, but I saw your message. Thodi der mein properly reply karta hoon — meanwhile apna current task check kar lo.",
+            "Noted. Ek meeting mein hoon — but jo tumne likha wo genuine point hai. Aage badho task pe, main baad mein detail dunga.",
+            "Samajh gaya. Tum apni progress dikhao pehle, phir ispe baat karte hain — abhi ek call pe hoon.",
+            "Theek hai, main dekh raha hoon. Tab tak jo pending hai wo clear kar lo — I'll circle back shortly.",
+        ]
+        reply_text = variants[msg_count % len(variants)]
 
     manager_msg = {
         "id": f"{now.timestamp()}-m", "student_id": student["id"], "role": "manager",
