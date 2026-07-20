@@ -63,6 +63,9 @@ from database import (
     password_resets_collection,
     payment_orders_collection,
     push_subscriptions_collection,
+    internship_manager_chat_collection,
+    internship_mailbox_collection,
+    internship_connect_threads_collection,
 )
 from notification_models import PushSubscriptionIn
 from notification_service import create_notification, push_enabled, VAPID_PUBLIC_KEY
@@ -323,6 +326,14 @@ async def _reset_demo_student(student_id: str) -> dict:
     await internship_submissions_collection.delete_many({"student_id": student_id})
     await internship_quiz_attempts_collection.delete_many({"student_id": student_id})
     await internship_reports_collection.delete_many({"student_id": student_id})
+    # Demo is a throwaway walkthrough — wipe every trace of the previous
+    # session's simulated conversations/notifications too, so nothing the
+    # demo user typed (emails, chats, manager DMs) is ever left behind or
+    # carried into the next person's demo.
+    await internship_mailbox_collection.delete_many({"student_id": student_id})
+    await internship_connect_threads_collection.delete_many({"student_id": student_id})
+    await internship_manager_chat_collection.delete_many({"student_id": student_id})
+    await notifications_collection.delete_many({"user_id": student_id})
     now = datetime.now(timezone.utc)
     await internship_students_collection.update_one(
         {"id": student_id},

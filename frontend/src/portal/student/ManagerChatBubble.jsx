@@ -25,6 +25,11 @@ const MANAGER_PERSONAS = {
 // internship_manager_routes.py). Honestly labeled "AI Manager" throughout.
 export default function ManagerChatBubble() {
     const { token, student } = useInternshipAuth();
+    // Mailbox & Connect are full-height chat/compose screens with their own
+    // send button in the bottom-right — the floating launcher would sit on
+    // top of it and block sending. Hide it on those routes.
+    const path = typeof window !== "undefined" ? window.location.pathname : "";
+    const hideLauncher = path.includes("/mailbox") || path.includes("/connect");
     const trackPersona = MANAGER_PERSONAS[student?.track] || MANAGER_PERSONAS.finance;
     const [persona, setPersona] = useState(null);
     const [messages, setMessages] = useState([]);
@@ -95,12 +100,12 @@ export default function ManagerChatBubble() {
         <>
             {/* Floating launcher — bottom-right, cleared above the mobile
                 bottom nav (which is ~64px tall) so it never overlaps it. */}
-            {!open && (
+            {!open && !hideLauncher && (
                 <button
                     onClick={openChat}
                     aria-label="Chat with your AI Manager"
                     data-testid="manager-chat-bubble"
-                    className="fixed bottom-20 right-4 md:bottom-6 md:right-6 z-40 w-14 h-14 rounded-full bg-[#14E0A0] hover:bg-[#0FCB8F] text-[#050B16] shadow-[0_8px_24px_rgba(20,224,160,0.4)] flex items-center justify-center transition-transform hover:scale-105"
+                    className="fixed bottom-24 right-4 md:bottom-6 md:right-6 z-30 w-14 h-14 rounded-full bg-[#14E0A0] hover:bg-[#0FCB8F] text-[#050B16] shadow-[0_8px_24px_rgba(20,224,160,0.4)] flex items-center justify-center transition-transform hover:scale-105"
                 >
                     <MessageSquare size={22} />
                     {unread > 0 && (
