@@ -329,9 +329,9 @@ export default function TopFunds() {
                         <div className="eyebrow">
                             <TrendingUp size={14} /> Live market data
                         </div>
-                        <h2 className="h2 mt-3 text-[#0E1B2C]">
+                        <h1 className="h2 mt-3 text-[#0E1B2C]">
                             Search Any Fund or View <span className="font-italic-serif text-[#024396]">Top Picks</span>
-                        </h2>
+                        </h1>
                         <p className="mt-3 text-[#2A364B] max-w-2xl">
                             Live NAV & performance details powered by AMFI via{" "}
                             <a className="underline" href="https://www.mfapi.in" target="_blank" rel="noopener noreferrer">

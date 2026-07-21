@@ -1,14 +1,9 @@
-import React, { useMemo, useRef, useState, useEffect, useContext, createContext } from "react";
+import React, { useMemo, useRef, useState, useEffect, useContext, createContext, Suspense } from "react";
 import { useNavigate } from "react-router-dom";
-import {
-    AreaChart,
-    Area,
-    XAxis,
-    YAxis,
-    Tooltip,
-    ResponsiveContainer,
-    CartesianGrid,
-} from "recharts";
+// recharts (and the growth-series chart JSX that uses it) is only needed
+// once a visitor is actually looking at a chart-bearing calculator tab —
+// lazy-load it instead of shipping it on every homepage visit.
+const CalculatorChart = React.lazy(() => import("./CalculatorChart"));
 import { Download, ArrowUpRight, Calculator as CalcIcon, Sparkles, Lightbulb } from "lucide-react";
 // html2canvas/jsPDF are dynamically imported at their call sites below (only
 // needed when a user actually clicks Download/Generate Proposal) — keeping
@@ -936,26 +931,9 @@ const qrDataUrlRef = useRef(null);
                                     </div>
                                 </div>
                                 <div className="h-[220px] sm:h-[260px] md:h-[280px]">
-                                    <ResponsiveContainer width="100%" height="100%">
-                                        <AreaChart data={result?.series || []}>
-                                            <defs>
-                                                <linearGradient id="gv" x1="0" y1="0" x2="0" y2="1">
-                                                    <stop offset="0%" stopColor="#024396" stopOpacity={0.45} />
-                                                    <stop offset="100%" stopColor="#024396" stopOpacity={0} />
-                                                </linearGradient>
-                                                <linearGradient id="gi" x1="0" y1="0" x2="0" y2="1">
-                                                    <stop offset="0%" stopColor="#C7102E" stopOpacity={0.4} />
-                                                    <stop offset="100%" stopColor="#C7102E" stopOpacity={0} />
-                                                </linearGradient>
-                                            </defs>
-                                            <CartesianGrid strokeDasharray="3 3" stroke="#E2D8C2" />
-                                            <XAxis dataKey="label" stroke="#5C677D" tick={{ fontSize: 11 }} />
-                                            <YAxis stroke="#5C677D" tick={{ fontSize: 10 }} tickFormatter={fmtINR} width={56} />
-                                            <Tooltip contentStyle={{background: "#0E1B2C", border: "none", borderRadius: 12, color: "#F6F1E8", fontSize: 12}} formatter={(v) => fmtINR(v)} />
-                                            <Area type="monotone" dataKey="invested" stroke="#C7102E" strokeWidth={2} fill="url(#gi)" />
-                                            <Area type="monotone" dataKey="value" stroke="#024396" strokeWidth={2.4} fill="url(#gv)" />
-                                        </AreaChart>
-                                    </ResponsiveContainer>
+                                    <Suspense fallback={<div className="w-full h-full rounded-xl bg-[#F6F1E8] animate-pulse" />}>
+                                        <CalculatorChart series={result?.series} fmtINR={fmtINR} />
+                                    </Suspense>
                                 </div>
                             </div>
                         )}

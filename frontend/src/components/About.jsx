@@ -41,9 +41,9 @@ export default function About() {
 
                 <Reveal className="md:col-span-7" delay={150} y={28}>
                     <div className="eyebrow">Meet the Doctor</div>
-                    <h2 className="h2 mt-3 text-[#0E1B2C]">
+                    <h1 className="h2 mt-3 text-[#0E1B2C]">
                         Sagar Chaturvedi <span className="font-italic-serif text-[#024396]">— Founder &amp; CEO</span>
-                    </h2>
+                    </h1>
                     <p className="mt-6 text-[#2A364B] leading-relaxed">
                         Sagar is the founder of <strong>The Financial Doctor</strong> — a platform
                         dedicated to simplifying finance and empowering individuals to take control of

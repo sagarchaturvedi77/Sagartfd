@@ -73,12 +73,12 @@ export default function Footer() {
                         Quick links
                     </div>
                     <ul className="mt-4 space-y-2.5 text-sm">
-                        <li><a href="#about" className="hover:text-[#F6F1E8]">About Sagar</a></li>
-                        <li><a href="#calc" className="hover:text-[#F6F1E8]">Calculators</a></li>
-                        <li><a href="#funds" className="hover:text-[#F6F1E8]">Top Funds</a></li>
-                        <li><a href="#services" className="hover:text-[#F6F1E8]">Services</a></li>
-                        <li><a href="#reviews" className="hover:text-[#F6F1E8]">Reviews</a></li>
-                        <li><a href="#contact" className="hover:text-[#F6F1E8]">Contact</a></li>
+                        <li><Link to="/about" className="hover:text-[#F6F1E8]">About Sagar</Link></li>
+                        <li><Link to="/calculators" className="hover:text-[#F6F1E8]">Calculators</Link></li>
+                        <li><Link to="/top-funds" className="hover:text-[#F6F1E8]">Top Funds</Link></li>
+                        <li><Link to="/services" className="hover:text-[#F6F1E8]">Services</Link></li>
+                        <li><Link to="/reviews" className="hover:text-[#F6F1E8]">Reviews</Link></li>
+                        <li><Link to="/contact" className="hover:text-[#F6F1E8]">Contact</Link></li>
                         <li><a href="/portal/login" className="hover:text-[#F6F1E8]">Employee Login</a></li>
                     </ul>
 

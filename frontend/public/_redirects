@@ -36,14 +36,14 @@
 /partner-with-us/        /partner-with-us   301
 /partnership             /partner-with-us   301
 /partnership/            /partner-with-us   301
-/our-team                /#about            301
-/our-team/               /#about            301
-/about-us                /#about            301
-/about-us/               /#about            301
+/our-team                /about             301
+/our-team/               /about             301
+/about-us                /about             301
+/about-us/               /about             301
 
 # 💼 INDIVIDUAL INSURANCE & SERVICES SEO PAGES
-/mutual-funds            /#services         301
-/mutual-funds/           /#services         301
+/mutual-funds            /services          301
+/mutual-funds/           /services          301
 /term-insurance          /term-insurance    301
 /term-insurance/         /term-insurance    301
 /life-insurance          /term-insurance    301
@@ -82,8 +82,8 @@
 /mutual-fund-calculator/ /calculators/sip   301
 
 # 📞 CONTACT WP URLS
-/contact-us              /#contact   301
-/contact-us/             /#contact   301
+/contact-us              /contact   301
+/contact-us/             /contact   301
 
 # 🚀 SPA FALLBACK RULE (REACT ROUTER PRESERVATION)
 /* /index.html   200

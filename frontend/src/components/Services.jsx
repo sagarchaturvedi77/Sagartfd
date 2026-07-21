@@ -66,10 +66,10 @@ export default function Services() {
             <div className="container-x">
                 <div className="max-w-3xl mb-12">
                     <div className="eyebrow">What we treat</div>
-                    <h2 className="h2 mt-3 text-[#0E1B2C]">
+                    <h1 className="h2 mt-3 text-[#0E1B2C]">
                         One doctor for all your{" "}
                         <span className="font-italic-serif text-[#C7102E]">financial prescriptions.</span>
-                    </h2>
+                    </h1>
                     <p className="mt-3 text-[#2A364B]">
                         From your first SIP to your child's education plan, your family's term cover to your
                         car's renewal — get expert advice under one roof.

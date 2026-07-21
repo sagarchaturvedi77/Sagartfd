@@ -117,6 +117,41 @@ export default function Reviews() {
             .catch(() => {});
     }, []);
 
+    // AggregateRating + Review structured data (JSON-LD) — only injected once
+    // reviews have actually loaded, so we never emit a 0-review/0-rating
+    // schema. Same dynamic head-tag injection pattern as SEO.jsx.
+    useEffect(() => {
+        if (!list.length || !stats.count) return undefined;
+
+        const script = document.createElement("script");
+        script.type = "application/ld+json";
+        script.text = JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "FinancialService",
+            name: "The Financial Doctor",
+            aggregateRating: {
+                "@type": "AggregateRating",
+                ratingValue: stats.average.toFixed(1),
+                reviewCount: stats.count,
+            },
+            review: list.slice(0, 4).map((r) => ({
+                "@type": "Review",
+                author: { "@type": "Person", name: r.name },
+                reviewRating: {
+                    "@type": "Rating",
+                    ratingValue: r.rating,
+                    bestRating: 5,
+                },
+                reviewBody: r.message,
+            })),
+        });
+        document.head.appendChild(script);
+
+        return () => {
+            document.head.removeChild(script);
+        };
+    }, [list, stats]);
+
     const onSubmit = async (e) => {
         e.preventDefault();
         if (!form.name.trim()) {
@@ -156,9 +191,9 @@ export default function Reviews() {
                 <div className="flex items-end justify-between flex-wrap gap-4 sm:gap-6 mb-6 sm:mb-10">
                     <div>
                         <div className="eyebrow">Word on the street</div>
-                        <h2 className="h2 mt-3 text-[#0E1B2C]">
+                        <h1 className="h2 mt-3 text-[#0E1B2C]">
                             Trusted by 1000+ <span className="font-italic-serif text-[#C7102E]">families</span> across MP.
-                        </h2>
+                        </h1>
                     </div>
                     <div className="card-cream px-3.5 sm:px-5 py-3 sm:py-4 flex items-center gap-3 sm:gap-5">
                         <div>

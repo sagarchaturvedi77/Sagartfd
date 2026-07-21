@@ -55,8 +55,22 @@ export default function WebsiteNotificationPrompt() {
     if (Notification.permission !== "default") return;
     if (localStorage.getItem("tfd_web_notif_dismissed") === "1") return;
 
-    const timer = setTimeout(() => setShow(true), 6000);
-    return () => clearTimeout(timer);
+    let cancelled = false;
+    const tryShow = (delay) => {
+      setTimeout(() => {
+        if (cancelled) return;
+        // If LeadPopup is currently visible, defer by 6s
+        if (document.querySelector("[data-testid='lead-popup']")) {
+          tryShow(6000);
+          return;
+        }
+        setShow(true);
+      }, delay);
+    };
+    tryShow(6000);
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const [allow, isSubmitting] = useSubmitOnce(async () => {
@@ -76,7 +90,7 @@ export default function WebsiteNotificationPrompt() {
   if (!show) return null;
 
   return (
-    <div className="fixed bottom-4 right-4 z-[200] max-w-sm animate-[slideUp_0.3s_ease]">
+    <div className="fixed bottom-4 left-4 z-[200] max-w-sm animate-[slideUp_0.3s_ease]">
       <div className="bg-[#0E1B2C] text-white rounded-2xl shadow-2xl p-5 border border-white/10">
         <div className="flex items-start gap-3">
           <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#024396] to-[#0356c4] flex items-center justify-center shrink-0">

@@ -45,9 +45,9 @@ export default function Contact() {
             <div className="container-x grid lg:grid-cols-12 gap-10">
                 <div className="lg:col-span-5">
                     <div className="eyebrow">Let's talk money</div>
-                    <h2 className="h2 mt-3 text-[#0E1B2C]">
+                    <h1 className="h2 mt-3 text-[#0E1B2C]">
                         Book your free <span className="font-italic-serif text-[#024396]">15-min consult.</span>
-                    </h2>
+                    </h1>
                     <p className="mt-4 text-[#2A364B] max-w-md">
                         Tell us a bit about your goal — SIP, insurance, or a portfolio review — and we'll
                         get back within 24 hours.
