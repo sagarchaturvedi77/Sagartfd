@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
-import { MessageCircle, Send, ChevronLeft, CheckCircle2, XCircle, Lock } from "lucide-react";
+import { MessageCircle, Send, ChevronLeft, CheckCircle2, XCircle, Lock, RefreshCw } from "lucide-react";
 import StudentLayout from "../portal/student/StudentLayout";
 import { useInternshipAuth } from "../portal/student/InternshipAuthContext";
 import { useSubmitOnce } from "../lib/useSubmitOnce";
@@ -25,9 +25,13 @@ export default function StudentConnect() {
     const [activeContact, setActiveContact] = useState(null);
     const [draft, setDraft] = useState("");
     const [loading, setLoading] = useState(true);
+    const [contactsError, setContactsError] = useState(false);
+    const [threadError, setThreadError] = useState(false);
     const scrollRef = useRef(null);
 
     const loadContacts = useCallback(async () => {
+        setLoading(true);
+        setContactsError(false);
         try {
             const [contactsRes, threadsRes] = await Promise.all([
                 fetch(`${API_BASE}/api/internship/connect/contacts`, { headers: { Authorization: `Bearer ${token}` } }),
@@ -36,12 +40,13 @@ export default function StudentConnect() {
             const contactsData = await contactsRes.json().catch(() => []);
             const threadsData = await threadsRes.json().catch(() => []);
             if (contactsRes.ok) setContacts(contactsData);
+            else setContactsError(true);
             if (threadsRes.ok) {
                 const map = {};
                 threadsData.forEach((t) => { map[t.contact_id] = t; });
                 setThreads(map);
-            }
-        } catch { /* silent */ }
+            } else setContactsError(true);
+        } catch { setContactsError(true); }
         setLoading(false);
     }, [token]);
 
@@ -49,11 +54,13 @@ export default function StudentConnect() {
 
     const openContact = async (contactId) => {
         setActiveContact(contactId);
+        setThreadError(false);
         try {
             const res = await fetch(`${API_BASE}/api/internship/connect/thread/${contactId}`, { headers: { Authorization: `Bearer ${token}` } });
             const data = await res.json().catch(() => null);
             if (res.ok && data) setThreads((prev) => ({ ...prev, [contactId]: data }));
-        } catch { /* silent */ }
+            else setThreadError(true);
+        } catch { setThreadError(true); }
     };
 
     useEffect(() => {
@@ -91,6 +98,11 @@ export default function StudentConnect() {
                 <div className="flex flex-1 min-h-0">
                     <div className={`${activeContact ? "hidden md:flex" : "flex"} flex-col w-full md:w-[300px] shrink-0 border-r border-white/10 overflow-y-auto`}>
                         {loading && <div className="p-4 text-xs text-white/40">Loading...</div>}
+                        {!loading && contactsError && (
+                            <button onClick={loadContacts} className="flex items-center gap-1.5 p-4 text-xs text-amber-400 hover:text-amber-300 w-full text-left">
+                                <RefreshCw size={12} /> Couldn't load contacts — tap to retry
+                            </button>
+                        )}
                         {contacts.map((c) => {
                             const t = threads[c.id];
                             const lastMsg = t?.messages?.[t.messages.length - 1];
@@ -129,7 +141,12 @@ export default function StudentConnect() {
                                 </div>
 
                                 <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 space-y-2.5 bg-[#0A0F1A]/40">
-                                    {(!activeThread?.messages || activeThread.messages.length === 0) && (
+                                    {threadError && (
+                                        <button onClick={() => openContact(activeContact)} className="flex items-center gap-1.5 text-xs text-amber-400 hover:text-amber-300 mx-auto">
+                                            <RefreshCw size={12} /> Couldn't load this conversation — tap to retry
+                                        </button>
+                                    )}
+                                    {!threadError && (!activeThread?.messages || activeThread.messages.length === 0) && (
                                         <p className="text-white/30 text-xs text-center py-8">Say hi to {activeContactMeta?.name} to start the conversation.</p>
                                     )}
                                     {activeThread?.messages?.map((m, i) => (

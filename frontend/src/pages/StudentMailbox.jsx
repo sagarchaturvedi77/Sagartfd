@@ -113,24 +113,31 @@ export default function StudentMailbox() {
     const [composeOpen, setComposeOpen] = useState(false);
     const [composeInitial, setComposeInitial] = useState(null);
     const [replyBody, setReplyBody] = useState("");
+    const [messagesError, setMessagesError] = useState(false);
+    const [contactsError, setContactsError] = useState(false);
+    const [threadError, setThreadError] = useState(false);
 
     const loadMessages = useCallback(async (f) => {
         setLoading(true);
         setSelectedThread(null);
+        setMessagesError(false);
         try {
             const res = await fetch(`${API_BASE}/api/internship/mailbox/messages?folder=${f}`, { headers: { Authorization: `Bearer ${token}` } });
             const data = await res.json().catch(() => []);
             if (res.ok) setMessages(data);
-        } catch { /* silent */ }
+            else setMessagesError(true);
+        } catch { setMessagesError(true); }
         setLoading(false);
     }, [token]);
 
     const loadContacts = useCallback(async () => {
+        setContactsError(false);
         try {
             const res = await fetch(`${API_BASE}/api/internship/mailbox/contacts`, { headers: { Authorization: `Bearer ${token}` } });
             const data = await res.json().catch(() => []);
             if (res.ok) setContacts(data);
-        } catch { /* silent */ }
+            else setContactsError(true);
+        } catch { setContactsError(true); }
     }, [token]);
 
     useEffect(() => { loadContacts(); }, [loadContacts]);
@@ -146,11 +153,13 @@ export default function StudentMailbox() {
 
     const openThread = async (threadId) => {
         setSelectedThread(threadId);
+        setThreadError(false);
         try {
             const res = await fetch(`${API_BASE}/api/internship/mailbox/thread/${threadId}`, { headers: { Authorization: `Bearer ${token}` } });
             const data = await res.json().catch(() => []);
             if (res.ok) setThreadMessages(data);
-        } catch { /* silent */ }
+            else setThreadError(true);
+        } catch { setThreadError(true); }
     };
 
     const sendDraft = async (id) => {
@@ -196,6 +205,12 @@ export default function StudentMailbox() {
                     </button>
                 </div>
 
+                {contactsError && (
+                    <button onClick={loadContacts} className="flex items-center justify-center gap-1.5 w-full px-4 py-2 border-b border-white/10 text-[11px] text-amber-400 hover:text-amber-300 bg-amber-400/5">
+                        <RefreshCw size={11} /> Couldn't load contacts — tap to retry
+                    </button>
+                )}
+
                 <div className="flex flex-1 min-h-0">
                     {/* Folder rail */}
                     <div className="hidden sm:flex flex-col w-40 shrink-0 border-r border-white/10 p-2 gap-1">
@@ -221,7 +236,12 @@ export default function StudentMailbox() {
                             ))}
                         </div>
                         {loading && <div className="p-4 text-xs text-white/40">Loading...</div>}
-                        {!loading && messages.length === 0 && <div className="p-4 text-xs text-white/40">Nothing here yet.</div>}
+                        {!loading && messagesError && (
+                            <button onClick={() => loadMessages(folder)} className="flex items-center gap-1.5 p-4 text-xs text-amber-400 hover:text-amber-300 w-full text-left">
+                                <RefreshCw size={12} /> Couldn't load messages — tap to retry
+                            </button>
+                        )}
+                        {!loading && !messagesError && messages.length === 0 && <div className="p-4 text-xs text-white/40">Nothing here yet.</div>}
                         {messages.map((m) => (
                             <button
                                 key={m.id}
@@ -251,6 +271,11 @@ export default function StudentMailbox() {
                                     <ChevronLeft size={14} /> Back
                                 </button>
                                 <div className="flex-1 overflow-y-auto p-4 space-y-4">
+                                    {threadError && (
+                                        <button onClick={() => openThread(selectedThread)} className="flex items-center gap-1.5 text-xs text-amber-400 hover:text-amber-300">
+                                            <RefreshCw size={12} /> Couldn't load this thread — tap to retry
+                                        </button>
+                                    )}
                                     {threadMessages.map((m) => (
                                         <div key={m.id} className="rounded-xl border border-white/10 bg-white/[0.02] p-3.5">
                                             <div className="flex items-center justify-between mb-1">

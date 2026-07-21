@@ -4,6 +4,7 @@ import {
   Briefcase, Award, Users, CalendarDays,
 } from "lucide-react";
 import LINKS from "../lib/links";
+import { useSubmitOnce } from "../lib/useSubmitOnce";
 
 const API_BASE = process.env.REACT_APP_BACKEND_URL || "";
 const LOGO_URL = "/assets/logos/TFD-MAIN-LOGO.webp";
@@ -102,7 +103,6 @@ export default function InternApplicationPage() {
   const [declared, setDeclared] = useState(false);
   const [rated, setRated] = useState(false);
   const [ratingClicked, setRatingClicked] = useState(false);
-  const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
 
   const todayStr = new Date().toISOString().split("T")[0];
@@ -140,9 +140,11 @@ export default function InternApplicationPage() {
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
-  const submit = async () => {
-    if (!declared || !rated || submitting) return;
-    setSubmitting(true);
+  // useSubmitOnce's ref-based guard closes the double-submit race window —
+  // this form collects Aadhaar/KYC data, so a duplicate call from a
+  // double-click/laggy re-render risks creating a duplicate PII record.
+  const [submit, submitting] = useSubmitOnce(async () => {
+    if (!declared || !rated) return;
     setError("");
     try {
       const res = await fetch(`${API_BASE}/api/interns/public/apply`, {
@@ -161,8 +163,7 @@ export default function InternApplicationPage() {
       setError("Something went wrong. Please try again.");
       setStep("form");
     }
-    setSubmitting(false);
-  };
+  });
 
   const BrandPanel = (
     <div className="hidden lg:flex lg:w-[38%] xl:w-[35%] relative overflow-hidden bg-gradient-to-br from-[#0E1B2C] via-[#162d4a] to-[#0E1B2C] flex-col justify-between p-10 xl:p-12 shrink-0">

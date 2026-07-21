@@ -278,7 +278,6 @@ function InternshipPortfolio({ tasks, report }) {
                     <span className="text-[10px] font-bold text-[#024396] shrink-0">+{t.points_awarded} pts</span>
                   </div>
                   <p className="text-[10px] text-[#5C677D]">Week {t.week_number}{t.had_photo ? " · Field task with photo" : ""}</p>
-                  {t.submitted_answer && <p className="text-[11px] text-[#2A364B]/80 mt-1 leading-relaxed line-clamp-3">{t.submitted_answer}</p>}
                 </div>
               ))}
             </div>
@@ -292,16 +291,15 @@ function InternshipPortfolio({ tasks, report }) {
             onClick={() => setExpanded(expanded === "report" ? null : "report")}
             className="w-full flex items-center justify-between px-3.5 py-2.5 bg-white hover:bg-[#F5F1EB] transition-colors"
           >
-            <span className="flex items-center gap-1.5 text-xs font-semibold text-[#0E1B2C]"><NotebookPen size={13} className="text-[#024396]" /> Daily Report ({report.length} entries)</span>
+            <span className="flex items-center gap-1.5 text-xs font-semibold text-[#0E1B2C]"><NotebookPen size={13} className="text-[#024396]" /> Daily Report ({report.length} entries submitted)</span>
             {expanded === "report" ? <ChevronUp size={14} className="text-[#5C677D]" /> : <ChevronDown size={14} className="text-[#5C677D]" />}
           </button>
           {expanded === "report" && (
             <div className="max-h-72 overflow-y-auto divide-y divide-[#E2D8C2] bg-[#FBF9F5]">
               {report.map((r) => (
-                <div key={r.date} className="px-3.5 py-2.5">
-                  <p className="text-[10px] font-bold text-[#024396] mb-1">{r.date}</p>
-                  {r.what_learned && <p className="text-[11px] text-[#2A364B]/80 leading-relaxed"><b className="text-[#5C677D]">Learned:</b> {r.what_learned}</p>}
-                  {r.what_did && <p className="text-[11px] text-[#2A364B]/80 leading-relaxed mt-0.5"><b className="text-[#5C677D]">Did:</b> {r.what_did}</p>}
+                <div key={r.date} className="px-3.5 py-2 flex items-center justify-between">
+                  <p className="text-[10px] font-bold text-[#024396]">{r.date}</p>
+                  <span className="text-[10px] text-[#5C677D]">Report submitted</span>
                 </div>
               ))}
             </div>

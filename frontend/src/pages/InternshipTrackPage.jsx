@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { createPortal } from "react-dom";
 import { useParams, useNavigate, Navigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import SEO from "../components/SEO";
@@ -384,26 +385,35 @@ export default function InternshipTrackPage() {
       />
 
       <div className="relative z-10">
-        <div className="fixed top-0 left-0 right-0 z-30 h-16 flex items-center backdrop-blur-md bg-[#050B16]/85 border-b border-white/10">
-          <div className="w-full max-w-6xl mx-auto flex items-center justify-between px-4 sm:px-5">
-            <button onClick={() => navigate("/internship")} className="flex items-center gap-1.5 text-sm sm:text-base font-semibold text-white/60 hover:text-white transition-colors">
-              <ArrowLeft size={16} /> All Tracks
-            </button>
-            <div className="flex items-center gap-2 sm:gap-3 shrink-0">
-              <div role="group" aria-label="Page language" className="flex items-center rounded-full border border-white/15 bg-white/5 p-0.5">
-                <button onClick={() => setLang("english")} className={`flex items-center gap-1 px-2.5 py-1 rounded-full text-xs sm:text-sm font-bold transition-colors ${lang === "english" ? "bg-[#14E0A0] text-[#050B16]" : "text-white/50 hover:text-white"}`}>
-                  <Languages size={13} className="hidden sm:inline" /> EN
-                </button>
-                <button onClick={() => setLang("hinglish")} className={`px-2.5 py-1 rounded-full text-xs sm:text-sm font-bold transition-colors ${lang === "hinglish" ? "bg-[#14E0A0] text-[#050B16]" : "text-white/50 hover:text-white"}`}>
-                  Hinglish
+        {/* Rendered via a portal straight into document.body — this page's
+            root wrapper is `position:relative` + `overflow-x-hidden`, and
+            that combination clips `position:fixed` descendants on iOS
+            Safari, so the fixed nav has to escape that subtree entirely
+            (same fix InternshipLandingPage's top nav and NetworkBackground
+            use). */}
+        {createPortal(
+          <div className="fixed top-0 left-0 right-0 z-30 h-16 flex items-center backdrop-blur-md bg-[#050B16]/85 border-b border-white/10">
+            <div className="w-full max-w-6xl mx-auto flex items-center justify-between px-4 sm:px-5">
+              <button onClick={() => navigate("/internship")} className="flex items-center gap-1.5 text-sm sm:text-base font-semibold text-white/60 hover:text-white transition-colors">
+                <ArrowLeft size={16} /> All Tracks
+              </button>
+              <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+                <div role="group" aria-label="Page language" className="flex items-center rounded-full border border-white/15 bg-white/5 p-0.5">
+                  <button onClick={() => setLang("english")} className={`flex items-center gap-1 px-2.5 py-1 rounded-full text-xs sm:text-sm font-bold transition-colors ${lang === "english" ? "bg-[#14E0A0] text-[#050B16]" : "text-white/50 hover:text-white"}`}>
+                    <Languages size={13} className="hidden sm:inline" /> EN
+                  </button>
+                  <button onClick={() => setLang("hinglish")} className={`px-2.5 py-1 rounded-full text-xs sm:text-sm font-bold transition-colors ${lang === "hinglish" ? "bg-[#14E0A0] text-[#050B16]" : "text-white/50 hover:text-white"}`}>
+                    Hinglish
+                  </button>
+                </div>
+                <button onClick={() => navigate(`/internship/apply?track=${track.value}`)} className="hidden sm:inline-flex items-center gap-1.5 bg-[#14E0A0] hover:bg-[#0FCB8F] text-[#050B16] text-sm font-bold px-4 py-2 rounded-full transition-colors">
+                  Apply Now
                 </button>
               </div>
-              <button onClick={() => navigate(`/internship/apply?track=${track.value}`)} className="hidden sm:inline-flex items-center gap-1.5 bg-[#14E0A0] hover:bg-[#0FCB8F] text-[#050B16] text-sm font-bold px-4 py-2 rounded-full transition-colors">
-                Apply Now
-              </button>
             </div>
-          </div>
-        </div>
+          </div>,
+          document.body
+        )}
         <div className="h-16" aria-hidden="true" />
 
         {/* Header + track switcher */}

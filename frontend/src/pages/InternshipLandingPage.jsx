@@ -131,11 +131,47 @@ function NetworkBackground() {
       animationFrame = requestAnimationFrame(draw);
     }
 
+    // Users with "reduce motion" set at the OS level get a single static
+    // frame instead of a continuously animating canvas — no rAF loop is
+    // ever started for them, so there's nothing to drain battery.
+    const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+    function drawStaticFrame() {
+      ctx.clearRect(0, 0, width, height);
+      for (const l of labels) {
+        ctx.fillStyle = `rgba(20, 224, 160, ${l.opacity})`;
+        ctx.font = `bold ${l.size}px monospace`;
+        ctx.fillText(l.text, l.x, l.y);
+      }
+      for (const p of particles) {
+        ctx.fillStyle = "rgba(20, 224, 160, 0.85)";
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, 1.8, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+
+    function handleVisibilityChange() {
+      if (reducedMotion) return;
+      if (document.hidden) {
+        cancelAnimationFrame(animationFrame);
+        animationFrame = null;
+      } else if (!animationFrame) {
+        draw();
+      }
+    }
+
     init();
-    draw();
+    if (reducedMotion) {
+      drawStaticFrame();
+    } else if (!document.hidden) {
+      draw();
+    }
     window.addEventListener("resize", init);
+    document.addEventListener("visibilitychange", handleVisibilityChange);
     return () => {
       window.removeEventListener("resize", init);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
       cancelAnimationFrame(animationFrame);
     };
   }, []);
@@ -528,63 +564,70 @@ export default function InternshipLandingPage() {
       <div className="relative z-10">
         {/* Top bar — fixed so it always stays pinned while scrolling; the
             spacer div right after it reserves the same height in normal
-            flow so content doesn't jump underneath it. */}
-        <div className="fixed top-0 left-0 right-0 z-30 h-16 flex items-center backdrop-blur-md bg-[#050B16]/85 border-b border-white/10">
-          <div className="w-full max-w-6xl mx-auto flex items-center justify-between px-4 sm:px-5">
-            <div className="flex items-center gap-2 min-w-0">
-              <div className="text-[#14E0A0] font-bold text-base sm:text-lg tracking-wider border border-[#14E0A0]/30 px-2.5 py-1 rounded-lg bg-[#14E0A0]/5">
-                TFD <span className="text-white text-xs sm:text-sm font-semibold border-l border-[#14E0A0]/30 pl-1.5 ml-1">INTERNSHIP</span>
+            flow so content doesn't jump underneath it. Rendered via a portal
+            straight into document.body — same reason as NetworkBackground
+            above: this page's root wrapper is `position:relative` +
+            `overflow-x-hidden`, which clips `position:fixed` descendants on
+            iOS Safari, so the nav has to escape that subtree entirely. */}
+        {createPortal(
+          <div className="fixed top-0 left-0 right-0 z-30 h-16 flex items-center backdrop-blur-md bg-[#050B16]/85 border-b border-white/10">
+            <div className="w-full max-w-6xl mx-auto flex items-center justify-between px-4 sm:px-5">
+              <div className="flex items-center gap-2 min-w-0">
+                <div className="text-[#14E0A0] font-bold text-base sm:text-lg tracking-wider border border-[#14E0A0]/30 px-2.5 py-1 rounded-lg bg-[#14E0A0]/5">
+                  TFD <span className="text-white text-xs sm:text-sm font-semibold border-l border-[#14E0A0]/30 pl-1.5 ml-1">INTERNSHIP</span>
+                </div>
               </div>
-            </div>
-            <div className="flex items-center gap-2 sm:gap-3 shrink-0">
-              <span className="hidden lg:flex items-center gap-1.5 text-sm font-semibold text-[#14E0A0]">
-                <span className="relative flex h-1.5 w-1.5">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#14E0A0] opacity-75" />
-                  <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-[#14E0A0]" />
+              <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+                <span className="hidden lg:flex items-center gap-1.5 text-sm font-semibold text-[#14E0A0]">
+                  <span className="relative flex h-1.5 w-1.5">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#14E0A0] opacity-75" />
+                    <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-[#14E0A0]" />
+                  </span>
+                  {t.applicationsOpen}
                 </span>
-                {t.applicationsOpen}
-              </span>
 
-              {/* Full-page EN/Hinglish toggle — switches every pre-written
-                  text block on this page at once, no translation API. */}
-              <div
-                role="group"
-                aria-label="Page language"
-                className="flex items-center rounded-full border border-white/15 bg-white/5 p-0.5"
-              >
-                <button
-                  onClick={() => setLang("english")}
-                  className={`flex items-center gap-1 px-2.5 py-1 rounded-full text-xs sm:text-sm font-bold transition-colors ${
-                    lang === "english" ? "bg-[#14E0A0] text-[#050B16]" : "text-white/50 hover:text-white"
-                  }`}
+                {/* Full-page EN/Hinglish toggle — switches every pre-written
+                    text block on this page at once, no translation API. */}
+                <div
+                  role="group"
+                  aria-label="Page language"
+                  className="flex items-center rounded-full border border-white/15 bg-white/5 p-0.5"
                 >
-                  <Languages size={13} className="hidden sm:inline" /> EN
+                  <button
+                    onClick={() => setLang("english")}
+                    className={`flex items-center gap-1 px-2.5 py-1 rounded-full text-xs sm:text-sm font-bold transition-colors ${
+                      lang === "english" ? "bg-[#14E0A0] text-[#050B16]" : "text-white/50 hover:text-white"
+                    }`}
+                  >
+                    <Languages size={13} className="hidden sm:inline" /> EN
+                  </button>
+                  <button
+                    onClick={() => setLang("hinglish")}
+                    className={`px-2.5 py-1 rounded-full text-xs sm:text-sm font-bold transition-colors ${
+                      lang === "hinglish" ? "bg-[#14E0A0] text-[#050B16]" : "text-white/50 hover:text-white"
+                    }`}
+                  >
+                    Hinglish
+                  </button>
+                </div>
+
+                <button
+                  onClick={() => navigate("/internship/login")}
+                  className="text-sm sm:text-sm font-semibold text-white/60 hover:text-white transition-colors"
+                >
+                  {t.studentLogin}
                 </button>
                 <button
-                  onClick={() => setLang("hinglish")}
-                  className={`px-2.5 py-1 rounded-full text-xs sm:text-sm font-bold transition-colors ${
-                    lang === "hinglish" ? "bg-[#14E0A0] text-[#050B16]" : "text-white/50 hover:text-white"
-                  }`}
+                  onClick={() => navigate("/")}
+                  className="flex items-center gap-1.5 text-sm sm:text-sm font-semibold text-white/60 hover:text-white transition-colors"
                 >
-                  Hinglish
+                  <ArrowLeft size={16} /> <span className="hidden sm:inline">{t.home}</span>
                 </button>
               </div>
-
-              <button
-                onClick={() => navigate("/internship/login")}
-                className="text-sm sm:text-sm font-semibold text-white/60 hover:text-white transition-colors"
-              >
-                {t.studentLogin}
-              </button>
-              <button
-                onClick={() => navigate("/")}
-                className="flex items-center gap-1.5 text-sm sm:text-sm font-semibold text-white/60 hover:text-white transition-colors"
-              >
-                <ArrowLeft size={16} /> <span className="hidden sm:inline">{t.home}</span>
-              </button>
             </div>
-          </div>
-        </div>
+          </div>,
+          document.body
+        )}
         <div className="h-16" aria-hidden="true" />
 
         {/* Hero — left-aligned split-grid (~65/35), the same asymmetric

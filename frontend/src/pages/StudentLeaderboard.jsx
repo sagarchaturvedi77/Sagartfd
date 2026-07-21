@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, ResponsiveContainer } from "recharts";
-import { Trophy, Medal } from "lucide-react";
+import { Trophy, Medal, RefreshCw } from "lucide-react";
 import StudentLayout from "../portal/student/StudentLayout";
 import { useInternshipAuth } from "../portal/student/InternshipAuthContext";
 
@@ -20,16 +20,25 @@ export default function StudentLeaderboard() {
   const { student, token } = useInternshipAuth();
   const [board, setBoard] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
   const [scope, setScope] = useState("overall"); // "overall" | "track"
+  const [reloadTick, setReloadTick] = useState(0);
 
   useEffect(() => {
+    let cancelled = false;
     setLoading(true);
+    setError(false);
     const q = scope === "track" && student?.track ? `?track=${student.track}` : "";
     fetch(`${API_BASE}/api/internship/leaderboard${q}`, { headers: { Authorization: `Bearer ${token}` } })
-      .then((r) => r.json())
-      .then(setBoard)
-      .finally(() => setLoading(false));
-  }, [token, scope, student?.track]);
+      .then((r) => {
+        if (!r.ok) throw new Error("Failed to load leaderboard");
+        return r.json();
+      })
+      .then((data) => { if (!cancelled) setBoard(data); })
+      .catch(() => { if (!cancelled) setError(true); })
+      .finally(() => { if (!cancelled) setLoading(false); });
+    return () => { cancelled = true; };
+  }, [token, scope, student?.track, reloadTick]);
 
   const radarData = Object.keys(RADAR_LABELS).map((key) => ({
     subject: RADAR_LABELS[key],
@@ -89,6 +98,10 @@ export default function StudentLeaderboard() {
 
           {loading ? (
             <p className="text-white/40 text-sm p-5">Loading...</p>
+          ) : error ? (
+            <button onClick={() => setReloadTick((t) => t + 1)} className="flex items-center gap-1.5 text-sm text-amber-400 hover:text-amber-300 p-5">
+              <RefreshCw size={13} /> Couldn't load leaderboard — tap to retry
+            </button>
           ) : !board?.top?.length ? (
             <p className="text-white/40 text-sm p-5">No ranked interns yet.</p>
           ) : (
