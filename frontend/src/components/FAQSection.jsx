@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { ChevronDown } from "lucide-react";
 import { useLanguage } from "../context/LanguageContext";
 import LanguageToggle from "./LanguageToggle";
@@ -10,6 +10,34 @@ export default function FAQSection({ title = "Frequently Asked Questions", data 
   const { lang } = useLanguage();
   const [openIndex, setOpenIndex] = useState(null);
   const items = data?.[lang] || data?.en || [];
+
+  // FAQPage structured data (JSON-LD) — built from the same en/hi/hinglish
+  // question data already rendered above, so it always matches on-page
+  // content. Uses the same dynamic head-tag injection pattern as SEO.jsx
+  // (plain DOM mutation on mount/update, no react-helmet dependency).
+  useEffect(() => {
+    if (!items.length) return undefined;
+
+    const script = document.createElement("script");
+    script.type = "application/ld+json";
+    script.text = JSON.stringify({
+      "@context": "https://schema.org",
+      "@type": "FAQPage",
+      mainEntity: items.map((item) => ({
+        "@type": "Question",
+        name: item.q,
+        acceptedAnswer: {
+          "@type": "Answer",
+          text: item.a,
+        },
+      })),
+    });
+    document.head.appendChild(script);
+
+    return () => {
+      document.head.removeChild(script);
+    };
+  }, [items]);
 
   return (
     <section className="bg-white py-16 px-6 border-t border-[#E2D8C2]">

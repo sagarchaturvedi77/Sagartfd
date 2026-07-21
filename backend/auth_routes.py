@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, Depends, status
+from fastapi import APIRouter, HTTPException, Depends, Request, status
 from datetime import date, datetime, timedelta, timezone
 import random
 import re
@@ -13,6 +13,7 @@ from database import users_collection, password_resets_collection, db
 from utils.employee import gen_random_employee_id
 from utils.audit import write_audit
 from email_service import send_welcome_email, send_password_reset_email, email_configured, RESET_PASSWORD_URL
+from rate_limit import limiter
 
 PASSWORD_RESET_TTL_MINUTES = 20
 
@@ -59,7 +60,8 @@ async def to_user_out(doc: dict) -> UserOut:
 
 
 @router.post("/login", response_model=TokenResponse)
-async def login(payload: UserLogin):
+@limiter.limit("10/minute")
+async def login(request: Request, payload: UserLogin):
     # Support login via phone number (primary) or email (legacy/admin)
     user = await users_collection.find_one({"phone": payload.phone})
     if not user:
@@ -211,7 +213,8 @@ class ResetPasswordIn(BaseModel):
 
 
 @router.post("/forgot-password")
-async def forgot_password(data: ForgotPasswordIn):
+@limiter.limit("5/minute")
+async def forgot_password(request: Request, data: ForgotPasswordIn):
     """Public, unauthenticated. Unlike the old phone-or-email version, this
     intentionally tells the caller when the email isn't registered — a
     deliberate product choice (not enumeration-safe) so the user gets a

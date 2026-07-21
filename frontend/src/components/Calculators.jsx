@@ -732,9 +732,9 @@ const qrDataUrlRef = useRef(null);
                 <div className="flex items-end justify-between flex-wrap gap-4 mb-6 md:mb-8">
                     <div>
                         <div className="eyebrow text-xs md:text-sm">Plan · Visualise · Act</div>
-                        <h2 className="text-2xl sm:text-3xl md:text-4xl font-serif text-[#0E1B2C] mt-2">
+                        <h1 className="text-2xl sm:text-3xl md:text-4xl font-serif text-[#0E1B2C] mt-2">
                             Money math, <span className="font-italic-serif text-[#024396]">made visual.</span>
-                        </h2>
+                        </h1>
                         <p className="mt-3 text-xs md:text-sm text-[#2A364B] max-w-2xl">
                             See exactly how your wealth compounds. Try SIP, Daily SIP, Lumpsum, SWP, Goal,
                             EMI, Income Tax, GST & Future Goal scenarios — then download a personalised

@@ -478,6 +478,8 @@ async def get_lead(lead_id: str, payload: dict = Depends(get_current_user_payloa
     doc = await leads_collection.find_one({"id": lead_id})
     if not doc:
         raise HTTPException(status_code=404, detail="Lead not found")
+    if payload["role"] != "admin" and doc.get("assigned_to") != payload["sub"]:
+        raise HTTPException(status_code=403, detail="Lead not assigned to you")
     return to_lead_out(doc)
 
 

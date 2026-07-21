@@ -3,6 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { ArrowLeft, ArrowUpRight, Landmark, Megaphone, TrendingUp, Heart } from "lucide-react";
 import { toast } from "sonner";
 import { openCashfreeCheckout } from "../lib/cashfree";
+import { useSubmitOnce } from "../lib/useSubmitOnce";
 
 const API_BASE = process.env.REACT_APP_BACKEND_URL || "";
 const MAIN_LOGO_URL = "/assets/logos/TFD-MAIN-LOGO.webp";
@@ -23,7 +24,6 @@ export default function InternshipResumePayment() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [paying, setPaying] = useState(false);
   const [form, setForm] = useState({ name: "", college: "", course_year: "", track: "" });
   const [intern, setIntern] = useState(null);
 
@@ -50,9 +50,8 @@ export default function InternshipResumePayment() {
     return () => { cancelled = true; };
   }, [token]);
 
-  const handlePay = async (e) => {
+  const [handlePay, paying] = useSubmitOnce(async (e) => {
     e.preventDefault();
-    setPaying(true);
     try {
       const updateRes = await fetch(`${API_BASE}/api/internship/resume-payment/${token}`, {
         method: "PUT",
@@ -68,9 +67,8 @@ export default function InternshipResumePayment() {
       await openCashfreeCheckout(payData.payment_session_id, payData.cashfree_env);
     } catch (err) {
       toast.error(err.message || "Something went wrong. Please try again.");
-      setPaying(false);
     }
-  };
+  });
 
   if (loading) {
     return (

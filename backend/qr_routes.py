@@ -97,8 +97,7 @@ async def verify_employee(request: Request, employee_id: str):
         "designation": emp.get("designation", ""),
         "employee_id": emp.get("employee_id", employee_id[:8].upper()),
         "department": emp.get("department", ""),
-        "blood_group": emp.get("blood_group", ""),
-        "phone": emp.get("phone", ""),
+        "phone": _mask_phone(emp.get("phone")) or "",
         "photo_url": emp.get("photo_url", ""),
         "certificates_earned": cert_count,
         "last_working_date": emp.get("deactivated_at") if not is_active else None,
@@ -180,20 +179,28 @@ async def verify_certificate(request: Request, certificate_number: str):
             out["program_start_date"] = student.get("program_start_date")
             out["radar_scores"] = student.get("radar_scores", {})
 
+            # Task titles/points/dates are curriculum metadata, not personal
+            # free text, so they're safe to show publicly. The student's own
+            # written answer (text_answer) is free-text personal content and
+            # is deliberately excluded — this is a public, unauthenticated
+            # endpoint, and that content is only for the student's own login.
             tasks = []
             async for sub in internship_submissions_collection.find(
                 {"student_id": student["id"], "status": "approved"}, {"_id": 0}
             ).sort("submitted_at", 1):
                 tasks.append({
                     "task_title": sub.get("task_title"), "week_number": sub.get("week_number"),
-                    "points_awarded": sub.get("points_awarded"), "submitted_answer": sub.get("text_answer"),
+                    "points_awarded": sub.get("points_awarded"),
                     "had_photo": bool(sub.get("photo_r2_key")), "submitted_at": sub.get("submitted_at"),
                 })
             out["completed_tasks"] = tasks
 
+            # Daily report dates are kept (they show cadence/consistency);
+            # what_learned/what_did are free-text journal entries and are
+            # deliberately excluded from this public, unauthenticated response.
             report = []
             async for entry in internship_reports_collection.find({"student_id": student["id"]}, {"_id": 0}).sort("date", 1):
-                report.append({"date": entry["date"], "what_learned": entry.get("what_learned"), "what_did": entry.get("what_did")})
+                report.append({"date": entry["date"]})
             out["daily_report"] = report
 
     return out

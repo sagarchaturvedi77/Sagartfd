@@ -160,7 +160,7 @@ async def list_locations(account_name: str) -> list[dict]:
     token = await get_valid_access_token()
     url = (
         f"https://mybusinessbusinessinformation.googleapis.com/v1/{account_name}/locations"
-        "?readMask=name,title,phoneNumbers,storefrontAddress,regularHours,websiteUri"
+        "?readMask=name,title,phoneNumbers,storefrontAddress,regularHours,websiteUri,metadata"
     )
     data = await _api_get(url, token)
     return data.get("locations", [])

@@ -5,7 +5,7 @@ or "dm:{user_id1}_{user_id2}" for direct messages in future).
 import uuid
 from datetime import datetime, timezone
 from typing import Optional
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel
 
 from auth_utils import get_current_user_payload
@@ -21,8 +21,22 @@ class MessageCreate(BaseModel):
     reply_to: Optional[str] = None  # message id being replied to
 
 
+def _check_dm_membership(room: str, user: dict) -> None:
+    """For "dm:{uid1}_{uid2}" rooms, only the two participants (or an admin)
+    may read/write — otherwise any authenticated user could pass any pair's
+    room string and access their private DM."""
+    if not room.startswith("dm:"):
+        return
+    if user.get("role") == "admin":
+        return
+    participants = room[len("dm:"):].split("_")
+    if user["sub"] not in participants:
+        raise HTTPException(status_code=403, detail="Not allowed")
+
+
 @router.post("/")
 async def send_message(data: MessageCreate, user=Depends(get_current_user_payload)):
+    _check_dm_membership(data.room, user)
     user_doc = await users_collection.find_one({"id": user["sub"]})
     msg = {
         "id": str(uuid.uuid4()),
@@ -61,6 +75,7 @@ async def get_messages(
     limit: int = Query(50, le=200),
     user=Depends(get_current_user_payload),
 ):
+    _check_dm_membership(room, user)
     cursor = chat_collection.find({"room": room}, {"_id": 0}).sort("created_at", -1).limit(limit)
     msgs = await cursor.to_list(limit)
     return list(reversed(msgs))  # oldest first for display
