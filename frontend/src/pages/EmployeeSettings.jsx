@@ -28,7 +28,6 @@ export default function EmployeeSettings() {
   const [pwForm, setPwForm] = useState({ current: "", newPw: "", confirm: "" });
   const [pwMsg, setPwMsg] = useState("");
   const [pwErr, setPwErr] = useState("");
-  const [lang, setLang] = useState(() => localStorage.getItem("portal_lang") || "en");
 
   const [changePassword, saving] = useSubmitOnce(async (e) => {
     e.preventDefault();
@@ -45,12 +44,6 @@ export default function EmployeeSettings() {
       else { const err = await res.json().catch(() => ({})); setPwErr(err.detail || "Failed. Check current password."); }
     } catch { setPwErr("Network error. Try again."); }
   });
-
-  const saveLang = (l) => {
-    setLang(l);
-    localStorage.setItem("portal_lang", l);
-    alert("Language preference saved! Refresh to apply.");
-  };
 
   const enableAppLock = async () => {
     if (window.PublicKeyCredential) {
@@ -78,10 +71,10 @@ export default function EmployeeSettings() {
 
         <Section title="🔒 Change Password">
           <form onSubmit={changePassword} style={{ display: "flex", flexDirection: "column", gap: 10, marginTop: 12 }}>
-            {[["current","Current Password"],["newPw","New Password"],["confirm","Confirm New Password"]].map(([f, l]) => (
+            {[["current","Current Password","current-password"],["newPw","New Password","new-password"],["confirm","Confirm New Password","new-password"]].map(([f, l, ac]) => (
               <div key={f}>
                 <label style={{ fontSize: 11, color: "#5C677D", display: "block", marginBottom: 4 }}>{l}</label>
-                <input type="password" value={pwForm[f]} onChange={(e) => setPwForm({ ...pwForm, [f]: e.target.value })} required
+                <input type="password" autoComplete={ac} value={pwForm[f]} onChange={(e) => setPwForm({ ...pwForm, [f]: e.target.value })} required
                   style={{ width: "100%", border: "1px solid #E2D8C2", borderRadius: 10, padding: "8px 12px", fontSize: 13, outline: "none" }} />
               </div>
             ))}
@@ -100,24 +93,6 @@ export default function EmployeeSettings() {
               🔐 Enable App Lock
             </button>
             <p style={{ fontSize: 11, color: "#9AA5B4", marginTop: 8 }}>Note: This uses your device's built-in security. Your portal session will require re-login after lock.</p>
-          </div>
-        </Section>
-
-        <Section title="🌐 Language / Translator">
-          <div style={{ marginTop: 12 }}>
-            <p style={{ fontSize: 12, color: "#5C677D", marginBottom: 10 }}>Choose portal default language:</p>
-            <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 14 }}>
-              {[["en","English"],["hi","Hindi"],["hinglish","Hinglish"]].map(([code, label]) => (
-                <button key={code} onClick={() => saveLang(code)} style={{
-                  padding: "7px 16px", borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: "pointer", border: "none",
-                  background: lang === code ? "#024396" : "#F5F1EB",
-                  color: lang === code ? "#fff" : "#2A364B",
-                }}>
-                  {label}
-                </button>
-              ))}
-            </div>
-            <p style={{ fontSize: 11, color: "#9AA5B4" }}>💡 Translator is available in Team Chat — translate any message to English/Hindi/Hinglish with one click.</p>
           </div>
         </Section>
 

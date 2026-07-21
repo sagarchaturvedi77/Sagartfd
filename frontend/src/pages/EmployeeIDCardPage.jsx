@@ -27,6 +27,14 @@ export default function EmployeeIDCardPage() {
   const [editingPhone, setEditingPhone] = useState(false);
   const [phoneInput, setPhoneInput] = useState("");
   const cardRef = useRef(null);
+  // The card DOM (cardRef) is kept at its true 343x600 / 600x343 px size at
+  // all times — that's what html2canvas captures for the PDF. This wrapper
+  // ref instead gets a CSS transform: scale(...) applied to it (an ancestor
+  // of cardRef, not cardRef itself) so only the on-screen *preview* shrinks
+  // to fit narrow phones; the underlying DOM used for capture never changes.
+  const scaleWrapRef = useRef(null);
+  const cardScaleRef = useRef(null);
+  const [cardScale, setCardScale] = useState(1);
 
   const loadAll = async () => {
     try {
@@ -61,6 +69,27 @@ export default function EmployeeIDCardPage() {
   useEffect(() => { loadAll(); }, [token]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => () => { if (photoObjectUrl) URL.revokeObjectURL(photoObjectUrl); }, [photoObjectUrl]);
 
+  // Measures the space actually available (e.g. a ~375px phone screen) and
+  // scales the preview down to fit it, instead of forcing horizontal scroll
+  // before the card is even visible. Card is 343x600 (id) or 600x343 (visiting).
+  useEffect(() => {
+    const computeScale = () => {
+      const wrap = scaleWrapRef.current;
+      if (!wrap) return;
+      const cardWidth = tab === "visiting" ? 600 : 343;
+      const available = wrap.clientWidth - 20; // matches wrap's own 10px+10px padding
+      const scale = available > 0 && available < cardWidth ? available / cardWidth : 1;
+      setCardScale(scale);
+      if (cardScaleRef.current) {
+        cardScaleRef.current.style.transform = scale < 1 ? `scale(${scale})` : "none";
+        cardScaleRef.current.style.transformOrigin = "top left";
+      }
+    };
+    computeScale();
+    window.addEventListener("resize", computeScale);
+    return () => window.removeEventListener("resize", computeScale);
+  }, [tab]);
+
   // useSubmitOnce is a hook (useRef + useState inside), so it must be called
   // unconditionally on every render — declared here, above the `if (loading)
   // return` below, rather than beside the data it touches (like `emp`,
@@ -90,9 +119,18 @@ export default function EmployeeIDCardPage() {
     const element = cardRef.current;
     if (!element) return;
 
+    // The preview may currently be visually scaled down for small screens
+    // (see cardScaleRef above) — that's an ancestor transform, so it never
+    // touches cardRef's own DOM size, but we force it back to full scale
+    // during capture anyway, purely to be safe against any renderer that
+    // might honor ancestor transforms, then restore the preview after.
+    const scaleEl = cardScaleRef.current;
+    const previousTransform = scaleEl?.style.transform;
+
     try {
       const originalScrollY = window.scrollY;
       window.scrollTo(0, 0);
+      if (scaleEl) scaleEl.style.transform = "none";
 
       const canvas = await html2canvas(element, {
         scale: 3,
@@ -102,6 +140,7 @@ export default function EmployeeIDCardPage() {
       });
 
       window.scrollTo(0, originalScrollY);
+      if (scaleEl) scaleEl.style.transform = previousTransform || "none";
 
       const imgData = canvas.toDataURL("image/png");
       const isId = tab === "id";
@@ -118,6 +157,7 @@ export default function EmployeeIDCardPage() {
       pdf.addImage(imgData, "PNG", 0, 0, pdfWidthInches, pdfHeightInches);
       pdf.save(`${emp.name || "TFD_Employee"}_${isId ? "IDCard" : "VisitingCard"}.pdf`);
     } catch (error) {
+      if (scaleEl) scaleEl.style.transform = previousTransform || "none";
       console.error("PDF generation failed:", error);
       alert("Download failed. Please try again.");
     }
@@ -196,11 +236,21 @@ export default function EmployeeIDCardPage() {
           )}
         </div>
 
-        <div style={{ display: "flex", justifyContent: "center", padding: "10px", width: "100%", overflowX: "auto" }}>
-          
-          <div ref={cardRef} style={{ display: "block", backgroundColor: "#fff" }}>
-            
-            {/* ── ID CARD ── */}
+        <div ref={scaleWrapRef} style={{ display: "flex", justifyContent: "center", padding: "10px", width: "100%", overflowX: "auto" }}>
+
+          {/* Height-compensating wrapper — transform: scale() doesn't shrink
+              the layout box, so without this the scaled-down preview would
+              leave blank space below/beside it (or still force scroll). */}
+          <div style={cardScale < 1 ? {
+            width: (tab === "visiting" ? 600 : 343) * cardScale,
+            height: (tab === "visiting" ? 343 : 600) * cardScale,
+          } : undefined}>
+            {/* Visual-only scale wrapper — an ancestor of cardRef, never cardRef
+                itself, so the 600px/343px DOM captured for the PDF is untouched. */}
+            <div ref={cardScaleRef} style={{ transformOrigin: "top left" }}>
+              <div ref={cardRef} style={{ display: "block", backgroundColor: "#fff" }}>
+
+                {/* ── ID CARD ── */}
             {tab === "id" && (
               <div style={{
                 boxSizing: "border-box", width: 343, minWidth: 343, height: 600, 
@@ -355,14 +405,16 @@ export default function EmployeeIDCardPage() {
                   }} />
               </div>
             )}
-            
+
+              </div>
+            </div>
           </div>
         </div>
 
         {/* Actions */}
         <div className="flex gap-3 justify-center flex-wrap pt-4">
-          <Button onClick={handleDownload} className="w-full sm:w-auto bg-[#9B2335] hover:bg-[#7a1b29]">
-            ⬇️ Download PDF Card
+          <Button onClick={handleDownload} disabled={downloading} className="w-full sm:w-auto bg-[#9B2335] hover:bg-[#7a1b29]">
+            {downloading ? "Generating…" : "⬇️ Download PDF Card"}
           </Button>
           <Button onClick={handleShare} className="w-full sm:w-auto bg-green-600 hover:bg-green-700">
             📤 Share Verify Link

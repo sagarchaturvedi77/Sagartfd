@@ -131,45 +131,47 @@ export default function EmployeeChat() {
 
   return (
     <PortalLayout>
-      <div className="flex flex-col rounded-2xl border border-[#E2D8C2] dark:border-white/10 overflow-hidden shadow-sm bg-white dark:bg-[#101D2E]" style={{ height: "calc(100vh - 120px)" }}>
-        <div className="flex items-center gap-2.5 px-4 py-3 border-b border-[#E2D8C2] dark:border-white/10 bg-[#0E1B2C] dark:bg-[#0B1420]">
-          <span className="text-lg">💬</span>
-          <div className="flex-1">
-            <p className="text-white font-bold text-sm">Team Chat — General</p>
-            <p className="text-white/50 text-[11px]">All team members can see this</p>
-          </div>
-          <div className="text-[11px] text-white/40 hidden sm:block">🌐 Tap any message to translate</div>
-        </div>
-
-        <div className="flex-1 overflow-y-auto px-3.5 py-3">
-          {msgs.length === 0 && <p className="text-center text-[#9AA5B4] text-sm pt-10">No messages yet. Say hello 👋</p>}
-          {msgs.map((m) => (
-            <div key={m.id} className="relative">
-              <MessageBubble m={m} isMe={m.sender_id === user?.id} />
-              {m.sender_id === user?.id && (
-                <button onClick={() => del(m.id)} disabled={deleting}
-                  className="absolute top-0 right-0 bg-red-100 dark:bg-red-900/40 border-none rounded-full w-[18px] h-[18px] text-[10px] text-red-600 dark:text-red-400 flex items-center justify-center opacity-70 hover:opacity-100 disabled:opacity-30">
-                  ×
-                </button>
-              )}
+      <div className="flex flex-col h-full">
+        <div className="flex flex-1 min-h-0 flex-col rounded-2xl border border-[#E2D8C2] dark:border-white/10 overflow-hidden shadow-sm bg-white dark:bg-[#101D2E]">
+          <div className="flex items-center gap-2.5 px-4 py-3 border-b border-[#E2D8C2] dark:border-white/10 bg-[#0E1B2C] dark:bg-[#0B1420]">
+            <span className="text-lg">💬</span>
+            <div className="flex-1">
+              <p className="text-white font-bold text-sm">Team Chat — General</p>
+              <p className="text-white/50 text-[11px]">All team members can see this</p>
             </div>
-          ))}
-          <div ref={bottomRef} />
-        </div>
+            <div className="text-[11px] text-white/40 hidden sm:block">🌐 Tap any message to translate</div>
+          </div>
 
-        <form onSubmit={send} className="border-t border-[#E2D8C2] dark:border-white/10 p-2.5 flex gap-2 bg-[#FAFAF9] dark:bg-white/5">
-          <input
-            value={text}
-            onChange={(e) => setText(e.target.value)}
-            placeholder="Type a message..."
-            className="flex-1 bg-[#F5F1EB] dark:bg-white/10 rounded-xl px-3.5 py-2 text-sm outline-none text-[#0E1B2C] dark:text-[#F1EDE3] placeholder:text-[#9AA5B4]"
-            disabled={sending}
-          />
-          <button type="submit" disabled={sending || !text.trim()}
-            className="bg-[#024396] dark:bg-[#4C8DFF] text-white rounded-xl px-4 py-2 text-sm font-bold disabled:opacity-50">
-            Send
-          </button>
-        </form>
+          <div className="flex-1 min-h-0 overflow-y-auto px-3.5 py-3">
+            {msgs.length === 0 && <p className="text-center text-[#9AA5B4] text-sm pt-10">No messages yet. Say hello 👋</p>}
+            {msgs.map((m) => (
+              <div key={m.id} className="relative">
+                <MessageBubble m={m} isMe={m.sender_id === user?.id} />
+                {m.sender_id === user?.id && (
+                  <button onClick={() => del(m.id)} disabled={deleting}
+                    className="absolute top-0 right-0 bg-red-100 dark:bg-red-900/40 border-none rounded-full w-[18px] h-[18px] text-[10px] text-red-600 dark:text-red-400 flex items-center justify-center opacity-70 hover:opacity-100 disabled:opacity-30">
+                    ×
+                  </button>
+                )}
+              </div>
+            ))}
+            <div ref={bottomRef} />
+          </div>
+
+          <form onSubmit={send} className="border-t border-[#E2D8C2] dark:border-white/10 p-2.5 flex gap-2 bg-[#FAFAF9] dark:bg-white/5">
+            <input
+              value={text}
+              onChange={(e) => setText(e.target.value)}
+              placeholder="Type a message..."
+              className="flex-1 bg-[#F5F1EB] dark:bg-white/10 rounded-xl px-3.5 py-2 text-sm outline-none text-[#0E1B2C] dark:text-[#F1EDE3] placeholder:text-[#9AA5B4]"
+              disabled={sending}
+            />
+            <button type="submit" disabled={sending || !text.trim()}
+              className="bg-[#024396] dark:bg-[#4C8DFF] text-white rounded-xl px-4 py-2 text-sm font-bold disabled:opacity-50">
+              Send
+            </button>
+          </form>
+        </div>
       </div>
     </PortalLayout>
   );

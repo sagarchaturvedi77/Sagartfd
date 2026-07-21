@@ -97,15 +97,15 @@ export default function PortalLogin() {
             <form onSubmit={handleSubmit} className="space-y-5">
               <div>
                 <Label htmlFor="phone" className="text-xs font-medium text-[#2A364B]/80 dark:text-[#C7CEDA] uppercase tracking-wider mb-2 block">
-                  User ID
+                  Mobile Number or Email
                 </Label>
                 <div className="relative">
                   <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#2A364B]/40 dark:text-[#8E99AC] pointer-events-none">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg>
                   </span>
                   <Input
-                    id="phone" type="text" autoCapitalize="none" autoCorrect="off" required value={phone} onChange={(e) => setPhone(e.target.value)}
-                    placeholder="Enter your User ID"
+                    id="phone" type="text" autoCapitalize="none" autoCorrect="off" autoComplete="username" required value={phone} onChange={(e) => setPhone(e.target.value)}
+                    placeholder="Enter your mobile number or email"
                     className="h-12 pl-11 pr-4 rounded-xl border-[#E2D8C2] dark:border-white/10 bg-[#FBF7EE]/50 dark:bg-white/5 dark:text-[#F1EDE3] focus-visible:bg-white dark:focus-visible:bg-white/10 focus-visible:ring-2 focus-visible:ring-[#024396]/20 focus-visible:border-[#024396]"
                   />
                 </div>
@@ -125,7 +125,7 @@ export default function PortalLogin() {
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
                   </span>
                   <Input
-                    id="password" type={showPassword ? "text" : "password"} required value={password}
+                    id="password" type={showPassword ? "text" : "password"} autoComplete="current-password" required value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     placeholder="Enter your password"
                     className="h-12 pl-11 pr-11 rounded-xl border-[#E2D8C2] dark:border-white/10 bg-[#FBF7EE]/50 dark:bg-white/5 dark:text-[#F1EDE3] focus-visible:bg-white dark:focus-visible:bg-white/10 focus-visible:ring-2 focus-visible:ring-[#024396]/20 focus-visible:border-[#024396]"

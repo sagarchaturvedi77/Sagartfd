@@ -21,6 +21,7 @@ export default function EmployeeOnboarding() {
   const [done, setDone] = useState(false);
   const fileRef = useRef(null);
   const [uploadingField, setUploadingField] = useState(null);
+  const [saveError, setSaveError] = useState("");
 
   const headers = { Authorization: `Bearer ${token}`, "Content-Type": "application/json" };
 
@@ -66,13 +67,23 @@ export default function EmployeeOnboarding() {
   });
 
   const [saveProfile, saving] = useSubmitOnce(async () => {
-    await fetch(`${API_BASE}/api/profile`, {
-      method: "PUT",
-      headers,
-      body: JSON.stringify(form),
-    });
-    setDone(true);
-    window.location.reload();
+    setSaveError("");
+    try {
+      const res = await fetch(`${API_BASE}/api/profile`, {
+        method: "PUT",
+        headers,
+        body: JSON.stringify(form),
+      });
+      if (res.ok) {
+        setDone(true);
+        window.location.reload();
+      } else {
+        const err = await res.json().catch(() => ({}));
+        setSaveError(err.detail || "Could not save your profile. Please check your details and try again.");
+      }
+    } catch {
+      setSaveError("Network error — could not save your profile. Please try again.");
+    }
   });
 
   const set = (k, v) => setForm(prev => ({ ...prev, [k]: v }));
@@ -244,6 +255,7 @@ export default function EmployeeOnboarding() {
               <FileUploadBox label="Your Signature *" fieldName="signature" />
             </div>
 
+            {saveError && <p className="text-xs text-red-500 text-right">{saveError}</p>}
             <div className="flex justify-between pt-2">
               <Button variant="outline" onClick={() => setStep(3)}>Back</Button>
               <Button onClick={saveProfile} disabled={saving || !uploads.signature}

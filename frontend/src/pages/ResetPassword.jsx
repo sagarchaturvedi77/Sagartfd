@@ -92,7 +92,7 @@ export default function ResetPassword() {
                     New Password
                   </Label>
                   <Input
-                    id="password" type="password" required value={password} onChange={(e) => setPassword(e.target.value)}
+                    id="password" type="password" autoComplete="new-password" required value={password} onChange={(e) => setPassword(e.target.value)}
                     placeholder="At least 6 characters"
                     className="h-12 px-4 rounded-xl border-[#E2D8C2] dark:border-white/10 bg-[#FBF7EE]/50 dark:bg-white/5 dark:text-[#F1EDE3] focus-visible:bg-white dark:focus-visible:bg-white/10 focus-visible:ring-2 focus-visible:ring-[#024396]/20 focus-visible:border-[#024396]"
                   />
@@ -102,7 +102,7 @@ export default function ResetPassword() {
                     Confirm Password
                   </Label>
                   <Input
-                    id="confirmPassword" type="password" required value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)}
+                    id="confirmPassword" type="password" autoComplete="new-password" required value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)}
                     placeholder="Re-enter your new password"
                     className="h-12 px-4 rounded-xl border-[#E2D8C2] dark:border-white/10 bg-[#FBF7EE]/50 dark:bg-white/5 dark:text-[#F1EDE3] focus-visible:bg-white dark:focus-visible:bg-white/10 focus-visible:ring-2 focus-visible:ring-[#024396]/20 focus-visible:border-[#024396]"
                   />
