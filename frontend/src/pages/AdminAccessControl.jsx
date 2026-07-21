@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
+import { toast } from "sonner";
 import PortalLayout from "../components/PortalLayout";
 import { useAuth } from "../context/AuthContext";
 import PageHeader from "../components/portal/PageHeader";
@@ -30,9 +31,18 @@ export default function AdminAccessControl() {
 
   const load = useCallback(async () => {
     setLoading(true);
-    const res = await fetch(`${API_BASE}/api/access/`, { headers });
-    if (res.ok) setEmployees(await res.json());
-    setLoading(false);
+    try {
+      const res = await fetch(`${API_BASE}/api/access/`, { headers });
+      if (res.ok) {
+        setEmployees(await res.json());
+      } else {
+        toast.error("Could not load access control data.");
+      }
+    } catch {
+      toast.error("Could not reach the server. Please try again.");
+    } finally {
+      setLoading(false);
+    }
   }, [token]); // eslint-disable-line
 
   useEffect(() => { load(); }, [load]);
@@ -46,11 +56,17 @@ export default function AdminAccessControl() {
     const newAccess = { ...emp.access, [section]: !current };
     setSaving((s) => ({ ...s, [key]: true }));
     try {
-      await fetch(`${API_BASE}/api/access/${empId}`, {
+      const res = await fetch(`${API_BASE}/api/access/${empId}`, {
         method: "PUT", headers,
         body: JSON.stringify({ access: newAccess }),
       });
-      setEmployees((prev) => prev.map((e) => e.id === empId ? { ...e, access: newAccess } : e));
+      if (res.ok) {
+        setEmployees((prev) => prev.map((e) => e.id === empId ? { ...e, access: newAccess } : e));
+      } else {
+        toast.error("Could not update access. Please try again.");
+      }
+    } catch {
+      toast.error("Could not reach the server. Please try again.");
     } finally {
       inFlightRef.current.delete(key);
       setSaving((s) => { const n = { ...s }; delete n[key]; return n; });

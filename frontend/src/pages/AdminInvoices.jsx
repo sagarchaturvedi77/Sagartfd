@@ -183,11 +183,11 @@ export default function AdminInvoices() {
 
             <div className="space-y-2">
               {items.map((item, i) => (
-                <div key={i} className="grid grid-cols-12 gap-2 items-center">
-                  <input required placeholder="Description" value={item.description} onChange={(e) => updateItem(i, "description", e.target.value)} className={`${field} col-span-6`} />
-                  <input required type="number" min="1" placeholder="Qty" value={item.quantity} onChange={(e) => updateItem(i, "quantity", e.target.value)} className={`${field} col-span-2`} />
-                  <input required type="number" min="0" placeholder="Rate ₹" value={item.rate} onChange={(e) => updateItem(i, "rate", e.target.value)} className={`${field} col-span-3`} />
-                  <button type="button" onClick={() => removeItem(i)} disabled={items.length === 1} className="col-span-1 text-red-500 disabled:opacity-30"><Trash2 size={14} /></button>
+                <div key={i} className="grid grid-cols-1 md:grid-cols-12 gap-2 items-center">
+                  <input required placeholder="Description" value={item.description} onChange={(e) => updateItem(i, "description", e.target.value)} className={`${field} md:col-span-6`} />
+                  <input required type="number" min="1" placeholder="Qty" value={item.quantity} onChange={(e) => updateItem(i, "quantity", e.target.value)} className={`${field} md:col-span-2`} />
+                  <input required type="number" min="0" placeholder="Rate ₹" value={item.rate} onChange={(e) => updateItem(i, "rate", e.target.value)} className={`${field} md:col-span-3`} />
+                  <button type="button" onClick={() => removeItem(i)} disabled={items.length === 1} className="md:col-span-1 text-red-500 disabled:opacity-30"><Trash2 size={14} /></button>
                 </div>
               ))}
             </div>

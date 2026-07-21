@@ -125,7 +125,7 @@ export default function AdminTasks({ wrapInLayout = true }) {
 
         {/* Add modal */}
         {showAdd && (
-          <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm px-4">
+          <div className="fixed inset-0 z-[600] flex items-center justify-center bg-black/50 backdrop-blur-sm px-4">
             <div className="bg-white dark:bg-[#101D2E] rounded-2xl shadow-2xl w-full max-w-md p-6">
               <h3 className="font-semibold text-[#0E1B2C] dark:text-[#F1EDE3] mb-4">New Task</h3>
               <form onSubmit={addTask} className="space-y-3">

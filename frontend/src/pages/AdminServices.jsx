@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from "react";
+import { toast } from "sonner";
 import { useAuth } from "../context/AuthContext";
 import PortalLayout from "../components/PortalLayout";
 import PageHeader from "../components/portal/PageHeader";
@@ -47,7 +48,11 @@ export default function AdminServices() {
 
   const [deleteService, deleting] = useSubmitOnce(async (id) => {
     if (!window.confirm("Delete this service?")) return;
-    await fetch(`${API_BASE}/api/services/${id}`, { method: "DELETE", headers });
+    const res = await fetch(`${API_BASE}/api/services/${id}`, { method: "DELETE", headers });
+    if (!res.ok) {
+      toast.error("Could not delete this service. Please try again.");
+      return;
+    }
     load();
   });
 

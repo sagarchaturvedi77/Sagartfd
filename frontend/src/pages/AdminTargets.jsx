@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
+import { toast } from "sonner";
 import { useAuth } from "../context/AuthContext";
 import PortalLayout from "../components/PortalLayout";
 import AdminTasks from "./AdminTasks";
@@ -47,11 +48,20 @@ export default function AdminTargets() {
 
   const fetchTargets = useCallback(async () => {
     setLoading(true);
-    const res = await fetch(`${API_BASE}/api/targets/all?month=${month}&year=${year}`, {
-      headers: { Authorization: `Bearer ${token}` },
-    });
-    if (res.ok) setTargets(await res.json());
-    setLoading(false);
+    try {
+      const res = await fetch(`${API_BASE}/api/targets/all?month=${month}&year=${year}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (res.ok) {
+        setTargets(await res.json());
+      } else {
+        toast.error("Could not load targets.");
+      }
+    } catch {
+      toast.error("Could not reach the server. Please try again.");
+    } finally {
+      setLoading(false);
+    }
   }, [token, month, year]);
 
   const fetchEmployees = useCallback(async () => {

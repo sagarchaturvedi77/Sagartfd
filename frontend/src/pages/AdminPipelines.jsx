@@ -1,8 +1,7 @@
 import React, { useState, useEffect, useCallback, useMemo, memo } from "react";
-import { useNavigate } from "react-router-dom";
 import PortalLayout from "../components/PortalLayout";
 import { useAuth } from "../context/AuthContext";
-import { Plus, X, Trash2, Users, Pencil, PhoneCall, PhoneOff, ChevronRight, GripVertical, LayoutGrid } from "lucide-react";
+import { Plus, X, Trash2, Users, Pencil, PhoneCall, PhoneOff, ChevronRight, GripVertical } from "lucide-react";
 import PageHeader from "../components/portal/PageHeader";
 import { useSubmitOnce } from "../lib/useSubmitOnce";
 
@@ -42,7 +41,6 @@ const btnGhost = "text-[#2A364B] dark:text-[#8E99AC] text-sm font-medium px-4 py
 
 export default function AdminPipelines() {
   const { token } = useAuth();
-  const navigate = useNavigate();
   const headers = useMemo(
     () => ({ Authorization: `Bearer ${token}`, "Content-Type": "application/json" }),
     [token]
@@ -144,9 +142,6 @@ export default function AdminPipelines() {
               </div>
 
               <div className="mt-auto flex items-center gap-2 pt-3 border-t border-[#E2D8C2] dark:border-white/10">
-                <button onClick={() => navigate(`/portal/admin/pipelines/${p.id}/board`)} className="flex-1 inline-flex items-center justify-center gap-1.5 text-xs font-medium text-white bg-[#024396] hover:bg-[#023580] rounded-lg py-2">
-                  <LayoutGrid size={13} /> View Board
-                </button>
                 <button onClick={() => setEditingPipeline(p)} title="Manage Stages" className="p-2 text-[#024396] bg-[#024396]/5 hover:bg-[#024396]/10 rounded-lg">
                   <Pencil size={13} />
                 </button>
@@ -215,7 +210,7 @@ function PipelineModal({ pipeline, onClose, onSaved, headers }) {
   });
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm px-4 py-6">
+    <div className="fixed inset-0 z-[600] flex items-center justify-center bg-black/50 backdrop-blur-sm px-4 py-6">
       <div className="bg-white dark:bg-[#101D2E] rounded-2xl shadow-2xl w-full max-w-4xl max-h-[92vh] overflow-y-auto">
         <div className="sticky top-0 bg-white dark:bg-[#101D2E] border-b border-[#E2D8C2] dark:border-white/10 px-6 py-4 flex items-center justify-between z-10">
           <h3 className="font-serif text-lg text-[#0E1B2C] dark:text-[#F1EDE3]">{isNew ? "New Pipeline" : `Edit — ${pipeline.name}`}</h3>
@@ -438,7 +433,7 @@ function AssignModal({ pipeline, employees, onClose, onSaved, headers }) {
   });
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm px-4">
+    <div className="fixed inset-0 z-[600] flex items-center justify-center bg-black/50 backdrop-blur-sm px-4">
       <div className="bg-white dark:bg-[#101D2E] rounded-2xl shadow-2xl w-full max-w-md p-6 max-h-[90vh] overflow-y-auto">
         <h3 className="font-serif text-lg text-[#0E1B2C] dark:text-[#F1EDE3] mb-1">Assign — {pipeline.name}</h3>
         <p className="text-xs text-[#2A364B]/50 dark:text-[#8E99AC]/50 mb-4">Select who should follow this pipeline for their leads. Their new/reassigned leads will automatically use these stages.</p>

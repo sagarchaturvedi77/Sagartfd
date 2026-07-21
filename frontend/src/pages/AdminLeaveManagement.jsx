@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { useSearchParams } from "react-router-dom";
+import { toast } from "sonner";
 import PortalLayout from "../components/PortalLayout";
 import { useAuth } from "../context/AuthContext";
 import PageHeader from "../components/portal/PageHeader";
@@ -22,9 +23,18 @@ export default function AdminLeaveManagement() {
 
   const load = useCallback(async () => {
     setLoading(true);
-    const res = await fetch(`${API_BASE}/api/leaves/${filter ? `?status=${filter}` : ""}`, { headers });
-    if (res.ok) setLeaves(await res.json());
-    setLoading(false);
+    try {
+      const res = await fetch(`${API_BASE}/api/leaves/${filter ? `?status=${filter}` : ""}`, { headers });
+      if (res.ok) {
+        setLeaves(await res.json());
+      } else {
+        toast.error("Could not load leave requests.");
+      }
+    } catch {
+      toast.error("Could not reach the server. Please try again.");
+    } finally {
+      setLoading(false);
+    }
   }, [token, filter]); // eslint-disable-line
 
   useEffect(() => { load(); }, [load]);
@@ -44,17 +54,25 @@ export default function AdminLeaveManagement() {
   }, [searchParams, leaves, setSearchParams]);
 
   const [updateStatus, updatingStatus] = useSubmitOnce(async (id, status) => {
-    await fetch(`${API_BASE}/api/leaves/${id}`, {
+    const res = await fetch(`${API_BASE}/api/leaves/${id}`, {
       method: "PUT", headers,
       body: JSON.stringify({ status, admin_note: actionNote[id] || null }),
     });
+    if (!res.ok) {
+      toast.error("Could not update this leave request. Please try again.");
+      return;
+    }
     setActionNote((prev) => { const n = { ...prev }; delete n[id]; return n; });
     load();
   });
 
   const [del, deleting] = useSubmitOnce(async (id) => {
     if (!window.confirm("Delete this leave record?")) return;
-    await fetch(`${API_BASE}/api/leaves/${id}`, { method: "DELETE", headers });
+    const res = await fetch(`${API_BASE}/api/leaves/${id}`, { method: "DELETE", headers });
+    if (!res.ok) {
+      toast.error("Could not delete this leave record. Please try again.");
+      return;
+    }
     load();
   });
 

@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useState } from "react";
+import { toast } from "sonner";
 import { useAuth } from "../context/AuthContext";
 import PortalLayout from "../components/PortalLayout";
 import PageHeader from "../components/portal/PageHeader";
@@ -21,11 +22,20 @@ export default function AdminAttendance() {
 
   const fetchSummary = useCallback(async () => {
     setLoading(true);
-    const res = await fetch(`${API_BASE}/api/attendance/summary?month=${month}&year=${year}`, {
-      headers: { Authorization: `Bearer ${token}` },
-    });
-    if (res.ok) setSummary(await res.json());
-    setLoading(false);
+    try {
+      const res = await fetch(`${API_BASE}/api/attendance/summary?month=${month}&year=${year}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (res.ok) {
+        setSummary(await res.json());
+      } else {
+        toast.error("Could not load attendance summary.");
+      }
+    } catch {
+      toast.error("Could not reach the server. Please try again.");
+    } finally {
+      setLoading(false);
+    }
   }, [token, month, year]);
 
   const fetchRecords = useCallback(async (empId) => {

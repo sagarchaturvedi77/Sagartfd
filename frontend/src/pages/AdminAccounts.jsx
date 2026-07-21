@@ -258,7 +258,7 @@ export default function AdminAccounts() {
 
         {/* Add Transaction Modal */}
         {showAdd && (
-          <div className="fixed inset-0 z-[100] bg-black/50 flex items-center justify-center p-4" onClick={() => setShowAdd(false)}>
+          <div className="fixed inset-0 z-[600] bg-black/50 flex items-center justify-center p-4" onClick={() => setShowAdd(false)}>
             <form onSubmit={handleSubmit} className="bg-white dark:bg-[#101D2E] rounded-2xl p-6 max-w-md w-full space-y-3 max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
               <h3 className="text-lg font-semibold text-[#0E1B2C] dark:text-[#F1EDE3]">Add Entry</h3>
 

@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from "react";
+import { toast } from "sonner";
 import { useAuth } from "../context/AuthContext";
 import PortalLayout from "../components/PortalLayout";
 import PageHeader from "../components/portal/PageHeader";
@@ -41,15 +42,23 @@ export default function AdminSalary() {
   useEffect(() => { load(); }, [load]);
 
   const [generateSlips, generating] = useSubmitOnce(async () => {
-    await fetch(`${API_BASE}/api/salary/generate`, {
+    const res = await fetch(`${API_BASE}/api/salary/generate`, {
       method: "POST", headers,
       body: JSON.stringify({ month, year }),
     });
+    if (!res.ok) {
+      toast.error("Could not generate salary slips. Please try again.");
+      return;
+    }
     await load();
   });
 
   const [finalizeSlip, finalizing] = useSubmitOnce(async (slipId) => {
-    await fetch(`${API_BASE}/api/salary/slips/${slipId}/finalize`, { method: "POST", headers });
+    const res = await fetch(`${API_BASE}/api/salary/slips/${slipId}/finalize`, { method: "POST", headers });
+    if (!res.ok) {
+      toast.error("Could not finalize this slip. Please try again.");
+      return;
+    }
     load();
   });
 
@@ -64,9 +73,13 @@ export default function AdminSalary() {
 
   const [saveConfig, savingCfg] = useSubmitOnce(async (e) => {
     e.preventDefault();
-    await fetch(`${API_BASE}/api/salary/config/${configEmp.id}`, {
+    const res = await fetch(`${API_BASE}/api/salary/config/${configEmp.id}`, {
       method: "POST", headers, body: JSON.stringify(cfg),
     });
+    if (!res.ok) {
+      toast.error("Could not save salary config. Please try again.");
+      return;
+    }
     setConfigEmp(null);
   });
 
