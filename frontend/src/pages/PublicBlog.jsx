@@ -47,13 +47,13 @@ const CTA_LABELS = {
     brand_comparison: "Meet The Financial Doctor",
 };
 
-// Attractive, brand-consistent image used when a blog link is shared — this
-// is a real photo (not a placeholder), set dynamically per SEO.jsx. Note:
-// WhatsApp/Facebook preview bots don't execute JS (documented in SEO.jsx),
-// so this only shows up for crawlers that do run JS (Google, some others);
-// true per-post WhatsApp preview images need server-side rendering, which
-// this SPA doesn't have yet.
-const SHARE_IMAGE = "https://thefinancialdoctor.in/assets/founder/sagar-photo.webp";
+// Branded share card (logo, founder photo, hook line, ARN, URL — see
+// backend/scripts/generate_share_card.py) used as og:image. This constant
+// is what Google's JS-executing crawler reads via SEO.jsx's client-side
+// tag. Non-JS share bots (WhatsApp/LinkedIn/Instagram/etc.) never see this
+// path at all — they're served a separate, pre-rendered HTML response by
+// functions/blog/[id].js at the edge, which sets the same image directly.
+const SHARE_IMAGE = "https://thefinancialdoctor.in/assets/og/blog-share-card.png";
 
 function formatDate(iso) {
     if (!iso) return "";
@@ -73,14 +73,41 @@ function pickBody(post, lang) {
     return post.body;
 }
 
+// The shared URL carries ?lang=en when the reader is in English mode, so
+// the Cloudflare Pages Function at functions/blog/[id].js (which decides
+// what WhatsApp/LinkedIn/etc. preview bots see) shows the matching-language
+// title instead of always defaulting to the Hinglish original.
+function shareUrlFor(post, lang) {
+    const base = `${window.location.origin}/blog/${post.id}`;
+    return lang === "en" ? `${base}?lang=en` : base;
+}
+
+// A short, human hook line + brand handles appended to every shared caption
+// — this is what makes a forwarded WhatsApp message or a pasted Instagram
+// caption carry TFD's name/socials even when the platform's own link-
+// preview card doesn't render (group chats, stories, etc.).
+function shareCaption(post, lang, url) {
+    const title = pickTitle(post, lang);
+    return [
+        title,
+        "",
+        "— The Financial Doctor | Sagar Chaturvedi (AMFI ARN-290298)",
+        url,
+        "",
+        `Instagram: ${LINKS.instagram}`,
+        `LinkedIn: ${LINKS.linkedin}`,
+        `YouTube: ${LINKS.youtube}`,
+    ].join("\n");
+}
+
 function ShareButton({ post, lang }) {
     const [copied, setCopied] = useState(false);
     const share = async () => {
-        const url = `${window.location.origin}/blog/${post.id}`;
+        const url = shareUrlFor(post, lang);
         const title = pickTitle(post, lang);
         if (navigator.share) {
             try {
-                await navigator.share({ title, url });
+                await navigator.share({ title, text: shareCaption(post, lang, url), url });
                 return;
             } catch {
                 // user cancelled the native share sheet — fall through to copy
@@ -103,6 +130,68 @@ function ShareButton({ post, lang }) {
             {copied ? <Check size={13} className="text-[#0F6E5C]" /> : <Share2 size={13} />}
             {copied ? "Link copied" : "Share"}
         </button>
+    );
+}
+
+// Dedicated "share this article" block with one button per platform.
+// LinkedIn's official share intent only accepts a `url` param and scrapes
+// the page's own OG tags for the preview card — which is exactly what the
+// Cloudflare Function now provides, so no extra params needed there.
+// Instagram has no public web share-intent at all (deliberate platform
+// restriction, same category of hard limitation as GBP's missing Q&A
+// write-API) — so instead of faking a broken "share" link, this copies a
+// ready-to-paste caption (with our handles) to the clipboard.
+function ShareSection({ post, lang }) {
+    const [copiedFor, setCopiedFor] = useState(null);
+    const url = shareUrlFor(post, lang);
+    const caption = shareCaption(post, lang, url);
+
+    const whatsappHref = `https://wa.me/?text=${encodeURIComponent(caption)}`;
+    const linkedinHref = `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(url)}`;
+
+    const copyForInstagram = async () => {
+        try {
+            await navigator.clipboard.writeText(caption);
+            setCopiedFor("instagram");
+            setTimeout(() => setCopiedFor(null), 2500);
+        } catch {
+            // clipboard blocked — nothing more we can do silently
+        }
+    };
+
+    return (
+        <div className="mt-10 pt-8 border-t border-[#E2D8C2]">
+            <div className="text-[11px] uppercase tracking-[0.18em] text-[#5C677D] font-semibold mb-3">Share this article</div>
+            <div className="flex flex-wrap gap-2.5">
+                <a
+                    href={whatsappHref}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-2 text-xs font-medium text-white bg-[#25D366] hover:brightness-105 px-4 py-2 rounded-full transition-all"
+                >
+                    Share on WhatsApp
+                </a>
+                <a
+                    href={linkedinHref}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-2 text-xs font-medium text-white bg-[#0A66C2] hover:brightness-110 px-4 py-2 rounded-full transition-all"
+                >
+                    <Linkedin size={13} /> Share on LinkedIn
+                </a>
+                <button
+                    onClick={copyForInstagram}
+                    className="inline-flex items-center gap-2 text-xs font-medium text-white bg-gradient-to-tr from-[#FEDA75] via-[#D62976] to-[#4F5BD5] hover:brightness-105 px-4 py-2 rounded-full transition-all"
+                >
+                    {copiedFor === "instagram" ? <Check size={13} /> : null}
+                    {copiedFor === "instagram" ? "Caption copied — paste on Instagram" : "Share on Instagram"}
+                </button>
+            </div>
+            <p className="text-[11px] text-[#8A93A6] mt-2.5">
+                Instagram doesn't allow a direct share link from the web — "Share on Instagram" copies a ready caption
+                (with our website, LinkedIn and YouTube tagged) that you can paste into a post or story.
+            </p>
+        </div>
     );
 }
 
@@ -382,6 +471,8 @@ function BlogDetail({ post, loading, lang }) {
                 )}
                 <div className="text-[#2A364B] leading-relaxed whitespace-pre-wrap text-[15px]">{pickBody(post, lang)}</div>
 
+                <ShareSection post={post} lang={lang} />
+
                 {/* Topic-contextual CTA — a SIP article links straight to
                     the SIP calculator, a term-insurance article to a quote
                     link, etc. Shown inline on mobile; the sidebar repeats
@@ -400,7 +491,13 @@ function BlogDetail({ post, loading, lang }) {
                     </a>
                 )}
                 <InvestCTA className="lg:hidden mt-4" />
-                <div className="lg:hidden flex items-center gap-3 mt-6 pt-6 border-t border-[#E2D8C2]">
+                {/* Tablet only (sm-lg) — on phones this collapses into the
+                    fixed floating button below instead, always reachable
+                    without scrolling back to the top of a long article. */}
+                <div className="hidden sm:flex lg:hidden items-center gap-3 mt-6 pt-6 border-t border-[#E2D8C2]">
+                    <ShareButton post={post} lang={lang} />
+                </div>
+                <div className="sm:hidden fixed top-[74px] left-3 z-40">
                     <ShareButton post={post} lang={lang} />
                 </div>
                 {related.length > 0 && (
@@ -516,14 +613,20 @@ export default function PublicBlog() {
                                     Investing, <span className="font-italic-serif text-[#C7102E]">explained simply.</span>
                                 </h1>
                             </div>
-                            <LanguageToggle />
+                            <LanguageToggle className="hidden sm:inline-flex" />
                         </div>
                     )}
                     {contentId && (
-                        <div className="mb-6 flex justify-end">
+                        <div className="mb-6 hidden sm:flex justify-end">
                             <LanguageToggle />
                         </div>
                     )}
+                    {/* Mobile only — the pill row above is hidden below sm:, so on
+                        phones the language switch instead floats fixed just under
+                        the navbar, always reachable without scrolling back up. */}
+                    <div className="sm:hidden fixed top-[74px] right-3 z-40">
+                        <LanguageToggle className="shadow-lg shadow-black/10 scale-90 origin-top-right bg-[#FBF7EE]" />
+                    </div>
                     {contentId ? (
                         <BlogDetail post={detail} loading={loading} lang={lang} />
                     ) : (

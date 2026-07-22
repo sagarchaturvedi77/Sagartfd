@@ -9,3 +9,4 @@ Disallow: /portal/employee
 Disallow: /portal/student
 
 Sitemap: https://thefinancialdoctor.in/sitemap.xml
+Sitemap: https://thefinancialdoctor.in/sitemap-blog.xml
