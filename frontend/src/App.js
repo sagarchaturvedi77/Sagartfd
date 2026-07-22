@@ -1,6 +1,6 @@
 import "./App.css";
-import React, { lazy, Suspense } from "react";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import React, { lazy, Suspense, useEffect } from "react";
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
 import { Toaster } from "sonner";
 import { ModalProvider } from "./context/ModalContext";
 import { LanguageProvider } from "./context/LanguageContext";
@@ -14,6 +14,26 @@ import WebsiteNotificationPrompt from "./components/WebsiteNotificationPrompt";
 import { InternshipAuthProvider } from "./portal/student/InternshipAuthContext";
 import StudentProtectedRoute from "./portal/student/StudentProtectedRoute";
 
+
+// React Router does NOT reset scroll position on navigation the way a full
+// page load does — clicking a footer/nav link that changes the route left
+// the viewport wherever it already was (e.g. still at the footer), forcing
+// a manual scroll-up to see the new page. If the URL carries a hash
+// (`/#about`), scroll to that element instead of the top.
+function ScrollToTop() {
+  const { pathname, hash } = useLocation();
+  useEffect(() => {
+    if (hash) {
+      const el = document.getElementById(hash.slice(1));
+      if (el) {
+        el.scrollIntoView({ behavior: "smooth", block: "start" });
+        return;
+      }
+    }
+    window.scrollTo({ top: 0, left: 0, behavior: "auto" });
+  }, [pathname, hash]);
+  return null;
+}
 
 function RouteLoadingFallback() {
   return (
@@ -39,6 +59,8 @@ function RouteLoadingFallback() {
 const Home = lazy(() => import("./pages/Home"));
 const CareerPage = lazy(() => import("./pages/CareerPage"));
 const AboutPage = lazy(() => import("./pages/AboutPage"));
+const LearnPage = lazy(() => import("./pages/LearnPage"));
+const SearchPage = lazy(() => import("./pages/SearchPage"));
 const CalculatorsPage = lazy(() => import("./pages/CalculatorsPage"));
 const TopFundsPage = lazy(() => import("./pages/TopFundsPage"));
 const ServicesPage = lazy(() => import("./pages/ServicesPage"));
@@ -135,6 +157,7 @@ function App() {
           <InternshipAuthProvider>
           <CallReturnProvider>
             <BrowserRouter>
+              <ScrollToTop />
               <AnalyticsTracker />
               <WebsiteNotificationPrompt />
               <Suspense fallback={<RouteLoadingFallback />}>
@@ -147,6 +170,12 @@ function App() {
 
                 {/* 👤 About TFD Section */}
                 <Route path="/about" element={<AboutPage />} />
+
+                {/* 📘 Financial Education (extracted off the homepage) */}
+                <Route path="/learn" element={<LearnPage />} />
+
+                {/* 🔍 Sitewide FAQ + blog search */}
+                <Route path="/search" element={<SearchPage />} />
 
                 {/* 🧮 Calculators */}
                 <Route path="/calculators" element={<CalculatorsPage />} />
