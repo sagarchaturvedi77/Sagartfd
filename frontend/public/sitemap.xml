@@ -17,6 +17,11 @@
     <priority>0.6</priority>
   </url>
   <url>
+    <loc>https://thefinancialdoctor.in/learn</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+  <url>
     <loc>https://thefinancialdoctor.in/services</loc>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>

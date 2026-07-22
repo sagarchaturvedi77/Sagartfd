@@ -1,64 +1,399 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { ArrowLeft, User, ExternalLink } from "lucide-react";
+import { ArrowLeft, User, ExternalLink, Share2, Check, Search, Linkedin } from "lucide-react";
 import SEO from "@/components/SEO";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import FloatingActions from "@/components/FloatingActions";
+import { useLanguage } from "@/context/LanguageContext";
+import LanguageToggle from "@/components/LanguageToggle";
+import { LINKS } from "@/lib/links";
 
 const API_BASE = process.env.REACT_APP_BACKEND_URL || "";
+const PAGE_SIZE = 9;
+
+// Mirrors backend/internship_content_models.py's ContentTopic + TOPIC_LABELS
+// — kept as a small static list here (rather than fetched) so the category
+// strip renders instantly with zero network round-trip.
+const CATEGORIES = [
+    { key: "sip", label: "SIP" },
+    { key: "lumpsum", label: "Lumpsum" },
+    { key: "swp", label: "SWP" },
+    { key: "financial_planning", label: "Financial Planning" },
+    { key: "term_insurance", label: "Term Insurance" },
+    { key: "health_insurance", label: "Health Insurance" },
+    { key: "elss_tax_saving", label: "ELSS / Tax Saving" },
+    { key: "retirement_planning", label: "Retirement" },
+    { key: "general_investing", label: "General Investing" },
+    { key: "awareness", label: "Market History & Awareness" },
+    { key: "brand_comparison", label: "Why TFD" },
+];
+
+// Friendly, action-oriented CTA text per topic — pairs with each post's
+// product_link (already topic-mapped server-side via TOPIC_PRODUCT_LINKS)
+// so a SIP article links to "Start a SIP Calculator", not a generic
+// "Learn More". Falls back to a generic label for any topic not listed.
+const CTA_LABELS = {
+    sip: "Try the SIP Calculator",
+    lumpsum: "Try the Lumpsum Calculator",
+    swp: "Try the SWP Calculator",
+    financial_planning: "Explore Our Services",
+    term_insurance: "Get a Term Insurance Quote",
+    health_insurance: "Compare Health Plans",
+    elss_tax_saving: "Try the Tax Calculator",
+    retirement_planning: "Try the Goal Calculator",
+    general_investing: "Explore Top Funds",
+    awareness: "See Live Fund Data",
+    brand_comparison: "Meet The Financial Doctor",
+};
+
+// Attractive, brand-consistent image used when a blog link is shared — this
+// is a real photo (not a placeholder), set dynamically per SEO.jsx. Note:
+// WhatsApp/Facebook preview bots don't execute JS (documented in SEO.jsx),
+// so this only shows up for crawlers that do run JS (Google, some others);
+// true per-post WhatsApp preview images need server-side rendering, which
+// this SPA doesn't have yet.
+const SHARE_IMAGE = "https://thefinancialdoctor.in/assets/founder/sagar-photo.webp";
 
 function formatDate(iso) {
     if (!iso) return "";
     return new Date(iso).toLocaleDateString("en-IN", { day: "numeric", month: "long", year: "numeric" });
 }
 
-function BlogList({ posts, loading }) {
+// English fields (title_en/body_en) only exist when lang === "en" AND the
+// post actually has them populated; every other state (hi, hinglish, or a
+// post missing its English version) falls back to the original title/body,
+// which is the Hinglish version already live on the site.
+function pickTitle(post, lang) {
+    if (lang === "en" && post.title_en) return post.title_en;
+    return post.title;
+}
+function pickBody(post, lang) {
+    if (lang === "en" && post.body_en) return post.body_en;
+    return post.body;
+}
+
+function ShareButton({ post, lang }) {
+    const [copied, setCopied] = useState(false);
+    const share = async () => {
+        const url = `${window.location.origin}/blog/${post.id}`;
+        const title = pickTitle(post, lang);
+        if (navigator.share) {
+            try {
+                await navigator.share({ title, url });
+                return;
+            } catch {
+                // user cancelled the native share sheet — fall through to copy
+            }
+        }
+        try {
+            await navigator.clipboard.writeText(url);
+            setCopied(true);
+            setTimeout(() => setCopied(false), 2000);
+        } catch {
+            // clipboard blocked — nothing more we can do silently
+        }
+    };
     return (
-        <div className="grid sm:grid-cols-2 gap-5">
-            {loading && <p className="text-[#5C677D] text-sm col-span-2">Loading articles...</p>}
-            {!loading && posts.length === 0 && (
-                <p className="text-[#5C677D] text-sm col-span-2">No articles published yet — check back soon.</p>
-            )}
-            {posts.map((p) => (
-                <a key={p.id} href={`/blog/${p.id}`} className="card-cream p-5 flex flex-col hover:bg-[#F6F1E8] transition-colors">
-                    <span className="text-[10px] uppercase tracking-[0.16em] text-[#024396] font-semibold mb-2">{p.topic_label}</span>
-                    <h2 className="font-display text-lg text-[#0E1B2C] leading-snug mb-2">{p.title}</h2>
-                    <p className="text-sm text-[#2A364B]/70 leading-relaxed line-clamp-3 flex-1">{p.body}</p>
-                    <div className="flex items-center justify-between mt-4 pt-3 border-t border-[#E2D8C2] text-xs text-[#5C677D]">
-                        <span className="flex items-center gap-1"><User size={11} /> {p.author_name}</span>
-                        <span>{formatDate(p.published_at)}</span>
-                    </div>
-                </a>
-            ))}
-        </div>
+        <button
+            onClick={share}
+            className="inline-flex items-center gap-1.5 text-xs font-medium text-[#0E1B2C] bg-[#F6F1E8] hover:bg-white border border-[#E2D8C2] px-3 py-1.5 rounded-full transition-colors"
+            data-testid="blog-share"
+        >
+            {copied ? <Check size={13} className="text-[#0F6E5C]" /> : <Share2 size={13} />}
+            {copied ? "Link copied" : "Share"}
+        </button>
     );
 }
 
-function BlogDetail({ post, loading }) {
+function BlogCard({ p, lang }) {
+    return (
+        <a href={`/blog/${p.id}`} className="card-cream p-4 flex flex-col hover:bg-[#F6F1E8] transition-colors">
+            <span className="text-[10px] uppercase tracking-[0.16em] text-[#024396] font-semibold mb-1.5">{p.topic_label}</span>
+            <h2 className="font-display text-[15px] text-[#0E1B2C] leading-snug mb-1.5 line-clamp-2">{pickTitle(p, lang)}</h2>
+            <p className="text-[13px] text-[#2A364B]/70 leading-relaxed line-clamp-2 flex-1">{pickBody(p, lang)}</p>
+            <div className="flex items-center justify-between mt-3 pt-2.5 border-t border-[#E2D8C2] text-[11px] text-[#5C677D]">
+                <span className="flex items-center gap-1"><User size={10} /> {p.author_name}</span>
+                <span>{formatDate(p.published_at)}</span>
+            </div>
+        </a>
+    );
+}
+
+function BlogList({ posts, loading, lang, category, onCategoryChange, page, onPageChange, query, onQueryChange }) {
+    const terms = query.trim().toLowerCase().split(/\s+/).filter(Boolean);
+    const filtered = useMemo(() => {
+        if (!terms.length) return posts;
+        return posts.filter((p) => {
+            const hay = `${pickTitle(p, lang)} ${pickBody(p, lang)}`.toLowerCase();
+            return terms.every((t) => hay.includes(t));
+        });
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [posts, query, lang]);
+
+    // Only page 0 (no search) gets a featured hero card — this is deliberately
+    // structured (featured + compact grid) instead of one long uniform list,
+    // so the page reads as a magazine front page rather than an endless
+    // scroll, and each page of results stays short.
+    const showFeatured = page === 0 && !terms.length && filtered.length > 0;
+    const featured = showFeatured ? filtered[0] : null;
+    const rest = showFeatured ? filtered.slice(1) : filtered;
+
+    const totalPages = Math.max(1, Math.ceil(rest.length / PAGE_SIZE));
+    const pageItems = useMemo(
+        () => rest.slice(page * PAGE_SIZE, page * PAGE_SIZE + PAGE_SIZE),
+        [rest, page]
+    );
+
+    return (
+        <>
+            <div className="relative max-w-md mb-6">
+                <div className="absolute left-4 top-1/2 -translate-y-1/2 text-[#5C677D]">
+                    <Search size={16} />
+                </div>
+                <input
+                    value={query}
+                    onChange={(e) => onQueryChange(e.target.value)}
+                    placeholder="Search articles — e.g. SIP, term insurance, market crash..."
+                    className="w-full bg-[#FBF7EE] border border-[#E2D8C2] rounded-full pl-11 pr-4 py-2.5 text-sm text-[#0E1B2C] placeholder:text-[#8A93A6] focus:border-[#024396]"
+                    data-testid="blog-search"
+                />
+            </div>
+
+            {/* Category strip — picking one fetches only that category's
+                posts from the backend instead of loading everything at
+                once, keeping the page light as the article count grows. */}
+            <div className="flex flex-wrap gap-2 mb-8">
+                <button
+                    onClick={() => onCategoryChange("all")}
+                    className={`px-3.5 py-1.5 rounded-full text-xs border transition-colors ${
+                        category === "all" ? "bg-[#0E1B2C] border-[#0E1B2C] text-white" : "bg-white border-[#E2D8C2] text-[#2A364B] hover:border-[#024396]/40"
+                    }`}
+                >
+                    All
+                </button>
+                {CATEGORIES.map((c) => (
+                    <button
+                        key={c.key}
+                        onClick={() => onCategoryChange(c.key)}
+                        className={`px-3.5 py-1.5 rounded-full text-xs border transition-colors ${
+                            category === c.key ? "bg-[#0E1B2C] border-[#0E1B2C] text-white" : "bg-white border-[#E2D8C2] text-[#2A364B] hover:border-[#024396]/40"
+                        }`}
+                    >
+                        {c.label}
+                    </button>
+                ))}
+            </div>
+
+            {loading && (
+                <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5" aria-hidden>
+                    {Array.from({ length: 6 }).map((_, i) => (
+                        <div key={i} className="rounded-2xl border border-[#E2D8C2] bg-[#FBF7EE] p-5 h-[180px] animate-pulse" />
+                    ))}
+                </div>
+            )}
+
+            {!loading && featured && (
+                <a
+                    href={`/blog/${featured.id}`}
+                    className="block card-cream p-6 sm:p-8 mb-5 hover:bg-[#F6F1E8] transition-colors border-l-4 border-[#C7102E]"
+                >
+                    <span className="text-[10px] uppercase tracking-[0.18em] text-[#C7102E] font-semibold">Latest · {featured.topic_label}</span>
+                    <h2 className="font-display text-xl sm:text-2xl text-[#0E1B2C] leading-snug mt-2 mb-3 max-w-2xl">{pickTitle(featured, lang)}</h2>
+                    <p className="text-sm text-[#2A364B]/75 leading-relaxed line-clamp-2 max-w-2xl">{pickBody(featured, lang)}</p>
+                    <div className="flex items-center gap-2 mt-4 text-xs text-[#5C677D]">
+                        <User size={11} /> {featured.author_name} <span>&middot;</span> {formatDate(featured.published_at)}
+                    </div>
+                </a>
+            )}
+
+            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
+                {!loading && filtered.length === 0 && (
+                    <p className="text-[#5C677D] text-sm col-span-full">
+                        {terms.length ? `No articles match "${query}".` : "No articles in this category yet — check back soon."}
+                    </p>
+                )}
+                {!loading && pageItems.map((p) => <BlogCard key={p.id} p={p} lang={lang} />)}
+            </div>
+
+            {!loading && totalPages > 1 && (
+                <div className="flex items-center justify-center gap-4 mt-8">
+                    <button
+                        onClick={() => onPageChange(Math.max(0, page - 1))}
+                        disabled={page === 0}
+                        className="px-4 py-2 rounded-full border border-[#E2D8C2] text-xs text-[#0E1B2C] disabled:opacity-30 hover:border-[#024396] transition-colors"
+                    >
+                        Previous
+                    </button>
+                    <span className="text-xs text-[#5C677D] tabular-nums">Page {page + 1} of {totalPages}</span>
+                    <button
+                        onClick={() => onPageChange(Math.min(totalPages - 1, page + 1))}
+                        disabled={page >= totalPages - 1}
+                        className="px-4 py-2 rounded-full border border-[#E2D8C2] text-xs text-[#0E1B2C] disabled:opacity-30 hover:border-[#024396] transition-colors"
+                    >
+                        Next
+                    </button>
+                </div>
+            )}
+        </>
+    );
+}
+
+const SITE_URL = "https://thefinancialdoctor.in";
+
+// BlogPosting structured data (JSON-LD) for the article detail view only --
+// same dynamic head-tag injection pattern as SEO.jsx / FAQSection.jsx
+// (plain DOM mutation on mount/update, no react-helmet dependency).
+function useBlogPostingSchema(post, lang) {
+    useEffect(() => {
+        if (!post) return undefined;
+
+        const title = pickTitle(post, lang);
+        const body = pickBody(post, lang);
+        const description = post.meta_description || (body ? `${body.slice(0, 152)}...` : "");
+        const url = `${SITE_URL}/blog/${post.id}`;
+
+        const script = document.createElement("script");
+        script.type = "application/ld+json";
+        script.text = JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "BlogPosting",
+            headline: title,
+            description,
+            author: {
+                "@type": "Person",
+                name: "Sagar Chaturvedi",
+            },
+            datePublished: post.published_at,
+            publisher: {
+                "@type": "Organization",
+                name: "The Financial Doctor",
+                logo: {
+                    "@type": "ImageObject",
+                    url: `${SITE_URL}/assets/logos/TFD-MAIN-LOGO.webp`,
+                },
+            },
+            mainEntityOfPage: {
+                "@type": "WebPage",
+                "@id": url,
+            },
+        });
+        document.head.appendChild(script);
+
+        return () => {
+            document.head.removeChild(script);
+        };
+    }, [post, lang]);
+}
+
+// Fetches a few other posts from the same topic (excluding the current
+// one) for the "Related Articles" strip — a lightweight, topic-scoped
+// fetch rather than pulling the whole blog list just to filter client-side.
+function useRelatedPosts(post) {
+    const [related, setRelated] = useState([]);
+    useEffect(() => {
+        if (!post?.topic) {
+            setRelated([]);
+            return undefined;
+        }
+        let cancelled = false;
+        fetch(`${API_BASE}/api/internship/public/content?content_type=blog&topic=${post.topic}&limit=6`)
+            .then((r) => (r.ok ? r.json() : []))
+            .then((d) => {
+                if (cancelled) return;
+                setRelated((Array.isArray(d) ? d : []).filter((p) => p.id !== post.id).slice(0, 3));
+            })
+            .catch(() => !cancelled && setRelated([]));
+        return () => {
+            cancelled = true;
+        };
+    }, [post?.id, post?.topic]);
+    return related;
+}
+
+function BlogDetail({ post, loading, lang }) {
     const navigate = useNavigate();
+    useBlogPostingSchema(post, lang);
+    const related = useRelatedPosts(post);
     if (loading) return <p className="text-[#5C677D] text-sm">Loading...</p>;
     if (!post) return <p className="text-[#5C677D] text-sm">This article isn't available.</p>;
     return (
         <article className="max-w-2xl mx-auto">
-            <button onClick={() => navigate("/blog")} className="flex items-center gap-1.5 text-xs font-semibold text-[#5C677D] hover:text-[#0E1B2C] mb-6">
-                <ArrowLeft size={14} /> All Articles
-            </button>
+            <div className="flex items-center justify-between mb-6">
+                <button onClick={() => navigate("/blog")} className="flex items-center gap-1.5 text-xs font-semibold text-[#5C677D] hover:text-[#0E1B2C]">
+                    <ArrowLeft size={14} /> All Articles
+                </button>
+                <ShareButton post={post} lang={lang} />
+            </div>
             <span className="text-[11px] uppercase tracking-[0.16em] text-[#024396] font-semibold">{post.topic_label}</span>
-            <h1 className="font-display text-2xl sm:text-3xl text-[#0E1B2C] mt-2 mb-4 leading-snug">{post.title}</h1>
+            <h1 className="font-display text-2xl sm:text-3xl text-[#0E1B2C] mt-2 mb-4 leading-snug">{pickTitle(post, lang)}</h1>
             <div className="flex items-center gap-3 text-xs text-[#5C677D] mb-6 pb-6 border-b border-[#E2D8C2]">
                 <span className="flex items-center gap-1"><User size={12} /> {post.author_name}</span>
+                {post.author_name === "Sagar Chaturvedi" && (
+                    <a
+                        href={LINKS.linkedin}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-1 text-[#0A66C2] hover:underline"
+                        aria-label="Sagar Chaturvedi on LinkedIn"
+                    >
+                        <Linkedin size={12} /> LinkedIn
+                    </a>
+                )}
                 <span>&middot;</span>
                 <span>{formatDate(post.published_at)}</span>
             </div>
-            <div className="text-[#2A364B] leading-relaxed whitespace-pre-wrap text-[15px]">{post.body}</div>
+            {Array.isArray(post.hashtags) && post.hashtags.length > 0 && (
+                <div className="flex flex-wrap gap-2 mb-6 -mt-2">
+                    {post.hashtags.map((tag) => (
+                        <span
+                            key={tag}
+                            className="text-[11px] font-medium text-[#024396] bg-[#024396]/8 px-2.5 py-1 rounded-full"
+                        >
+                            {tag}
+                        </span>
+                    ))}
+                </div>
+            )}
+            <div className="text-[#2A364B] leading-relaxed whitespace-pre-wrap text-[15px]">{pickBody(post, lang)}</div>
+
+            {/* Topic-contextual CTA — a SIP article links straight to the
+                SIP calculator, a term-insurance article to a quote link,
+                etc. (server-side topic → link mapping, just given a
+                friendlier, action-oriented label here). */}
             {post.product_link && (
                 <a
                     href={post.product_link}
-                    className="inline-flex items-center gap-1.5 mt-8 bg-[#024396] text-white px-5 py-2.5 rounded-full text-sm font-medium hover:bg-[#0356c4] transition-colors"
+                    className="flex items-center justify-between gap-3 mt-8 bg-[#0E1B2C] text-white px-6 py-4 rounded-2xl hover:bg-[#1a2a3f] transition-colors"
                 >
-                    Learn More <ExternalLink size={14} />
+                    <span>
+                        <span className="block text-[10px] uppercase tracking-[0.18em] text-[#D8B98A]">Ready to act on this?</span>
+                        <span className="font-display text-base mt-0.5 block">{CTA_LABELS[post.topic] || "Explore The Financial Doctor"}</span>
+                    </span>
+                    <ExternalLink size={18} className="shrink-0" />
                 </a>
+            )}
+
+            <div className="flex items-center gap-3 mt-6 pt-6 border-t border-[#E2D8C2]">
+                <ShareButton post={post} lang={lang} />
+            </div>
+
+            {related.length > 0 && (
+                <div className="mt-10 pt-8 border-t border-[#E2D8C2]">
+                    <div className="text-[11px] uppercase tracking-[0.18em] text-[#5C677D] font-semibold mb-4">Related Articles</div>
+                    <div className="grid sm:grid-cols-3 gap-3">
+                        {related.map((r) => (
+                            <a
+                                key={r.id}
+                                href={`/blog/${r.id}`}
+                                className="card-cream p-4 hover:bg-[#F6F1E8] transition-colors"
+                            >
+                                <span className="text-[9px] uppercase tracking-[0.16em] text-[#024396] font-semibold">{r.topic_label}</span>
+                                <div className="font-display text-sm text-[#0E1B2C] leading-snug mt-1.5 line-clamp-3">{pickTitle(r, lang)}</div>
+                            </a>
+                        ))}
+                    </div>
+                </div>
             )}
         </article>
     );
@@ -66,46 +401,87 @@ function BlogDetail({ post, loading }) {
 
 export default function PublicBlog() {
     const { contentId } = useParams();
+    const { lang } = useLanguage();
     const [posts, setPosts] = useState([]);
     const [detail, setDetail] = useState(null);
     const [loading, setLoading] = useState(true);
+    const [category, setCategory] = useState("all");
+    const [page, setPage] = useState(0);
+    const [query, setQuery] = useState("");
+
+    const onQueryChange = (v) => {
+        setQuery(v);
+        setPage(0);
+    };
 
     useEffect(() => {
-        setLoading(true);
         if (contentId) {
+            setLoading(true);
             fetch(`${API_BASE}/api/internship/public/content/${contentId}`)
                 .then((r) => (r.ok ? r.json() : null))
                 .then(setDetail)
                 .catch(() => setDetail(null))
                 .finally(() => setLoading(false));
-        } else {
-            fetch(`${API_BASE}/api/internship/public/content?content_type=blog&limit=30`)
-                .then((r) => (r.ok ? r.json() : []))
-                .then((d) => setPosts(Array.isArray(d) ? d : []))
-                .catch(() => setPosts([]))
-                .finally(() => setLoading(false));
         }
     }, [contentId]);
+
+    // Re-fetches only the selected category's posts — the "load less at
+    // once" behaviour: switching category never pulls the full article set
+    // into memory/DOM at the same time.
+    useEffect(() => {
+        if (contentId) return undefined;
+        setLoading(true);
+        setPage(0);
+        const topicParam = category === "all" ? "" : `&topic=${category}`;
+        fetch(`${API_BASE}/api/internship/public/content?content_type=blog&limit=200${topicParam}`)
+            .then((r) => (r.ok ? r.json() : []))
+            .then((d) => setPosts(Array.isArray(d) ? d : []))
+            .catch(() => setPosts([]))
+            .finally(() => setLoading(false));
+    }, [contentId, category]);
 
     return (
         <div className="relative">
             <SEO
-                title={contentId ? (detail ? `${detail.title} | The Financial Doctor` : "Article | The Financial Doctor") : "Blog — Mutual Funds, SIP & Financial Planning | The Financial Doctor"}
-                description="Practical guides on SIP, lumpsum, SWP, tax-saving, and financial planning — written and reviewed for The Financial Doctor's investors."
+                title={contentId ? (detail ? `${pickTitle(detail, lang)} | The Financial Doctor` : "Article | The Financial Doctor") : "Blog — Mutual Funds, SIP & Financial Planning | The Financial Doctor"}
+                description={contentId ? ((detail && detail.meta_description) || "Practical guides on SIP, lumpsum, SWP, tax-saving, and financial planning — written and reviewed for The Financial Doctor's investors.") : "Practical guides on SIP, lumpsum, SWP, tax-saving, and financial planning — written and reviewed for The Financial Doctor's investors."}
                 path={contentId ? `/blog/${contentId}` : "/blog"}
+                ogImage={contentId ? SHARE_IMAGE : undefined}
             />
             <Navbar />
             <main className="pt-24 section">
                 <div className="container-x">
                     {!contentId && (
-                        <div className="mb-8">
-                            <div className="eyebrow">Learn</div>
-                            <h1 className="h2 mt-3 text-[#0E1B2C]">
-                                Investing, <span className="font-italic-serif text-[#C7102E]">explained simply.</span>
-                            </h1>
+                        <div className="mb-8 flex flex-wrap items-end justify-between gap-4">
+                            <div>
+                                <div className="eyebrow">Learn</div>
+                                <h1 className="h2 mt-3 text-[#0E1B2C]">
+                                    Investing, <span className="font-italic-serif text-[#C7102E]">explained simply.</span>
+                                </h1>
+                            </div>
+                            <LanguageToggle />
                         </div>
                     )}
-                    {contentId ? <BlogDetail post={detail} loading={loading} /> : <BlogList posts={posts} loading={loading} />}
+                    {contentId && (
+                        <div className="mb-6 flex justify-end">
+                            <LanguageToggle />
+                        </div>
+                    )}
+                    {contentId ? (
+                        <BlogDetail post={detail} loading={loading} lang={lang} />
+                    ) : (
+                        <BlogList
+                            posts={posts}
+                            loading={loading}
+                            lang={lang}
+                            category={category}
+                            onCategoryChange={setCategory}
+                            page={page}
+                            onPageChange={setPage}
+                            query={query}
+                            onQueryChange={onQueryChange}
+                        />
+                    )}
                 </div>
             </main>
             <Footer />
