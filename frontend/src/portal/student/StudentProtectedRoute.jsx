@@ -4,7 +4,7 @@ import { useInternshipAuth } from "./InternshipAuthContext";
 
 // Mirrors components/ProtectedRoute.jsx's shape but checks the separate
 // InternshipAuthContext — the internship program's login has no relation
-// to TFD Workspace staff/employee auth.
+// to TFD WorkSpace staff/employee auth.
 //
 // Onboarding gate: once payment is confirmed, a student must complete the
 // one-time KYC + agreement-signing step (StudentOnboarding.jsx) before

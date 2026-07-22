@@ -25,7 +25,7 @@ export default function WelcomeAnimation({ userName, onComplete }) {
         >
           <img
             src="/assets/logos/TFD-WORKSPACE-LOGO.webp"
-            alt="TFD Workspace"
+            alt="TFD WorkSpace"
             width={700}
             height={482}
             className="h-32 sm:h-40 mx-auto object-contain drop-shadow-2xl"
@@ -37,7 +37,7 @@ export default function WelcomeAnimation({ userName, onComplete }) {
           className={`mt-8 transition-all duration-700 ease-out delay-200 ${phase >= 1 ? "opacity-100 translate-y-0" : "opacity-0 translate-y-6"}`}
         >
           <h1 className="text-2xl sm:text-3xl font-bold text-white tracking-wide">
-            Welcome to <span className="text-[#2563EB]">TFD Workspace</span>
+            Welcome to <span className="text-[#2563EB]">TFD WorkSpace</span>
           </h1>
           {userName && (
             <p className="mt-3 text-lg text-white/70 font-medium">

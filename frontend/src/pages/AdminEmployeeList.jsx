@@ -158,7 +158,7 @@ export default function AdminEmployeeList() {
   });
 
   const shareCredsText = () => createdCreds
-    ? `TFD Workspace — Welcome ${createdCreds.name}!\n\nUser ID: ${createdCreds.phone}\nPassword: ${createdCreds.password}\n\nLogin here: https://thefinancialdoctor.in/portal/login`
+    ? `TFD WorkSpace — Welcome ${createdCreds.name}!\n\nUser ID: ${createdCreds.phone}\nPassword: ${createdCreds.password}\n\nLogin here: https://thefinancialdoctor.in/portal/login`
     : "";
 
   const shareViaWhatsApp = () => {

@@ -82,22 +82,36 @@ function shareUrlFor(post, lang) {
     return lang === "en" ? `${base}?lang=en` : base;
 }
 
-// A short, human hook line + brand handles appended to every shared caption
-// — this is what makes a forwarded WhatsApp message or a pasted Instagram
-// caption carry TFD's name/socials even when the platform's own link-
-// preview card doesn't render (group chats, stories, etc.).
-function shareCaption(post, lang, url) {
+// WhatsApp gets a deliberately minimal caption — title + link only. The
+// link-preview card (photo, headline, site name) already comes from the
+// og: tags functions/blog/[id].js serves to WhatsApp's crawler, so a long
+// caption stacked underneath just duplicated the title and pushed the
+// actual link (and its preview) further down the message.
+function shareCaptionMinimal(post, lang, url) {
+    return `${pickTitle(post, lang)}\n${url}`;
+}
+
+// Telegram and the Instagram copy-caption flow both get the fuller
+// caption: hashtags, keywords and our handles spelled out, since neither
+// surfaces them automatically the way WhatsApp/LinkedIn's link-preview
+// card does. `includeUrl` is false for Telegram specifically — its share
+// intent takes the link as its own separate `url` param and generates its
+// own preview from that, so repeating the raw URL inside the caption text
+// would just show it twice in the composed message.
+function shareCaptionRich(post, lang, url, includeUrl = true) {
     const title = pickTitle(post, lang);
+    const tags = Array.isArray(post.hashtags) && post.hashtags.length ? post.hashtags.join(" ") : "";
     return [
         title,
         "",
-        "— The Financial Doctor | Sagar Chaturvedi (AMFI ARN-290298)",
-        url,
+        "— The Financial Doctor | Sagar Chaturvedi (AMFI Registered, ARN-290298)",
+        includeUrl ? url : null,
+        tags,
         "",
         `Instagram: ${LINKS.instagram}`,
         `LinkedIn: ${LINKS.linkedin}`,
         `YouTube: ${LINKS.youtube}`,
-    ].join("\n");
+    ].filter(Boolean).join("\n");
 }
 
 function ShareButton({ post, lang }) {
@@ -107,7 +121,7 @@ function ShareButton({ post, lang }) {
         const title = pickTitle(post, lang);
         if (navigator.share) {
             try {
-                await navigator.share({ title, text: shareCaption(post, lang, url), url });
+                await navigator.share({ title, url });
                 return;
             } catch {
                 // user cancelled the native share sheet — fall through to copy
@@ -134,9 +148,15 @@ function ShareButton({ post, lang }) {
 }
 
 // Dedicated "share this article" block with one button per platform.
-// LinkedIn's official share intent only accepts a `url` param and scrapes
-// the page's own OG tags for the preview card — which is exactly what the
-// Cloudflare Function now provides, so no extra params needed there.
+//
+// LinkedIn's official `share-offsite` intent has become unreliable for
+// logged-in web sessions — tested live and confirmed it drops the user
+// into a blank "start a post" composer without the URL attached at all,
+// a known issue with that endpoint rather than anything on our end. So
+// this copies the link to the clipboard FIRST (same pattern as the
+// Instagram button below) and THEN opens LinkedIn, so the post still
+// works by pasting even when LinkedIn's autofill doesn't fire.
+//
 // Instagram has no public web share-intent at all (deliberate platform
 // restriction, same category of hard limitation as GBP's missing Q&A
 // write-API) — so instead of faking a broken "share" link, this copies a
@@ -144,14 +164,28 @@ function ShareButton({ post, lang }) {
 function ShareSection({ post, lang }) {
     const [copiedFor, setCopiedFor] = useState(null);
     const url = shareUrlFor(post, lang);
-    const caption = shareCaption(post, lang, url);
+    const minimalCaption = shareCaptionMinimal(post, lang, url);
+    const richCaption = shareCaptionRich(post, lang, url);
 
-    const whatsappHref = `https://wa.me/?text=${encodeURIComponent(caption)}`;
+    const whatsappHref = `https://wa.me/?text=${encodeURIComponent(minimalCaption)}`;
+    const telegramCaption = shareCaptionRich(post, lang, url, false);
+    const telegramHref = `https://t.me/share/url?url=${encodeURIComponent(url)}&text=${encodeURIComponent(telegramCaption)}`;
     const linkedinHref = `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(url)}`;
+
+    const copyThenOpen = async (text, key, href) => {
+        try {
+            await navigator.clipboard.writeText(text);
+            setCopiedFor(key);
+            setTimeout(() => setCopiedFor(null), 2500);
+        } catch {
+            // clipboard blocked — still open the share window below
+        }
+        window.open(href, "_blank", "noopener,noreferrer");
+    };
 
     const copyForInstagram = async () => {
         try {
-            await navigator.clipboard.writeText(caption);
+            await navigator.clipboard.writeText(richCaption);
             setCopiedFor("instagram");
             setTimeout(() => setCopiedFor(null), 2500);
         } catch {
@@ -172,13 +206,23 @@ function ShareSection({ post, lang }) {
                     Share on WhatsApp
                 </a>
                 <a
-                    href={linkedinHref}
+                    href={telegramHref}
                     target="_blank"
                     rel="noopener noreferrer"
+                    className="inline-flex items-center gap-2 text-xs font-medium text-white bg-[#26A5E4] hover:brightness-105 px-4 py-2 rounded-full transition-all"
+                >
+                    Share on Telegram
+                </a>
+                <button
+                    onClick={(e) => {
+                        e.preventDefault();
+                        copyThenOpen(url, "linkedin", linkedinHref);
+                    }}
                     className="inline-flex items-center gap-2 text-xs font-medium text-white bg-[#0A66C2] hover:brightness-110 px-4 py-2 rounded-full transition-all"
                 >
-                    <Linkedin size={13} /> Share on LinkedIn
-                </a>
+                    {copiedFor === "linkedin" ? <Check size={13} /> : <Linkedin size={13} />}
+                    {copiedFor === "linkedin" ? "Link copied — paste it into the post" : "Share on LinkedIn"}
+                </button>
                 <button
                     onClick={copyForInstagram}
                     className="inline-flex items-center gap-2 text-xs font-medium text-white bg-gradient-to-tr from-[#FEDA75] via-[#D62976] to-[#4F5BD5] hover:brightness-105 px-4 py-2 rounded-full transition-all"
@@ -188,8 +232,10 @@ function ShareSection({ post, lang }) {
                 </button>
             </div>
             <p className="text-[11px] text-[#8A93A6] mt-2.5">
-                Instagram doesn't allow a direct share link from the web — "Share on Instagram" copies a ready caption
-                (with our website, LinkedIn and YouTube tagged) that you can paste into a post or story.
+                LinkedIn's own share window doesn't reliably attach the link anymore, so "Share on LinkedIn" copies it
+                first — paste (Ctrl/Cmd+V) into the post box if it opens blank. Instagram doesn't allow a direct share
+                link from the web at all — "Share on Instagram" copies a ready caption (with our website, LinkedIn and
+                YouTube tagged) to paste into a post or story instead.
             </p>
         </div>
     );

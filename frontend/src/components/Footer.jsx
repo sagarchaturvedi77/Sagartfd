@@ -13,24 +13,14 @@ export default function Footer() {
         <footer className="bg-[#0E1B2C] text-[#F6F1E8]/80">
             <div className="container-x px-6 py-14 grid md:grid-cols-4 gap-10">
                 <div>
-                    <div className="flex items-center gap-3">
-                        <img
-                            src={LOGO_URL}
-                            alt="The Financial Doctor"
-                            className="h-14 w-auto object-contain bg-[#F6F1E8] rounded-lg p-1.5"
-                            width={900}
-                            height={235}
-                            loading="lazy"
-                        />
-                        <div>
-                            <div className="font-display text-[#F6F1E8] text-lg leading-none">
-                                The Financial Doctor
-                            </div>
-                            <div className="text-[10px] tracking-[0.2em] uppercase text-[#F6F1E8]/60">
-                                ARN-290298 · Sehore, MP
-                            </div>
-                        </div>
-                    </div>
+                    <img
+                        src={LOGO_URL}
+                        alt="The Financial Doctor"
+                        className="h-14 w-auto object-contain bg-[#F6F1E8] rounded-lg p-1.5"
+                        width={900}
+                        height={235}
+                        loading="lazy"
+                    />
                     <p className="text-sm mt-5 leading-relaxed max-w-sm">
                         Personalised mutual fund advisory and insurance, led by Sagar Chaturvedi.
                         Empowering 1000+ families across Madhya Pradesh with goal-based planning.
@@ -103,11 +93,6 @@ export default function Footer() {
                         <ShieldCheck size={14} className="text-[#C7102E]" /> Verify Certificate / Employee
                     </a>
 
-                    <div className="flex gap-2.5 mt-5">
-                        <FooterLogoBox href="/partner-with-us" src={PARTNER_LOGO_URL} label="TFD Partner" />
-                        <FooterLogoBox href="/portal/login" src={WORKSPACE_LOGO_URL} label="TFD Workspace" />
-                        <FooterLogoBox href="/internship" src={INTERNSHIP_LOGO_URL} label="TFD Internship — New Portal" />
-                    </div>
                 </div>
 
                 <div>
@@ -123,6 +108,22 @@ export default function Footer() {
                 </div>
             </div>
 
+            {/* Platform showcase — its own full-width strip below the
+                disclaimer, not squeezed into a grid column, so each logo
+                can run bigger with its name clearly labelled underneath. */}
+            <div className="border-t border-[#2A364B]">
+                <div className="container-x px-6 py-8">
+                    <div className="text-[11px] tracking-[0.2em] uppercase text-[#C7102E] font-semibold mb-5 text-center md:text-left">
+                        Our Platforms
+                    </div>
+                    <div className="flex flex-wrap items-start gap-8 justify-center md:justify-start">
+                        <FooterLogoBox href="/partner-with-us" src={PARTNER_LOGO_URL} name="TFD Partner" label="TFD PartnerHub" />
+                        <FooterLogoBox href="/portal/login" src={WORKSPACE_LOGO_URL} name="TFD WorkSpace" label="TFD WorkSpace — staff portal" />
+                        <FooterLogoBox href="/internship" src={INTERNSHIP_LOGO_URL} name="TFD Internship" label="TFD Internship — student portal" />
+                    </div>
+                </div>
+            </div>
+
             <div className="border-t border-[#2A364B] py-5 text-center text-xs text-[#F6F1E8]/50">
                 © {new Date().getFullYear()} The Financial Doctor. Built with care in Sehore, MP.
             </div>
@@ -130,15 +131,18 @@ export default function Footer() {
     );
 }
 
-function FooterLogoBox({ href, src, label }) {
+function FooterLogoBox({ href, src, name, label }) {
     return (
         <Link
             to={href}
             title={label}
             aria-label={label}
-            className="w-14 h-14 rounded-lg bg-[#F6F1E8] border border-[#2A364B] flex items-center justify-center p-1.5 hover:border-[#C7102E] transition-colors shrink-0"
+            className="flex flex-col items-center gap-2 group shrink-0"
         >
-            <img src={src} alt={label} className="w-full h-full object-contain" />
+            <span className="w-24 h-24 rounded-xl bg-[#F6F1E8] border border-[#2A364B] flex items-center justify-center p-3 group-hover:border-[#C7102E] group-hover:scale-105 transition-all">
+                <img src={src} alt={name} className="w-full h-full object-contain" />
+            </span>
+            <span className="text-xs font-medium text-[#F6F1E8]/80 group-hover:text-[#F6F1E8]">{name}</span>
         </Link>
     );
 }

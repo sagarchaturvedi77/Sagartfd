@@ -36,7 +36,7 @@ export default function BirthdayBanner() {
         <div className="text-5xl mb-3">🎉🎂🎉</div>
         <h2 className="text-xl font-serif text-[#0E1B2C] dark:text-[#F1EDE3] mb-2">Happy Birthday, {user.name}!</h2>
         <p className="text-sm text-[#2A364B]/70 dark:text-[#8E99AC]">
-          Poori TFD Workspace team ki taraf se aapko dher saari shubhkamnayein! Aapka din shandaar ho.
+          Poori TFD WorkSpace team ki taraf se aapko dher saari shubhkamnayein! Aapka din shandaar ho.
         </p>
         <Button onClick={dismiss} className="mt-5 w-full bg-gradient-to-r from-[#024396] to-[#0356c4]">
           Thank You! 🎈

@@ -12,7 +12,7 @@ const API_BASE = process.env.REACT_APP_BACKEND_URL || "";
 // Same-origin asset — the external CDN URL previously here sends no CORS
 // headers, so the crossOrigin="anonymous" the <img> tags need for
 // html2canvas PDF capture caused the browser to silently refuse to load it.
-// The main TFD logo (not the "TFD Workspace" staff-portal branding) is what
+// The main TFD logo (not the "TFD WorkSpace" staff-portal branding) is what
 // belongs on an ID/visiting card that clients and the public will see.
 const LOGO_URL = "/assets/logos/TFD-MAIN-LOGO.png";
 const QR_BASE = "https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=";

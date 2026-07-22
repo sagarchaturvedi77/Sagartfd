@@ -1,6 +1,6 @@
 import React from "react";
 
-// TFD Workspace logo (served from /public). Falls back to a styled monogram.
+// TFD WorkSpace logo (served from /public). Falls back to a styled monogram.
 export default function BrandLogo({ className = "h-10", rounded = false, variant = "workspace", animate = true }) {
   const [failed, setFailed] = React.useState(false);
 
@@ -19,7 +19,7 @@ export default function BrandLogo({ className = "h-10", rounded = false, variant
   return (
     <img
       src={src}
-      alt="TFD Workspace"
+      alt="TFD WorkSpace"
       width={700}
       height={482}
       onError={() => setFailed(true)}

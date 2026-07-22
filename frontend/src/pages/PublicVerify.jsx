@@ -151,7 +151,7 @@ export default function PublicVerify() {
         <div className="flex items-center justify-center gap-4 mt-8">
           <img src={INTERNSHIP_LOGO_URL} alt="TFD Internship" width={500} height={246} className="h-7 w-auto object-contain opacity-80" />
           <img src={PARTNER_LOGO_URL} alt="TFD Partner Hub" className="h-7 object-contain opacity-80" />
-          <img src={WORKSPACE_LOGO_URL} alt="TFD Workspace" className="h-7 object-contain opacity-80" />
+          <img src={WORKSPACE_LOGO_URL} alt="TFD WorkSpace" className="h-7 object-contain opacity-80" />
         </div>
         <p className="text-center text-[10px] text-[#9AA5B4] mt-2.5">Powered by The Financial Doctor</p>
 

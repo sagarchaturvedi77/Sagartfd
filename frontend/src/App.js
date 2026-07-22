@@ -554,7 +554,7 @@ element={
                 <Route path="/verify/intern/:intern_id" element={<PublicVerifyIntern />} />
 
                 {/* 🎓 TFD Internship — gamified 90-day program (own login,
-                    fully separate from TFD Workspace staff/employee auth —
+                    fully separate from TFD WorkSpace staff/employee auth —
                     see portal/student/InternshipAuthContext.jsx) */}
                 <Route path="/internship" element={<InternshipLandingPage />} />
                 <Route path="/internship/tracks/:trackId" element={<InternshipTrackPage />} />

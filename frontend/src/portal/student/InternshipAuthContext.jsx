@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
 
-// Fully independent of the TFD Workspace AuthContext (context/AuthContext.jsx)
+// Fully independent of the TFD WorkSpace AuthContext (context/AuthContext.jsx)
 // — different localStorage key, different backend endpoints. The
 // internship program is a separate app (headed for its own APK) with no
 // login relationship to staff/employee auth; only the admin-facing
