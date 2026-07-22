@@ -17,7 +17,7 @@ const SERVICES = [
     "Other",
 ];
 
-export default function Contact() {
+export default function Contact({ hideHeading = false } = {}) {
     const [form, setForm] = useState({
         full_name: "",
         phone: "",
@@ -40,14 +40,84 @@ export default function Contact() {
         }
     });
 
+    if (hideHeading) {
+        // Dedicated page: form leads, centered and full-width, with contact
+        // methods as a horizontal strip underneath instead of a sidebar —
+        // the opposite emphasis from the homepage's icon-list-left layout.
+        return (
+            <section id="contact" className="section">
+                <div className="container-x max-w-3xl mx-auto">
+                    <form onSubmit={onSubmit} className="card-cream p-7 md:p-9">
+                        <div className="grid sm:grid-cols-2 gap-4">
+                            <Field label="Full Name" required>
+                                <input required data-testid={IDS.contact.name} value={form.full_name} onChange={(e) => setForm({ ...form, full_name: e.target.value })} className="input-cream" />
+                            </Field>
+                            <Field label="Phone" required>
+                                <input required data-testid={IDS.contact.phone} value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} className="input-cream" inputMode="tel" />
+                            </Field>
+                            <Field label="Email (Optional)">
+                                <input type="email" data-testid={IDS.contact.email} value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} className="input-cream" />
+                            </Field>
+                            <Field label="Service">
+                                <select data-testid={IDS.contact.service} value={form.service} onChange={(e) => setForm({ ...form, service: e.target.value })} className="input-cream">
+                                    <option value="">Select a service</option>
+                                    {SERVICES.map((s) => <option key={s}>{s}</option>)}
+                                </select>
+                            </Field>
+                        </div>
+                        <div className="mt-4">
+                            <Field label="Message (Optional)">
+                                <textarea rows={4} data-testid={IDS.contact.message} value={form.message} onChange={(e) => setForm({ ...form, message: e.target.value })} className="input-cream" />
+                            </Field>
+                        </div>
+                        <div className="mt-6 flex flex-col sm:flex-row gap-3">
+                            <button type="submit" disabled={loading} data-testid={IDS.contact.submit} className="btn-pill btn-primary justify-center disabled:opacity-50">
+                                <Send size={16} /> {loading ? "Sending…" : "Send Request"}
+                            </button>
+                            <a href="https://wa.me/917773805794?text=Hi%20Sagar%20ji%2C%20I%20want%20to%20know%20more%20about%20mutual%20fund%20investments." target="_blank" rel="noreferrer" className="btn-pill btn-ghost justify-center">
+                                <MessageCircle size={16} /> Chat on WhatsApp
+                            </a>
+                        </div>
+                        <p className="text-[11px] text-[#5C677D] mt-4">
+                            By submitting, you agree to be contacted by The Financial Doctor (ARN-290298). We
+                            respect your privacy and do not share data.
+                        </p>
+                        <style>{`
+                            .input-cream { width: 100%; background: #F6F1E8; border: 1px solid #E2D8C2; border-radius: 12px; padding: 12px 14px; color: #0E1B2C; font-family: inherit; }
+                            .input-cream:focus { border-color: #024396; }
+                        `}</style>
+                    </form>
+
+                    <div className="grid sm:grid-cols-3 gap-4 mt-6">
+                        <a href="tel:+917773805794" className="flex flex-col items-center text-center gap-2 bg-[#FBF7EE] border border-[#E2D8C2] rounded-2xl p-5 hover:border-[#024396]/40 transition-colors" data-testid="contact-phone-link">
+                            <div className="w-11 h-11 rounded-xl bg-[#0E1B2C] text-[#F6F1E8] grid place-items-center"><Phone size={18} /></div>
+                            <div className="text-[10px] tracking-[0.18em] uppercase text-[#5C677D]">Phone / WhatsApp</div>
+                            <div className="font-display text-[#0E1B2C]">7773805794</div>
+                        </a>
+                        <a href="mailto:wecare@thefinancialdoctor.in" className="flex flex-col items-center text-center gap-2 bg-[#FBF7EE] border border-[#E2D8C2] rounded-2xl p-5 hover:border-[#024396]/40 transition-colors">
+                            <div className="w-11 h-11 rounded-xl bg-[#0E1B2C] text-[#F6F1E8] grid place-items-center"><Mail size={18} /></div>
+                            <div className="text-[10px] tracking-[0.18em] uppercase text-[#5C677D]">Email</div>
+                            <div className="font-display text-[#0E1B2C] text-sm break-all">wecare@thefinancialdoctor.in</div>
+                        </a>
+                        <a href={LINKS.googleMaps} target="_blank" rel="noopener noreferrer" className="flex flex-col items-center text-center gap-2 bg-[#FBF7EE] border border-[#E2D8C2] rounded-2xl p-5 hover:border-[#024396]/40 transition-colors" data-testid="contact-map-link">
+                            <div className="w-11 h-11 rounded-xl bg-[#0E1B2C] text-[#F6F1E8] grid place-items-center"><MapPin size={18} /></div>
+                            <div className="text-[10px] tracking-[0.18em] uppercase text-[#5C677D]">Office — Sehore, MP</div>
+                            <span className="inline-flex items-center gap-1 text-xs text-[#024396]"><Navigation size={11} /> Get directions</span>
+                        </a>
+                    </div>
+                </div>
+            </section>
+        );
+    }
+
     return (
         <section id="contact" className="section">
             <div className="container-x grid lg:grid-cols-12 gap-10">
                 <div className="lg:col-span-5">
                     <div className="eyebrow">Let's talk money</div>
-                    <h1 className="h2 mt-3 text-[#0E1B2C]">
+                    <h2 className="h2 mt-3 text-[#0E1B2C]">
                         Book your free <span className="font-italic-serif text-[#024396]">15-min consult.</span>
-                    </h1>
+                    </h2>
                     <p className="mt-4 text-[#2A364B] max-w-md">
                         Tell us a bit about your goal — SIP, insurance, or a portfolio review — and we'll
                         get back within 24 hours.

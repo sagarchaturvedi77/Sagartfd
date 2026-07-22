@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
+import { Link } from "react-router-dom";
 import {
     Search,
     TrendingUp,
@@ -16,57 +17,12 @@ import { QRCodeCanvas } from "qrcode.react";
 import { toast } from "sonner";
 import { IDS } from "@/constants/testIds";
 // 🛠️ Context Hook Connect Kiya
-import { useModal } from "../context/ModalContext"; 
+import { useModal } from "../context/ModalContext";
+import { MASTER_FUNDS, fmtPct, fmtINR, fmtFullINR, fetchFund, searchFundsByName } from "@/lib/fundData";
 
 const ASSETPLUS = "https://www.assetplus.in/mfd/ARN-290298";
 const TFD_LOGO = "/assets/logos/TFD-MAIN-LOGO.webp";
 const SAGAR_PHOTO = "/assets/founder/sagar-photo.webp";
-const fundCache = new Map();
-
-const MASTER_FUNDS = [
-    { code: "122639", category: "Flexi Cap", fund_house: "PPFAS Mutual Fund" },
-    { code: "112939", category: "Flexi Cap", fund_house: "HDFC Mutual Fund" },
-    { code: "119841", category: "Flexi Cap", fund_house: "SBI Mutual Fund" },
-    { code: "148480", category: "Small Cap", fund_house: "Quant Mutual Fund" },
-    { code: "125497", category: "Small Cap", fund_house: "Nippon India Mutual Fund" },
-    { code: "118127", category: "Small Cap", fund_house: "HDFC Mutual Fund" },
-    { code: "120593", category: "Mid Cap", fund_house: "Axis Mutual Fund" },
-    { code: "112090", category: "Mid Cap", fund_house: "HDFC Mutual Fund" },
-    { code: "148477", category: "Mid Cap", fund_house: "Quant Mutual Fund" },
-    { code: "118989", category: "Large Cap", fund_house: "SBI Mutual Fund" },
-    { code: "120716", category: "Large Cap", fund_house: "Mirae Asset Mutual Fund" },
-    { code: "113028", category: "Large Cap", fund_house: "ICICI Prudential Mutual Fund" },
-    { code: "122313", category: "ELSS Tax Saver", fund_house: "Mirae Asset Mutual Fund" },
-    { code: "148464", category: "ELSS Tax Saver", fund_house: "Quant Mutual Fund" },
-    { code: "119775", category: "ELSS Tax Saver", fund_house: "SBI Mutual Fund" },
-];
-
-const fmtPct = (v) => (v === null || v === undefined || Number.isNaN(Number(v)) ? "-" : `${Number(v).toFixed(1)}%`);
-const fmtINR = (n) => {
-    if (!Number.isFinite(Number(n))) return "Rs. 0";
-    const v = Number(n);
-    if (v >= 1e7) return `Rs. ${(v / 1e7).toFixed(2)} Cr`;
-    if (v >= 1e5) return `Rs. ${(v / 1e5).toFixed(2)} L`;
-    if (v >= 1e3) return `Rs. ${(v / 1e3).toFixed(1)} K`;
-    return `Rs. ${Math.round(v).toLocaleString("en-IN")}`;
-};
-const fmtFullINR = (n) => `Rs. ${Math.round(Number(n) || 0).toLocaleString("en-IN")}`;
-
-function parseMfDate(dateStr) {
-    const [d, m, y] = String(dateStr || "").split("-").map(Number);
-    return new Date(y, m - 1, d);
-}
-
-function normalizeHistory(raw = []) {
-    return raw
-        .map((row) => ({
-            date: row.date,
-            nav: Number(row.nav),
-            dt: parseMfDate(row.date),
-        }))
-        .filter((row) => Number.isFinite(row.nav) && !Number.isNaN(row.dt.getTime()))
-        .sort((a, b) => b.dt - a.dt);
-}
 
 function findClosestNav(history, targetDt) {
     if (!history?.length) return null;
@@ -80,24 +36,6 @@ function findClosestNav(history, targetDt) {
         }
     }
     return closest;
-}
-
-function calculateCagr(history, years) {
-    if (!history?.length) return null;
-    const latest = history[0];
-    const target = new Date(latest.dt);
-    target.setFullYear(target.getFullYear() - years);
-    const past = findClosestNav(history, target);
-    if (!past || past.nav <= 0 || latest.nav <= 0) return null;
-    return (Math.pow(latest.nav / past.nav, 1 / years) - 1) * 100;
-}
-
-function calculateTrailingReturns(history) {
-    return {
-        return_1y: calculateCagr(history, 1),
-        return_3y: calculateCagr(history, 3),
-        return_5y: calculateCagr(history, 5),
-    };
 }
 
 function xirr(cashflows) {
@@ -184,29 +122,7 @@ function singlePagePdfBlobFromJpeg(jpegBytes, imageW, imageH, pageW = 595.28, pa
     return new Blob([concatBytes(parts)], { type: "application/pdf" });
 }
 
-async function fetchFund(code) {
-    if (fundCache.has(String(code))) return fundCache.get(String(code));
-    const res = await fetch(`https://api.mfapi.in/mf/${code}`);
-    if (!res.ok) throw new Error(`Unable to fetch scheme ${code}`);
-    const d = await res.json();
-    const history = normalizeHistory(d.data);
-    const latest = history[0];
-    const fund = {
-        code,
-        name: d.meta?.scheme_name || `Scheme ${code}`,
-        fund_house: d.meta?.fund_house || "-",
-        scheme_category: d.meta?.scheme_category || "-",
-        scheme_type: d.meta?.scheme_type || "-",
-        nav: latest?.nav || null,
-        nav_date: latest?.date || "-",
-        history,
-        ...calculateTrailingReturns(history),
-    };
-    fundCache.set(String(code), fund);
-    return fund;
-}
-
-export default function TopFunds() {
+export default function TopFunds({ showViewAllLink = false, hideHeading = false } = {}) {
     const [data, setData] = useState([]);
     const [loading, setLoading] = useState(true);
     const [category, setCategory] = useState("All");
@@ -265,25 +181,7 @@ export default function TopFunds() {
         setSearching(true);
         const t = setTimeout(async () => {
             try {
-                const res = await fetch(`https://api.mfapi.in/mf/search?q=${encodeURIComponent(searchQ)}`);
-                const rawData = await res.json();
-                const cleanedQuery = searchQ.toLowerCase().trim();
-                const filteredGrowth = rawData.filter((f) => {
-                    const name = f.schemeName.toLowerCase();
-                    return name.includes("growth") && !name.includes("idcw") && !name.includes("dividend");
-                });
-                const ranked = filteredGrowth.sort((a, b) => {
-                    const an = a.schemeName.toLowerCase();
-                    const bn = b.schemeName.toLowerCase();
-                    const aStarts = an.includes(cleanedQuery) ? 0 : 1;
-                    const bStarts = bn.includes(cleanedQuery) ? 0 : 1;
-                    if (aStarts !== bStarts) return aStarts - bStarts;
-                    const aDirect = an.includes("direct") ? 0 : 1;
-                    const bDirect = bn.includes("direct") ? 0 : 1;
-                    if (aDirect !== bDirect) return aDirect - bDirect;
-                    return a.schemeName.length - b.schemeName.length;
-                });
-                setSearchResults(ranked.slice(0, 25));
+                setSearchResults(await searchFundsByName(searchQ));
             } catch (e) {
                 console.error(e);
             } finally {
@@ -326,19 +224,32 @@ export default function TopFunds() {
             <div className="container-x">
                 <div className="flex items-end justify-between flex-wrap gap-4 mb-8">
                     <div>
-                        <div className="eyebrow">
-                            <TrendingUp size={14} /> Live market data
-                        </div>
-                        <h1 className="h2 mt-3 text-[#0E1B2C]">
-                            Search Any Fund or View <span className="font-italic-serif text-[#024396]">Top Picks</span>
-                        </h1>
-                        <p className="mt-3 text-[#2A364B] max-w-2xl">
+                        {!hideHeading && (
+                            <>
+                                <div className="eyebrow">
+                                    <TrendingUp size={14} /> Live market data
+                                </div>
+                                <h2 className="h2 mt-3 text-[#0E1B2C]">
+                                    Search Any Fund or View <span className="font-italic-serif text-[#024396]">Top Picks</span>
+                                </h2>
+                            </>
+                        )}
+                        <p className={hideHeading ? "text-[#2A364B] max-w-2xl" : "mt-3 text-[#2A364B] max-w-2xl"}>
                             Live NAV & performance details powered by AMFI via{" "}
                             <a className="underline" href="https://www.mfapi.in" target="_blank" rel="noopener noreferrer">
                                 MFAPI.in
                             </a>
                             . Returns are calculated from real historical NAV.
                         </p>
+                        {showViewAllLink && (
+                            <Link
+                                to="/top-funds"
+                                className="inline-flex items-center gap-1.5 mt-4 text-[#024396] hover:text-[#012E6B] font-medium text-sm"
+                            >
+                                Explore all top funds &amp; past returns
+                                <span aria-hidden>→</span>
+                            </Link>
+                        )}
                     </div>
                 </div>
 

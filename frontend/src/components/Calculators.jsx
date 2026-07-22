@@ -284,7 +284,7 @@ const TABS = [
 // Tabs that have a time-series growth chart (SIP/lumpsum style)
 const CHART_TABS = ["sip", "daily", "lumpsum", "swp", "goal", "emi"];
 
-export default function Calculators({ variant = "public", employeeInfo = null, activeType = null }) {
+export default function Calculators({ variant = "public", employeeInfo = null, activeType = null, hideHeading = false }) {
     const navigate = useNavigate();
 
     // Yahan humne default state me hi activeType daal diya hai
@@ -723,13 +723,13 @@ const qrDataUrlRef = useRef(null);
         <CalcVariantContext.Provider value={variant}>
         <section id="calc" className={variant === "employee" ? "py-2 md:py-4 bg-[#F6F1E8]/20" : "py-12 md:py-20 bg-[#F6F1E8]/20"}>
             <div className="container-x px-4 md:px-6">
-                {variant !== "employee" && (
+                {variant !== "employee" && !hideHeading && (
                 <div className="flex items-end justify-between flex-wrap gap-4 mb-6 md:mb-8">
                     <div>
                         <div className="eyebrow text-xs md:text-sm">Plan · Visualise · Act</div>
-                        <h1 className="text-2xl sm:text-3xl md:text-4xl font-serif text-[#0E1B2C] mt-2">
+                        <h2 className="text-2xl sm:text-3xl md:text-4xl font-serif text-[#0E1B2C] mt-2">
                             Money math, <span className="font-italic-serif text-[#024396]">made visual.</span>
-                        </h1>
+                        </h2>
                         <p className="mt-3 text-xs md:text-sm text-[#2A364B] max-w-2xl">
                             See exactly how your wealth compounds. Try SIP, Daily SIP, Lumpsum, SWP, Goal,
                             EMI, Income Tax, GST & Future Goal scenarios — then download a personalised
@@ -760,6 +760,34 @@ const qrDataUrlRef = useRef(null);
                                 </button>
                             ))}
                         </div>
+                    ) : hideHeading ? (
+                        // Dedicated Calculators page: a numbered horizontal
+                        // stepper strip instead of a plain uniform grid —
+                        // reinforces the "pick a tool" framing distinct from
+                        // the compact homepage tab grid.
+                        <div className="flex gap-2 overflow-x-auto pb-2 -mx-1 px-1 no-scrollbar">
+                            {TABS.map((t, i) => (
+                                <button
+                                    key={t.id}
+                                    data-testid={t.testid}
+                                    onClick={() => setTab(t.id)}
+                                    className={`shrink-0 inline-flex items-center gap-2 rounded-full pl-2 pr-4 py-2 text-xs font-medium border transition-colors ${
+                                        tab === t.id
+                                            ? "bg-[#0E1B2C] border-[#0E1B2C] text-white"
+                                            : "bg-white border-[#E2D8C2] text-[#2A364B] hover:border-[#024396]/40"
+                                    }`}
+                                >
+                                    <span
+                                        className={`w-5 h-5 rounded-full grid place-items-center text-[10px] font-bold ${
+                                            tab === t.id ? "bg-white/15" : "bg-[#F6F1E8]"
+                                        }`}
+                                    >
+                                        {i + 1}
+                                    </span>
+                                    {t.label}
+                                </button>
+                            ))}
+                        </div>
                     ) : (
                         <div className="grid grid-cols-3 sm:grid-cols-5 lg:grid-cols-9 gap-2">
                             {TABS.map((t) => (
@@ -778,7 +806,7 @@ const qrDataUrlRef = useRef(null);
 
                 <div className="grid lg:grid-cols-12 gap-4 md:gap-6">
                     {/* Inputs Card — Compressed mobile layouts spaces */}
-                    <div className="lg:col-span-4 card-cream p-4 sm:p-6 md:p-7 space-y-6">
+                    <div className={`lg:col-span-4 card-cream p-4 sm:p-6 md:p-7 space-y-6 ${hideHeading ? "lg:order-2 lg:sticky lg:top-24 lg:self-start" : ""}`}>
                         <div className="text-[11px] tracking-[0.2em] uppercase text-[#5C677D] font-bold mb-4">
                             Inputs
                         </div>
@@ -911,7 +939,7 @@ const qrDataUrlRef = useRef(null);
                     </div>
 
                     {/* Chart + Result Column */}
-                    <div className={`lg:col-span-8 grid self-start content-start ${variant === "employee" ? "" : "grid-rows-[1fr_auto]"} gap-4 md:gap-6`}>
+                    <div className={`lg:col-span-8 grid self-start content-start ${variant === "employee" ? "" : "grid-rows-[1fr_auto]"} gap-4 md:gap-6 ${hideHeading ? "lg:order-1" : ""}`}>
                         {/* 🛠️ GRAPH WRAPPER: only for tabs with a growth series; hidden on mobile too; hidden entirely for employee portal (simple calculator mode) */}
                         {variant !== "employee" && CHART_TABS.includes(tab) && (
                             <div className="hidden md:block card-cream p-4 sm:p-5 md:p-6">

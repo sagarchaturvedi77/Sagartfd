@@ -1,4 +1,5 @@
 import React, { lazy, Suspense, useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import SEO from "@/components/SEO";
 import Navbar from "@/components/Navbar";
 import Hero from "@/components/Hero";
@@ -6,10 +7,8 @@ import About from "@/components/About";
 import Calculators from "@/components/Calculators";
 import TopFunds from "@/components/TopFunds";
 import Services from "@/components/Services";
-import Education from "@/components/Education";
 import Partners from "@/components/Partners";
 import Reviews from "@/components/Reviews";
-import Partnership from "@/components/Partnership";
 import Contact from "@/components/Contact";
 import Footer from "@/components/Footer";
 import FloatingActions from "@/components/FloatingActions";
@@ -67,12 +66,47 @@ export default function Home() {
                 <Hero />
                 <About />
                 <Calculators />
-                <TopFunds />
+                <TopFunds showViewAllLink />
                 <Services />
-                <Education />
+
+                {/* Compact teasers — full content lives on /learn and
+                    /partner-with-us so the homepage doesn't have to carry
+                    two more full sections' worth of scroll on mobile. */}
+                <section className="section bg-[#EFE7D6]">
+                    <div className="container-x grid sm:grid-cols-2 gap-5">
+                        <Link
+                            to="/learn"
+                            className="card-cream p-7 group hover:border-[#024396] transition-colors block"
+                            data-testid="home-learn-teaser"
+                        >
+                            <div className="eyebrow">Financial Education</div>
+                            <h2 className="h3 mt-3 text-[#0E1B2C]">Learn before you invest</h2>
+                            <p className="mt-2 text-sm text-[#2A364B]">
+                                Mutual funds, SIP, lumpsum vs SWP — explained simply in English, Hindi &amp; Hinglish.
+                            </p>
+                            <span className="inline-flex items-center gap-1.5 mt-4 text-[#024396] font-medium text-sm">
+                                Start learning <span aria-hidden>→</span>
+                            </span>
+                        </Link>
+                        <Link
+                            to="/partner-with-us"
+                            className="card-cream p-7 group hover:border-[#024396] transition-colors block"
+                            data-testid="home-partner-teaser"
+                        >
+                            <div className="eyebrow">Partner with us</div>
+                            <h2 className="h3 mt-3 text-[#0E1B2C]">Build a distribution business with us</h2>
+                            <p className="mt-2 text-sm text-[#2A364B]">
+                                Industry-best commissions, training &amp; certification, dedicated back-office support.
+                            </p>
+                            <span className="inline-flex items-center gap-1.5 mt-4 text-[#024396] font-medium text-sm">
+                                Explore partnership <span aria-hidden>→</span>
+                            </span>
+                        </Link>
+                    </div>
+                </section>
+
                 <Partners />
                 <Reviews />
-                <Partnership />
                 <Contact />
             </main>
             <Footer />

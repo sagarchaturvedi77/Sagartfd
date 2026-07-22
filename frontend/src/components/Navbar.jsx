@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Menu, X } from "lucide-react";
+import { Menu, X, Search } from "lucide-react";
 import { IDS } from "../constants/testIds";
 import { useModal } from "../context/ModalContext";
 
@@ -79,7 +79,15 @@ export default function Navbar() {
         </nav>
 
         {/* DESKTOP ACTION BUTTONS */}
-        <div className="hidden md:flex items-center gap-6 ml-8">
+        <div className="hidden md:flex items-center gap-5 ml-8">
+          <button
+            onClick={() => navigate("/search")}
+            aria-label="Search"
+            data-testid="nav-search"
+            className="text-[#2A364B] hover:text-[#024396] transition-colors cursor-pointer"
+          >
+            <Search size={19} />
+          </button>
           <button
             onClick={openGateway}
             data-testid={IDS?.nav?.cta || "nav-cta"}
@@ -89,15 +97,25 @@ export default function Navbar() {
           </button>
         </div>
 
-        {/* MOBILE BURGER TOGGLE */}
-        <button
-          onClick={() => setOpen(!open)}
-          className="md:hidden text-[#0E1B2C] p-2"
-          aria-label="Toggle menu"
-          data-testid="nav-mobile-toggle"
-        >
-          {open ? <X size={22} /> : <Menu size={22} />}
-        </button>
+        {/* MOBILE: search + burger */}
+        <div className="md:hidden flex items-center gap-1">
+          <button
+            onClick={() => navigate("/search")}
+            aria-label="Search"
+            data-testid="nav-search-mobile"
+            className="text-[#0E1B2C] p-2"
+          >
+            <Search size={20} />
+          </button>
+          <button
+            onClick={() => setOpen(!open)}
+            className="text-[#0E1B2C] p-2"
+            aria-label="Toggle menu"
+            data-testid="nav-mobile-toggle"
+          >
+            {open ? <X size={22} /> : <Menu size={22} />}
+          </button>
+        </div>
       </div>
 
       {/* MOBILE RESPONSIVE DRAWERS */}

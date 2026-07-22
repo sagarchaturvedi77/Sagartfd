@@ -3,8 +3,10 @@ import { Upload, CheckCircle, Briefcase, Award, ArrowUpRight, ArrowLeft, Chevron
 import { toast } from "sonner";
 import { useSubmitOnce } from "../lib/useSubmitOnce";
 import SEO from "../components/SEO";
-
-const LOGO_URL = "/assets/logos/TFD-MAIN-LOGO.webp";
+import Navbar from "../components/Navbar";
+import Footer from "../components/Footer";
+import FloatingActions from "../components/FloatingActions";
+import ProblemSolution from "../components/ProblemSolution";
 
 // Cloudinary config (unsigned upload preset — safe for client-side use)
 const CLOUDINARY_CLOUD_NAME = "dq6g81hma";
@@ -237,7 +239,7 @@ export default function CareerPage() {
   });
 
   return (
-    <div className="min-h-screen bg-[#FBF7EE] py-8 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-[#FBF7EE]">
       <SEO
         title="The Financial Doctor | Careers & Job Openings"
         description="Job opportunities at The Financial Doctor — Sales, Marketing, Finance, and HR roles in Sehore, MP. Apply for jobs in the financial services sector."
@@ -245,70 +247,54 @@ export default function CareerPage() {
         path="/career"
         ogImage="https://thefinancialdoctor.in/assets/logos/TFD-WORKSPACE-LOGO.png"
       />
-      <div className="max-w-3xl mx-auto">
-        <div className="flex items-center justify-between border-b border-[#E2D8C2] pb-5 mb-8">
-          <a href="/" className="flex items-center gap-3 group">
-            <img
-              src={LOGO_URL}
-              alt="The Financial Doctor"
-              width={900}
-              height={235}
-              loading="lazy"
-              className="h-12 sm:h-14 w-auto object-contain shrink-0 bg-white p-1 rounded-xl border border-[#E2D8C2]"
-            />
-            <div>
-              <span className="font-display text-lg sm:text-xl text-[#0E1B2C] block font-bold tracking-tight">The Financial Doctor</span>
-            </div>
-          </a>
-          <button
-            onClick={() => window.location.href = "/"}
-            className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-[#5C677D] hover:text-[#0E1B2C] transition-colors cursor-pointer bg-white px-3 py-2 rounded-xl border border-[#E2D8C2]"
-          >
-            <ArrowLeft size={14} /> Home
-          </button>
-        </div>
+      <Navbar />
 
-        {step !== "done" && (
-          <div className="bg-white border border-[#E2D8C2] rounded-3xl p-6 sm:p-8 mb-8 shadow-sm space-y-6">
-            <div>
-              <h1 className="font-serif text-2xl sm:text-3xl text-[#0E1B2C] font-bold">Work with The Financial Doctor (TFD)</h1>
-              <p className="text-sm text-[#2A364B] mt-2 leading-relaxed">
-                We are a fast-growing financial tech-distribution platform providing goal-based regular mutual funds and comprehensive protection planning to families. At TFD, we believe in professional integrity, continuous learning, and a supportive, growth-oriented environment.
-              </p>
-            </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
-              <div className="flex gap-3 bg-[#FBF7EE]/60 border border-[#E2D8C2]/60 p-4 rounded-2xl">
-                <Users className="text-[#024396] shrink-0" size={22} />
-                <div>
-                  <h3 className="text-sm font-bold text-[#0E1B2C]">Great Work Culture</h3>
-                  <p className="text-xs text-[#5C677D] mt-1 leading-normal">A friendly, supportive, and execution-oriented workspace where fresh ideas are always prioritized.</p>
-                </div>
-              </div>
-              <div className="flex gap-3 bg-[#FBF7EE]/60 border border-[#E2D8C2]/60 p-4 rounded-2xl">
-                <TrendingUp className="text-[#C7102E] shrink-0" size={22} />
-                <div>
-                  <h3 className="text-sm font-bold text-[#0E1B2C]">Growth & Incentives</h3>
-                  <p className="text-xs text-[#5C677D] mt-1 leading-normal">Industry-standard compensation structure with transparent monthly performance incentives.</p>
-                </div>
-              </div>
-              <div className="flex gap-3 bg-[#FBF7EE]/60 border border-[#E2D8C2]/60 p-4 rounded-2xl">
-                <ShieldCheck className="text-[#024396] shrink-0" size={22} />
-                <div>
-                  <h3 className="text-sm font-bold text-[#0E1B2C]">Training & Certification</h3>
-                  <p className="text-xs text-[#5C677D] mt-1 leading-normal">Complete guidance and support for NISM/AMFI certifications to build your career in wealth management.</p>
-                </div>
-              </div>
-              <div className="flex gap-3 bg-[#FBF7EE]/60 border border-[#E2D8C2]/60 p-4 rounded-2xl">
-                <Clock className="text-[#C7102E] shrink-0" size={22} />
-                <div>
-                  <h3 className="text-sm font-bold text-[#0E1B2C]">Work-Life Balance</h3>
-                  <p className="text-xs text-[#5C677D] mt-1 leading-normal">Structured flexibility designed to support your productivity and personal growth.</p>
-                </div>
-              </div>
-            </div>
+      {/* "OPPORTUNITY BOARD" HERO — warm amber, a role-badge strip instead
+          of the plain intro card the page used to open with. */}
+      <section className="relative overflow-hidden bg-[#241C0E] pt-28 pb-14 md:pt-32 md:pb-16 px-6">
+        <div
+          aria-hidden
+          className="fund-animate-in absolute -top-16 -left-20 w-[340px] h-[340px] rounded-full opacity-25 blur-3xl"
+          style={{ background: "radial-gradient(circle at center, rgba(217,168,73,0.55) 0%, transparent 65%)" }}
+        />
+        <div className="container-x relative max-w-3xl">
+          <div className="fund-animate-in inline-flex items-center gap-2 px-3 py-1 rounded-full border border-[#4A3D1F] bg-[#332A15] text-[11px] tracking-[0.2em] uppercase text-[#D9A849] font-semibold">
+            We're hiring
           </div>
-        )}
+          <h1 className="fund-animate-in fund-animate-in-delay-1 font-display text-3xl sm:text-4xl md:text-5xl text-[#F6F0E2] mt-5 leading-tight">
+            Build a career, <span className="font-italic-serif" style={{ color: "#D9A849" }}>not just a job.</span>
+          </h1>
+          <p className="fund-animate-in fund-animate-in-delay-2 mt-4 text-[#D8CBAC] text-[15px] sm:text-base max-w-xl leading-relaxed">
+            A fast-growing financial-distribution platform in Sehore, MP — goal-based mutual funds and
+            protection planning for real families, with real training and real growth.
+          </p>
+          <div className="fund-animate-in fund-animate-in-delay-3 flex flex-wrap gap-2 mt-7">
+            {[
+              { icon: Users, t: "Great work culture" },
+              { icon: TrendingUp, t: "Growth & incentives" },
+              { icon: ShieldCheck, t: "NISM/AMFI training" },
+              { icon: Clock, t: "Work-life balance" },
+            ].map((b) => {
+              const Icon = b.icon;
+              return (
+                <span key={b.t} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#332A15] border border-[#4A3D1F] text-[#D8CBAC] text-xs">
+                  <Icon size={13} style={{ color: "#D9A849" }} /> {b.t}
+                </span>
+              );
+            })}
+          </div>
+        </div>
+      </section>
 
+      <ProblemSolution
+        accent="#D9A849"
+        problemLabel="What job-seekers usually face"
+        problem="Most entry-level finance roles offer no real training — you're handed a target and a phone, with no one explaining how mutual funds, insurance, or client conversations actually work."
+        solutionLabel="How TFD is different"
+        solution="We fund your NISM/AMFI certification, pair you with real client interactions from day one, and build your career path openly — from your first sale to running your own book."
+      />
+
+      <div className="max-w-3xl lg:max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="bg-white border border-[#E2D8C2] rounded-3xl shadow-xl overflow-hidden">
           <div className="px-6 py-6 sm:px-8 bg-[#0E1B2C] text-[#F6F1E8] flex items-center gap-4">
             <div className="p-2.5 bg-white/10 rounded-2xl text-[#C7102E]">
@@ -327,7 +313,7 @@ export default function CareerPage() {
               <form onSubmit={goToReview} className="space-y-8">
                 <div>
                   <h4 className="text-xs font-bold uppercase tracking-wider text-[#024396] border-b border-[#E2D8C2] pb-1.5 mb-4">1. Personal Details</h4>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                     <div>
                       <label className="block text-xs font-medium text-[#5C677D] mb-1">Full Name *</label>
                       <input type="text" required value={formData.fullName} onChange={e => setFormData({...formData, fullName: e.target.value})} className="w-full bg-white border border-[#E2D8C2] rounded-xl px-4 py-2 text-sm focus:border-[#024396] outline-none" />
@@ -366,7 +352,7 @@ export default function CareerPage() {
 
                 <div>
                   <h4 className="text-xs font-bold uppercase tracking-wider text-[#024396] border-b border-[#E2D8C2] pb-1.5 mb-4">2. Contact Details</h4>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                     <div>
                       <label className="block text-xs font-medium text-[#5C677D] mb-1">Mobile Number *</label>
                       <input type="tel" required value={formData.mobile} onChange={e => setFormData({...formData, mobile: e.target.value})} className="w-full bg-white border border-[#E2D8C2] rounded-xl px-4 py-2 text-sm focus:border-[#024396] outline-none" />
@@ -396,7 +382,7 @@ export default function CareerPage() {
 
                 <div>
                   <h4 className="text-xs font-bold uppercase tracking-wider text-[#024396] border-b border-[#E2D8C2] pb-1.5 mb-4">3. Position & Professional Info</h4>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                     <div>
                       <label className="block text-xs font-medium text-[#5C677D] mb-1">Position Applying For *</label>
                       <select required value={formData.position} onChange={e => setFormData({...formData, position: e.target.value})} className="w-full bg-white border border-[#E2D8C2] rounded-xl px-4 py-2 text-sm focus:border-[#024396] outline-none h-[38px]">
@@ -448,7 +434,7 @@ export default function CareerPage() {
 
                 <div>
                   <h4 className="text-xs font-bold uppercase tracking-wider text-[#024396] border-b border-[#E2D8C2] pb-1.5 mb-4">4. Education Parameters</h4>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                     <div>
                       <label className="block text-xs font-medium text-[#5C677D] mb-1">Highest Qualification *</label>
                       <select required value={formData.qualification} onChange={e => setFormData({...formData, qualification: e.target.value})} className="w-full bg-white border border-[#E2D8C2] rounded-xl px-4 py-2 text-sm focus:border-[#024396] outline-none h-[38px]">
@@ -491,7 +477,7 @@ export default function CareerPage() {
 
                 <div>
                   <h4 className="text-xs font-bold uppercase tracking-wider text-[#024396] border-b border-[#E2D8C2] pb-1.5 mb-4">6. Document Uploads</h4>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                     <div>
                       <label className="block text-xs font-medium text-[#5C677D] mb-1.5">Upload Resume (PDF/DOC/DOCX) *</label>
                       <div className={`border border-dashed rounded-xl p-3 text-center transition-colors relative cursor-pointer ${resumeFile ? 'border-emerald-500 bg-emerald-50/20' : 'border-[#E2D8C2] bg-white hover:border-[#024396]'}`}>
@@ -547,7 +533,7 @@ export default function CareerPage() {
 
                 <div>
                   <h4 className="text-xs font-bold uppercase tracking-wider text-[#024396] border-b border-[#E2D8C2] pb-1.5 mb-4">7. How Did You Hear About Us?</h4>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                     <div>
                       <label className="block text-xs font-medium text-[#5C677D] mb-1">How did you hear about us? *</label>
                       <select
@@ -702,6 +688,8 @@ export default function CareerPage() {
           </div>
         </div>
       </div>
+      <Footer />
+      <FloatingActions />
     </div>
   );
 }

@@ -56,7 +56,7 @@ const items = [
     },
 ];
 
-export default function Services() {
+export default function Services({ hideHeading = false } = {}) {
     const [formOpen, setFormOpen] = useState(false);
     // 🛠️ Step 2: Extracting active trigger handler 
     const { openGateway } = useModal(); 
@@ -64,89 +64,134 @@ export default function Services() {
     return (
         <section id="services" className="section">
             <div className="container-x">
-                <div className="max-w-3xl mb-12">
-                    <div className="eyebrow">What we treat</div>
-                    <h1 className="h2 mt-3 text-[#0E1B2C]">
-                        One doctor for all your{" "}
-                        <span className="font-italic-serif text-[#C7102E]">financial prescriptions.</span>
-                    </h1>
-                    <p className="mt-3 text-[#2A364B]">
-                        From your first SIP to your child's education plan, your family's term cover to your
-                        car's renewal — get expert advice under one roof.
-                    </p>
-                </div>
+                {!hideHeading && (
+                    <div className="max-w-3xl mb-12">
+                        <div className="eyebrow">What we treat</div>
+                        <h2 className="h2 mt-3 text-[#0E1B2C]">
+                            One doctor for all your{" "}
+                            <span className="font-italic-serif text-[#C7102E]">financial prescriptions.</span>
+                        </h2>
+                        <p className="mt-3 text-[#2A364B]">
+                            From your first SIP to your child's education plan, your family's term cover to your
+                            car's renewal — get expert advice under one roof.
+                        </p>
+                    </div>
+                )}
 
-                <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-5">
-                    {items.map((it, idx) => {
-                        const Icon = it.icon;
-                        return (
-                            <Reveal key={it.title} delay={idx * 70} y={26}>
-                                <article
-                                    className="card-cream p-6 group hover:border-[#024396] transition-colors relative overflow-hidden h-full"
-                                    data-testid={`service-card-${idx}`}
-                                >
-                                    <div
-                                        aria-hidden
-                                        className="absolute -right-10 -top-10 w-32 h-32 rounded-full bg-[#024396]/5 group-hover:bg-[#024396]/10 transition-colors"
-                                    />
-                                    <div className="relative">
-                                        <div className="service-icon w-12 h-12 rounded-xl bg-[#0E1B2C] grid place-items-center text-[#F6F1E8]">
-                                            <Icon size={20} />
-                                        </div>
-                                        <div className="mt-5 text-[11px] tracking-[0.18em] uppercase text-[#024396] font-semibold">
-                                            {it.tag}
-                                        </div>
-                                        <h3 className="h3 mt-2 text-[#0E1B2C]">{it.title}</h3>
-                                        <p className="mt-3 text-[14.5px] text-[#2A364B] leading-relaxed">
-                                            {it.body}
-                                        </p>
-                                        
-                                        {/* 🛠️ Dynamic Multi-Action Trigger Framework */}
-                                        {it.isForm ? (
-                                            <button
-                                                type="button"
-                                                onClick={() => setFormOpen(true)}
-                                                className="inline-flex items-center gap-1.5 mt-5 text-[#024396] hover:text-[#012E6B] font-medium text-sm group/cta cursor-pointer"
-                                            >
-                                                {it.cta}{" "}
-                                                <span aria-hidden className="transition-transform group-hover/cta:translate-x-1">
-                                                    →
-                                                </span>
-                                            </button>
-                                        ) : it.isPopup ? (
-                                            /* 🎯 Mutual Funds and SIP will launch secure popup modal here */
-                                            <button
-                                                type="button"
-                                                onClick={openGateway}
-                                                className="inline-flex items-center gap-1.5 mt-5 text-[#024396] hover:text-[#012E6B] font-medium text-sm group/cta cursor-pointer bg-transparent border-none p-0"
-                                            >
-                                                {it.cta}{" "}
-                                                <span aria-hidden className="transition-transform group-hover/cta:translate-x-1">
-                                                    →
-                                                </span>
-                                            </button>
-                                        ) : (
-                                            <a
-                                                href={it.href}
-                                                target="_blank"
-                                                rel="noopener noreferrer"
-                                                className="inline-flex items-center gap-1.5 mt-5 text-[#024396] hover:text-[#012E6B] font-medium text-sm group/cta"
-                                            >
-                                                {it.cta}{" "}
-                                                <span aria-hidden className="transition-transform group-hover/cta:translate-x-1">
-                                                    →
-                                                </span>
-                                            </a>
-                                        )}
+                {hideHeading ? (
+                    // Dedicated page: featured-row layout — first service (the
+                    // primary revenue line) gets a wide banner card, the rest
+                    // sit in a compact two-column list instead of a uniform
+                    // 3-col grid, so this page reads differently from the
+                    // homepage's version of the same section.
+                    <div className="space-y-4">
+                        {items.slice(0, 1).map((it) => {
+                            const Icon = it.icon;
+                            return (
+                                <article key={it.title} className="rounded-2xl bg-[#0E1B2C] text-[#F6F1E8] p-7 md:p-9 flex flex-col md:flex-row md:items-center gap-6 md:gap-10">
+                                    <div className="w-14 h-14 rounded-2xl bg-white/10 grid place-items-center shrink-0">
+                                        <Icon size={26} />
                                     </div>
+                                    <div className="flex-1">
+                                        <div className="text-[11px] tracking-[0.18em] uppercase text-[#D8B98A] font-semibold">{it.tag}</div>
+                                        <h3 className="font-display text-xl md:text-2xl mt-1.5">{it.title}</h3>
+                                        <p className="mt-2 text-[#F6F1E8]/75 text-sm leading-relaxed max-w-2xl">{it.body}</p>
+                                    </div>
+                                    <ServiceCta it={it} onFormOpen={() => setFormOpen(true)} onPopup={openGateway} light />
                                 </article>
-                            </Reveal>
-                        );
-                    })}
-                </div>
+                            );
+                        })}
+                        <div className="grid sm:grid-cols-2 gap-4">
+                            {items.slice(1).map((it, idx) => {
+                                const Icon = it.icon;
+                                return (
+                                    <Reveal key={it.title} delay={idx * 60} y={18}>
+                                        <article className="border border-[#E2D8C2] rounded-2xl p-5 flex items-start gap-4 h-full hover:border-[#024396]/40 transition-colors" data-testid={`service-card-${idx + 1}`}>
+                                            <div className="w-11 h-11 rounded-xl bg-[#0E1B2C] grid place-items-center text-[#F6F1E8] shrink-0">
+                                                <Icon size={19} />
+                                            </div>
+                                            <div className="flex-1">
+                                                <div className="text-[10px] tracking-[0.18em] uppercase text-[#024396] font-semibold">{it.tag}</div>
+                                                <h3 className="font-display text-base text-[#0E1B2C] mt-1">{it.title}</h3>
+                                                <p className="mt-1.5 text-[13px] text-[#2A364B]/80 leading-relaxed">{it.body}</p>
+                                                <ServiceCta it={it} onFormOpen={() => setFormOpen(true)} onPopup={openGateway} />
+                                            </div>
+                                        </article>
+                                    </Reveal>
+                                );
+                            })}
+                        </div>
+                    </div>
+                ) : (
+                    <div className="flex overflow-x-auto snap-x snap-mandatory gap-4 -mx-6 px-6 pb-2 no-scrollbar md:grid md:grid-cols-2 lg:grid-cols-3 md:gap-5 md:overflow-visible md:snap-none md:mx-0 md:px-0 md:pb-0">
+                        {items.map((it, idx) => {
+                            const Icon = it.icon;
+                            return (
+                                <Reveal key={it.title} delay={idx * 70} y={26} className="shrink-0 w-[80%] snap-center md:w-auto md:shrink">
+                                    <article
+                                        className="card-cream p-6 group hover:border-[#024396] transition-colors relative overflow-hidden h-full"
+                                        data-testid={`service-card-${idx}`}
+                                    >
+                                        <div
+                                            aria-hidden
+                                            className="absolute -right-10 -top-10 w-32 h-32 rounded-full bg-[#024396]/5 group-hover:bg-[#024396]/10 transition-colors"
+                                        />
+                                        <div className="relative">
+                                            <div className="service-icon w-12 h-12 rounded-xl bg-[#0E1B2C] grid place-items-center text-[#F6F1E8]">
+                                                <Icon size={20} />
+                                            </div>
+                                            <div className="mt-5 text-[11px] tracking-[0.18em] uppercase text-[#024396] font-semibold">
+                                                {it.tag}
+                                            </div>
+                                            <h3 className="h3 mt-2 text-[#0E1B2C]">{it.title}</h3>
+                                            <p className="mt-3 text-[14.5px] text-[#2A364B] leading-relaxed">
+                                                {it.body}
+                                            </p>
+                                            <ServiceCta it={it} onFormOpen={() => setFormOpen(true)} onPopup={openGateway} />
+                                        </div>
+                                    </article>
+                                </Reveal>
+                            );
+                        })}
+                    </div>
+                )}
             </div>
 
             <MotorInsuranceForm open={formOpen} onClose={() => setFormOpen(false)} />
         </section>
+    );
+}
+
+// Shared CTA renderer for the 3 trigger types a service item can have (an
+// in-page form modal, the site's secure investment popup, or a plain
+// external link) — used by both the homepage grid and the dedicated page's
+// featured/list layout so the click behaviour never has to be duplicated.
+function ServiceCta({ it, onFormOpen, onPopup, light = false }) {
+    const cls = `inline-flex items-center gap-1.5 mt-5 font-medium text-sm group/cta cursor-pointer ${
+        light ? "text-white" : "text-[#024396] hover:text-[#012E6B]"
+    }`;
+    const arrow = (
+        <span aria-hidden className="transition-transform group-hover/cta:translate-x-1">
+            →
+        </span>
+    );
+    if (it.isForm) {
+        return (
+            <button type="button" onClick={onFormOpen} className={cls}>
+                {it.cta} {arrow}
+            </button>
+        );
+    }
+    if (it.isPopup) {
+        return (
+            <button type="button" onClick={onPopup} className={`${cls} bg-transparent border-none p-0`}>
+                {it.cta} {arrow}
+            </button>
+        );
+    }
+    return (
+        <a href={it.href} target="_blank" rel="noopener noreferrer" className={cls}>
+            {it.cta} {arrow}
+        </a>
     );
 }

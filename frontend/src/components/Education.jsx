@@ -67,9 +67,9 @@ export default function Education() {
                 <div className="flex items-end justify-between flex-wrap gap-6 mb-10">
                     <div>
                         <div className="eyebrow">Financial Education</div>
-                        <h2 className="h2 mt-3 text-[#0E1B2C]">
+                        <h1 className="h2 mt-3 text-[#0E1B2C]">
                             Learn before <span className="font-italic-serif text-[#024396]">you invest.</span>
-                        </h2>
+                        </h1>
                     </div>
                     <div className="flex gap-2">
                         {langs.map((l) => (
@@ -85,9 +85,9 @@ export default function Education() {
                     </div>
                 </div>
 
-                <div className="grid md:grid-cols-2 gap-5">
+                <div className="flex overflow-x-auto snap-x snap-mandatory gap-4 -mx-6 px-6 pb-2 no-scrollbar md:grid md:grid-cols-2 md:gap-5 md:overflow-visible md:snap-none md:mx-0 md:px-0 md:pb-0">
                     {content[lang].map((c) => (
-                        <article key={c.t} className="card-cream p-7">
+                        <article key={c.t} className="shrink-0 w-[82%] snap-center md:w-auto md:shrink card-cream p-7">
                             <h3 className="font-display text-[1.4rem] text-[#0E1B2C] leading-snug">
                                 {c.t}
                             </h3>

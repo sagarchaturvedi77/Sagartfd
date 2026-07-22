@@ -11,7 +11,7 @@ const INTERNSHIP_LOGO_URL = "/assets/logos/TFD-INTERNSHIP-LOGO.png";
 export default function Footer() {
     return (
         <footer className="bg-[#0E1B2C] text-[#F6F1E8]/80">
-            <div className="container-x px-6 py-14 grid md:grid-cols-3 gap-10">
+            <div className="container-x px-6 py-14 grid md:grid-cols-4 gap-10">
                 <div>
                     <div className="flex items-center gap-3">
                         <img
@@ -70,7 +70,7 @@ export default function Footer() {
 
                 <div>
                     <div className="text-[11px] tracking-[0.2em] uppercase text-[#C7102E] font-semibold">
-                        Quick links
+                        Explore
                     </div>
                     <ul className="mt-4 space-y-2.5 text-sm">
                         <li><Link to="/about" className="hover:text-[#F6F1E8]">About Sagar</Link></li>
@@ -78,7 +78,21 @@ export default function Footer() {
                         <li><Link to="/top-funds" className="hover:text-[#F6F1E8]">Top Funds</Link></li>
                         <li><Link to="/services" className="hover:text-[#F6F1E8]">Services</Link></li>
                         <li><Link to="/reviews" className="hover:text-[#F6F1E8]">Reviews</Link></li>
+                        <li><Link to="/learn" className="hover:text-[#F6F1E8]">Learn</Link></li>
+                        <li><Link to="/blog" className="hover:text-[#F6F1E8]">Blog</Link></li>
+                        <li><Link to="/faq" className="hover:text-[#F6F1E8]">FAQ</Link></li>
+                    </ul>
+                </div>
+
+                <div>
+                    <div className="text-[11px] tracking-[0.2em] uppercase text-[#C7102E] font-semibold">
+                        Company
+                    </div>
+                    <ul className="mt-4 space-y-2.5 text-sm">
                         <li><Link to="/contact" className="hover:text-[#F6F1E8]">Contact</Link></li>
+                        <li><Link to="/partner-with-us" className="hover:text-[#F6F1E8]">Partner With Us</Link></li>
+                        <li><Link to="/career" className="hover:text-[#F6F1E8]">Career</Link></li>
+                        <li><Link to="/internship" className="hover:text-[#F6F1E8]">Internship</Link></li>
                         <li><a href="/portal/login" className="hover:text-[#F6F1E8]">Employee Login</a></li>
                     </ul>
 

@@ -1,4 +1,5 @@
 import React from "react";
+import { Link } from "react-router-dom";
 import { Briefcase, Award, Users, Sparkles } from "lucide-react";
 
 const perks = [
@@ -30,15 +31,13 @@ export default function Partnership() {
             <div className="container-x">
                 <div className="grid lg:grid-cols-12 gap-10 items-start">
                     <div className="lg:col-span-5">
-                        <div className="eyebrow">Partner with us</div>
+                        <div className="eyebrow">What you get</div>
                         <h2 className="h2 mt-3 text-[#0E1B2C]">
-                            Build a distribution business with India's{" "}
-                            <span className="font-italic-serif text-[#024396]">most-loved doctor.</span>
+                            Everything you need, <span className="font-italic-serif text-[#024396]">nothing you don't.</span>
                         </h2>
                         <p className="mt-4 text-[#2A364B]">
-                            Whether you're a CA, insurance agent, or aspiring MFD — partner with The
-                            Financial Doctor and tap into our 8 years of trust, 40+ AMC relationships, and
-                            a back-office that handles everything except the client smile.
+                            You bring the relationships — we bring the AMC network, compliance, and
+                            back-office so you can spend your time where it actually matters.
                         </p>
                         <div className="mt-7 flex flex-wrap gap-3">
                             <a
@@ -49,19 +48,19 @@ export default function Partnership() {
                             >
                                 Partner via WhatsApp
                             </a>
-                            <a href="#contact" className="btn-pill btn-ghost">
+                            <Link to="/contact" className="btn-pill btn-ghost">
                                 Apply via Form
-                            </a>
+                            </Link>
                         </div>
                     </div>
 
-                    <div className="lg:col-span-7 grid sm:grid-cols-2 gap-4">
+                    <div className="lg:col-span-7 flex overflow-x-auto snap-x snap-mandatory gap-4 -mx-6 px-6 pb-2 no-scrollbar sm:grid sm:grid-cols-2 sm:gap-4 sm:overflow-visible sm:snap-none sm:mx-0 sm:px-0 sm:pb-0">
                         {perks.map((p, idx) => {
                             const Icon = p.icon;
                             return (
                                 <article
                                     key={p.t}
-                                    className="card-cream p-6"
+                                    className="shrink-0 w-[80%] snap-center sm:w-auto sm:shrink card-cream p-6"
                                     data-testid={`partnership-perk-${idx}`}
                                 >
                                     <div className="w-11 h-11 rounded-xl bg-[#C7102E]/15 text-[#C7102E] grid place-items-center">

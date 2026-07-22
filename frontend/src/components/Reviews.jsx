@@ -88,7 +88,7 @@ const SEED_REVIEWS = [
     },
 ];
 
-export default function Reviews() {
+export default function Reviews({ hideHeading = false } = {}) {
     const [list, setList] = useState([]);
     const [stats, setStats] = useState({ average: 4.9, count: 120 });
     const [submitted, setSubmitted] = useState(false);
@@ -188,37 +188,65 @@ export default function Reviews() {
     return (
         <section id="reviews" className="section">
             <div className="container-x">
-                <div className="flex items-end justify-between flex-wrap gap-4 sm:gap-6 mb-6 sm:mb-10">
-                    <div>
-                        <div className="eyebrow">Word on the street</div>
-                        <h1 className="h2 mt-3 text-[#0E1B2C]">
-                            Trusted by 1000+ <span className="font-italic-serif text-[#C7102E]">families</span> across MP.
-                        </h1>
-                    </div>
-                    <div className="card-cream px-3.5 sm:px-5 py-3 sm:py-4 flex items-center gap-3 sm:gap-5">
-                        <div>
-                            <div className="text-[10px] sm:text-[11px] tracking-[0.18em] uppercase text-[#5C677D]">
-                                Google Rating
-                            </div>
-                            <div className="font-display text-2xl sm:text-3xl text-[#0E1B2C] mt-1 flex items-baseline gap-2">
-                                {stats.average.toFixed(1)}
-                                <span className="text-sm sm:text-base text-[#5C677D]">/ 5</span>
-                            </div>
-                            <div className="text-[11px] sm:text-[12px] text-[#5C677D]">
-                                Based on {stats.count}+ reviews
+                {hideHeading ? (
+                    // Dedicated page: stats promoted to a full-width banner
+                    // instead of a small floating badge — this is the trust
+                    // signal the whole page exists to prove, so it leads.
+                    <div className="rounded-2xl bg-[#0E1B2C] text-[#F6F1E8] p-6 sm:p-8 flex flex-wrap items-center justify-between gap-6 mb-8 sm:mb-10">
+                        <div className="flex items-baseline gap-4">
+                            <div className="font-display text-4xl sm:text-5xl">{stats.average.toFixed(1)}</div>
+                            <div>
+                                <div className="flex gap-0.5">
+                                    {Array.from({ length: 5 }).map((_, i) => (
+                                        <Star key={i} size={14} fill={i < Math.round(stats.average) ? "#D9B15C" : "transparent"} stroke="#D9B15C" strokeWidth={1.8} />
+                                    ))}
+                                </div>
+                                <div className="text-[#F6F1E8]/60 text-xs mt-1">Based on {stats.count}+ reviews</div>
                             </div>
                         </div>
                         <a
                             href={LINKS.googleReviews}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="btn-pill btn-ghost text-[11px] sm:text-xs px-3 py-2"
+                            className="inline-flex items-center gap-1.5 text-sm font-medium bg-white text-[#0E1B2C] px-4 py-2.5 rounded-full"
                             data-testid="reviews-google-link"
                         >
-                            View<span className="hidden sm:inline">&nbsp;on Google</span> <ExternalLink size={12} />
+                            View on Google <ExternalLink size={13} />
                         </a>
                     </div>
-                </div>
+                ) : (
+                    <div className="flex items-end justify-between flex-wrap gap-4 sm:gap-6 mb-6 sm:mb-10">
+                        <div>
+                            <div className="eyebrow">Word on the street</div>
+                            <h2 className="h2 mt-3 text-[#0E1B2C]">
+                                Trusted by 1000+ <span className="font-italic-serif text-[#C7102E]">families</span> across MP.
+                            </h2>
+                        </div>
+                        <div className="card-cream px-3.5 sm:px-5 py-3 sm:py-4 flex items-center gap-3 sm:gap-5">
+                            <div>
+                                <div className="text-[10px] sm:text-[11px] tracking-[0.18em] uppercase text-[#5C677D]">
+                                    Google Rating
+                                </div>
+                                <div className="font-display text-2xl sm:text-3xl text-[#0E1B2C] mt-1 flex items-baseline gap-2">
+                                    {stats.average.toFixed(1)}
+                                    <span className="text-sm sm:text-base text-[#5C677D]">/ 5</span>
+                                </div>
+                                <div className="text-[11px] sm:text-[12px] text-[#5C677D]">
+                                    Based on {stats.count}+ reviews
+                                </div>
+                            </div>
+                            <a
+                                href={LINKS.googleReviews}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="btn-pill btn-ghost text-[11px] sm:text-xs px-3 py-2"
+                                data-testid="reviews-google-link"
+                            >
+                                View<span className="hidden sm:inline">&nbsp;on Google</span> <ExternalLink size={12} />
+                            </a>
+                        </div>
+                    </div>
+                )}
 
                 <div className="grid lg:grid-cols-12 gap-5 sm:gap-6">
                     {/* Form */}
@@ -413,68 +441,22 @@ export default function Reviews() {
                     </form>
 
                     {/* List */}
-                    <div className="lg:col-span-7 grid sm:grid-cols-2 gap-3 sm:gap-4 content-start" data-testid={IDS.reviews.list}>
-                        {list.slice(0, 4).map((r, idx) => (
-                            <Reveal key={r.id} delay={idx * 70} y={20}>
-                                <article
-                                    className="card-cream p-4 sm:p-5 flex flex-col relative h-full"
-                                    data-testid={`review-card-${r.id}`}
-                                >
-                                <div className="flex items-center justify-between mb-2 sm:mb-3">
-                                    <div className="flex gap-0.5 sm:gap-1">
-                                        {Array.from({ length: 5 }).map((_, i) => (
-                                            <Star
-                                                key={i}
-                                                size={13}
-                                                fill={i < r.rating ? "#C7102E" : "transparent"}
-                                                stroke={i < r.rating ? "#C7102E" : "#5C677D"}
-                                                strokeWidth={1.8}
-                                            />
-                                        ))}
-                                    </div>
-                                    {String(r.id).startsWith("g-") ? (
-                                        <span
-                                            className="inline-flex items-center gap-1 text-[9px] tracking-[0.16em] uppercase text-[#5C677D] bg-[#F6F1E8] border border-[#E2D8C2] px-1.5 sm:px-2 py-0.5 rounded-full"
-                                            title="Sourced from Google reviews"
-                                        >
-                                            <GoogleG size={9} /> Google
-                                        </span>
-                                    ) : (
-                                        <span
-                                            className="inline-flex items-center gap-1 text-[9px] tracking-[0.16em] uppercase text-[#024396] bg-[#E9F0FB] border border-[#C9DCF5] px-1.5 sm:px-2 py-0.5 rounded-full"
-                                            title="Submitted directly on this website"
-                                        >
-                                            Website Review
-                                        </span>
-                                    )}
-                                </div>
-                                <p className="text-[13px] sm:text-[14.5px] text-[#2A364B] leading-relaxed flex-1">
-                                    “{r.message}”
-                                </p>
-                                {r.reply && (
-                                    <div className="mt-3 bg-[#F6F1E8] border border-[#E2D8C2] rounded-lg p-2.5 sm:p-3">
-                                        <div className="text-[9px] sm:text-[9.5px] uppercase tracking-[0.16em] text-[#C7102E] font-semibold mb-1">
-                                            Reply from The Financial Doctor
-                                        </div>
-                                        <p className="text-[11.5px] sm:text-[12.5px] text-[#5C677D] leading-relaxed">
-                                            {r.reply}
-                                        </p>
-                                    </div>
-                                )}
-                                <div className="mt-3 sm:mt-4 pt-3 sm:pt-4 border-t border-[#E2D8C2] flex items-center gap-2.5 sm:gap-3">
-                                    <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-[#024396] text-[#F6F1E8] grid place-items-center text-xs sm:text-sm font-display">
-                                        {initials(r.name)}
-                                    </div>
-                                    <div>
-                                        <div className="font-display text-[#0E1B2C] text-[13px] sm:text-[15px] leading-tight">
-                                            {r.name}
-                                        </div>
-                                        <div className="text-[10px] sm:text-[11px] text-[#5C677D]">
-                                            {r.location} · {formatAgo(r.created_at)}
-                                        </div>
-                                    </div>
-                                </div>
-                            </article>
+                    <div
+                        className={
+                            hideHeading
+                                ? "lg:col-span-7 columns-1 sm:columns-2 gap-4 space-y-4"
+                                : "lg:col-span-7 flex overflow-x-auto snap-x snap-mandatory gap-3 -mx-6 px-6 pb-2 no-scrollbar sm:grid sm:grid-cols-2 sm:gap-4 sm:overflow-visible sm:snap-none sm:mx-0 sm:px-0 sm:pb-0 content-start"
+                        }
+                        data-testid={IDS.reviews.list}
+                    >
+                        {list.slice(0, hideHeading ? 8 : 4).map((r, idx) => (
+                            <Reveal
+                                key={r.id}
+                                delay={idx * 70}
+                                y={20}
+                                className={hideHeading ? "break-inside-avoid block" : "shrink-0 w-[82%] snap-center sm:w-auto sm:shrink"}
+                            >
+                                <ReviewCard r={r} />
                             </Reveal>
                         ))}
 
@@ -484,7 +466,7 @@ export default function Reviews() {
                             target="_blank"
                             rel="noopener noreferrer"
                             data-testid="reviews-see-all-google"
-                            className="card-cream p-4 sm:p-5 flex items-center justify-between gap-3 sm:col-span-2 hover:bg-[#F6F1E8] transition-colors"
+                            className={`card-cream p-4 sm:p-5 flex items-center justify-between gap-3 hover:bg-[#F6F1E8] transition-colors ${hideHeading ? "break-inside-avoid" : "sm:col-span-2"}`}
                         >
                             <div>
                                 <div className="text-[10px] sm:text-[11px] tracking-[0.18em] uppercase text-[#5C677D]">
@@ -502,6 +484,69 @@ export default function Reviews() {
                 </div>
             </div>
         </section>
+    );
+}
+
+// Individual review card — shared by the homepage grid and the dedicated
+// page's masonry columns so the markup never has to be duplicated.
+function ReviewCard({ r }) {
+    return (
+        <article className="card-cream p-4 sm:p-5 flex flex-col relative h-full" data-testid={`review-card-${r.id}`}>
+            <div className="flex items-center justify-between mb-2 sm:mb-3">
+                <div className="flex gap-0.5 sm:gap-1">
+                    {Array.from({ length: 5 }).map((_, i) => (
+                        <Star
+                            key={i}
+                            size={13}
+                            fill={i < r.rating ? "#C7102E" : "transparent"}
+                            stroke={i < r.rating ? "#C7102E" : "#5C677D"}
+                            strokeWidth={1.8}
+                        />
+                    ))}
+                </div>
+                {String(r.id).startsWith("g-") ? (
+                    <span
+                        className="inline-flex items-center gap-1 text-[9px] tracking-[0.16em] uppercase text-[#5C677D] bg-[#F6F1E8] border border-[#E2D8C2] px-1.5 sm:px-2 py-0.5 rounded-full"
+                        title="Sourced from Google reviews"
+                    >
+                        <GoogleG size={9} /> Google
+                    </span>
+                ) : (
+                    <span
+                        className="inline-flex items-center gap-1 text-[9px] tracking-[0.16em] uppercase text-[#024396] bg-[#E9F0FB] border border-[#C9DCF5] px-1.5 sm:px-2 py-0.5 rounded-full"
+                        title="Submitted directly on this website"
+                    >
+                        Website Review
+                    </span>
+                )}
+            </div>
+            <p className="text-[13px] sm:text-[14.5px] text-[#2A364B] leading-relaxed flex-1">
+                “{r.message}”
+            </p>
+            {r.reply && (
+                <div className="mt-3 bg-[#F6F1E8] border border-[#E2D8C2] rounded-lg p-2.5 sm:p-3">
+                    <div className="text-[9px] sm:text-[9.5px] uppercase tracking-[0.16em] text-[#C7102E] font-semibold mb-1">
+                        Reply from The Financial Doctor
+                    </div>
+                    <p className="text-[11.5px] sm:text-[12.5px] text-[#5C677D] leading-relaxed">
+                        {r.reply}
+                    </p>
+                </div>
+            )}
+            <div className="mt-3 sm:mt-4 pt-3 sm:pt-4 border-t border-[#E2D8C2] flex items-center gap-2.5 sm:gap-3">
+                <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-[#024396] text-[#F6F1E8] grid place-items-center text-xs sm:text-sm font-display">
+                    {initials(r.name)}
+                </div>
+                <div>
+                    <div className="font-display text-[#0E1B2C] text-[13px] sm:text-[15px] leading-tight">
+                        {r.name}
+                    </div>
+                    <div className="text-[10px] sm:text-[11px] text-[#5C677D]">
+                        {r.location} · {formatAgo(r.created_at)}
+                    </div>
+                </div>
+            </div>
+        </article>
     );
 }
 
