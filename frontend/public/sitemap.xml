@@ -8,8 +8,8 @@
   </url>
   <url>
     <loc>https://thefinancialdoctor.in/about</loc>
-    <changefreq>monthly</changefreq>
-    <priority>0.7</priority>
+    <changefreq>weekly</changefreq>
+    <priority>0.9</priority>
   </url>
   <url>
     <loc>https://thefinancialdoctor.in/contact</loc>
@@ -152,4 +152,46 @@
     <changefreq>weekly</changefreq>
     <priority>0.7</priority>
   </url>
+
+  <!-- Local SEO — city/state landing pages -->
+  <url><loc>https://thefinancialdoctor.in/mutual-fund-distributor-in-sehore</loc><changefreq>monthly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://thefinancialdoctor.in/mutual-fund-distributor-in-bhopal</loc><changefreq>monthly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://thefinancialdoctor.in/mutual-fund-distributor-in-indore</loc><changefreq>monthly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://thefinancialdoctor.in/mutual-fund-distributor-in-mumbai</loc><changefreq>monthly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://thefinancialdoctor.in/mutual-fund-distributor-in-delhi</loc><changefreq>monthly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://thefinancialdoctor.in/mutual-fund-distributor-in-madhya-pradesh</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://thefinancialdoctor.in/mutual-fund-distributor-in-chhattisgarh</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://thefinancialdoctor.in/mutual-fund-distributor-in-maharashtra</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://thefinancialdoctor.in/mutual-fund-distributor-in-gujarat</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://thefinancialdoctor.in/mutual-fund-distributor-in-uttar-pradesh</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://thefinancialdoctor.in/mutual-fund-distributor-in-bihar</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://thefinancialdoctor.in/mutual-fund-distributor-in-gwalior</loc><changefreq>monthly</changefreq><priority>0.75</priority></url>
+  <url><loc>https://thefinancialdoctor.in/mutual-fund-distributor-in-jabalpur</loc><changefreq>monthly</changefreq><priority>0.75</priority></url>
+  <url><loc>https://thefinancialdoctor.in/mutual-fund-distributor-in-ujjain</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://thefinancialdoctor.in/mutual-fund-distributor-in-ahmedabad</loc><changefreq>monthly</changefreq><priority>0.75</priority></url>
+  <url><loc>https://thefinancialdoctor.in/mutual-fund-distributor-in-surat</loc><changefreq>monthly</changefreq><priority>0.75</priority></url>
+  <url><loc>https://thefinancialdoctor.in/mutual-fund-distributor-in-vadodara</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://thefinancialdoctor.in/mutual-fund-distributor-in-rajkot</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://thefinancialdoctor.in/mutual-fund-distributor-in-pune</loc><changefreq>monthly</changefreq><priority>0.75</priority></url>
+  <url><loc>https://thefinancialdoctor.in/mutual-fund-distributor-in-nagpur</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://thefinancialdoctor.in/mutual-fund-distributor-in-nashik</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://thefinancialdoctor.in/mutual-fund-distributor-in-gurgaon</loc><changefreq>monthly</changefreq><priority>0.75</priority></url>
+  <url><loc>https://thefinancialdoctor.in/mutual-fund-distributor-in-noida</loc><changefreq>monthly</changefreq><priority>0.75</priority></url>
+  <url><loc>https://thefinancialdoctor.in/mutual-fund-distributor-in-ghaziabad</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://thefinancialdoctor.in/mutual-fund-distributor-in-lucknow</loc><changefreq>monthly</changefreq><priority>0.75</priority></url>
+  <url><loc>https://thefinancialdoctor.in/mutual-fund-distributor-in-kanpur</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://thefinancialdoctor.in/mutual-fund-distributor-in-raipur</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://thefinancialdoctor.in/mutual-fund-distributor-in-patna</loc><changefreq>monthly</changefreq><priority>0.75</priority></url>
+  <url><loc>https://thefinancialdoctor.in/mutual-fund-distributor-in-rajasthan</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://thefinancialdoctor.in/mutual-fund-distributor-in-jaipur</loc><changefreq>monthly</changefreq><priority>0.75</priority></url>
+  <url><loc>https://thefinancialdoctor.in/mutual-fund-distributor-in-karnataka</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://thefinancialdoctor.in/mutual-fund-distributor-in-bangalore</loc><changefreq>monthly</changefreq><priority>0.75</priority></url>
+  <url><loc>https://thefinancialdoctor.in/mutual-fund-distributor-in-telangana</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://thefinancialdoctor.in/mutual-fund-distributor-in-hyderabad</loc><changefreq>monthly</changefreq><priority>0.75</priority></url>
+  <url><loc>https://thefinancialdoctor.in/mutual-fund-distributor-in-tamil-nadu</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://thefinancialdoctor.in/mutual-fund-distributor-in-chennai</loc><changefreq>monthly</changefreq><priority>0.75</priority></url>
+  <url><loc>https://thefinancialdoctor.in/mutual-fund-distributor-in-west-bengal</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://thefinancialdoctor.in/mutual-fund-distributor-in-kolkata</loc><changefreq>monthly</changefreq><priority>0.75</priority></url>
+  <url><loc>https://thefinancialdoctor.in/mutual-fund-distributor-in-punjab</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://thefinancialdoctor.in/mutual-fund-distributor-in-ludhiana</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
 </urlset>

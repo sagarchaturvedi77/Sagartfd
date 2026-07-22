@@ -41,6 +41,7 @@ export default function SEO({ title, description, keywords, path, ogImage }) {
     if (title) document.title = title;
     setMeta("name", "description", description);
     setMeta("name", "keywords", keywords);
+    setMeta("name", "author", "Sagar Chaturvedi");
     if (path) setCanonical(path);
 
     setMeta("property", "og:title", title);

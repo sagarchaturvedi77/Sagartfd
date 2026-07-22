@@ -11,6 +11,7 @@ import { ThemeProvider } from "./context/ThemeContext";
 import ProtectedRoute from "./components/ProtectedRoute";
 import AnalyticsTracker from "./components/AnalyticsTracker";
 import WebsiteNotificationPrompt from "./components/WebsiteNotificationPrompt";
+import PersonSchema from "./components/PersonSchema";
 import { InternshipAuthProvider } from "./portal/student/InternshipAuthContext";
 import StudentProtectedRoute from "./portal/student/StudentProtectedRoute";
 
@@ -61,6 +62,7 @@ const CareerPage = lazy(() => import("./pages/CareerPage"));
 const AboutPage = lazy(() => import("./pages/AboutPage"));
 const LearnPage = lazy(() => import("./pages/LearnPage"));
 const SearchPage = lazy(() => import("./pages/SearchPage"));
+const CityLandingPage = lazy(() => import("./pages/CityLandingPage"));
 const CalculatorsPage = lazy(() => import("./pages/CalculatorsPage"));
 const TopFundsPage = lazy(() => import("./pages/TopFundsPage"));
 const ServicesPage = lazy(() => import("./pages/ServicesPage"));
@@ -159,6 +161,7 @@ function App() {
             <BrowserRouter>
               <ScrollToTop />
               <AnalyticsTracker />
+              <PersonSchema />
               <WebsiteNotificationPrompt />
               <Suspense fallback={<RouteLoadingFallback />}>
               <Routes>
@@ -176,6 +179,16 @@ function App() {
 
                 {/* 🔍 Sitewide FAQ + blog search */}
                 <Route path="/search" element={<SearchPage />} />
+
+                {/* 📍 Local SEO — one page per city/state we target.
+                    NOTE: react-router only recognises ":param" as a whole
+                    path SEGMENT (must be preceded by "/") — it can't glue a
+                    param onto a literal prefix like "in-:citySlug" within
+                    the same segment. So this is a single dynamic segment
+                    ("/:pageSlug") and CityLandingPage itself strips the
+                    "mutual-fund-distributor-in-" prefix to recover the
+                    slug, keeping the actual URLs unchanged. */}
+                <Route path="/:pageSlug" element={<CityLandingPage />} />
 
                 {/* 🧮 Calculators */}
                 <Route path="/calculators" element={<CalculatorsPage />} />

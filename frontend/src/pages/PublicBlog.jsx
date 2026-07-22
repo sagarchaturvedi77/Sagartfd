@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, Link } from "react-router-dom";
 import { ArrowLeft, User, ExternalLink, Share2, Check, Search, Linkedin } from "lucide-react";
 import SEO from "@/components/SEO";
 import Navbar from "@/components/Navbar";
@@ -103,6 +103,27 @@ function ShareButton({ post, lang }) {
             {copied ? <Check size={13} className="text-[#0F6E5C]" /> : <Share2 size={13} />}
             {copied ? "Link copied" : "Share"}
         </button>
+    );
+}
+
+// Standing CTA shown on every blog post (independent of topic) — points at
+// our AssetPlus execution-partner portal where a reader can actually open
+// an investment and see all their existing mutual funds in one dashboard,
+// not just the one product a topic-specific CTA above it might suggest.
+function InvestCTA({ className = "" }) {
+    return (
+        <a
+            href={LINKS.assetPlus}
+            target="_blank"
+            rel="noopener noreferrer"
+            className={`flex items-center justify-between gap-3 bg-[#F6F1E8] border border-[#E2D8C2] text-[#0E1B2C] px-5 py-4 rounded-2xl hover:bg-white transition-colors ${className}`}
+        >
+            <span>
+                <span className="block text-[10px] uppercase tracking-[0.18em] text-[#024396] font-semibold">Track all your mutual funds in one place</span>
+                <span className="font-display text-sm mt-0.5 block">Start Your Investment</span>
+            </span>
+            <ExternalLink size={16} className="shrink-0 text-[#024396]" />
+        </a>
     );
 }
 
@@ -263,8 +284,10 @@ function useBlogPostingSchema(post, lang) {
             author: {
                 "@type": "Person",
                 name: "Sagar Chaturvedi",
+                url: `${SITE_URL}/about`,
             },
             datePublished: post.published_at,
+            dateModified: post.date_modified || post.published_at,
             publisher: {
                 "@type": "Organization",
                 name: "The Financial Doctor",
@@ -318,84 +341,118 @@ function BlogDetail({ post, loading, lang }) {
     if (loading) return <p className="text-[#5C677D] text-sm">Loading...</p>;
     if (!post) return <p className="text-[#5C677D] text-sm">This article isn't available.</p>;
     return (
-        <article className="max-w-2xl mx-auto">
-            <div className="flex items-center justify-between mb-6">
+        <div className="max-w-5xl mx-auto lg:grid lg:grid-cols-[1fr,300px] lg:gap-12 lg:items-start">
+            {/* Reading column — width capped at a comfortable line length
+                (~68ch) even though the outer layout is wide, so desktop
+                gets a real landscape reading area instead of one narrow
+                centered column, without hurting readability. */}
+            <article className="max-w-[68ch]">
+                <button onClick={() => navigate("/blog")} className="flex items-center gap-1.5 text-xs font-semibold text-[#5C677D] hover:text-[#0E1B2C] mb-6 lg:hidden">
+                    <ArrowLeft size={14} /> All Articles
+                </button>
+                <span className="text-[11px] uppercase tracking-[0.16em] text-[#024396] font-semibold">{post.topic_label}</span>
+                <h1 className="font-display text-2xl sm:text-3xl text-[#0E1B2C] mt-2 mb-4 leading-snug">{pickTitle(post, lang)}</h1>
+                <div className="flex items-center gap-3 text-xs text-[#5C677D] mb-6 pb-6 border-b border-[#E2D8C2]">
+                    <Link to="/about" className="flex items-center gap-1 hover:text-[#0E1B2C]"><User size={12} /> {post.author_name}</Link>
+                    {post.author_name === "Sagar Chaturvedi" && (
+                        <a
+                            href={LINKS.linkedin}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex items-center gap-1 text-[#0A66C2] hover:underline"
+                            aria-label="Sagar Chaturvedi on LinkedIn"
+                        >
+                            <Linkedin size={12} /> LinkedIn
+                        </a>
+                    )}
+                    <span>&middot;</span>
+                    <span>{formatDate(post.published_at)}</span>
+                </div>
+                {Array.isArray(post.hashtags) && post.hashtags.length > 0 && (
+                    <div className="flex flex-wrap gap-2 mb-6 -mt-2">
+                        {post.hashtags.map((tag) => (
+                            <span
+                                key={tag}
+                                className="text-[11px] font-medium text-[#024396] bg-[#024396]/8 px-2.5 py-1 rounded-full"
+                            >
+                                {tag}
+                            </span>
+                        ))}
+                    </div>
+                )}
+                <div className="text-[#2A364B] leading-relaxed whitespace-pre-wrap text-[15px]">{pickBody(post, lang)}</div>
+
+                {/* Topic-contextual CTA — a SIP article links straight to
+                    the SIP calculator, a term-insurance article to a quote
+                    link, etc. Shown inline on mobile; the sidebar repeats
+                    it on desktop, so it's hidden here at lg: to avoid a
+                    duplicate. */}
+                {post.product_link && (
+                    <a
+                        href={post.product_link}
+                        className="lg:hidden flex items-center justify-between gap-3 mt-8 bg-[#0E1B2C] text-white px-6 py-4 rounded-2xl hover:bg-[#1a2a3f] transition-colors"
+                    >
+                        <span>
+                            <span className="block text-[10px] uppercase tracking-[0.18em] text-[#D8B98A]">Ready to act on this?</span>
+                            <span className="font-display text-base mt-0.5 block">{CTA_LABELS[post.topic] || "Explore The Financial Doctor"}</span>
+                        </span>
+                        <ExternalLink size={18} className="shrink-0" />
+                    </a>
+                )}
+                <InvestCTA className="lg:hidden mt-4" />
+                <div className="lg:hidden flex items-center gap-3 mt-6 pt-6 border-t border-[#E2D8C2]">
+                    <ShareButton post={post} lang={lang} />
+                </div>
+                {related.length > 0 && (
+                    <div className="lg:hidden mt-10 pt-8 border-t border-[#E2D8C2]">
+                        <div className="text-[11px] uppercase tracking-[0.18em] text-[#5C677D] font-semibold mb-4">Related Articles</div>
+                        <div className="grid sm:grid-cols-3 gap-3">
+                            {related.map((r) => (
+                                <a key={r.id} href={`/blog/${r.id}`} className="card-cream p-4 hover:bg-[#F6F1E8] transition-colors">
+                                    <span className="text-[9px] uppercase tracking-[0.16em] text-[#024396] font-semibold">{r.topic_label}</span>
+                                    <div className="font-display text-sm text-[#0E1B2C] leading-snug mt-1.5 line-clamp-3">{pickTitle(r, lang)}</div>
+                                </a>
+                            ))}
+                        </div>
+                    </div>
+                )}
+            </article>
+
+            {/* Sidebar — desktop only (lg:), sticky so it stays visible as
+                the (potentially long) article is read. */}
+            <aside className="hidden lg:block lg:sticky lg:top-24 space-y-5">
                 <button onClick={() => navigate("/blog")} className="flex items-center gap-1.5 text-xs font-semibold text-[#5C677D] hover:text-[#0E1B2C]">
                     <ArrowLeft size={14} /> All Articles
                 </button>
                 <ShareButton post={post} lang={lang} />
-            </div>
-            <span className="text-[11px] uppercase tracking-[0.16em] text-[#024396] font-semibold">{post.topic_label}</span>
-            <h1 className="font-display text-2xl sm:text-3xl text-[#0E1B2C] mt-2 mb-4 leading-snug">{pickTitle(post, lang)}</h1>
-            <div className="flex items-center gap-3 text-xs text-[#5C677D] mb-6 pb-6 border-b border-[#E2D8C2]">
-                <span className="flex items-center gap-1"><User size={12} /> {post.author_name}</span>
-                {post.author_name === "Sagar Chaturvedi" && (
+                {post.product_link && (
                     <a
-                        href={LINKS.linkedin}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="flex items-center gap-1 text-[#0A66C2] hover:underline"
-                        aria-label="Sagar Chaturvedi on LinkedIn"
+                        href={post.product_link}
+                        className="flex items-center justify-between gap-3 bg-[#0E1B2C] text-white px-5 py-4 rounded-2xl hover:bg-[#1a2a3f] transition-colors"
                     >
-                        <Linkedin size={12} /> LinkedIn
+                        <span>
+                            <span className="block text-[10px] uppercase tracking-[0.18em] text-[#D8B98A]">Ready to act on this?</span>
+                            <span className="font-display text-sm mt-0.5 block">{CTA_LABELS[post.topic] || "Explore The Financial Doctor"}</span>
+                        </span>
+                        <ExternalLink size={16} className="shrink-0" />
                     </a>
                 )}
-                <span>&middot;</span>
-                <span>{formatDate(post.published_at)}</span>
-            </div>
-            {Array.isArray(post.hashtags) && post.hashtags.length > 0 && (
-                <div className="flex flex-wrap gap-2 mb-6 -mt-2">
-                    {post.hashtags.map((tag) => (
-                        <span
-                            key={tag}
-                            className="text-[11px] font-medium text-[#024396] bg-[#024396]/8 px-2.5 py-1 rounded-full"
-                        >
-                            {tag}
-                        </span>
-                    ))}
-                </div>
-            )}
-            <div className="text-[#2A364B] leading-relaxed whitespace-pre-wrap text-[15px]">{pickBody(post, lang)}</div>
-
-            {/* Topic-contextual CTA — a SIP article links straight to the
-                SIP calculator, a term-insurance article to a quote link,
-                etc. (server-side topic → link mapping, just given a
-                friendlier, action-oriented label here). */}
-            {post.product_link && (
-                <a
-                    href={post.product_link}
-                    className="flex items-center justify-between gap-3 mt-8 bg-[#0E1B2C] text-white px-6 py-4 rounded-2xl hover:bg-[#1a2a3f] transition-colors"
-                >
-                    <span>
-                        <span className="block text-[10px] uppercase tracking-[0.18em] text-[#D8B98A]">Ready to act on this?</span>
-                        <span className="font-display text-base mt-0.5 block">{CTA_LABELS[post.topic] || "Explore The Financial Doctor"}</span>
-                    </span>
-                    <ExternalLink size={18} className="shrink-0" />
-                </a>
-            )}
-
-            <div className="flex items-center gap-3 mt-6 pt-6 border-t border-[#E2D8C2]">
-                <ShareButton post={post} lang={lang} />
-            </div>
-
-            {related.length > 0 && (
-                <div className="mt-10 pt-8 border-t border-[#E2D8C2]">
-                    <div className="text-[11px] uppercase tracking-[0.18em] text-[#5C677D] font-semibold mb-4">Related Articles</div>
-                    <div className="grid sm:grid-cols-3 gap-3">
-                        {related.map((r) => (
-                            <a
-                                key={r.id}
-                                href={`/blog/${r.id}`}
-                                className="card-cream p-4 hover:bg-[#F6F1E8] transition-colors"
-                            >
-                                <span className="text-[9px] uppercase tracking-[0.16em] text-[#024396] font-semibold">{r.topic_label}</span>
-                                <div className="font-display text-sm text-[#0E1B2C] leading-snug mt-1.5 line-clamp-3">{pickTitle(r, lang)}</div>
-                            </a>
-                        ))}
+                <InvestCTA />
+                {related.length > 0 && (
+                    <div className="pt-2">
+                        <div className="text-[11px] uppercase tracking-[0.18em] text-[#5C677D] font-semibold mb-3">Related Articles</div>
+                        <div className="space-y-2.5">
+                            {related.map((r) => (
+                                <a key={r.id} href={`/blog/${r.id}`} className="block card-cream p-3.5 hover:bg-[#F6F1E8] transition-colors">
+                                    <span className="text-[9px] uppercase tracking-[0.16em] text-[#024396] font-semibold">{r.topic_label}</span>
+                                    <div className="font-display text-sm text-[#0E1B2C] leading-snug mt-1 line-clamp-3">{pickTitle(r, lang)}</div>
+                                </a>
+                            ))}
+                        </div>
                     </div>
-                </div>
-            )}
-        </article>
+                )}
+            </aside>
+        </div>
     );
 }
 

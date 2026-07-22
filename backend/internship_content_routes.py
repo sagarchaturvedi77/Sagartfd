@@ -215,7 +215,7 @@ async def public_list_content(content_type: str = Query(default="blog"), topic: 
             published_at=doc.get("published_at") or doc["created_at"],
             meta_description=doc.get("meta_description"), keywords=doc.get("keywords"),
             title_en=doc.get("title_en"), body_en=doc.get("body_en"),
-            hashtags=doc.get("hashtags"),
+            hashtags=doc.get("hashtags"), date_modified=doc.get("date_modified"),
         ))
     return out
 
@@ -232,5 +232,5 @@ async def public_get_content(content_id: str):
         published_at=doc.get("published_at") or doc["created_at"],
         meta_description=doc.get("meta_description"), keywords=doc.get("keywords"),
         title_en=doc.get("title_en"), body_en=doc.get("body_en"),
-        hashtags=doc.get("hashtags"),
+        hashtags=doc.get("hashtags"), date_modified=doc.get("date_modified"),
     )

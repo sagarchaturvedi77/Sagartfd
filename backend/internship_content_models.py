@@ -112,6 +112,10 @@ class ContentInDB(BaseModel):
     # Short social-style tags for the public blog UI (e.g. "#SIP",
     # "#FinancialPlanning") — optional so existing content stays valid.
     hashtags: Optional[list[str]] = None
+    # Set when a published piece is reviewed/refreshed after its original
+    # published_at — an SEO "content freshness" signal. Optional so
+    # existing content (which predates this field) stays valid.
+    date_modified: Optional[str] = None
 
 
 class ContentOut(BaseModel):
@@ -150,3 +154,4 @@ class PublicContentOut(BaseModel):
     title_en: Optional[str] = None
     body_en: Optional[str] = None
     hashtags: Optional[list[str]] = None
+    date_modified: Optional[str] = None

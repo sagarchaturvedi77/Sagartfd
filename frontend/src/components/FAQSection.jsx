@@ -41,7 +41,7 @@ export default function FAQSection({ title = "Frequently Asked Questions", data 
     const { lang } = useLanguage();
     const [page, setPage] = useState(0);
     const [openIndex, setOpenIndex] = useState(null);
-    const items = data?.[lang] || data?.en || [];
+    const items = useMemo(() => data?.[lang] || data?.en || [], [data, lang]);
 
     useEffect(() => {
         setPage(0);
