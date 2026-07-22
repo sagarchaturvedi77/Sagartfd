@@ -1,4 +1,5 @@
 import React from "react";
+import { Link } from "react-router-dom";
 import { Linkedin, MapPin } from "lucide-react";
 import SEO from "@/components/SEO";
 import Navbar from "@/components/Navbar";
@@ -10,6 +11,22 @@ import ProblemSolution from "@/components/ProblemSolution";
 import { LINKS } from "@/lib/links";
 
 const SAGAR_PHOTO = "/assets/founder/sagar-photo.webp";
+
+// Pan-India reach, told through how differently each region actually
+// relates to money — not a generic "we serve everywhere" coverage map.
+// Each note echoes the same regional voice used on the city landing
+// pages (see cityPages.js's cultureLine), and links there for anyone
+// who wants their own city's page specifically.
+const regions = [
+  { name: "Madhya Pradesh", href: "/mutual-fund-distributor-in-madhya-pradesh", note: "Where we started — Sehore, Bhopal, Indore and the smaller towns between them, often met in person." },
+  { name: "Gujarat", href: "/mutual-fund-distributor-in-gujarat", note: "Ahmedabad to Surat to Dwarka — a culture of business instinct, matched with a written plan behind it." },
+  { name: "Maharashtra", href: "/mutual-fund-distributor-in-maharashtra", note: "Mumbai's speed, Pune's precision, Nagpur's calm — three tempos, the same underlying discipline." },
+  { name: "Delhi NCR", href: "/mutual-fund-distributor-in-delhi", note: "Delhi, Gurgaon, Noida — ambition that gets loud; SIPs are the one habit here built to stay quiet." },
+  { name: "Rajasthan", href: "/mutual-fund-distributor-in-rajasthan", note: "Jaipur's forts were built to outlast centuries — we ask the same patience of a portfolio." },
+  { name: "South India", href: "/mutual-fund-distributor-in-bangalore", note: "Bengaluru, Hyderabad, Chennai — from RSU-heavy tech income to a gold-and-FD-first savings culture, met without judgment either way." },
+  { name: "West Bengal", href: "/mutual-fund-distributor-in-kolkata", note: "Kolkata's centuries of trading culture — market-literate clients, just missing one written plan." },
+  { name: "Punjab, UP & Bihar", href: "/mutual-fund-distributor-in-punjab", note: "Ludhiana's karobaris, Lucknow's tehzeeb, Patna's next generation abroad — different stories, same goal-first process." },
+];
 
 // The journey, as milestones — replaces generic Western stock photography
 // with something that's actually TFD's own story and reads as authentically
@@ -251,6 +268,41 @@ export default function AboutPage() {
           solution="We sit with you, understand your actual goals and income, and explain every recommendation in plain Hindi/English/Hinglish — no product is suggested until it's clear why it fits you specifically."
         />
         <About hideHeading />
+
+        {/* PAN-INDIA REACH — told through how differently each region
+            actually relates to money, not a generic coverage map. Keeps
+            the hero's warm-parchment palette instead of switching to navy. */}
+        <section className="py-16 px-6" style={{ background: "#F1E6D3" }}>
+          <div className="container-x max-w-5xl mx-auto">
+            <div className="text-center max-w-2xl mx-auto">
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-[#D8B98A] text-[11px] tracking-[0.2em] uppercase text-[#8A5A22] font-semibold">
+                India-Wide, Not Just Sehore
+              </div>
+              <h2 className="font-display text-2xl sm:text-3xl text-[#3A2E1D] mt-4">
+                Every region trusts money differently — <span className="italic">we don't flatten that into one template.</span>
+              </h2>
+              <p className="mt-4 text-[#6B5636] leading-relaxed text-[15px]">
+                Gold in the south, business reinvestment in Gujarat, government-salary discipline in MP, ambition in the metros —
+                we meet every family exactly where their own culture already trusts money to grow, then add the one thing
+                usually missing: a written, goal-based plan.
+              </p>
+            </div>
+            <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 mt-10">
+              {regions.map((r) => (
+                <Link
+                  key={r.name}
+                  to={r.href}
+                  className="block bg-white/60 border border-[#D8B98A]/50 rounded-2xl p-5 hover:bg-white hover:border-[#B8722E]/50 transition-colors"
+                >
+                  <div className="flex items-center gap-1.5 text-[#8A5A22] font-display text-[15px]">
+                    <MapPin size={14} /> {r.name}
+                  </div>
+                  <p className="text-sm text-[#6B5636] leading-relaxed mt-2">{r.note}</p>
+                </Link>
+              ))}
+            </div>
+          </div>
+        </section>
 
         {/* OUR STORY — journey timeline instead of a stock photo */}
         <section className="bg-[#FBF7EE] py-16 px-6">

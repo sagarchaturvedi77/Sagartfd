@@ -1,6 +1,6 @@
 import React from "react";
 import { useParams, Navigate, Link } from "react-router-dom";
-import { MapPin, Video, ShieldCheck, TrendingUp } from "lucide-react";
+import { MapPin, Video, ShieldCheck, TrendingUp, Calculator, BookOpen, Quote } from "lucide-react";
 import SEO from "@/components/SEO";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
@@ -53,6 +53,13 @@ export default function CityLandingPage() {
     if (!city) return <Navigate to="/" replace />;
 
     const isRemoteOnly = city.meetingMode.toLowerCase().startsWith("100% video") || city.meetingMode.toLowerCase().startsWith("video consultation");
+    // City-specific WhatsApp message — so when someone clicks through from
+    // this specific city page, the message Sagar receives already names
+    // the city, instead of the generic sitewide WhatsApp text that gives
+    // no clue which page the lead came from.
+    const whatsappHref = `https://wa.me/917773805794?text=${encodeURIComponent(
+        `Hi Sagar ji, I'm from ${city.name} — found you on your ${city.name} page and want to know more about mutual fund investments.`
+    )}`;
     // Same-state pages first (genuinely relevant "also serving" neighbours),
     // then everything else — so this list stays locally meaningful even as
     // the number of city/state pages grows, instead of always showing the
@@ -87,8 +94,16 @@ export default function CityLandingPage() {
                     <p className="fund-animate-in fund-animate-in-delay-2 mt-4 text-[#F6F1E8]/75 text-[15px] sm:text-base max-w-2xl leading-relaxed">
                         {city.intro}
                     </p>
+                    {city.cultureLine && (
+                        <div className="fund-animate-in fund-animate-in-delay-2 mt-5 flex gap-2.5 max-w-xl border-l-2 border-[#D8B98A] pl-4 py-0.5">
+                            <Quote size={15} className="text-[#D8B98A] shrink-0 mt-0.5" />
+                            <p className="font-italic-serif text-[#D8B98A] text-[15px] sm:text-base leading-snug">
+                                {city.cultureLine}
+                            </p>
+                        </div>
+                    )}
                     <div className="fund-animate-in fund-animate-in-delay-3 flex flex-wrap gap-3 mt-7">
-                        <a href={LINKS.whatsappDM} target="_blank" rel="noopener noreferrer" className="btn-pill btn-primary text-sm">
+                        <a href={whatsappHref} target="_blank" rel="noopener noreferrer" className="btn-pill btn-primary text-sm">
                             Book a Free Call
                         </a>
                         <Link to="/about" className="btn-pill btn-ghost text-sm">
@@ -132,6 +147,40 @@ export default function CityLandingPage() {
                         {isRemoteOnly ? <Video className="text-[#024396]" size={22} /> : <MapPin className="text-[#024396]" size={22} />}
                         <h3 className="font-display text-base text-[#0E1B2C] mt-3 mb-1.5">{isRemoteOnly ? "Fully Remote, Fully Real" : "In-Person When You Want It"}</h3>
                         <p className="text-sm text-[#2A364B]/80">{city.meetingMode}</p>
+                    </div>
+                </div>
+            </section>
+
+            <section className="bg-white py-14 md:py-16 px-6 border-t border-[#E2D8C2]">
+                <div className="container-x max-w-4xl mx-auto">
+                    <div className="text-[11px] uppercase tracking-[0.18em] text-[#5C677D] font-semibold mb-5">
+                        Before you talk to us, try these yourself
+                    </div>
+                    <div className="grid sm:grid-cols-2 gap-5">
+                        <Link
+                            to="/calculators"
+                            className="group flex items-center justify-between gap-4 bg-[#0E1B2C] text-white rounded-2xl p-6 hover:bg-[#1a2a3f] transition-colors"
+                        >
+                            <div>
+                                <Calculator size={22} className="text-[#D8B98A] mb-3" />
+                                <h3 className="font-display text-base">Free SIP & Goal Calculators</h3>
+                                <p className="text-sm text-[#F6F1E8]/70 mt-1.5">
+                                    Work out your own numbers for a {city.name} goal — no sign-up needed.
+                                </p>
+                            </div>
+                        </Link>
+                        <Link
+                            to="/blog"
+                            className="group flex items-center justify-between gap-4 bg-[#FBF7EE] border border-[#E2D8C2] rounded-2xl p-6 hover:border-[#024396]/40 transition-colors"
+                        >
+                            <div>
+                                <BookOpen size={22} className="text-[#024396] mb-3" />
+                                <h3 className="font-display text-base text-[#0E1B2C]">Read the TFD Blog</h3>
+                                <p className="text-sm text-[#2A364B]/70 mt-1.5">
+                                    150+ articles on SIP, insurance, tax-saving and financial planning — written by Sagar Chaturvedi.
+                                </p>
+                            </div>
+                        </Link>
                     </div>
                 </div>
             </section>
