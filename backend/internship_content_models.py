@@ -99,6 +99,19 @@ class ContentInDB(BaseModel):
     created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
     reviewed_at: Optional[str] = None
     published_at: Optional[str] = None
+    # SEO metadata — optional so existing student-submitted docs (which
+    # predate these fields) stay valid; only populated for editorially
+    # written content (see backend/scripts/seed_blog_posts.py).
+    meta_description: Optional[str] = None
+    keywords: Optional[str] = None
+    # English versions of title/body — optional so existing/future
+    # student-submitted content (which is Hinglish-only) stays valid.
+    # title/body themselves remain the Hinglish version.
+    title_en: Optional[str] = None
+    body_en: Optional[str] = None
+    # Short social-style tags for the public blog UI (e.g. "#SIP",
+    # "#FinancialPlanning") — optional so existing content stays valid.
+    hashtags: Optional[list[str]] = None
 
 
 class ContentOut(BaseModel):
@@ -132,3 +145,8 @@ class PublicContentOut(BaseModel):
     author_name: str
     product_link: Optional[str] = None
     published_at: str
+    meta_description: Optional[str] = None
+    keywords: Optional[str] = None
+    title_en: Optional[str] = None
+    body_en: Optional[str] = None
+    hashtags: Optional[list[str]] = None

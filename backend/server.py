@@ -475,6 +475,60 @@ async def ai_history(session_id: str):
 
 app.include_router(api_router)
 
+
+# ---- Dynamic blog sitemap ----
+# frontend/public/sitemap.xml is a static file (fine for pages that don't
+# change) but blog posts live in MongoDB and grow over time — a static file
+# can never list them. This generates a real sitemap XML from the live,
+# published posts on every request. Deployed on the FastAPI backend's own
+# domain, so the public site's robots.txt must reference this route's full
+# backend URL directly (cross-domain "Sitemap:" lines are valid per the
+# sitemap protocol — Google fetches whatever URL is listed, same-origin is
+# not required, unlike a same-origin proxy/rewrite which would need extra
+# CDN config this repo doesn't otherwise need).
+from internship_content_models import TOPIC_LABELS as _TOPIC_LABELS  # noqa: E402
+
+SITEMAP_SITE_URL = "https://thefinancialdoctor.in"
+
+
+def _xml_escape(text: str) -> str:
+    return (
+        (text or "")
+        .replace("&", "&amp;")
+        .replace("<", "&lt;")
+        .replace(">", "&gt;")
+        .replace('"', "&quot;")
+    )
+
+
+@app.get("/sitemap-blog.xml")
+async def sitemap_blog():
+    from fastapi.responses import Response
+
+    cursor = db["internship_content"].find(
+        {"status": "published", "content_type": "blog"},
+        {"_id": 0, "id": 1, "published_at": 1, "date_modified": 1},
+    ).sort("published_at", -1)
+
+    urls = []
+    async for doc in cursor:
+        loc = f"{SITEMAP_SITE_URL}/blog/{doc['id']}"
+        lastmod = doc.get("date_modified") or doc.get("published_at") or ""
+        lastmod = _xml_escape(str(lastmod)[:10])  # YYYY-MM-DD is all <lastmod> needs
+        urls.append(
+            f"  <url>\n    <loc>{_xml_escape(loc)}</loc>\n"
+            f"    <lastmod>{lastmod}</lastmod>\n    <changefreq>monthly</changefreq>\n"
+            f"    <priority>0.6</priority>\n  </url>"
+        )
+
+    xml = (
+        '<?xml version="1.0" encoding="UTF-8"?>\n'
+        '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'
+        + "\n".join(urls)
+        + "\n</urlset>\n"
+    )
+    return Response(content=xml, media_type="application/xml")
+
 from auth_routes import router as auth_router
 app.include_router(auth_router)
 

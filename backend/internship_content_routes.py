@@ -201,7 +201,7 @@ async def admin_review_content(content_id: str, data: ContentReviewIn, admin: di
 # ── Public (no auth) — what the real website reads ──────────────────────
 
 @router.get("/public/content", response_model=list[PublicContentOut])
-async def public_list_content(content_type: str = Query(default="blog"), topic: str | None = Query(default=None), limit: int = Query(default=30, le=100)):
+async def public_list_content(content_type: str = Query(default="blog"), topic: str | None = Query(default=None), limit: int = Query(default=30, le=300)):
     query = {"status": "published", "content_type": content_type}
     if topic:
         query["topic"] = topic
@@ -213,6 +213,9 @@ async def public_list_content(content_type: str = Query(default="blog"), topic: 
             topic_label=TOPIC_LABELS.get(doc["topic"], doc["topic"]), title=doc["title"], body=doc["body"],
             author_name=doc["student_name"], product_link=doc.get("product_link"),
             published_at=doc.get("published_at") or doc["created_at"],
+            meta_description=doc.get("meta_description"), keywords=doc.get("keywords"),
+            title_en=doc.get("title_en"), body_en=doc.get("body_en"),
+            hashtags=doc.get("hashtags"),
         ))
     return out
 
@@ -227,4 +230,7 @@ async def public_get_content(content_id: str):
         topic_label=TOPIC_LABELS.get(doc["topic"], doc["topic"]), title=doc["title"], body=doc["body"],
         author_name=doc["student_name"], product_link=doc.get("product_link"),
         published_at=doc.get("published_at") or doc["created_at"],
+        meta_description=doc.get("meta_description"), keywords=doc.get("keywords"),
+        title_en=doc.get("title_en"), body_en=doc.get("body_en"),
+        hashtags=doc.get("hashtags"),
     )
