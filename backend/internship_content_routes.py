@@ -190,6 +190,19 @@ async def admin_review_content(content_id: str, data: ContentReviewIn, admin: di
             )
         except Exception:
             logger.warning("Failed to notify student %s of content approval", doc["student_id"])
+
+        # Auto-fire a Google Business Profile Local Post for newly-published
+        # blogs (not FAQs — a Local Post needs an article to link to). This
+        # is explicitly best-effort: GBP being disconnected, quota-limited,
+        # or erroring must never block the actual publish, so any failure
+        # here is only logged, never raised.
+        if doc["content_type"] == "blog":
+            try:
+                import google_business_client as gb
+                full_doc = {**doc, **update}
+                await gb.post_blog_content(full_doc)
+            except Exception:
+                logger.warning("Failed to auto-post blog %s to Google Business Profile", doc["id"])
     else:
         update["status"] = "rejected"
 

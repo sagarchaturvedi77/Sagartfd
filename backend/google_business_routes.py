@@ -9,7 +9,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi.responses import RedirectResponse
 
 from auth_utils import require_admin
-from database import business_settings_collection
+from database import business_settings_collection, internship_content_collection
 import google_business_client as gb
 
 logger = logging.getLogger(__name__)
@@ -98,6 +98,26 @@ async def callback(code: str = Query(default=""), state: str = Query(default="")
 async def disconnect(_admin: dict = Depends(require_admin)):
     await gb.disconnect()
     return {"status": "disconnected"}
+
+
+@router.post("/post-blog/{content_id}")
+async def post_blog_to_gbp(content_id: str, _admin: dict = Depends(require_admin)):
+    """Manually pushes one published blog post to Google Business Profile
+    as a Local Post — same short-hook + "Learn More" CTA format the
+    auto-fire hook uses on new publishes (internship_content_routes.py),
+    exposed here so a specific post (including ones from the existing
+    150-post backlog) can be pushed individually, on the admin's own
+    throttled schedule, instead of only ever firing automatically."""
+    content = await internship_content_collection.find_one({"id": content_id, "content_type": "blog"})
+    if not content:
+        raise HTTPException(status_code=404, detail="Blog post not found")
+    if content.get("status") != "published":
+        raise HTTPException(status_code=409, detail="Only published posts can be pushed to GBP")
+    try:
+        result = await gb.post_blog_content(content)
+    except gb.GoogleBusinessError as e:
+        raise HTTPException(status_code=502, detail=str(e))
+    return {"status": "posted", "gbp_response": result}
 
 
 @router.get("/reviews")

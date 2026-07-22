@@ -177,6 +177,91 @@ async def disconnect() -> None:
     await business_settings_collection.delete_one({"_id": SETTINGS_ID})
 
 
+def build_post_summary(title: str, meta_description: Optional[str] = None, hashtags: Optional[list[str]] = None) -> str:
+    """Short-hook Local Post text: headline + one-line description +
+    hashtags, in that order — trimmed to stay well under the API's ~1500
+    character cap on `summary` (GBP posts read best around 100-300 chars
+    anyway, so this rarely needs the trim in practice)."""
+    parts = [title]
+    if meta_description:
+        parts.append(meta_description)
+    if hashtags:
+        parts.append(" ".join(hashtags))
+    return "\n\n".join(p for p in parts if p)[:1490]
+
+
+async def create_local_post(
+    account_id: str,
+    location_id: str,
+    summary: str,
+    cta_url: str,
+    image_url: Optional[str] = None,
+) -> dict:
+    """Creates a Google Business Profile "Local Post" (the Updates/What's
+    New feed) — short hook text + a "Learn More" button pointing at the
+    blog URL, optionally with a photo attached.
+
+    Local Posts live under the same older v4 "Google My Business API" as
+    reviews (see fetch_reviews' docstring) — Google has, in the past,
+    gated write access to this API behind a separate approval request even
+    after it's enabled in Cloud Console, so a 403/404 here most likely
+    means that access hasn't been granted yet, not a code bug.
+    """
+    token = await get_valid_access_token()
+    url = f"https://mybusiness.googleapis.com/v4/accounts/{account_id}/locations/{location_id}/localPosts"
+    payload = {
+        "languageCode": "en-US",
+        "summary": summary,
+        "callToAction": {"actionType": "LEARN_MORE", "url": cta_url},
+        "topicType": "STANDARD",
+    }
+    if image_url:
+        payload["media"] = [{"mediaFormat": "PHOTO", "sourceUrl": image_url}]
+
+    async with httpx.AsyncClient(timeout=20.0) as client:
+        resp = await client.post(url, headers={"Authorization": f"Bearer {token}"}, json=payload)
+    if resp.status_code not in (200, 201):
+        raise GoogleBusinessError(f"Local Post creation failed ({resp.status_code}): {resp.text[:300]}")
+    return resp.json()
+
+
+SITE_URL = "https://thefinancialdoctor.in"
+SHARE_CARD_IMAGE = f"{SITE_URL}/assets/og/blog-share-card.png"
+
+
+async def post_blog_content(content: dict) -> dict:
+    """Orchestrates posting one published blog doc (from
+    internship_content_collection) to GBP as a Local Post — short hook +
+    "Learn More" CTA to the blog's own URL, with the branded share card as
+    the photo. Used both by the manual admin-triggered route and the
+    auto-fire hook on blog publish (internship_content_routes.py).
+
+    Raises GoogleBusinessError for any failure (not connected, no location
+    linked, API error) — callers decide whether that's fatal (manual
+    route) or just logged (auto-fire, which must never block a publish).
+    """
+    settings = await get_connection_status()
+    if not settings.get("connected"):
+        raise GoogleBusinessError("Google Business isn't connected yet.")
+    account_name = settings.get("account_name")
+    location_name = settings.get("location_name")
+    if not account_name or not location_name:
+        raise GoogleBusinessError(
+            "No Business Profile location is linked to this connection yet — "
+            "reconnect from the admin settings page once the account/location can be resolved."
+        )
+    account_id = account_name.split("/")[-1]
+    location_id = location_name.split("/")[-1]
+
+    summary = build_post_summary(
+        title=content.get("title", ""),
+        meta_description=content.get("meta_description"),
+        hashtags=content.get("hashtags"),
+    )
+    cta_url = f"{SITE_URL}/blog/{content['id']}"
+    return await create_local_post(account_id, location_id, summary, cta_url, image_url=SHARE_CARD_IMAGE)
+
+
 async def fetch_reviews(account_id: str, location_id: str) -> list[dict]:
     """Reviews live under the older v4 "Google My Business API", which
     Google has historically gated review-read access behind a separate
