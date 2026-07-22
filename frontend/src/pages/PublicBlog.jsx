@@ -494,10 +494,10 @@ function BlogDetail({ post, loading, lang }) {
                 {/* Tablet only (sm-lg) — on phones this collapses into the
                     fixed floating button below instead, always reachable
                     without scrolling back to the top of a long article. */}
+                {/* Mobile gets its Share button in the sticky toolbar under
+                    the navbar instead (see PublicBlog's top-level render) —
+                    this row covers tablet only, where that toolbar is hidden. */}
                 <div className="hidden sm:flex lg:hidden items-center gap-3 mt-6 pt-6 border-t border-[#E2D8C2]">
-                    <ShareButton post={post} lang={lang} />
-                </div>
-                <div className="sm:hidden fixed top-[74px] left-3 z-40">
                     <ShareButton post={post} lang={lang} />
                 </div>
                 {related.length > 0 && (
@@ -603,6 +603,14 @@ export default function PublicBlog() {
                 ogImage={contentId ? SHARE_IMAGE : undefined}
             />
             <Navbar />
+            {/* Mobile-only toolbar, in normal document flow (not floating
+                over content) right under the fixed navbar — sticky so it
+                stays reachable while scrolling, without ever covering the
+                article text the way a `position: fixed` overlay did. */}
+            <div className="sm:hidden sticky top-16 z-30 bg-[#FBF7EE]/95 backdrop-blur border-b border-[#E2D8C2] px-4 py-2 flex items-center justify-between gap-2">
+                <LanguageToggle className="scale-[0.85] origin-left" />
+                {contentId && detail && <ShareButton post={detail} lang={lang} />}
+            </div>
             <main className="pt-24 section">
                 <div className="container-x">
                     {!contentId && (
@@ -621,12 +629,6 @@ export default function PublicBlog() {
                             <LanguageToggle />
                         </div>
                     )}
-                    {/* Mobile only — the pill row above is hidden below sm:, so on
-                        phones the language switch instead floats fixed just under
-                        the navbar, always reachable without scrolling back up. */}
-                    <div className="sm:hidden fixed top-[74px] right-3 z-40">
-                        <LanguageToggle className="shadow-lg shadow-black/10 scale-90 origin-top-right bg-[#FBF7EE]" />
-                    </div>
                     {contentId ? (
                         <BlogDetail post={detail} loading={loading} lang={lang} />
                     ) : (
