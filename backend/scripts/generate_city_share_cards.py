@@ -183,14 +183,38 @@ def sil_default(draw):
     draw.ellipse([980, 300, 1040, 360], fill=SIL)
 
 
+SAFE_W = 630  # WhatsApp (and most other clients) crop link-preview images to
+# roughly a centered square before display, regardless of the real 1200x630
+# aspect ratio declared in og:image:width/height — so every piece of text
+# critical to the message (logo, headline, credentials, CTA) is centered
+# inside this middle 630px-wide zone; only decorative background elements
+# are allowed to extend into the outer margins that a square crop discards.
+SAFE_X0 = (W - SAFE_W) // 2  # 285
+CENTER_X = W // 2  # 600
+
+
+def center_text(draw, cx, y, text, font_, fill):
+    bbox = draw.textbbox((0, 0), text, font=font_)
+    w = bbox[2] - bbox[0]
+    draw.text((cx - w / 2, y), text, font=font_, fill=fill)
+    return bbox[3] - bbox[1]
+
+
 def make_card(city_name, silhouette_fn):
     img = Image.new("RGB", (W, H), NAVY)
     glow = Image.new("RGB", (W, H), NAVY)
     glow_draw = ImageDraw.Draw(glow)
-    glow_draw.ellipse([W - 520, -260, W + 260, 480], fill=(2, 67, 150))
+    # Centered glow (was top-right) — the composition is now center-weighted,
+    # so the light source should be too.
+    glow_draw.ellipse([CENTER_X - 420, -260, CENTER_X + 420, 360], fill=(2, 67, 150))
     glow = glow.filter(ImageFilter.GaussianBlur(150))
     img = Image.blend(img, glow, 0.5)
 
+    # Silhouette now spans the full canvas symmetrically as a faint watermark
+    # behind the text, instead of sitting only on the right (which a square
+    # crop would cut entirely) — it's purely decorative, so partial cropping
+    # is fine either way, but centering it means at least some of it survives
+    # a square crop too, for platforms that don't discard it.
     overlay = Image.new("RGBA", (W, H), (0, 0, 0, 0))
     silhouette_fn(ImageDraw.Draw(overlay))
     img = Image.alpha_composite(img.convert("RGBA"), overlay).convert("RGB")
@@ -199,7 +223,7 @@ def make_card(city_name, silhouette_fn):
     draw.rectangle([0, 0, W, 6], fill=GOLD)
 
     logo = Image.open(ASSETS / "logos" / "TFD-MAIN-LOGO.png").convert("RGBA")
-    logo_w = 240
+    logo_w = 230
     logo_h = int(logo.height * (logo_w / logo.width))
     logo = logo.resize((logo_w, logo_h), Image.LANCZOS)
     plate = Image.new("RGBA", (logo_w + 26, logo_h + 18), (246, 241, 232, 255))
@@ -207,39 +231,37 @@ def make_card(city_name, silhouette_fn):
     ImageDraw.Draw(plate_mask).rounded_rectangle([0, 0, plate.size[0], plate.size[1]], radius=12, fill=255)
     plate.putalpha(plate_mask)
     plate.alpha_composite(logo, (13, 9))
-    img.paste(plate, (60, 56), plate)
+    img.paste(plate, (CENTER_X - plate.width // 2, 44), plate)
 
-    f_headline = font(FONTS / "playfair.ttf", 46)
-    f_sub = font(FONTS / "notosans.ttf", 24)
-    f_badge = font(FONTS / "notosans.ttf", 19)
-    f_btn = font(FONTS / "notosans.ttf", 22)
-    f_url = font(FONTS / "notosans.ttf", 22)
+    f_headline = font(FONTS / "playfair.ttf", 42)
+    f_sub = font(FONTS / "notosans.ttf", 21)
+    f_badge = font(FONTS / "notosans.ttf", 18)
+    f_btn = font(FONTS / "notosans.ttf", 21)
+    f_url = font(FONTS / "notosans.ttf", 20)
 
-    y = 56 + logo_h + 40
-    headline = f"Trusted Mutual Fund &\nWealth Management\nServices in {city_name}"
-    for i, line in enumerate(headline.split("\n")):
-        draw.text((60, y + i * 56), line, font=f_headline, fill=CREAM)
-    y += 56 * 3 + 18
-    draw.text((60, y), f"Now servicing investors across {city_name} & nearby regions.", font=f_sub, fill=MUTED)
+    y = 44 + logo_h + 18 + 26
+    headline_lines = ["Trusted Mutual Fund &", "Wealth Management", f"Services in {city_name}"]
+    for line in headline_lines:
+        center_text(draw, CENTER_X, y, line, f_headline, CREAM)
+        y += 50
+    y += 10
+    center_text(draw, CENTER_X, y, f"Now servicing investors across {city_name} & nearby regions.", f_sub, MUTED)
+    y += 44
 
-    y += 50
     badge_text = "AMFI REGISTERED · ARN-290298"
     bbox = draw.textbbox((0, 0), badge_text, font=f_badge)
     bw, bh = bbox[2] - bbox[0], bbox[3] - bbox[1]
-    draw.rounded_rectangle([60, y, 60 + bw + 26, y + bh + 18], radius=8, outline=GOLD, width=2)
-    draw.text((60 + 13, y + 8), badge_text, font=f_badge, fill=GOLD)
+    draw.rounded_rectangle([CENTER_X - bw / 2 - 13, y, CENTER_X + bw / 2 + 13, y + bh + 18], radius=8, outline=GOLD, width=2)
+    center_text(draw, CENTER_X, y + 9, badge_text, f_badge, GOLD)
 
-    btn_y = H - 96
+    btn_y = H - 92
     btn_text = "Book Free Portfolio Review"
     bbox = draw.textbbox((0, 0), btn_text, font=f_btn)
     bw, bh = bbox[2] - bbox[0], bbox[3] - bbox[1]
-    draw.rounded_rectangle([60, btn_y, 60 + bw + 44, btn_y + bh + 26], radius=(bh + 26) // 2, fill=(199, 16, 46))
-    draw.text((60 + 22, btn_y + 13), btn_text, font=f_btn, fill=CREAM)
+    draw.rounded_rectangle([CENTER_X - bw / 2 - 22, btn_y, CENTER_X + bw / 2 + 22, btn_y + bh + 26], radius=(bh + 26) // 2, fill=(199, 16, 46))
+    center_text(draw, CENTER_X, btn_y + 13, btn_text, f_btn, CREAM)
 
-    url_text = "thefinancialdoctor.in"
-    bbox = draw.textbbox((0, 0), url_text, font=f_url)
-    uw = bbox[2] - bbox[0]
-    draw.text((W - uw - 60, H - 50), url_text, font=f_url, fill=GOLD)
+    center_text(draw, CENTER_X, H - 34, "thefinancialdoctor.in", f_url, GOLD)
 
     return img
 

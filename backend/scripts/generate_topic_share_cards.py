@@ -53,77 +53,91 @@ def font(path, size):
     return ImageFont.truetype(str(path), size)
 
 
+CENTER_X = W // 2  # 600 — see generate_city_share_cards.py's SAFE_W comment:
+# WhatsApp (and most other clients) crop link-preview images to roughly a
+# centered square regardless of the declared 1200x630 og:image dimensions,
+# so every essential element (logo, hook text, name/ARN, URL) is centered
+# here instead of the previous left-aligned-next-to-a-left-side-photo-panel
+# layout, which put almost everything in the zone a square crop discards.
+
+
+def center_text(draw, cx, y, text, font_, fill):
+    bbox = draw.textbbox((0, 0), text, font=font_)
+    w = bbox[2] - bbox[0]
+    draw.text((cx - w / 2, y), text, font=font_, fill=fill)
+    return bbox[3] - bbox[1]
+
+
 def make_card(accent, badge, hook_lines, punch):
     img = Image.new("RGB", (W, H), NAVY)
 
     glow = Image.new("RGB", (W, H), NAVY)
     glow_draw = ImageDraw.Draw(glow)
-    glow_draw.ellipse([W - 520, -260, W + 260, 480], fill=accent)
+    glow_draw.ellipse([CENTER_X - 420, -260, CENTER_X + 420, 360], fill=accent)
     glow = glow.filter(ImageFilter.GaussianBlur(140))
     img = Image.blend(img, glow, 0.55)
 
     draw = ImageDraw.Draw(img)
     draw.rectangle([0, 0, W, 6], fill=accent)
 
-    photo = Image.open(ASSETS / "founder" / "sagar-photo.webp").convert("RGB")
-    panel_w, panel_h = 400, H
-    photo = ImageOps.fit(photo, (panel_w, panel_h), method=Image.LANCZOS, centering=(0.5, 0.28))
-    fade = Image.new("L", (panel_w, panel_h), 255)
-    fade_draw = ImageDraw.Draw(fade)
-    fade_w = 140
-    for x in range(fade_w):
-        alpha = int(255 * (x / fade_w))
-        fade_draw.line([(panel_w - fade_w + x, 0), (panel_w - fade_w + x, panel_h)], fill=255 - alpha)
-    photo.putalpha(fade)
-    canvas = Image.new("RGBA", (W, H), (*NAVY, 255))
-    canvas.paste(photo, (0, 0), photo)
-    img = canvas.convert("RGB")
-    draw = ImageDraw.Draw(img)
-    draw.rectangle([0, 0, 6, H], fill=accent)
-
-    x0 = 430
     logo = Image.open(ASSETS / "logos" / "TFD-MAIN-LOGO.png").convert("RGBA")
-    logo_w = 260
+    logo_w = 220
     logo_h = int(logo.height * (logo_w / logo.width))
     logo = logo.resize((logo_w, logo_h), Image.LANCZOS)
-    plate = Image.new("RGBA", (logo_w + 28, logo_h + 20), (246, 241, 232, 255))
+    plate = Image.new("RGBA", (logo_w + 26, logo_h + 18), (246, 241, 232, 255))
     plate_mask = Image.new("L", plate.size, 0)
     ImageDraw.Draw(plate_mask).rounded_rectangle([0, 0, plate.size[0], plate.size[1]], radius=12, fill=255)
     plate.putalpha(plate_mask)
-    plate.alpha_composite(logo, (14, 10))
-    img.paste(plate, (x0, 56), plate)
+    plate.alpha_composite(logo, (13, 9))
+    img.paste(plate, (CENTER_X - plate.width // 2, 40), plate)
 
-    f_badge = font(FONTS / "notosans.ttf", 20)
-    f_hook = font(FONTS / "playfair.ttf", 50)
-    f_punch = font(FONTS / "playfair-italic.ttf", 50)
-    f_name = font(FONTS / "notosans.ttf", 28)
-    f_small = font(FONTS / "notosans.ttf", 20)
-    f_tag = font(FONTS / "notosans.ttf", 24)
+    f_badge = font(FONTS / "notosans.ttf", 18)
+    f_hook = font(FONTS / "playfair.ttf", 42)
+    f_punch = font(FONTS / "playfair-italic.ttf", 42)
+    f_name = font(FONTS / "notosans.ttf", 24)
+    f_small = font(FONTS / "notosans.ttf", 18)
+    f_tag = font(FONTS / "notosans.ttf", 21)
 
-    badge_y = 56 + logo_h + 30
+    y = 40 + logo_h + 18 + 22
     bbox = draw.textbbox((0, 0), badge, font=f_badge)
     bw, bh = bbox[2] - bbox[0], bbox[3] - bbox[1]
-    draw.rounded_rectangle([x0, badge_y, x0 + bw + 28, badge_y + bh + 20], radius=8, fill=accent)
-    draw.text((x0 + 14, badge_y + 8), badge, font=f_badge, fill=CREAM)
+    draw.rounded_rectangle([CENTER_X - bw / 2 - 14, y, CENTER_X + bw / 2 + 14, y + bh + 20], radius=8, fill=accent)
+    center_text(draw, CENTER_X, y + 9, badge, f_badge, CREAM)
+    y += bh + 20 + 26
 
-    y = badge_y + bh + 20 + 28
-    draw.text((x0, y), hook_lines[0], font=f_hook, fill=CREAM)
-    draw.text((x0, y + 60), hook_lines[1], font=f_hook, fill=CREAM)
+    center_text(draw, CENTER_X, y, hook_lines[0], f_hook, CREAM)
+    y += 52
+    center_text(draw, CENTER_X, y, hook_lines[1], f_hook, CREAM)
+    y += 52
     accent_soft = tuple(min(255, c + 70) for c in accent)
-    draw.text((x0, y + 128), punch, font=f_punch, fill=accent_soft)
+    center_text(draw, CENTER_X, y, punch, f_punch, accent_soft)
+    y += 66
 
-    draw.line([(x0, y + 200), (x0 + 420, y + 200)], fill=(255, 255, 255, 40))
-    draw.text((x0, y + 222), "Sagar Chaturvedi", font=f_name, fill=CREAM)
-    draw.text((x0, y + 260), "AMFI Registered Mutual Fund Distributor · ARN-290298", font=f_small, fill=MUTED)
+    # A small circular founder portrait replaces the old full-height left
+    # side panel — it stays inside the centered safe zone alongside the
+    # name/credentials instead of occupying crop-vulnerable outer space.
+    photo_size = 56
+    photo = Image.open(ASSETS / "founder" / "sagar-photo.webp").convert("RGB")
+    photo = ImageOps.fit(photo, (photo_size, photo_size), method=Image.LANCZOS, centering=(0.5, 0.15))
+    photo_mask = Image.new("L", (photo_size, photo_size), 0)
+    ImageDraw.Draw(photo_mask).ellipse([0, 0, photo_size, photo_size], fill=255)
+    name_w = draw.textbbox((0, 0), "Sagar Chaturvedi", font=f_name)[2]
+    small_w = draw.textbbox((0, 0), "AMFI Registered · ARN-290298", font=f_small)[2]
+    text_block_w = max(name_w, small_w)
+    group_w = photo_size + 14 + text_block_w
+    group_x0 = CENTER_X - group_w / 2
+    img.paste(photo, (int(group_x0), int(y)), photo_mask)
+    draw.text((group_x0 + photo_size + 14, y - 2), "Sagar Chaturvedi", font=f_name, fill=CREAM)
+    draw.text((group_x0 + photo_size + 14, y + 28), "AMFI Registered · ARN-290298", font=f_small, fill=MUTED)
 
     pill_text = "thefinancialdoctor.in"
     bbox = draw.textbbox((0, 0), pill_text, font=f_tag)
-    tw = bbox[2] - bbox[0]
-    pill_pad_x, pill_pad_y = 24, 12
-    pill_w, pill_h = tw + pill_pad_x * 2, 22 + pill_pad_y * 2
-    pill_x, pill_y = x0, H - 80
-    draw.rounded_rectangle([pill_x, pill_y, pill_x + pill_w, pill_y + pill_h], radius=pill_h // 2, outline=accent_soft, width=2)
-    draw.text((pill_x + pill_pad_x, pill_y + pill_pad_y - 2), pill_text, font=f_tag, fill=accent_soft)
+    tw, th = bbox[2] - bbox[0], bbox[3] - bbox[1]
+    pill_pad_x, pill_pad_y = 22, 11
+    pill_w, pill_h = tw + pill_pad_x * 2, th + pill_pad_y * 2
+    pill_y = H - 60
+    draw.rounded_rectangle([CENTER_X - pill_w / 2, pill_y, CENTER_X + pill_w / 2, pill_y + pill_h], radius=pill_h // 2, outline=accent_soft, width=2)
+    center_text(draw, CENTER_X, pill_y + pill_pad_y - 2, pill_text, f_tag, accent_soft)
 
     return img
 
