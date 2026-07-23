@@ -226,6 +226,53 @@ export default function CityLandingPage() {
                 </div>
             </section>
 
+            {/* Mission statement + Daily vs Monthly SIP explainer + fund
+                selection emphasis + ongoing support — real educational and
+                trust content, not filler, addressing exactly what {city}
+                readers actually want to know before investing. */}
+            <section className="bg-[#0E1B2C] py-14 md:py-16 px-6 border-t border-[#2A364B]">
+                <div className="container-x max-w-5xl mx-auto">
+                    <div className="max-w-2xl">
+                        <div className="text-[11px] uppercase tracking-[0.18em] text-[#8FB7E8] font-semibold mb-3">Our mission</div>
+                        <p className="font-italic-serif text-[#F6F1E8] text-xl sm:text-2xl leading-snug">
+                            "Our mission is simple — make every {city.name} family financially strong. Not just invested — genuinely
+                            secure, with a plan they actually understand."
+                        </p>
+                        <p className="text-[#F6F1E8]/70 text-sm mt-4">— Sagar Chaturvedi, Founder</p>
+                    </div>
+
+                    <div className="grid sm:grid-cols-2 gap-5 mt-10">
+                        <div className="bg-[#152238] border border-[#2A364B] rounded-2xl p-6">
+                            <h3 className="font-display text-base text-[#F6F1E8] mb-2">Daily SIP or Monthly SIP?</h3>
+                            <p className="text-sm text-[#F6F1E8]/70 leading-relaxed">
+                                Both are available to {city.name} investors — a Daily SIP spreads small amounts across every trading
+                                day for slightly finer rupee-cost averaging, while a Monthly SIP (the more common choice) lines up
+                                with a salary or business cash cycle. Neither is "better" on its own; we help you pick whichever
+                                actually matches how your money comes in.
+                            </p>
+                        </div>
+                        <div className="bg-[#152238] border border-[#D8B98A]/40 rounded-2xl p-6">
+                            <h3 className="font-display text-base text-[#D8B98A] mb-2">Fund selection is the real work</h3>
+                            <p className="text-sm text-[#F6F1E8]/70 leading-relaxed">
+                                Daily vs monthly, ₹1,000 vs ₹10,000 — these are quick decisions. The task we actually spend the most
+                                time on for every {city.name} client is fund selection: matching the right fund category, AMC track
+                                record, and expense ratio to your specific goal and time horizon. That's where most of our real work
+                                happens, not in setting up the SIP itself.
+                            </p>
+                        </div>
+                    </div>
+
+                    <div className="mt-8 flex items-start gap-3 text-sm text-[#F6F1E8]/70 max-w-2xl">
+                        <ShieldCheck size={18} className="text-[#8FB7E8] shrink-0 mt-0.5" />
+                        <p>
+                            <b className="text-[#F6F1E8]">Support doesn't stop after you invest.</b> Every {city.name} client can
+                            reach us for a portfolio review, a fund switch question, or just to understand a statement — the same
+                            free-first-consultation relationship continues for as long as you're invested with us.
+                        </p>
+                    </div>
+                </div>
+            </section>
+
             {/* Services in {city} — explicit mutual fund / insurance / calculator /
                 proposal coverage, both for readers and for AEO (answer engines
                 pull directly from clearly-labelled service blocks like this). */}
