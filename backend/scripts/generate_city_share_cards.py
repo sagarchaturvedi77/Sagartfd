@@ -1,32 +1,25 @@
 """One-off script: generates a branded OG share-card image PER CITY/STATE
-PAGE.
+PAGE. Centered logo, a big dominant city name, service tags, and decorative
+accent-coloured rings filling the side margins.
 
-An earlier version of this script tried literal landmark silhouettes
-(Gateway of India, Hawa Mahal, etc.) drawn from simple PIL shapes at low
-opacity so a square WhatsApp crop wouldn't lose real information. In
-practice, low-opacity fills of small overlapping rectangles/polygons on a
-dark navy background just blend into one indistinct grey blob — none of
-the 15 hand-drawn "landmarks" were actually recognisable, and worse, they
-all looked the same regardless of which city. Replaced with a more
-reliable design: each city/state gets its own accent colour (the exact
-same palette + assignment CityLandingPage.jsx uses for the live page, so
-the shared card and the page it links to are visually consistent) and a
-large, soft, city-initial letterform watermark instead of a failed
-micro-illustration — legible, elegant, and genuinely different per city
-without needing hand-tuned artwork per landmark.
+Earlier iterations tried a map inset (hand-drawn landmark silhouettes,
+then a city-initial letterform watermark, then a small India-map-with-pin
+inset) — removed per explicit follow-up feedback asking for no map
+anywhere, on the card or on the /locations page. Kept: the per-city accent
+colour (consistent with CityLandingPage.jsx's own accentFor()).
 
-Overlay spec (as requested):
-  - Headline: "Trusted Mutual Fund & Wealth Management Services in {City}"
-  - Sub-line: "Now servicing investors across {City} & nearby regions"
+Overlay spec:
+  - Big, dominant city name
+  - "The Financial Doctor — Mutual Fund & Wealth Management Services"
+  - "Now available in {City} — with full transparency & full guidance."
+  - Service tags: Mutual Funds / SIP / Insurance / Digital Proposal
   - AMFI Registered + ARN-290298 badge
-  - Logo + thefinancialdoctor.in
+  - Logo (centered top) + thefinancialdoctor.in
   - "Book Free Portfolio Review" button graphic
-  - Everything centered in a safe zone a square crop won't cut off
+  - Everything critical centered in the WhatsApp-crop-safe zone
 
 Run from repo root:
     python backend/scripts/generate_city_share_cards.py
-
-Outputs to frontend/public/assets/og/city-{slug}.png (1200x630 each).
 """
 import re
 import sys
@@ -45,9 +38,7 @@ NAVY = (14, 27, 44)
 CREAM = (246, 241, 232)
 MUTED = (176, 189, 209)
 
-# Identical palette + cycling order to CityLandingPage.jsx's CITY_ACCENTS /
-# accentFor() — keeps the shared card and the live page it links to
-# visually consistent instead of picking an unrelated colour.
+# Identical palette + cycling order to CityLandingPage.jsx's CITY_ACCENTS.
 ACCENTS = [(2, 67, 150), (184, 114, 46), (15, 110, 92), (217, 177, 92), (46, 127, 199), (108, 99, 255), (34, 197, 94), (139, 92, 246)]
 
 CENTER_X = W // 2
@@ -64,85 +55,150 @@ def center_text(draw, cx, y, text, font_, fill):
     return bbox[3] - bbox[1]
 
 
-def make_card(city_name, accent):
+def make_card(city_name, accent, is_state=False):
     accent_soft = tuple(min(255, c + 60) for c in accent)
     img = Image.new("RGB", (W, H), NAVY)
 
-    # Centered colour glow, tuned to this city's accent.
     glow = Image.new("RGB", (W, H), NAVY)
     glow_draw = ImageDraw.Draw(glow)
     glow_draw.ellipse([CENTER_X - 460, -280, CENTER_X + 460, 340], fill=accent)
     glow = glow.filter(ImageFilter.GaussianBlur(160))
-    img = Image.blend(img, glow, 0.5)
-
-    # Large, soft city-initial letterform watermark — sits low/behind
-    # everything, well clear of the text column, so it reads as a design
-    # flourish rather than competing content (and can't create the
-    # "overlapping" look the previous silhouette attempt had).
-    overlay = Image.new("RGBA", (W, H), (0, 0, 0, 0))
-    initial = (city_name[0] or "T").upper()
-    f_watermark = font(FONTS / "playfair.ttf", 520)
-    wm_draw = ImageDraw.Draw(overlay)
-    bbox = wm_draw.textbbox((0, 0), initial, font=f_watermark)
-    ww, wh = bbox[2] - bbox[0], bbox[3] - bbox[1]
-    wm_draw.text((W - ww - 40, H - wh - 20), initial, font=f_watermark, fill=(*accent_soft, 40))
-    img = Image.alpha_composite(img.convert("RGBA"), overlay).convert("RGB")
+    img = Image.blend(img, glow, 0.5).convert("RGBA")
 
     draw = ImageDraw.Draw(img)
     draw.rectangle([0, 0, W, 6], fill=accent_soft)
 
+    # Decorative rings in the left/right margins — outside the WhatsApp
+    # crop-safe zone, so purely ornamental content belongs exactly here
+    # instead of being left empty. Large, faint, off-canvas-centered circles
+    # in the city's own accent colour.
+    ring_overlay = Image.new("RGBA", (W, H), (0, 0, 0, 0))
+    ring_draw = ImageDraw.Draw(ring_overlay)
+    for cx, r, w_ in [(-40, 260, 3), (-160, 160, 2), (W + 40, 300, 3), (W + 180, 170, 2)]:
+        ring_draw.ellipse([cx - r, H / 2 - r, cx + r, H / 2 + r], outline=(*accent_soft, 55), width=w_)
+    img.alpha_composite(ring_overlay)
+    draw = ImageDraw.Draw(img)
+
+    # Full city name repeated large in the background, low-left in the
+    # card, at 60% transparency (alpha ~102/255) — sits fully BEHIND the
+    # foreground text (drawn after this). Capped to roughly the left half
+    # of the canvas so it can never reach into the button/URL column on
+    # the right, however long the city name is.
+    bg_overlay = Image.new("RGBA", (W, H), (0, 0, 0, 0))
+    bg_draw = ImageDraw.Draw(bg_overlay)
+    bg_font = font(FONTS / "playfair.ttf", 130)
+    bg_w = bg_draw.textbbox((0, 0), city_name, font=bg_font)[2]
+    while bg_w > 560 and bg_font.size > 32:
+        bg_font = font(FONTS / "playfair.ttf", bg_font.size - 6)
+        bg_w = bg_draw.textbbox((0, 0), city_name, font=bg_font)[2]
+    bg_draw.text((40, H - 175), city_name, font=bg_font, fill=(*accent_soft, 102))
+    img.alpha_composite(bg_overlay)
+    draw = ImageDraw.Draw(img)
+
+    # Logo, centered at the very top.
     logo = Image.open(ASSETS / "logos" / "TFD-MAIN-LOGO.png").convert("RGBA")
-    logo_w = 230
+    logo_w = 210
     logo_h = int(logo.height * (logo_w / logo.width))
     logo = logo.resize((logo_w, logo_h), Image.LANCZOS)
-    plate = Image.new("RGBA", (logo_w + 26, logo_h + 18), (*CREAM, 255))
+    plate = Image.new("RGBA", (logo_w + 24, logo_h + 18), (*CREAM, 255))
     plate_mask = Image.new("L", plate.size, 0)
     ImageDraw.Draw(plate_mask).rounded_rectangle([0, 0, plate.size[0], plate.size[1]], radius=12, fill=255)
     plate.putalpha(plate_mask)
-    plate.alpha_composite(logo, (13, 9))
-    img.paste(plate, (CENTER_X - plate.width // 2, 40), plate)
+    plate.alpha_composite(logo, (12, 9))
+    img.alpha_composite(plate, (CENTER_X - plate.width // 2, 32))
 
-    f_headline = font(FONTS / "playfair.ttf", 42)
-    f_sub = font(FONTS / "notosans.ttf", 21)
-    f_badge = font(FONTS / "notosans.ttf", 18)
-    f_btn = font(FONTS / "notosans.ttf", 21)
-    f_url = font(FONTS / "notosans.ttf", 20)
+    f_service = font(FONTS / "notosans.ttf", 22)
+    f_name = font(FONTS / "playfair.ttf", 88)
+    f_tagline = font(FONTS / "playfair-italic.ttf", 29)
+    f_badge = font(FONTS / "notosans.ttf", 19)
+    f_btn = font(FONTS / "notosans.ttf", 22)
+    f_url = font(FONTS / "notosans.ttf", 21)
 
-    y = 40 + logo_h + 18 + 26
-    headline_lines = ["Trusted Mutual Fund &", "Wealth Management", f"Services in {city_name}"]
-    for line in headline_lines:
-        center_text(draw, CENTER_X, y, line, f_headline, CREAM)
-        y += 50
-    y += 10
-    center_text(draw, CENTER_X, y, f"Now servicing investors across {city_name} & nearby regions.", f_sub, MUTED)
-    y += 44
+    y = 32 + logo_h + 18 + 26
+    center_text(draw, CENTER_X, y, "THE FINANCIAL DOCTOR — MUTUAL FUND & WEALTH MANAGEMENT", f_service, MUTED)
+    y += 40
+
+    # City name — the dominant visual element, per request, sized to use
+    # the full safe-zone width rather than a conservative default.
+    name_font = f_name
+    name_w = draw.textbbox((0, 0), city_name, font=name_font)[2]
+    while name_w > 620 and name_font.size > 48:
+        name_font = font(FONTS / "playfair.ttf", name_font.size - 4)
+        name_w = draw.textbbox((0, 0), city_name, font=name_font)[2]
+    center_text(draw, CENTER_X, y, city_name, name_font, CREAM)
+    y += name_font.size + 24
+
+    tagline = f"Now available across {city_name} — full transparency, full guidance." if is_state else f"Now available in {city_name} — full transparency, full guidance."
+    center_text(draw, CENTER_X, y, tagline, f_tagline, accent_soft)
+    y += 50
+
+    # Service tags — the top-notch services actually available in this city.
+    f_tag = font(FONTS / "notosans.ttf", 18)
+    services = ["Mutual Funds", "SIP", "Insurance", "Digital Proposal"]
+    tag_gap = 12
+    tag_boxes = []
+    total_w = 0
+    for s in services:
+        bbox = draw.textbbox((0, 0), s, font=f_tag)
+        tw = bbox[2] - bbox[0]
+        tag_boxes.append((s, tw))
+        total_w += tw + 32
+    total_w += tag_gap * (len(services) - 1)
+    tx = CENTER_X - total_w / 2
+    tag_bg = tuple(min(255, c + 18) for c in NAVY)
+    for s, tw in tag_boxes:
+        box_w = tw + 32
+        draw.rounded_rectangle([tx, y, tx + box_w, y + 34], radius=17, fill=tag_bg, outline=(70, 82, 100))
+        center_text(draw, tx + box_w / 2, y + 8, s, f_tag, CREAM)
+        tx += box_w + tag_gap
+    y += 54
 
     badge_text = "AMFI REGISTERED · ARN-290298"
     bbox = draw.textbbox((0, 0), badge_text, font=f_badge)
     bw, bh = bbox[2] - bbox[0], bbox[3] - bbox[1]
-    draw.rounded_rectangle([CENTER_X - bw / 2 - 13, y, CENTER_X + bw / 2 + 13, y + bh + 18], radius=8, outline=accent_soft, width=2)
-    center_text(draw, CENTER_X, y + 9, badge_text, f_badge, accent_soft)
+    draw.rounded_rectangle([CENTER_X - bw / 2 - 14, y, CENTER_X + bw / 2 + 14, y + bh + 20], radius=9, outline=accent_soft, width=2)
+    center_text(draw, CENTER_X, y + 10, badge_text, f_badge, accent_soft)
+    y += bh + 20 + 22
 
+    f_expertise = font(FONTS / "notosans.ttf", 17)
+    center_text(draw, CENTER_X, y, "Our Expertise: Fund Selection — Not Just Fund Sales", f_expertise, MUTED)
+
+    # Button + URL anchored to the right edge, so they never collide with
+    # the background city name over on the left.
+    right_edge = W - 60
     btn_y = H - 92
     btn_text = "Book Free Portfolio Review"
     bbox = draw.textbbox((0, 0), btn_text, font=f_btn)
     bw, bh = bbox[2] - bbox[0], bbox[3] - bbox[1]
-    draw.rounded_rectangle([CENTER_X - bw / 2 - 22, btn_y, CENTER_X + bw / 2 + 22, btn_y + bh + 26], radius=(bh + 26) // 2, fill=(199, 16, 46))
-    center_text(draw, CENTER_X, btn_y + 13, btn_text, f_btn, CREAM)
+    btn_right = right_edge
+    btn_left = btn_right - (bw + 44)
+    draw.rounded_rectangle([btn_left, btn_y, btn_right, btn_y + bh + 26], radius=(bh + 26) // 2, fill=(199, 16, 46))
+    draw.text((btn_left + 22, btn_y + 13), btn_text, font=f_btn, fill=CREAM)
 
-    center_text(draw, CENTER_X, H - 34, "thefinancialdoctor.in", f_url, accent_soft)
+    url_text = "thefinancialdoctor.in"
+    url_bbox = draw.textbbox((0, 0), url_text, font=f_url)
+    url_w = url_bbox[2] - url_bbox[0]
+    draw.text((right_edge - url_w, H - 34), url_text, font=f_url, fill=accent_soft)
 
-    return img
+    return img.convert("RGB")
 
 
 def main():
     src = (ROOT / "frontend" / "src" / "data" / "cityPages.js").read_text(encoding="utf-8")
-    entries = re.findall(r'slug:\s*"([^"]+)".*?name:\s*"([^"]+)"', src, re.S)
+    objects = re.findall(r'\{\n(?:(?!\n  \},).)*?\n  \},', src, re.S)
+    entries = []
+    for obj in objects:
+        slug_m = re.search(r'slug:\s*"([a-z-]+)"', obj)
+        name_m = re.search(r'name:\s*"([^"]+)"', obj)
+        kind_m = re.search(r'kind:\s*"(city|state)"', obj)
+        if not (slug_m and name_m and kind_m):
+            continue
+        entries.append((slug_m.group(1), name_m.group(1), kind_m.group(1)))
 
     made = 0
-    for i, (slug, name) in enumerate(entries):
+    for i, (slug, name, kind) in enumerate(entries):
         accent = ACCENTS[i % len(ACCENTS)]
-        img = make_card(name, accent)
+        img = make_card(name, accent, is_state=(kind == "state"))
         out_path = OUT_DIR / f"city-{slug}.png"
         img.save(out_path, "PNG", optimize=True)
         made += 1
