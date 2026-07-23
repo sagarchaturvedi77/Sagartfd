@@ -1,6 +1,6 @@
 import React from "react";
 import { useParams, Navigate, Link } from "react-router-dom";
-import { MapPin, Video, ShieldCheck, TrendingUp, Calculator, BookOpen, Quote, HeartPulse, Car, FileCheck2 } from "lucide-react";
+import { MapPin, Video, ShieldCheck, TrendingUp, Calculator, BookOpen, Quote, HeartPulse, Car, FileCheck2, PhoneCall, ClipboardList, LineChart } from "lucide-react";
 import SEO from "@/components/SEO";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
@@ -103,44 +103,59 @@ export default function CityLandingPage() {
             />
             <Navbar />
 
-            <section className="relative overflow-hidden bg-[#0E1B2C] pt-28 pb-14 md:pt-32 md:pb-16 px-6">
+            <section className="relative overflow-hidden bg-[#0E1B2C] pt-28 pb-0 md:pt-32 md:pb-16 px-0 md:px-6">
                 <div
                     aria-hidden
                     className="fund-animate-in absolute -top-24 -right-32 w-[420px] h-[420px] rounded-full opacity-30 blur-3xl"
                     style={{ background: "radial-gradient(circle at center, rgba(2,67,150,0.55) 0%, transparent 65%)" }}
                 />
-                <div className="container-x relative max-w-3xl">
-                    <div className="fund-animate-in inline-flex items-center gap-2 px-3 py-1 rounded-full border border-[#2A364B] bg-[#0E1B2C]/60 text-[11px] tracking-[0.18em] uppercase text-[#8FB7E8] font-semibold">
-                        <MapPin size={13} /> {city.name}, {city.state}
-                    </div>
-                    <h1 className="fund-animate-in fund-animate-in-delay-1 font-display text-3xl sm:text-4xl md:text-5xl text-[#F6F1E8] mt-5 leading-tight">
-                        Mutual fund advisory in {city.name} — <span className="font-italic-serif text-[#8FB7E8]">{city.heroLine}.</span>
-                    </h1>
-                    <p className="fund-animate-in fund-animate-in-delay-2 mt-4 text-[#F6F1E8]/75 text-[15px] sm:text-base max-w-2xl leading-relaxed">
-                        {city.intro}
-                    </p>
-                    {city.cultureLine && (
-                        <div className="fund-animate-in fund-animate-in-delay-2 mt-5 flex gap-2.5 max-w-xl border-l-2 border-[#D8B98A] pl-4 py-0.5">
-                            <Quote size={15} className="text-[#D8B98A] shrink-0 mt-0.5" />
-                            <p className="font-italic-serif text-[#D8B98A] text-[15px] sm:text-base leading-snug">
-                                {city.cultureLine}
-                            </p>
+                {/* Genuinely different structure, not a resized column: on
+                    mobile the city banner leads full-bleed at the very top
+                    (an app-like "cover image" moment), text follows below;
+                    on desktop they sit side by side with text taking the
+                    lead position on the left. */}
+                <div className="container-x relative grid md:grid-cols-[1.1fr,0.9fr] md:gap-10 md:items-center">
+                    <img
+                        src={`/assets/og/city-${city.slug}.png`}
+                        alt={`The Financial Doctor in ${city.name}`}
+                        className="order-1 md:order-2 w-full aspect-[1200/630] object-cover md:rounded-2xl md:border md:border-[#2A364B]"
+                        loading="eager"
+                        width={1200}
+                        height={630}
+                    />
+                    <div className="order-2 md:order-1 px-6 md:px-0 pt-6 md:pt-0 pb-14 md:pb-0">
+                        <div className="fund-animate-in inline-flex items-center gap-2 px-3 py-1 rounded-full border border-[#2A364B] bg-[#0E1B2C]/60 text-[11px] tracking-[0.18em] uppercase text-[#8FB7E8] font-semibold">
+                            <MapPin size={13} /> {city.name}, {city.state}
                         </div>
-                    )}
-                    <div className="fund-animate-in fund-animate-in-delay-3 flex flex-wrap gap-3 mt-7">
-                        <a href={whatsappHref} target="_blank" rel="noopener noreferrer" className="btn-pill btn-primary text-sm">
-                            Book a Free Call
-                        </a>
-                        <Link to="/about" className="btn-pill btn-ghost text-sm">
-                            About Sagar Chaturvedi
-                        </Link>
-                    </div>
-                    <div className="fund-animate-in flex flex-wrap items-center gap-x-6 gap-y-2 mt-8 text-sm text-[#F6F1E8]/70">
-                        <span><b className="text-[#F6F1E8]">1000+</b> families served</span>
-                        <span><b className="text-[#F6F1E8]">ARN-290298</b> AMFI Registered</span>
-                        <span className="inline-flex items-center gap-1.5">
-                            {isRemoteOnly ? <Video size={14} /> : <MapPin size={14} />} {city.meetingMode}
-                        </span>
+                        <h1 className="fund-animate-in fund-animate-in-delay-1 font-display text-3xl sm:text-4xl md:text-5xl text-[#F6F1E8] mt-5 leading-tight">
+                            Mutual fund advisory in {city.name} — <span className="font-italic-serif text-[#8FB7E8]">{city.heroLine}.</span>
+                        </h1>
+                        <p className="fund-animate-in fund-animate-in-delay-2 mt-4 text-[#F6F1E8]/75 text-[15px] sm:text-base leading-relaxed">
+                            {city.intro}
+                        </p>
+                        {city.cultureLine && (
+                            <div className="fund-animate-in fund-animate-in-delay-2 mt-5 flex gap-2.5 border-l-2 border-[#D8B98A] pl-4 py-0.5">
+                                <Quote size={15} className="text-[#D8B98A] shrink-0 mt-0.5" />
+                                <p className="font-italic-serif text-[#D8B98A] text-[15px] sm:text-base leading-snug">
+                                    {city.cultureLine}
+                                </p>
+                            </div>
+                        )}
+                        <div className="fund-animate-in fund-animate-in-delay-3 flex flex-wrap gap-3 mt-7">
+                            <a href={whatsappHref} target="_blank" rel="noopener noreferrer" className="btn-pill btn-primary text-sm">
+                                Book a Free Call
+                            </a>
+                            <Link to="/about" className="btn-pill btn-ghost text-sm">
+                                About Sagar Chaturvedi
+                            </Link>
+                        </div>
+                        <div className="fund-animate-in flex flex-wrap items-center gap-x-6 gap-y-2 mt-8 text-sm text-[#F6F1E8]/70">
+                            <span><b className="text-[#F6F1E8]">1000+</b> families served</span>
+                            <span><b className="text-[#F6F1E8]">ARN-290298</b> AMFI Registered</span>
+                            <span className="inline-flex items-center gap-1.5">
+                                {isRemoteOnly ? <Video size={14} /> : <MapPin size={14} />} {city.meetingMode}
+                            </span>
+                        </div>
                     </div>
                 </div>
             </section>
@@ -172,6 +187,41 @@ export default function CityLandingPage() {
                         {isRemoteOnly ? <Video className="text-[#024396]" size={22} /> : <MapPin className="text-[#024396]" size={22} />}
                         <h3 className="font-display text-base text-[#0E1B2C] mt-3 mb-1.5">{isRemoteOnly ? "Fully Remote, Fully Real" : "In-Person When You Want It"}</h3>
                         <p className="text-sm text-[#2A364B]/80">{city.meetingMode}</p>
+                    </div>
+                </div>
+            </section>
+
+            {/* How it works — a genuinely new content section (not present
+                before), giving {city} readers a concrete sense of the
+                process instead of just a list of services. Numbered steps
+                are appropriate here since this really is a sequence. */}
+            <section className="bg-[#FBF7EE] py-14 md:py-16 px-6 border-t border-[#E2D8C2]">
+                <div className="container-x max-w-5xl mx-auto">
+                    <div className="text-[11px] uppercase tracking-[0.18em] text-[#5C677D] font-semibold mb-2">
+                        How it works
+                    </div>
+                    <h2 className="font-display text-xl sm:text-2xl text-[#0E1B2C] mb-8 max-w-lg">
+                        From a first conversation to an ongoing plan — here's exactly what happens.
+                    </h2>
+                    <div className="flex overflow-x-auto snap-x snap-mandatory gap-4 -mx-6 px-6 pb-2 no-scrollbar md:grid md:grid-cols-3 md:gap-6 md:overflow-visible md:snap-none md:mx-0 md:px-0 md:pb-0">
+                        <HowStep
+                            n="1"
+                            icon={PhoneCall}
+                            title={isRemoteOnly ? `A free video call` : `A free call or in-person meeting`}
+                            desc={`We understand your income, goals and risk appetite first (${city.meetingMode}) No product is mentioned until this part is done.`}
+                        />
+                        <HowStep
+                            n="2"
+                            icon={ClipboardList}
+                            title="A written proposal, made for you"
+                            desc={`A goal-based plan specific to your numbers — mutual funds, and term/health/motor insurance if relevant — with a clear reason for every recommendation.`}
+                        />
+                        <HowStep
+                            n="3"
+                            icon={LineChart}
+                            title="Ongoing portfolio reviews"
+                            desc={`Not a one-time sale — periodic check-ins, a live portfolio dashboard via Asset Plus, and a real person to call when markets move.`}
+                        />
                     </div>
                 </div>
             </section>
@@ -224,6 +274,19 @@ export default function CityLandingPage() {
 
             <Footer />
             <FloatingActions />
+        </div>
+    );
+}
+
+function HowStep({ n, icon: Icon, title, desc }) {
+    return (
+        <div className="shrink-0 w-[82%] snap-center md:w-auto md:shrink bg-white border border-[#E2D8C2] rounded-2xl p-6 relative">
+            <div className="flex items-center justify-between">
+                <Icon size={22} className="text-[#024396]" />
+                <span className="font-display text-3xl text-[#E2D8C2]">{n}</span>
+            </div>
+            <h3 className="font-display text-base text-[#0E1B2C] mt-4 mb-1.5">{title}</h3>
+            <p className="text-sm text-[#2A364B]/80 leading-relaxed">{desc}</p>
         </div>
     );
 }
