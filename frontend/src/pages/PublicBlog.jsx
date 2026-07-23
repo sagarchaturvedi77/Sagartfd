@@ -180,7 +180,7 @@ function ShareSection({ post, lang }) {
         try {
             await navigator.clipboard.writeText(text);
             setCopiedFor(key);
-            setTimeout(() => setCopiedFor(null), 2500);
+            setTimeout(() => setCopiedFor(null), 4000);
         } catch {
             // clipboard blocked — still open the share window below
         }
@@ -220,12 +220,12 @@ function ShareSection({ post, lang }) {
                 <button
                     onClick={(e) => {
                         e.preventDefault();
-                        copyThenOpen(url, "linkedin", linkedinHref);
+                        copyThenOpen(richCaption, "linkedin", linkedinHref);
                     }}
                     className="inline-flex items-center gap-2 text-xs font-medium text-white bg-[#0A66C2] hover:brightness-110 px-4 py-2 rounded-full transition-all"
                 >
                     {copiedFor === "linkedin" ? <Check size={13} /> : <Linkedin size={13} />}
-                    {copiedFor === "linkedin" ? "Link copied — paste it into the post" : "Share on LinkedIn"}
+                    {copiedFor === "linkedin" ? "Description, hashtags & link copied — paste in the post" : "Share on LinkedIn"}
                 </button>
                 <button
                     onClick={copyForInstagram}
@@ -236,10 +236,11 @@ function ShareSection({ post, lang }) {
                 </button>
             </div>
             <p className="text-[11px] text-[#8A93A6] mt-2.5">
-                LinkedIn's own share window doesn't reliably attach the link anymore, so "Share on LinkedIn" copies it
-                first — paste (Ctrl/Cmd+V) into the post box if it opens blank. Instagram doesn't allow a direct share
-                link from the web at all — "Share on Instagram" copies a ready caption (with our website, LinkedIn and
-                YouTube tagged) to paste into a post or story instead.
+                LinkedIn's own share window doesn't reliably attach anything anymore, so "Share on LinkedIn" copies the
+                full caption — title, description, hashtags and our website/LinkedIn/YouTube tags — to your clipboard
+                first, then opens LinkedIn: just paste (Ctrl/Cmd+V) into the post box. Instagram doesn't allow a direct
+                share link from the web at all — "Share on Instagram" copies the same kind of ready caption to paste
+                into a post or story instead.
             </p>
         </div>
     );

@@ -113,18 +113,28 @@ export default function LocationsPage() {
                                     <Link
                                         key={c.slug}
                                         to={`/mutual-fund-distributor-in-${c.slug}`}
-                                        className="block bg-white border border-[#E2D8C2] rounded-2xl p-5 hover:border-[#024396]/40 hover:shadow-sm transition-all"
+                                        className="block bg-white border border-[#E2D8C2] rounded-2xl overflow-hidden hover:border-[#024396]/40 hover:shadow-sm transition-all"
                                     >
-                                        <div className="flex items-center gap-1.5 text-[#0E1B2C] font-display text-[16px]">
-                                            <MapPin size={14} className="text-[#024396]" /> {c.name}
+                                        <img
+                                            src={`/assets/og/city-${c.slug}.png`}
+                                            alt={`The Financial Doctor — ${c.name}`}
+                                            className="w-full aspect-[1200/630] object-cover"
+                                            loading="lazy"
+                                            width={1200}
+                                            height={630}
+                                        />
+                                        <div className="p-5">
+                                            <div className="flex items-center gap-1.5 text-[#0E1B2C] font-display text-[16px]">
+                                                <MapPin size={14} className="text-[#024396]" /> {c.name}
+                                            </div>
+                                            {c.cultureLine && (
+                                                <p className="text-[13px] text-[#B8722E] italic leading-snug mt-2">{c.cultureLine}</p>
+                                            )}
+                                            <p className="text-[13px] text-[#2A364B]/70 leading-relaxed mt-2 line-clamp-3">{c.intro}</p>
+                                            <span className="inline-flex items-center gap-1 mt-3 text-xs font-medium text-[#024396]">
+                                                View {c.name} page <ArrowRight size={11} />
+                                            </span>
                                         </div>
-                                        {c.cultureLine && (
-                                            <p className="text-[13px] text-[#B8722E] italic leading-snug mt-2">{c.cultureLine}</p>
-                                        )}
-                                        <p className="text-[13px] text-[#2A364B]/70 leading-relaxed mt-2 line-clamp-3">{c.intro}</p>
-                                        <span className="inline-flex items-center gap-1 mt-3 text-xs font-medium text-[#024396]">
-                                            View {c.name} page <ArrowRight size={11} />
-                                        </span>
                                     </Link>
                                 ))}
                             </div>
