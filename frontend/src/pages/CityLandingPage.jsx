@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useParams, Navigate, Link } from "react-router-dom";
 import { MapPin, Video, ShieldCheck, TrendingUp, Calculator, BookOpen, Quote, HeartPulse, Car, FileCheck2, PhoneCall, ClipboardList, LineChart, Share2, Linkedin, Check } from "lucide-react";
 import SEO from "@/components/SEO";
@@ -39,6 +39,48 @@ function accentTextColor(hex) {
 function hexToRgb(hex) {
     const n = parseInt(hex.slice(1), 16);
     return `${(n >> 16) & 255}, ${(n >> 8) & 255}, ${n & 255}`;
+}
+
+// Real blog content embedded on every one of the 47 city/state pages
+// (previously just a generic "Read the TFD Blog" link, no actual posts) —
+// reinforces pan-India content depth and gives every city page real
+// internal links into the blog. A single small batch (limit=9) is fetched
+// once and shared across every city page visited in a session (module-
+// scope cache, same pattern as fundData.js's fundCache) rather than each
+// city page re-fetching the same list; which 3 of the 9 show is rotated
+// by the city's own index so the 47 pages don't all show identical picks.
+let blogPicksCache = null;
+let blogPicksPromise = null;
+function fetchBlogPicks() {
+    if (blogPicksCache) return Promise.resolve(blogPicksCache);
+    if (blogPicksPromise) return blogPicksPromise;
+    const API_BASE = process.env.REACT_APP_BACKEND_URL || "";
+    blogPicksPromise = fetch(`${API_BASE}/api/internship/public/content?content_type=blog&limit=9`)
+        .then((r) => (r.ok ? r.json() : []))
+        .then((d) => {
+            blogPicksCache = Array.isArray(d) ? d : [];
+            return blogPicksCache;
+        })
+        .catch(() => []);
+    return blogPicksPromise;
+}
+function useCityBlogPicks(citySlug) {
+    const [posts, setPosts] = useState([]);
+    useEffect(() => {
+        let cancelled = false;
+        fetchBlogPicks().then((all) => {
+            if (cancelled || !all.length) return;
+            const cityIndex = Math.max(0, CITY_PAGES.findIndex((c) => c.slug === citySlug));
+            const start = (cityIndex * 3) % all.length;
+            const picks = [];
+            for (let i = 0; i < 3 && i < all.length; i++) picks.push(all[(start + i) % all.length]);
+            setPosts(picks);
+        });
+        return () => {
+            cancelled = true;
+        };
+    }, [citySlug]);
+    return posts;
 }
 
 // City-templated Q&A — genuine, answerable local content (not a doorway
@@ -101,6 +143,7 @@ export default function CityLandingPage() {
     const citySlug = pageSlug.startsWith(CITY_PATH_PREFIX) ? pageSlug.slice(CITY_PATH_PREFIX.length) : null;
     const city = citySlug ? findCityPage(citySlug) : undefined;
     useLocalBusinessSchema(city);
+    const blogPicks = useCityBlogPicks(city?.slug);
 
     if (!city) return <Navigate to="/" replace />;
 
@@ -331,6 +374,54 @@ export default function CityLandingPage() {
                     </div>
                 </div>
             </section>
+
+            {/* Real embedded blog posts, not just a link — every city page
+                previously only linked out to /blog with zero actual content
+                shown. Which 3 of the small fetched batch appear is rotated
+                by city index (useCityBlogPicks), so the 47 pages don't all
+                show the same three posts, and every page carries real,
+                fresh internal links into the blog. */}
+            {blogPicks.length > 0 && (
+                <section className="bg-white py-14 md:py-16 px-6 border-t border-[#E2D8C2]">
+                    <div className="container-x max-w-5xl mx-auto">
+                        <div className="flex items-end justify-between gap-4 mb-6">
+                            <div className="text-[11px] uppercase tracking-[0.18em] text-[#5C677D] font-semibold">
+                                From the TFD Blog
+                            </div>
+                            <Link to="/blog" className="text-xs font-medium hover:underline" style={{ color: accent }}>
+                                All articles →
+                            </Link>
+                        </div>
+                        <div className="flex overflow-x-auto snap-x snap-mandatory gap-4 -mx-6 px-6 pb-2 no-scrollbar sm:grid sm:grid-cols-3 sm:gap-4 sm:overflow-visible sm:snap-none sm:mx-0 sm:px-0 sm:pb-0">
+                            {blogPicks.map((post) => (
+                                <Link
+                                    key={post.id}
+                                    to={`/blog/${post.id}`}
+                                    className="shrink-0 w-[80%] snap-center sm:w-auto sm:shrink block bg-[#FBF7EE] border border-[#E2D8C2] rounded-2xl overflow-hidden hover:border-[#024396]/40 hover:shadow-sm transition-all"
+                                >
+                                    <img
+                                        src={`/assets/og-thumbs/blog-post-${post.id}.webp`}
+                                        alt={post.title}
+                                        className="w-full aspect-[1200/630] object-cover"
+                                        loading="lazy"
+                                        decoding="async"
+                                        width={480}
+                                        height={252}
+                                    />
+                                    <div className="p-4">
+                                        {post.topic_label && (
+                                            <div className="text-[10px] uppercase tracking-[0.14em] font-semibold mb-1.5" style={{ color: accent }}>
+                                                {post.topic_label}
+                                            </div>
+                                        )}
+                                        <h3 className="font-display text-[14px] text-[#0E1B2C] leading-snug line-clamp-2">{post.title}</h3>
+                                    </div>
+                                </Link>
+                            ))}
+                        </div>
+                    </div>
+                </section>
+            )}
 
             <section className="bg-[#FBF7EE] py-14 md:py-16 px-6 border-t border-[#E2D8C2]">
                 <div className="container-x max-w-4xl mx-auto text-center">

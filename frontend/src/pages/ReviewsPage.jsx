@@ -176,7 +176,7 @@ export default function ReviewsPage() {
       <SEO
         title="The Financial Doctor | Client Reviews & Testimonials"
         description="See what our clients say about mutual fund and insurance advisory with The Financial Doctor — real reviews from real investors."
-        keywords="mutual fund advisor reviews, financial advisor testimonials, best insurance advisor"
+        keywords="mutual fund advisor reviews, financial advisor testimonials, best insurance advisor, Sagar Chaturvedi reviews, The Financial Doctor reviews, mutual fund advisor Sehore reviews, mutual fund advisor Madhya Pradesh, best mutual fund advisor India, AMFI registered mutual fund distributor, ARN-290298, Google reviews mutual fund advisor"
         path="/reviews"
       />
       <Navbar />

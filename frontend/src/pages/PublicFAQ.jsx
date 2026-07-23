@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { Search, ChevronDown, ArrowRight } from "lucide-react";
 import SEO from "@/components/SEO";
 import Navbar from "@/components/Navbar";
@@ -11,6 +11,32 @@ const PAGE_SIZE = 8;
 function matchScore(text, terms) {
     const lower = (text || "").toLowerCase();
     return terms.reduce((score, t) => (lower.includes(t) ? score + 1 : score), 0);
+}
+
+// This page aggregates every FAQ from every other page on the site — yet,
+// unlike each individual page's own FAQSection (which emits real FAQPage
+// JSON-LD), this hub page had no structured data at all. Built from the
+// full FAQ_INDEX (not just the current search/page slice) so Google and
+// answer engines see the complete question set this page actually offers.
+function useFaqIndexSchema() {
+    useEffect(() => {
+        const script = document.createElement("script");
+        script.type = "application/ld+json";
+        script.text = JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "FAQPage",
+            mainEntity: FAQ_INDEX.map((item) => ({
+                "@type": "Question",
+                name: item.q,
+                acceptedAnswer: {
+                    "@type": "Answer",
+                    text: String(item.a || "").replace(/\[([^\]]+)\]\([^)]+\)/g, "$1"),
+                },
+            })),
+        });
+        document.head.appendChild(script);
+        return () => document.head.removeChild(script);
+    }, []);
 }
 
 export default function PublicFAQ() {
@@ -37,6 +63,8 @@ export default function PublicFAQ() {
     const totalPages = Math.max(1, Math.ceil(results.length / PAGE_SIZE));
     const pageItems = results.slice(page * PAGE_SIZE, page * PAGE_SIZE + PAGE_SIZE);
 
+    useFaqIndexSchema();
+
     const onQueryChange = (v) => {
         setQuery(v);
         setPage(0);
@@ -53,6 +81,7 @@ export default function PublicFAQ() {
             <SEO
                 title="Mutual Fund & Financial Planning FAQs | The Financial Doctor"
                 description={`${FAQ_INDEX.length}+ answers on SIP, lumpsum, insurance, tax-saving and financial planning — search your question, from The Financial Doctor.`}
+                keywords="mutual fund FAQ, SIP questions answered, financial planning FAQ, term insurance FAQ, tax saving FAQ, mutual fund advisor Sehore, mutual fund advisor Madhya Pradesh, mutual fund advisor India, Sagar Chaturvedi FAQ, The Financial Doctor FAQ, AMFI registered mutual fund distributor, ARN-290298"
                 path="/faq"
             />
             <Navbar />

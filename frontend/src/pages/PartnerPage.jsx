@@ -194,7 +194,7 @@ export default function PartnerPage() {
       <SEO
         title="The Financial Doctor | Partner With Us"
         description="Partner with The Financial Doctor — collaborate with an AMFI-registered mutual fund and insurance advisory to grow your client base and referrals."
-        keywords="mutual fund partner, insurance referral partner, financial advisor partnership"
+        keywords="mutual fund partner, insurance referral partner, financial advisor partnership, mutual fund distributor partner program India, become a mutual fund agent, TFD PartnerHub, Sagar Chaturvedi, The Financial Doctor Sehore, mutual fund distributor Madhya Pradesh, AMFI registered mutual fund distributor, ARN-290298"
         path="/partner-with-us"
         ogImage="https://thefinancialdoctor.in/assets/logos/TFD-PARTNERHUB-LOGO.png"
       />
