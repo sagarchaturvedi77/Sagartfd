@@ -1,5 +1,5 @@
-import React from "react";
-import { MessageCircle, Clock } from "lucide-react";
+import React, { useState } from "react";
+import { MessageCircle, Clock, ChevronDown } from "lucide-react";
 import SEO from "@/components/SEO";
 import Navbar from "@/components/Navbar";
 import Contact from "@/components/Contact";
@@ -174,6 +174,7 @@ export const contactFAQ = {
 };
 
 export default function ContactPage() {
+  const [openInfo, setOpenInfo] = useState(-1);
   return (
     <div className="relative" data-testid="contact-page-root">
       <SEO
@@ -208,19 +209,51 @@ export default function ContactPage() {
         />
         <Contact hideHeading />
 
-        {/* EXTRA DETAILED CONTENT */}
+        {/* EXTRA DETAILED CONTENT — desktop renders this as a connected
+            horizontal timeline (rail + numbered dots, same visual language
+            as About's journey timeline) since these 3 points are really a
+            "what happens when you reach out" sequence, not a plain feature
+            grid; mobile collapses to a single-open accordion instead of a
+            slider. */}
         <section className="bg-[#FBF7EE] py-16 px-6">
           <div className="container-x max-w-4xl mx-auto">
             <h2 className="text-2xl font-serif text-[#0E1B2C] mb-8 text-center">
               Before You Reach Out
             </h2>
-            <div className="flex overflow-x-auto snap-x snap-mandatory gap-4 -mx-6 px-6 pb-2 no-scrollbar md:grid md:grid-cols-3 md:gap-6 md:overflow-visible md:snap-none md:mx-0 md:px-0 md:pb-0">
-              {info.map((i) => (
-                <div key={i.title} className="shrink-0 w-[82%] snap-center md:w-auto md:shrink bg-white border border-[#E2D8C2] rounded-2xl p-6 shadow-sm">
-                  <h3 className="font-display text-[#024396] mb-2">{i.title}</h3>
-                  <p className="text-sm text-[#2A364B]/80 leading-relaxed">{i.text}</p>
-                </div>
-              ))}
+
+            <div className="md:hidden space-y-2.5">
+              {info.map((i, idx) => {
+                const isOpen = openInfo === idx;
+                return (
+                  <div key={i.title} className="bg-white border border-[#E2D8C2] rounded-xl overflow-hidden">
+                    <button
+                      type="button"
+                      onClick={() => setOpenInfo(isOpen ? -1 : idx)}
+                      className="w-full flex items-center gap-3 px-4 py-3.5 text-left"
+                    >
+                      <span className="w-6 h-6 rounded-full text-white text-[11px] font-mono grid place-items-center shrink-0" style={{ background: "#2E7FC7" }}>{idx + 1}</span>
+                      <span className="flex-1 font-display text-[#0E1B2C] text-sm">{i.title}</span>
+                      <ChevronDown size={15} className="shrink-0 transition-transform" style={{ color: "#2E7FC7", transform: isOpen ? "rotate(180deg)" : undefined }} />
+                    </button>
+                    {isOpen && <p className="px-4 pb-4 text-sm text-[#2A364B]/80 leading-relaxed">{i.text}</p>}
+                  </div>
+                );
+              })}
+            </div>
+
+            <div className="hidden md:block relative pt-2">
+              <div className="absolute top-[15px] left-0 right-0 h-0.5" style={{ background: "#C9DCF5" }} aria-hidden />
+              <div className="grid grid-cols-3 gap-6">
+                {info.map((i, idx) => (
+                  <div key={i.title} className="relative pt-8">
+                    <div className="absolute top-0 left-0 w-4 h-4 rounded-full border-2 border-white ring-2 grid place-items-center text-white text-[9px] font-mono" style={{ background: "#2E7FC7", boxShadow: "0 0 0 2px #C9DCF5" }}>
+                      {idx + 1}
+                    </div>
+                    <h3 className="font-display text-[#0E1B2C] mb-1.5">{i.title}</h3>
+                    <p className="text-sm text-[#2A364B]/80 leading-relaxed">{i.text}</p>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
         </section>

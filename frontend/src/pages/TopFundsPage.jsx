@@ -8,14 +8,28 @@ import FAQSection from "@/components/FAQSection";
 import ProblemSolution from "@/components/ProblemSolution";
 import CompareFunds from "@/components/CompareFunds";
 
+// `risk` is a rough, editorial 0-100 positioning (not a data feed) used only
+// to place each category along the spectrum band below — Debt lowest,
+// Mid/Small Cap highest, matching the descriptive copy already on the page.
 const categories = [
-  { title: "Large Cap Funds", text: "Invest in well-established, financially strong companies. Lower volatility, suited for conservative long-term investors." },
-  { title: "Mid & Small Cap Funds", text: "Higher growth potential from emerging companies, but with higher volatility — best for longer investment horizons." },
-  { title: "Flexi Cap & Multi Cap Funds", text: "Diversified across market caps, giving fund managers flexibility to shift allocation based on market conditions." },
-  { title: "ELSS (Tax Saving) Funds", text: "Equity funds with a 3-year lock-in that also qualify for tax deduction under Section 80C." },
-  { title: "Debt Funds", text: "Lower-risk funds investing in bonds and fixed-income instruments — suited for short-term goals and capital preservation." },
-  { title: "Hybrid Funds", text: "A mix of equity and debt to balance growth potential with relative stability." },
+  { title: "Debt Funds", text: "Lower-risk funds investing in bonds and fixed-income instruments — suited for short-term goals and capital preservation.", risk: 12 },
+  { title: "Hybrid Funds", text: "A mix of equity and debt to balance growth potential with relative stability.", risk: 38 },
+  { title: "Large Cap Funds", text: "Invest in well-established, financially strong companies. Lower volatility, suited for conservative long-term investors.", risk: 55 },
+  { title: "Flexi Cap & Multi Cap Funds", text: "Diversified across market caps, giving fund managers flexibility to shift allocation based on market conditions.", risk: 68 },
+  { title: "ELSS (Tax Saving) Funds", text: "Equity funds with a 3-year lock-in that also qualify for tax deduction under Section 80C.", risk: 78 },
+  { title: "Mid & Small Cap Funds", text: "Higher growth potential from emerging companies, but with higher volatility — best for longer investment horizons.", risk: 92 },
 ];
+
+function riskColor(risk) {
+  if (risk < 30) return "#22C55E";
+  if (risk < 60) return "#D9B15C";
+  return "#C7102E";
+}
+function riskLabel(risk) {
+  if (risk < 30) return "Lower risk";
+  if (risk < 60) return "Moderate risk";
+  return "Higher risk";
+}
 
 export const fundsFAQ = {
   en: [
@@ -250,31 +264,68 @@ export default function TopFundsPage() {
           problem="Most 'top fund' lists online show cherry-picked returns from marketing pages, sometimes months out of date, with no way to check the underlying NAV history yourself."
           solution="Every return shown here is computed live from actual historical NAV via AMFI's own feed — search any fund and verify the same 1Y/3Y/5Y numbers yourself, nothing pre-baked."
         />
-        <TopFunds hideHeading />
-
-        {/* FUND CATEGORIES */}
+        {/* FUND CATEGORIES, BY RISK — moved ahead of the live fund table so
+            a visitor orients on "which category fits me" before scanning
+            15+ funds by name. Rebuilt as an actual risk/return spectrum (a
+            positioned gradient bar with a marker per category) instead of
+            a card grid or accordion — a structurally different device from
+            anything else on the site, and a more honest way to compare 6
+            categories than a symmetric grid implies. Same spectrum band
+            reflows (not re-composes) between mobile and desktop; the card
+            list beneath it is what actually restructures — 2-col stack on
+            mobile, 3-col on desktop. */}
         <section className="bg-[#FBF7EE] py-16 px-6">
-          <div className="container-x max-w-5xl mx-auto">
+          <div className="container-x max-w-4xl mx-auto">
             <h2 className="text-3xl font-serif text-[#0E1B2C] mb-3 text-center">
-              Fund Categories Explained
+              Fund Categories, by Risk
             </h2>
-            <p className="text-[#2A364B]/80 text-center max-w-2xl mx-auto mb-10">
-              Not sure which type of fund fits your goal? Here's a quick breakdown.
+            <p className="text-[#2A364B]/80 text-center max-w-2xl mx-auto mb-12">
+              Not sure which type of fund fits your goal? Here's where each category sits
+              on the risk spectrum, lowest to highest.
             </p>
-            <div className="flex overflow-x-auto snap-x snap-mandatory gap-4 -mx-6 px-6 pb-2 no-scrollbar md:grid md:grid-cols-3 md:gap-6 md:overflow-visible md:snap-none md:mx-0 md:px-0 md:pb-0 mb-10">
+
+            <div className="relative mt-6 mb-14 px-2">
+              <div
+                className="relative h-2 rounded-full"
+                style={{ background: "linear-gradient(90deg, #22C55E 0%, #D9B15C 50%, #C7102E 100%)" }}
+              >
+                {categories.map((c) => (
+                  <div
+                    key={c.title}
+                    className="absolute top-1/2 w-4 h-4 rounded-full bg-white border-2 shadow-sm"
+                    style={{ left: `${c.risk}%`, transform: "translate(-50%, -50%)", borderColor: riskColor(c.risk) }}
+                    title={c.title}
+                  />
+                ))}
+              </div>
+              <div className="flex justify-between text-[10px] uppercase tracking-[0.14em] text-[#8A93A6] mt-3">
+                <span>Lower risk</span>
+                <span>Higher risk</span>
+              </div>
+            </div>
+
+            <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-4">
               {categories.map((c) => (
-                <div key={c.title} className="shrink-0 w-[82%] snap-center md:w-auto md:shrink bg-white border border-[#E2D8C2] rounded-2xl p-6 shadow-sm">
-                  <h3 className="text-lg font-display text-[#024396] mb-2">{c.title}</h3>
+                <div key={c.title} className="bg-white border border-[#E2D8C2] rounded-2xl p-5 shadow-sm">
+                  <div className="inline-flex items-center gap-1.5 mb-2">
+                    <span className="w-2 h-2 rounded-full shrink-0" style={{ background: riskColor(c.risk) }} />
+                    <span className="text-[10px] uppercase tracking-[0.14em] font-semibold" style={{ color: riskColor(c.risk) }}>
+                      {riskLabel(c.risk)}
+                    </span>
+                  </div>
+                  <h3 className="text-[15px] font-display text-[#0E1B2C] mb-1.5">{c.title}</h3>
                   <p className="text-sm text-[#2A364B]/80 leading-relaxed">{c.text}</p>
                 </div>
               ))}
             </div>
-            <p className="text-xs text-[#2A364B]/60 text-center">
+            <p className="text-xs text-[#2A364B]/60 text-center mt-10">
               Mutual fund investments are subject to market risks. Past performance
               is not indicative of future returns. Please read scheme documents carefully.
             </p>
           </div>
         </section>
+
+        <TopFunds hideHeading />
 
         {/* COMPARE FUNDS TOOL */}
         <CompareFunds />

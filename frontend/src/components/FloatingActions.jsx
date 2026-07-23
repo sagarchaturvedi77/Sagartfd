@@ -82,9 +82,18 @@ export default function FloatingActions() {
         <>
             {/* RIGHT — WhatsApp + expandable stack of socials */}
             <div className="fixed right-3 md:right-6 bottom-4 md:bottom-6 z-[55] flex flex-col items-end gap-2 sm:gap-2.5">
-                {/* expandable stack (closest to WhatsApp first) */}
+                {/* expandable stack (closest to WhatsApp first) — absolutely
+                    positioned above the toggle/WhatsApp buttons rather than a
+                    static flex sibling, so that even while hidden (opacity-0
+                    pointer-events-none) it doesn't add its own height to the
+                    parent's box. Without this, the collapsed 6-item stack
+                    still occupied real layout space, silently extending the
+                    fixed wrapper's clickable footprint far up the bottom-right
+                    corner of every page and blocking clicks on whatever page
+                    content (e.g. the footer's platform logos) happened to sit
+                    underneath it — a real bug, not just a visual one. */}
                 <div
-                    className={`flex flex-col-reverse gap-2 sm:gap-2.5 transition-all duration-300 ${
+                    className={`absolute bottom-full right-0 mb-2 sm:mb-2.5 flex flex-col-reverse gap-2 sm:gap-2.5 transition-all duration-300 ${
                         open
                             ? "opacity-100 translate-y-0 pointer-events-auto"
                             : "opacity-0 translate-y-3 pointer-events-none"

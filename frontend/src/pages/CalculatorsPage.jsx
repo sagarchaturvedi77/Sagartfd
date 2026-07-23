@@ -1,5 +1,6 @@
 import React from "react";
-import { useParams } from "react-router-dom"; // 👈 useParams ko import kiya
+import { useParams, Link } from "react-router-dom"; // 👈 useParams ko import kiya
+import { ArrowRight } from "lucide-react";
 import SEO from "@/components/SEO";
 import Navbar from "@/components/Navbar";
 import Calculators from "@/components/Calculators";
@@ -194,6 +195,7 @@ const DEFAULT_SEO = {
 export default function CalculatorsPage() {
   // 1. URL parameter ko read karega (jaise 'sip', 'gst', 'loan-emi')
   const { calculatorType } = useParams();
+  const activeId = calculatorType || "sip";
   const match = calcInfo.find((c) => c.id === calculatorType);
   const seo = match
     ? { title: `The Financial Doctor | ${match.title} - Free Online Tool`, description: match.description, keywords: DEFAULT_SEO.keywords }
@@ -256,35 +258,60 @@ export default function CalculatorsPage() {
           problem="Most people invest, borrow, or plan a goal based on a rough guess — 'SIP for 10 years should be enough' — without ever running the actual numbers, then get an unpleasant surprise years later."
           solution="Nine free calculators compute the real math instantly — exact corpus, exact EMI, exact tax saved — so every decision is based on numbers you've actually seen, not a guess."
         />
-       <Calculators variant="public" activeType={calculatorType} hideHeading />
+
+        {/* "PICK A CALCULATOR" CHOOSER — moved ahead of the tool itself and
+            made functional (each row/card is a real link to that
+            calculator's URL, routing into the same Calculators widget below
+            via its existing activeType prop) rather than a decorative
+            reference list that used to sit after the tool. This is what now
+            leads the page: read what a calculator does, then land straight
+            in it — not a compact tab strip first and an explanation as an
+            afterthought. Mobile: full-width stacked rows (readable
+            descriptions, not just a label); desktop: 3-col grid — both are
+            links, not just visually different containers. */}
+        <section className="bg-[#12142A] py-14 md:py-16 px-6">
+          <div className="container-x max-w-5xl mx-auto">
+            <h2 className="font-display text-2xl md:text-3xl text-[#F1F1FA] mb-2 text-center">
+              Which calculator do you need?
+            </h2>
+            <p className="text-[#B7B8D6] text-center max-w-xl mx-auto mb-8 text-sm">
+              Tap one to jump straight into it below — your inputs stay live as you switch.
+            </p>
+            <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-3">
+              {calcInfo.map((c) => {
+                const isActive = c.id === activeId;
+                return (
+                  <Link
+                    key={c.id}
+                    to={`/calculators/${c.id}`}
+                    className={`rounded-xl p-4 border transition-colors flex flex-col ${
+                      isActive
+                        ? "bg-[#6C63FF]/15 border-[#8B84FF]"
+                        : "bg-[#1B1E3B] border-[#33375C] hover:border-[#6C63FF]/50"
+                    }`}
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <h3 className={`font-display text-[15px] ${isActive ? "text-[#F1F1FA]" : "text-[#D6D7EE]"}`}>{c.title}</h3>
+                      <ArrowRight size={14} className={isActive ? "text-[#8B84FF]" : "text-[#5B5E85]"} />
+                    </div>
+                    <p className="text-[12.5px] text-[#8386AD] leading-relaxed mt-1.5">{c.text}</p>
+                  </Link>
+                );
+              })}
+            </div>
+          </div>
+        </section>
+
+        <Calculators variant="public" activeType={calculatorType} hideHeading />
 
         <div className="flex justify-center pt-10">
           <LanguageToggle />
         </div>
 
-        {/* CALCULATOR GUIDE */}
-        <section className="bg-[#FBF7EE] py-16 px-6">
-          <div className="container-x max-w-5xl mx-auto">
-            <h2 className="text-3xl font-serif text-[#0E1B2C] mb-3 text-center">
-              Understanding Our Calculators
-            </h2>
-            <p className="text-[#2A364B]/80 text-center max-w-2xl mx-auto mb-10">
-              A quick guide on what each calculator does and when to use it.
-            </p>
-            <div className="flex overflow-x-auto snap-x snap-mandatory gap-4 -mx-6 px-6 pb-2 no-scrollbar md:grid md:grid-cols-3 md:gap-6 md:overflow-visible md:snap-none md:mx-0 md:px-0 md:pb-0">
-              {calcInfo.map((c) => (
-                <div key={c.title} className="shrink-0 w-[82%] snap-center md:w-auto md:shrink bg-white border border-[#E2D8C2] rounded-2xl p-6 shadow-sm">
-                  <h3 className="text-lg font-display text-[#024396] mb-2">{c.title}</h3>
-                  <p className="text-sm text-[#2A364B]/80 leading-relaxed">{c.text}</p>
-                </div>
-              ))}
-            </div>
-            <p className="text-xs text-[#2A364B]/60 text-center mt-10">
-              Note: These calculators provide estimates based on assumed rates of
-              return and are meant for planning purposes only, not guaranteed returns.
-            </p>
-          </div>
-        </section>
+        <p className="text-xs text-[#2A364B]/60 text-center mt-10 px-6">
+          Note: These calculators provide estimates based on assumed rates of
+          return and are meant for planning purposes only, not guaranteed returns.
+        </p>
 
         <FAQSection title="Calculators — Frequently Asked Questions" data={calcFAQ} />
       </main>

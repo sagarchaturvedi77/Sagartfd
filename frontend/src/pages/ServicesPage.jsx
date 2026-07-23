@@ -1,5 +1,5 @@
-import React from "react";
-import { Check, HeartPulse, Car, Users2, ShieldCheck } from "lucide-react";
+import React, { useState } from "react";
+import { Check, HeartPulse, Car, Users2, ShieldCheck, ChevronDown } from "lucide-react";
 import SEO from "@/components/SEO";
 import Navbar from "@/components/Navbar";
 import Services from "@/components/Services";
@@ -219,6 +219,7 @@ export const servicesFAQ = {
 };
 
 export default function ServicesPage() {
+  const [openRow, setOpenRow] = useState(0);
   return (
     <div className="relative" data-testid="services-page-root">
       <SEO
@@ -272,7 +273,12 @@ export default function ServicesPage() {
         />
         <Services hideHeading />
 
-        {/* INSURANCE TYPES — WHY EACH MATTERS */}
+        {/* INSURANCE TYPES — WHY EACH MATTERS. Desktop reads as a real
+            comparison table (one row per cover, columns for why-it-matters
+            and key points) instead of a card slider — genuinely different
+            structure, not a reflow. Mobile drops the table (unreadable at
+            that width) for a single-open accordion instead of a scroll-snap
+            slider, so the two breakpoints aren't the same DOM restyled. */}
         <section className="bg-[#FBF7EE] py-16 px-6">
           <div className="container-x max-w-5xl mx-auto">
             <h2 className="text-3xl font-serif text-[#0E1B2C] mb-3 text-center">
@@ -282,31 +288,82 @@ export default function ServicesPage() {
               Each type of insurance protects a different part of your life — here's
               why we recommend reviewing all of them.
             </p>
-            <div className="flex overflow-x-auto snap-x snap-mandatory gap-4 -mx-6 px-6 pb-2 no-scrollbar md:grid md:grid-cols-2 md:gap-6 md:overflow-visible md:snap-none md:mx-0 md:px-0 md:pb-0">
-              {insuranceTypes.map((t) => {
+
+            {/* Mobile: accordion */}
+            <div className="md:hidden space-y-3">
+              {insuranceTypes.map((t, idx) => {
                 const Icon = t.icon;
+                const isOpen = openRow === idx;
                 return (
-                <div key={t.title} className="shrink-0 w-[85%] snap-center md:w-auto md:shrink bg-white border border-[#E2D8C2] rounded-2xl overflow-hidden shadow-sm">
-                  <div className="h-32 grid place-items-center" style={{ background: `${t.color}0D` }}>
-                    <div className="w-16 h-16 rounded-2xl grid place-items-center" style={{ background: `${t.color}1A`, color: t.color }}>
-                      <Icon size={30} />
-                    </div>
+                  <div key={t.title} className="bg-white border border-[#E2D8C2] rounded-2xl overflow-hidden">
+                    <button
+                      type="button"
+                      onClick={() => setOpenRow(isOpen ? -1 : idx)}
+                      className="w-full flex items-center gap-3 p-4 text-left"
+                    >
+                      <div className="w-10 h-10 rounded-xl grid place-items-center shrink-0" style={{ background: `${t.color}1A`, color: t.color }}>
+                        <Icon size={18} />
+                      </div>
+                      <span className="flex-1 font-display text-[#0E1B2C] text-[15px]">{t.title}</span>
+                      <ChevronDown size={16} className={`shrink-0 text-[#024396] transition-transform ${isOpen ? "rotate-180" : ""}`} />
+                    </button>
+                    {isOpen && (
+                      <div className="px-4 pb-4">
+                        <p className="text-sm text-[#2A364B]/80 leading-relaxed mb-3">{t.why}</p>
+                        <ul className="space-y-1.5">
+                          {t.points.map((p) => (
+                            <li key={p} className="text-sm text-[#2A364B]/80 flex gap-2">
+                              <span className="mt-0.5" style={{ color: t.color }}>•</span>
+                              <span>{p}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
                   </div>
-                  <div className="p-6">
-                    <h3 className="text-lg font-display text-[#024396] mb-2">{t.title}</h3>
-                    <p className="text-sm text-[#2A364B]/80 leading-relaxed mb-3">{t.why}</p>
-                    <ul className="space-y-1.5">
-                      {t.points.map((p) => (
-                        <li key={p} className="text-sm text-[#2A364B]/80 flex gap-2">
-                          <span className="text-[#024396] mt-0.5">•</span>
-                          <span>{p}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                </div>
                 );
               })}
+            </div>
+
+            {/* Desktop: comparison table */}
+            <div className="hidden md:block bg-white border border-[#E2D8C2] rounded-2xl overflow-hidden">
+              <table className="w-full text-left border-collapse">
+                <thead>
+                  <tr className="bg-[#0E1B2C]">
+                    <th className="p-4 text-[11px] tracking-[0.16em] uppercase text-[#D8B98A] font-semibold w-[22%]">Cover</th>
+                    <th className="p-4 text-[11px] tracking-[0.16em] uppercase text-[#D8B98A] font-semibold w-[38%]">Why it matters</th>
+                    <th className="p-4 text-[11px] tracking-[0.16em] uppercase text-[#D8B98A] font-semibold">Key points</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {insuranceTypes.map((t, idx) => {
+                    const Icon = t.icon;
+                    return (
+                      <tr key={t.title} className={idx % 2 === 1 ? "bg-[#FBF7EE]/60" : ""}>
+                        <td className="p-4 align-top border-t border-[#E2D8C2]">
+                          <div className="flex items-center gap-2.5">
+                            <div className="w-9 h-9 rounded-lg grid place-items-center shrink-0" style={{ background: `${t.color}1A`, color: t.color }}>
+                              <Icon size={17} />
+                            </div>
+                            <span className="font-display text-[#0E1B2C] text-[15px] leading-snug">{t.title}</span>
+                          </div>
+                        </td>
+                        <td className="p-4 align-top border-t border-[#E2D8C2] text-sm text-[#2A364B]/80 leading-relaxed">{t.why}</td>
+                        <td className="p-4 align-top border-t border-[#E2D8C2]">
+                          <ul className="space-y-1.5">
+                            {t.points.map((p) => (
+                              <li key={p} className="text-sm text-[#2A364B]/80 flex gap-2">
+                                <span className="mt-0.5" style={{ color: t.color }}>•</span>
+                                <span>{p}</span>
+                              </li>
+                            ))}
+                          </ul>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
             </div>
           </div>
         </section>

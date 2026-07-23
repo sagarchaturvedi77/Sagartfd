@@ -92,6 +92,11 @@ export default function Reviews({ hideHeading = false } = {}) {
     const [list, setList] = useState([]);
     const [stats, setStats] = useState({ average: 4.9, count: 120 });
     const [submitted, setSubmitted] = useState(false);
+    // Dedicated page only: the write-a-review form starts collapsed behind
+    // a compact prompt so the review wall itself — the actual social proof
+    // this page exists for — leads visually instead of competing evenly
+    // with a big form. Homepage embed is unaffected (always shows the form).
+    const [formOpen, setFormOpen] = useState(false);
 
     const [form, setForm] = useState(() => ({
         name: "",
@@ -249,7 +254,99 @@ export default function Reviews({ hideHeading = false } = {}) {
                 )}
 
                 <div className="grid lg:grid-cols-12 gap-5 sm:gap-6">
-                    {/* Form */}
+                    {/* List — now leads, both in the DOM and in the primary
+                        (left, wider) column, since the review wall is the
+                        actual point of this section; the write-a-review
+                        form (previously first, previously equal-weight)
+                        follows it and — on the dedicated page — starts
+                        collapsed so it doesn't compete for attention. On
+                        mobile, both variants use the same horizontal
+                        scroll-snap slider established elsewhere on the site
+                        (was CSS masonry even on mobile for the dedicated
+                        page, which meant a plain full-stack list below
+                        sm:); the dedicated page's masonry layout only kicks
+                        in at sm: and up, where there's room for it. */}
+                    <div
+                        className={
+                            hideHeading
+                                ? "lg:col-span-7 flex overflow-x-auto snap-x snap-mandatory gap-4 -mx-6 px-6 pb-2 no-scrollbar sm:block sm:overflow-visible sm:snap-none sm:mx-0 sm:px-0 sm:pb-0 sm:columns-2 sm:gap-4 sm:space-y-4"
+                                : "lg:col-span-7 flex overflow-x-auto snap-x snap-mandatory gap-3 -mx-6 px-6 pb-2 no-scrollbar sm:grid sm:grid-cols-2 sm:gap-4 sm:overflow-visible sm:snap-none sm:mx-0 sm:px-0 sm:pb-0 content-start"
+                        }
+                        data-testid={IDS.reviews.list}
+                    >
+                        {list.slice(0, hideHeading ? 8 : 4).map((r, idx) => (
+                            <Reveal
+                                key={r.id}
+                                delay={idx * 70}
+                                y={20}
+                                className={hideHeading ? "shrink-0 w-[82%] snap-center sm:w-auto sm:shrink sm:break-inside-avoid sm:block" : "shrink-0 w-[82%] snap-center sm:w-auto sm:shrink"}
+                            >
+                                <ReviewCard r={r} />
+                            </Reveal>
+                        ))}
+
+                        {/* See all on Google CTA */}
+                        <a
+                            href={LINKS.googleReviews}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            data-testid="reviews-see-all-google"
+                            className={`card-cream p-4 sm:p-5 flex items-center justify-between gap-3 hover:bg-[#F6F1E8] transition-colors ${hideHeading ? "break-inside-avoid" : "sm:col-span-2"}`}
+                        >
+                            <div>
+                                <div className="text-[10px] sm:text-[11px] tracking-[0.18em] uppercase text-[#5C677D]">
+                                    Want to read more?
+                                </div>
+                                <div className="font-display text-[14px] sm:text-[18px] text-[#0E1B2C] mt-1 leading-tight">
+                                    See all reviews on Google →
+                                </div>
+                            </div>
+                            <span className="inline-flex items-center gap-1.5 text-[12px] sm:text-[13px] font-medium bg-[#F6F1E8] border border-[#E2D8C2] text-[#0E1B2C] px-3 py-2 rounded-full shrink-0">
+                                <GoogleG size={12} /> Open
+                            </span>
+                        </a>
+                    </div>
+
+                    {/* Form — on the dedicated page this now starts
+                        collapsed behind a compact prompt card instead of a
+                        full form sitting at equal visual weight next to the
+                        review wall; tapping "Write a Review" swaps in the
+                        exact same form below. The homepage embed is
+                        unaffected — it keeps showing the form directly,
+                        since it's already compact there. */}
+                    {hideHeading && !formOpen ? (
+                        <div className="lg:col-span-5 card-ink p-6 sm:p-8 flex flex-col items-start justify-center gap-4">
+                            <div className="flex gap-1" aria-hidden="true">
+                                {Array.from({ length: 5 }).map((_, i) => (
+                                    <Star key={i} size={18} fill="#D9B15C" stroke="#D9B15C" />
+                                ))}
+                            </div>
+                            <div>
+                                <h3 className="font-display text-xl sm:text-2xl leading-snug">Loved working with us?</h3>
+                                <p className="text-[#F6F1E8]/70 mt-2 text-sm leading-relaxed">
+                                    Rate us &amp; write your review right here — it goes live on this
+                                    page instantly and our team auto-replies within seconds.
+                                </p>
+                            </div>
+                            <button
+                                type="button"
+                                onClick={() => setFormOpen(true)}
+                                data-testid="reviews-form-toggle"
+                                className="inline-flex items-center gap-2 rounded-full px-5 py-3 text-sm font-semibold"
+                                style={{ background: "#C7102E", color: "#fff" }}
+                            >
+                                <Send size={15} /> Write a Review
+                            </button>
+                            <a
+                                href={LINKS.googleReviews}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="inline-flex items-center gap-1.5 text-xs text-[#F6F1E8]/60 hover:text-[#F6F1E8]"
+                            >
+                                <GoogleG size={12} /> or write on Google instead
+                            </a>
+                        </div>
+                    ) : (
                     <form
                         onSubmit={onSubmit}
                         className="lg:col-span-5 card-ink p-4 sm:p-7 w-full min-w-0 overflow-hidden"
@@ -439,53 +536,7 @@ export default function Reviews({ hideHeading = false } = {}) {
                             </div>
                         )}
                     </form>
-
-                    {/* List — on mobile, both variants use the same
-                        horizontal scroll-snap slider established elsewhere
-                        on the site (was CSS masonry even on mobile for the
-                        dedicated page, which meant a plain full-stack list
-                        below sm:); the dedicated page's masonry layout only
-                        kicks in at sm: and up, where there's room for it. */}
-                    <div
-                        className={
-                            hideHeading
-                                ? "lg:col-span-7 flex overflow-x-auto snap-x snap-mandatory gap-4 -mx-6 px-6 pb-2 no-scrollbar sm:block sm:overflow-visible sm:snap-none sm:mx-0 sm:px-0 sm:pb-0 sm:columns-2 sm:gap-4 sm:space-y-4"
-                                : "lg:col-span-7 flex overflow-x-auto snap-x snap-mandatory gap-3 -mx-6 px-6 pb-2 no-scrollbar sm:grid sm:grid-cols-2 sm:gap-4 sm:overflow-visible sm:snap-none sm:mx-0 sm:px-0 sm:pb-0 content-start"
-                        }
-                        data-testid={IDS.reviews.list}
-                    >
-                        {list.slice(0, hideHeading ? 8 : 4).map((r, idx) => (
-                            <Reveal
-                                key={r.id}
-                                delay={idx * 70}
-                                y={20}
-                                className={hideHeading ? "shrink-0 w-[82%] snap-center sm:w-auto sm:shrink sm:break-inside-avoid sm:block" : "shrink-0 w-[82%] snap-center sm:w-auto sm:shrink"}
-                            >
-                                <ReviewCard r={r} />
-                            </Reveal>
-                        ))}
-
-                        {/* See all on Google CTA */}
-                        <a
-                            href={LINKS.googleReviews}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            data-testid="reviews-see-all-google"
-                            className={`card-cream p-4 sm:p-5 flex items-center justify-between gap-3 hover:bg-[#F6F1E8] transition-colors ${hideHeading ? "break-inside-avoid" : "sm:col-span-2"}`}
-                        >
-                            <div>
-                                <div className="text-[10px] sm:text-[11px] tracking-[0.18em] uppercase text-[#5C677D]">
-                                    Want to read more?
-                                </div>
-                                <div className="font-display text-[14px] sm:text-[18px] text-[#0E1B2C] mt-1 leading-tight">
-                                    See all reviews on Google →
-                                </div>
-                            </div>
-                            <span className="inline-flex items-center gap-1.5 text-[12px] sm:text-[13px] font-medium bg-[#F6F1E8] border border-[#E2D8C2] text-[#0E1B2C] px-3 py-2 rounded-full shrink-0">
-                                <GoogleG size={12} /> Open
-                            </span>
-                        </a>
-                    </div>
+                    )}
                 </div>
             </div>
         </section>

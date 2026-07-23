@@ -1,6 +1,6 @@
-import React from "react";
+import React, { useState } from "react";
 import { Link } from "react-router-dom";
-import { Linkedin, MapPin } from "lucide-react";
+import { Linkedin, MapPin, ChevronDown, ShieldOff, Languages, Video } from "lucide-react";
 import SEO from "@/components/SEO";
 import Navbar from "@/components/Navbar";
 import About from "@/components/About";
@@ -205,6 +205,7 @@ export const aboutFAQ = {
 };
 
 export default function AboutPage() {
+  const [openRegion, setOpenRegion] = useState(-1);
   return (
     <div className="relative" data-testid="about-page-root">
       <SEO
@@ -216,49 +217,55 @@ export default function AboutPage() {
       <Navbar />
       <main>
         {/* EDITORIAL / MOTIVATIONAL HERO — warm parchment instead of navy,
-            a pull-quote as the centerpiece instead of a stat row, terracotta
-            accent instead of brand blue. Deliberately reads like a personal
-            letter, not a product page. */}
+            a real portrait leading the page (not a 44px byline avatar) paired
+            with a left-aligned pull-quote, terracotta accent instead of
+            brand blue. Photo-left/quote-right on desktop; on mobile the
+            portrait leads full-width above the quote instead of shrinking
+            into a tiny circle, so it reads as a proper editorial spread at
+            both sizes, not a scaled-down badge. */}
         <section className="relative overflow-hidden pt-28 pb-16 md:pt-32 md:pb-20 px-6" style={{ background: "#F1E6D3" }}>
-          <div
-            aria-hidden
-            className="fund-animate-in absolute top-10 left-[6%] text-[160px] leading-none font-display select-none pointer-events-none"
-            style={{ color: "rgba(184,114,46,0.12)" }}
-          >
-            &ldquo;
-          </div>
-          <div className="container-x relative max-w-3xl mx-auto text-center">
+          <div className="container-x relative max-w-5xl mx-auto">
             <div className="fund-animate-in inline-flex items-center gap-2 px-3 py-1 rounded-full border border-[#D8B98A] text-[11px] tracking-[0.2em] uppercase text-[#8A5A22] font-semibold">
               About Sagar
             </div>
-            <h1 className="fund-animate-in fund-animate-in-delay-1 sr-only">
+            <h1 className="sr-only">
               About The Financial Doctor — Sagar Chaturvedi, AMFI-Registered Advisor
             </h1>
-            <blockquote className="fund-animate-in fund-animate-in-delay-1 mt-6" aria-hidden="true">
-              <p className="font-display italic text-[26px] sm:text-[32px] md:text-[38px] leading-[1.25] text-[#3A2E1D]">
-                "Every rupee has a job. Ours is to make sure it's doing the right one — for
-                your goals, not for someone else's targets."
-              </p>
-            </blockquote>
-            <div className="fund-animate-in fund-animate-in-delay-2 flex items-center justify-center gap-3 mt-8">
-              <img
-                src={SAGAR_PHOTO}
-                alt="Sagar Chaturvedi"
-                width={44}
-                height={44}
-                className="w-11 h-11 rounded-full object-cover border-2 border-[#D8B98A]"
-              />
-              <div className="text-left">
-                <div className="font-display text-[15px] text-[#3A2E1D]">Sagar Chaturvedi</div>
-                <div className="text-[11px] uppercase tracking-wider text-[#8A5A22]">Founder · AMFI ARN-290298</div>
+            <div className="mt-8 grid md:grid-cols-[280px,1fr] lg:grid-cols-[320px,1fr] gap-8 md:gap-12 items-center">
+              <div className="fund-animate-in fund-animate-in-delay-1 relative mx-auto md:mx-0 w-[220px] sm:w-[260px] md:w-full">
+                <div className="absolute -inset-3 rounded-[2.5rem] border-2 border-[#D8B98A] -rotate-3" aria-hidden />
+                <div className="relative rounded-[2.5rem] overflow-hidden border border-[#D8B98A] rotate-1 shadow-lg">
+                  <img
+                    src={SAGAR_PHOTO}
+                    alt="Sagar Chaturvedi — Founder, The Financial Doctor"
+                    width={640}
+                    height={880}
+                    className="w-full h-auto object-cover"
+                    loading="eager"
+                    fetchpriority="high"
+                  />
+                </div>
+                <div className="absolute -bottom-4 -right-3 sm:-right-5 bg-[#0E1B2C] text-[#F6F1E8] rounded-2xl px-4 py-2.5 shadow-lg">
+                  <div className="font-display text-sm leading-tight">Sagar Chaturvedi</div>
+                  <div className="text-[9.5px] uppercase tracking-[0.16em] text-[#D8B98A] mt-0.5">Founder · ARN-290298</div>
+                </div>
               </div>
-            </div>
-            <div className="fund-animate-in fund-animate-in-delay-3 flex flex-wrap items-center justify-center gap-x-8 gap-y-2 mt-9 text-sm text-[#6B5636]">
-              <span><b className="text-[#3A2E1D]">8+ years</b> advisory experience</span>
-              <span className="hidden sm:inline">·</span>
-              <span><b className="text-[#3A2E1D]">1000+</b> families empowered</span>
-              <span className="hidden sm:inline">·</span>
-              <span><b className="text-[#3A2E1D]">Goal-first</b>, not product-first</span>
+
+              <div className="fund-animate-in fund-animate-in-delay-2 text-center md:text-left mt-6 md:mt-0">
+                <blockquote aria-hidden="true">
+                  <p className="font-display italic text-[24px] sm:text-[30px] md:text-[34px] leading-[1.25] text-[#3A2E1D]">
+                    "Every rupee has a job. Ours is to make sure it's doing the right one — for
+                    your goals, not for someone else's targets."
+                  </p>
+                </blockquote>
+                <div className="flex flex-wrap items-center justify-center md:justify-start gap-x-8 gap-y-2 mt-7 text-sm text-[#6B5636]">
+                  <span><b className="text-[#3A2E1D]">8+ years</b> advisory experience</span>
+                  <span className="hidden sm:inline">·</span>
+                  <span><b className="text-[#3A2E1D]">1000+</b> families empowered</span>
+                  <span className="hidden sm:inline">·</span>
+                  <span><b className="text-[#3A2E1D]">Goal-first</b>, not product-first</span>
+                </div>
+              </div>
             </div>
           </div>
         </section>
@@ -287,12 +294,43 @@ export default function AboutPage() {
                 usually missing: a written, goal-based plan.
               </p>
             </div>
-            <div className="flex overflow-x-auto snap-x snap-mandatory gap-4 -mx-6 px-6 pb-2 no-scrollbar mt-10 sm:grid sm:grid-cols-2 lg:grid-cols-4 sm:gap-4 sm:overflow-visible sm:snap-none sm:mx-0 sm:px-0 sm:pb-0">
+            {/* Mobile: single-open accordion list (tap a region to read its
+                note) instead of a horizontal card slider; desktop: full
+                4-col grid, since all 8 regions read well at a glance on a
+                wider screen. Genuinely different interaction per
+                breakpoint, not the same cards reflowed. */}
+            <div className="sm:hidden mt-10 space-y-2.5">
+              {regions.map((r, idx) => {
+                const isOpen = openRegion === idx;
+                return (
+                  <div key={r.name} className="bg-white/60 border border-[#D8B98A]/50 rounded-xl overflow-hidden">
+                    <button
+                      type="button"
+                      onClick={() => setOpenRegion(isOpen ? -1 : idx)}
+                      className="w-full flex items-center gap-2 px-4 py-3.5 text-left"
+                    >
+                      <MapPin size={14} className="text-[#8A5A22] shrink-0" />
+                      <span className="flex-1 font-display text-[#8A5A22] text-[15px]">{r.name}</span>
+                      <ChevronDown size={15} className={`shrink-0 text-[#B8722E] transition-transform ${isOpen ? "rotate-180" : ""}`} />
+                    </button>
+                    {isOpen && (
+                      <div className="px-4 pb-4">
+                        <p className="text-sm text-[#6B5636] leading-relaxed">{r.note}</p>
+                        <Link to={r.href} className="inline-flex items-center gap-1 mt-2.5 text-xs font-medium text-[#B8722E]">
+                          View {r.name} page <span aria-hidden>→</span>
+                        </Link>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+            <div className="hidden sm:grid sm:grid-cols-2 lg:grid-cols-4 sm:gap-4 mt-10">
               {regions.map((r) => (
                 <Link
                   key={r.name}
                   to={r.href}
-                  className="shrink-0 w-[78%] snap-center sm:w-auto sm:shrink block bg-white/60 border border-[#D8B98A]/50 rounded-2xl p-5 hover:bg-white hover:border-[#B8722E]/50 transition-colors"
+                  className="block bg-white/60 border border-[#D8B98A]/50 rounded-2xl p-5 hover:bg-white hover:border-[#B8722E]/50 transition-colors"
                 >
                   <div className="flex items-center gap-1.5 text-[#8A5A22] font-display text-[15px]">
                     <MapPin size={14} /> {r.name}
@@ -377,21 +415,41 @@ export default function AboutPage() {
             </div>
           </div>
 
-          {/* OUR PROMISE — a values block instead of generic stock photography */}
-          <div className="container-x max-w-5xl mx-auto grid md:grid-cols-2 gap-6">
-            <div className="rounded-2xl p-7 bg-[#0E1B2C] text-[#F6F1E8]">
-              <div className="text-[11px] uppercase tracking-[0.2em] text-[#D8B98A] font-semibold mb-2">Our promise</div>
-              <p className="font-display text-xl leading-snug">
-                "We never hold your money. Your investment stays in your name, with the AMC or
-                insurer directly — we only advise and facilitate."
-              </p>
-            </div>
-            <div className="rounded-2xl p-7 bg-[#F1E6D3]">
-              <div className="text-[11px] uppercase tracking-[0.2em] text-[#8A5A22] font-semibold mb-2">Rooted locally</div>
-              <p className="font-display text-xl leading-snug text-[#3A2E1D]">
-                Based in Sehore, serving families across Madhya Pradesh — in person, on call, or
-                over video, in Hindi, English, or Hinglish, whichever's easiest for you.
-              </p>
+          {/* OUR PROMISE — one unified band instead of two matching
+              trust-badge cards: a single centered pull-quote carries the
+              non-custody promise, then a fact-strip beneath (not a second
+              card) carries the "rooted locally" details as individual
+              tags. Breaks the symmetric 2-card pattern used for similar
+              blocks elsewhere on the site. */}
+          <div className="container-x max-w-4xl mx-auto">
+            <div className="relative rounded-3xl overflow-hidden bg-[#0E1B2C] px-6 py-10 md:px-14 md:py-12 text-center">
+              <div
+                aria-hidden
+                className="absolute -top-6 left-1/2 -translate-x-1/2 text-[120px] leading-none font-display select-none pointer-events-none opacity-[0.08]"
+                style={{ color: "#D8B98A" }}
+              >
+                &ldquo;
+              </div>
+              <div className="relative">
+                <div className="inline-flex items-center gap-1.5 text-[10px] uppercase tracking-[0.2em] text-[#D8B98A] font-semibold">
+                  <ShieldOff size={12} /> Our promise
+                </div>
+                <p className="font-display text-xl sm:text-2xl md:text-[26px] leading-snug text-[#F6F1E8] mt-4 max-w-2xl mx-auto">
+                  We never hold your money — it stays in your name, with the AMC or insurer
+                  directly. We only advise and facilitate.
+                </p>
+              </div>
+              <div className="relative flex flex-wrap items-center justify-center gap-3 mt-8 pt-7 border-t border-[#2A364B]">
+                <span className="inline-flex items-center gap-1.5 bg-[#152238] border border-[#2A364B] rounded-full px-3.5 py-1.5 text-xs text-[#F6F1E8]/85">
+                  <MapPin size={13} className="text-[#D8B98A]" /> Sehore, Madhya Pradesh
+                </span>
+                <span className="inline-flex items-center gap-1.5 bg-[#152238] border border-[#2A364B] rounded-full px-3.5 py-1.5 text-xs text-[#F6F1E8]/85">
+                  <Video size={13} className="text-[#D8B98A]" /> In-person or over video
+                </span>
+                <span className="inline-flex items-center gap-1.5 bg-[#152238] border border-[#2A364B] rounded-full px-3.5 py-1.5 text-xs text-[#F6F1E8]/85">
+                  <Languages size={13} className="text-[#D8B98A]" /> Hindi · English · Hinglish
+                </span>
+              </div>
             </div>
           </div>
         </section>

@@ -82,8 +82,47 @@ function calculateTrailingReturns(history) {
 
 const fundCache = new Map();
 
+// mfapi.in's per-scheme endpoint returns EVERY daily NAV since the scheme's
+// inception (often thousands of rows) just so we can compute 1Y/3Y/5Y CAGR
+// client-side — there's no partial/date-ranged variant of this endpoint.
+// Firing that for all 15 MASTER_FUNDS on every single homepage load (in
+// parallel, no caching) was the real cause of "top funds load slow" on
+// mobile/3G. NAV only actually changes once per trading day, so a same-day
+// localStorage cache removes the repeat-visit cost entirely without ever
+// serving stale returns.
+const LS_PREFIX = "tfd_fund_cache_v1_";
+const LS_TTL_MS = 6 * 60 * 60 * 1000; // 6h — well within one trading day
+
+function readLsCache(code) {
+    try {
+        const raw = localStorage.getItem(LS_PREFIX + code);
+        if (!raw) return null;
+        const { savedAt, fund } = JSON.parse(raw);
+        if (!savedAt || Date.now() - savedAt > LS_TTL_MS) return null;
+        return fund;
+    } catch {
+        return null;
+    }
+}
+
+function writeLsCache(code, fund) {
+    try {
+        localStorage.setItem(LS_PREFIX + code, JSON.stringify({ savedAt: Date.now(), fund }));
+    } catch {
+        // storage full/unavailable — in-memory cache still applies this session
+    }
+}
+
 export async function fetchFund(code) {
-    if (fundCache.has(String(code))) return fundCache.get(String(code));
+    const key = String(code);
+    if (fundCache.has(key)) return fundCache.get(key);
+
+    const cached = readLsCache(key);
+    if (cached) {
+        fundCache.set(key, cached);
+        return cached;
+    }
+
     const res = await fetch(`https://api.mfapi.in/mf/${code}`);
     if (!res.ok) throw new Error(`Unable to fetch scheme ${code}`);
     const d = await res.json();
@@ -100,7 +139,8 @@ export async function fetchFund(code) {
         history,
         ...calculateTrailingReturns(history),
     };
-    fundCache.set(String(code), fund);
+    fundCache.set(key, fund);
+    writeLsCache(key, fund);
     return fund;
 }
 
