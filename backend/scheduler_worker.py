@@ -703,6 +703,24 @@ def _job_due_this_month(job_name: str, now_local: datetime) -> bool:
     return True
 
 
+def _job_due_every_n_days(job_name: str, now_local: datetime, n: int) -> bool:
+    """Same Mongo-persisted idempotency approach as _job_due_today/
+    _job_due_this_week/_job_due_this_month, but for a fixed N-day cadence
+    (e.g. the GBP drip-post queue below, one attempt every 2 days) rather
+    than a calendar boundary. Measured from the actual last-run date (not a
+    fixed grid), so a missed cron window doesn't compound — it's always
+    "at least N days since the last run", never "every Nth calendar day"."""
+    today_str = now_local.strftime("%Y-%m-%d")
+    state = scheduler_state.find_one({"_id": job_name}) or {}
+    last_run_str = state.get("last_run_date")
+    if last_run_str:
+        last_run = datetime.strptime(last_run_str, "%Y-%m-%d")
+        if (now_local.replace(tzinfo=None) - last_run).days < n:
+            return False
+    scheduler_state.update_one({"_id": job_name}, {"$set": {"last_run_date": today_str}}, upsert=True)
+    return True
+
+
 # ── Weekly Top Funds ranking ──
 #
 # Replaces a hardcoded "top funds" list that had drifted badly wrong (14 of
@@ -872,6 +890,21 @@ def run_due_checks() -> dict:
         except Exception as e:
             LOG.exception("top_funds refresh failed: %s", e)
         ran.append("top_funds_refresh")
+
+    # GBP drip-post queue: one post every 2 days, once GBP is approved and
+    # connected. This only GATES the timing here (Mongo-persisted, same
+    # idempotency pattern as the jobs above) — the actual dequeue + post
+    # needs google_business_client's async Motor + async httpx calls, which
+    # aren't safe to reuse from a second event loop spun up inside this
+    # sync worker's thread-pool thread (Motor's internal locks bind to
+    # whichever event loop first used them). So when this flag fires,
+    # backend/internal_routes.py's run_scheduled_tasks (already running on
+    # the FastAPI app's own event loop) does the actual work — same split
+    # already used there for internship auto-graduate/manager-checkins/
+    # mailbox processing, for the same reason.
+    if _job_due_every_n_days("gbp_post_queue", now_local, 2):
+        LOG.info("GBP drip-post queue due at %s", now_local.isoformat())
+        ran.append("gbp_post_queue_due")
 
     # 1st of the month: monthly per-employee progress report.
     if now_local.day == 1 and now_local.hour >= MORNING_HOUR and _job_due_this_month("monthly_employee_progress", now_local):

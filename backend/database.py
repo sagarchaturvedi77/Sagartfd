@@ -72,3 +72,10 @@ payment_orders_collection = db["payment_orders"]
 # the /api/mf/top-funds endpoint in server.py. Replaces a hardcoded,
 # never-updated fund list.
 top_funds_collection = db["top_funds_cache"]
+# Google Business Profile drip-post queue — one doc per published blog post
+# (id/title/summary/image/link snapshot at queue time), auto-posted to GBP
+# one every 2 days once OAuth is connected, so the existing ~150-post
+# backlog doesn't need 150 manual clicks. See google_business_client.py's
+# backfill_post_queue()/process_gbp_post_queue() and scheduler_worker.py's
+# _job_due_every_n_days("gbp_post_queue", ...) gate.
+gbp_post_queue_collection = db["gbp_post_queue"]

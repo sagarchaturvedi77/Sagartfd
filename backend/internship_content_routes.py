@@ -201,6 +201,12 @@ async def admin_review_content(content_id: str, data: ContentReviewIn, admin: di
                 import google_business_client as gb
                 full_doc = {**doc, **update}
                 await gb.post_blog_content(full_doc)
+                # Keep the drip-post queue in sync — without this, a later
+                # backfill run would add this content_id back in as
+                # "pending" (it was never queued — this is a freshly
+                # approved post, not part of the original backlog) and the
+                # scheduled drip job would re-post it in 2 days.
+                await gb.mark_queue_posted(doc["id"], doc.get("title", ""))
             except Exception:
                 logger.warning("Failed to auto-post blog %s to Google Business Profile", doc["id"])
     else:

@@ -27,7 +27,7 @@ from urllib.parse import urlencode
 
 import httpx
 
-from database import business_settings_collection
+from database import business_settings_collection, gbp_post_queue_collection, internship_content_collection
 
 GOOGLE_OAUTH_CLIENT_ID = os.environ.get("GOOGLE_OAUTH_CLIENT_ID")
 GOOGLE_OAUTH_CLIENT_SECRET = os.environ.get("GOOGLE_OAUTH_CLIENT_SECRET")
@@ -260,6 +260,158 @@ async def post_blog_content(content: dict) -> dict:
     )
     cta_url = f"{SITE_URL}/blog/{content['id']}"
     return await create_local_post(account_id, location_id, summary, cta_url, image_url=SHARE_CARD_IMAGE)
+
+
+# ── Drip-post queue (Part 1 of the "ready the moment GBP approval lands"
+# work) — spreads the existing ~150-post blog backlog out at one post
+# every 2 days instead of firing all of them the instant OAuth connects. ──
+
+async def mark_queue_posted(content_id: str, title: str = "") -> None:
+    """Marks (or creates, if it was never backfilled into the queue) a
+    drip-queue entry as already posted. Called after EITHER the manual
+    admin trigger (google_business_routes.py's POST /post-blog/{id}) or the
+    auto-fire hook on approval (internship_content_routes.py) successfully
+    posts a blog to GBP — without this, a later backfill run would add that
+    same content_id back in as "pending" (backfill only skips content_ids
+    already present in the queue, and a manually/auto-posted item may never
+    have been added yet) and the drip job would eventually re-post it.
+    Upsert, not update-only, since a manually-pushed post that predates its
+    own backfill entry has nothing to update yet."""
+    now = datetime.now(timezone.utc)
+    await gbp_post_queue_collection.update_one(
+        {"content_id": content_id},
+        {
+            "$set": {"status": "posted", "posted_at": now, "title": title or "", "error": None},
+            "$setOnInsert": {
+                "queued_at": now,
+                "summary": None,
+                "og_image_url": f"{SITE_URL}/assets/og/blog-post-{content_id}.png",
+                "blog_link": f"{SITE_URL}/blog/{content_id}",
+            },
+        },
+        upsert=True,
+    )
+
+
+async def backfill_post_queue() -> dict:
+    """One-off (but safe to re-run — idempotent) population of the GBP
+    drip-post queue from every currently-published blog post. Skips any
+    content_id already present in the queue regardless of status, so
+    re-running after new posts get approved/auto-posted only adds the
+    genuinely new ones, and never re-queues something mark_queue_posted
+    already recorded as posted."""
+    existing_ids = {
+        d["content_id"]
+        async for d in gbp_post_queue_collection.find({}, {"content_id": 1})
+    }
+    added = 0
+    async for content in internship_content_collection.find({"status": "published", "content_type": "blog"}):
+        content_id = content["id"]
+        if content_id in existing_ids:
+            continue
+        summary = build_post_summary(
+            title=content.get("title", ""),
+            meta_description=content.get("meta_description"),
+            hashtags=content.get("hashtags"),
+        )
+        await gbp_post_queue_collection.insert_one({
+            "content_id": content_id,
+            "title": content.get("title", ""),
+            "summary": summary,
+            "og_image_url": f"{SITE_URL}/assets/og/blog-post-{content_id}.png",
+            "blog_link": f"{SITE_URL}/blog/{content_id}",
+            "status": "pending",
+            "queued_at": datetime.now(timezone.utc),
+            "posted_at": None,
+            "error": None,
+        })
+        added += 1
+    total_pending = await gbp_post_queue_collection.count_documents({"status": "pending"})
+    return {"added": added, "total_pending": total_pending}
+
+
+async def process_gbp_post_queue() -> dict:
+    """Picks the OLDEST still-"pending" drip-queue entry and attempts to
+    post it, marking it "posted"/"failed" accordingly. Called on a 2-day
+    cadence — gated by scheduler_worker.py's _job_due_every_n_days(
+    "gbp_post_queue", ...) — via internal_routes.py's async
+    run_scheduled_tasks, not scheduler_worker.py's own (sync, pymongo)
+    run_due_checks directly: posting needs this module's async Motor +
+    async httpx calls, and reusing that same async Motor client from a
+    second event loop spun up inside scheduler_worker's sync thread-pool
+    thread is unsafe (Motor's internal locks bind to whichever event loop
+    first used them) — the exact reason internal_routes.py already keeps
+    the internship auto-graduate/manager-checkin/mailbox jobs out of
+    run_due_checks too.
+
+    Uses the queue doc's OWN stored summary/image/link (snapshotted at
+    backfill/queue time) rather than re-fetching+rebuilding from
+    internship_content_collection, so a queue entry's caption stays stable
+    even if the source post is edited later.
+
+    Never raises — a failure (most likely "GBP not connected yet" until
+    Google's approval lands) is recorded on the entry and the function
+    returns normally, so one failed attempt never blocks the next
+    scheduled attempt (2 days later, next-oldest pending entry) from
+    trying."""
+    doc = await gbp_post_queue_collection.find_one({"status": "pending"}, sort=[("queued_at", 1)])
+    if not doc:
+        return {"status": "empty"}
+
+    try:
+        settings = await get_connection_status()
+        if not settings.get("connected"):
+            raise GoogleBusinessError("GBP not connected yet — waiting on Google API approval.")
+        account_name = settings.get("account_name")
+        location_name = settings.get("location_name")
+        if not account_name or not location_name:
+            raise GoogleBusinessError("Connected, but no Business Profile location is linked yet.")
+        account_id = account_name.split("/")[-1]
+        location_id = location_name.split("/")[-1]
+        await create_local_post(
+            account_id, location_id,
+            summary=doc.get("summary") or doc.get("title", ""),
+            cta_url=doc["blog_link"],
+            image_url=doc.get("og_image_url"),
+        )
+    except Exception as e:
+        await gbp_post_queue_collection.update_one(
+            {"_id": doc["_id"]},
+            {"$set": {"status": "failed", "error": str(e)[:300]}},
+        )
+        return {"status": "failed", "content_id": doc.get("content_id"), "title": doc.get("title"), "error": str(e)[:300]}
+
+    await gbp_post_queue_collection.update_one(
+        {"_id": doc["_id"]},
+        {"$set": {"status": "posted", "posted_at": datetime.now(timezone.utc), "error": None}},
+    )
+    return {"status": "posted", "content_id": doc.get("content_id"), "title": doc.get("title")}
+
+
+# ── Reviews cache (Part 2) — GET /reviews degrades to the last-successful
+# fetch instead of erroring while the GBP API is unapproved. Stored in
+# business_settings_collection under its own _id, same generic
+# settings-doc pattern the OAuth tokens use (see module docstring). ──
+
+REVIEWS_CACHE_ID = "google_business_reviews_cache"
+
+
+async def get_cached_reviews() -> dict:
+    """Returns the last-successful reviews fetch, or an empty,
+    clearly-"not yet available" result if nothing has ever been fetched
+    successfully (e.g. before GBP approval lands)."""
+    doc = await business_settings_collection.find_one({"_id": REVIEWS_CACHE_ID})
+    if not doc:
+        return {"reviews": [], "cached": False, "cached_at": None, "available": False}
+    return {"reviews": doc.get("reviews", []), "cached": True, "cached_at": doc.get("cached_at"), "available": True}
+
+
+async def save_reviews_cache(reviews: list[dict]) -> None:
+    await business_settings_collection.update_one(
+        {"_id": REVIEWS_CACHE_ID},
+        {"$set": {"reviews": reviews, "cached_at": datetime.now(timezone.utc)}},
+        upsert=True,
+    )
 
 
 async def fetch_reviews(account_id: str, location_id: str) -> list[dict]:

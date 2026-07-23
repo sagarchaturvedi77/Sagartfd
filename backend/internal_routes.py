@@ -62,6 +62,24 @@ async def run_scheduled_tasks(
     except Exception as e:
         return {"status": "error", "error": str(e)[:200]}
 
+    # GBP drip-post queue: scheduler_worker.run_due_checks() above only
+    # decided WHETHER a post is due right now (2-day cadence, Mongo-gated
+    # via _job_due_every_n_days) — the actual dequeue + post happens here,
+    # on this endpoint's own event loop, because it needs
+    # google_business_client's async Motor + async httpx calls (unsafe to
+    # reuse from the second event loop scheduler_worker's sync thread-pool
+    # thread would otherwise need). Same reasoning as the internship jobs
+    # below. Never raises — GBP being unapproved/disconnected right now is
+    # expected and handled inside process_gbp_post_queue() itself (marks
+    # the entry "failed" and moves on).
+    if "gbp_post_queue_due" in ran:
+        try:
+            import google_business_client as gb
+            gbp_result = await gb.process_gbp_post_queue()
+            ran.append(f"gbp_post_queue ({gbp_result.get('status')})")
+        except Exception as e:
+            ran.append(f"gbp_post_queue (failed: {str(e)[:150]})")
+
     # Auto-graduation runs here (not in scheduler_worker.py) because it
     # needs internship_routes.py's own _graduation_eligibility /
     # _generate_graduation_documents — reusing those directly, on this

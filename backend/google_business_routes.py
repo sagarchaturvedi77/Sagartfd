@@ -9,7 +9,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi.responses import RedirectResponse
 
 from auth_utils import require_admin
-from database import business_settings_collection, internship_content_collection
+from database import business_settings_collection, gbp_post_queue_collection, internship_content_collection
 import google_business_client as gb
 
 logger = logging.getLogger(__name__)
@@ -117,21 +117,70 @@ async def post_blog_to_gbp(content_id: str, _admin: dict = Depends(require_admin
         result = await gb.post_blog_content(content)
     except gb.GoogleBusinessError as e:
         raise HTTPException(status_code=502, detail=str(e))
+    # Keep the drip-post queue in sync — otherwise a later backfill (or a
+    # backfill that already ran) would leave/queue this content_id as
+    # "pending" and the scheduled drip job would re-post it in 2 days.
+    await gb.mark_queue_posted(content_id, content.get("title", ""))
     return {"status": "posted", "gbp_response": result}
 
 
 @router.get("/reviews")
 async def reviews(_admin: dict = Depends(require_admin)):
+    """Live GBP reviews fetch for the admin portal, with a graceful
+    fallback to the last-successful fetch (cached in
+    business_settings_collection) whenever the live call fails — expected
+    right now, since GBP API access is still pending Google's approval.
+    Always returns 200 with a `cached`/`available` flag rather than a raw
+    500/502, so the portal can render a clear "showing cached/stale data"
+    or "not yet available" state instead of an error screen."""
     settings = await gb.get_connection_status()
     if not settings.get("connected"):
-        raise HTTPException(status_code=409, detail="Google Business isn't connected yet.")
+        result = await gb.get_cached_reviews()
+        result["connected"] = False
+        return result
+
     account_name = settings.get("account_name")  # "accounts/123"
     location_name = settings.get("location_name")  # "accounts/123/locations/456"
     if not account_name or not location_name:
-        raise HTTPException(status_code=409, detail="No location found on this Google Business account.")
+        result = await gb.get_cached_reviews()
+        result["connected"] = True
+        result["error"] = "No location found on this Google Business account."
+        return result
+
     account_id = account_name.split("/")[-1]
     location_id = location_name.split("/")[-1]
     try:
-        return {"reviews": await gb.fetch_reviews(account_id, location_id)}
+        live_reviews = await gb.fetch_reviews(account_id, location_id)
     except gb.GoogleBusinessError as e:
-        raise HTTPException(status_code=502, detail=str(e))
+        result = await gb.get_cached_reviews()
+        result["connected"] = True
+        result["error"] = str(e)
+        return result
+
+    await gb.save_reviews_cache(live_reviews)
+    return {"reviews": live_reviews, "cached": False, "cached_at": None, "available": True, "connected": True}
+
+
+@router.post("/queue-backfill")
+async def queue_backfill(_admin: dict = Depends(require_admin)):
+    """One-off (idempotent, safe to re-run) — populates the GBP drip-post
+    queue from every currently-published blog post, so the existing
+    ~150-post backlog gets auto-posted over time (see
+    process_gbp_post_queue) instead of needing 150 manual clicks."""
+    return await gb.backfill_post_queue()
+
+
+@router.get("/queue-status")
+async def queue_status(_admin: dict = Depends(require_admin)):
+    """Lets the admin check drip-queue progress without opening the
+    database directly."""
+    pending = await gbp_post_queue_collection.count_documents({"status": "pending"})
+    posted = await gbp_post_queue_collection.count_documents({"status": "posted"})
+    failed = await gbp_post_queue_collection.count_documents({"status": "failed"})
+    next_doc = await gbp_post_queue_collection.find_one({"status": "pending"}, sort=[("queued_at", 1)])
+    return {
+        "pending": pending,
+        "posted": posted,
+        "failed": failed,
+        "next_post_title": next_doc.get("title") if next_doc else None,
+    }
