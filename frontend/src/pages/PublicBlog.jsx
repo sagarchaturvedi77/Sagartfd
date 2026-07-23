@@ -8,6 +8,7 @@ import FloatingActions from "@/components/FloatingActions";
 import { useLanguage } from "@/context/LanguageContext";
 import LanguageToggle from "@/components/LanguageToggle";
 import { LINKS } from "@/lib/links";
+import { ORG_ID } from "@/components/PersonSchema";
 
 const API_BASE = process.env.REACT_APP_BACKEND_URL || "";
 const PAGE_SIZE = 9;
@@ -475,23 +476,13 @@ function useBlogPostingSchema(post, lang) {
             },
             datePublished: post.published_at,
             dateModified: post.date_modified || post.published_at,
-            publisher: {
-                "@type": "Organization",
-                name: "The Financial Doctor",
-                logo: {
-                    "@type": "ImageObject",
-                    url: `${SITE_URL}/assets/logos/TFD-MAIN-LOGO.webp`,
-                },
-                // Same service area as PersonSchema.jsx / the local business
-                // schema on city pages — reinforces the location signal on
-                // every one of the 150 posts, not just the About/city pages.
-                address: {
-                    "@type": "PostalAddress",
-                    addressLocality: "Sehore",
-                    addressRegion: "Madhya Pradesh",
-                    addressCountry: "IN",
-                },
-            },
+            // References the single canonical Organization entity (name,
+            // "TFD" alternateName, logo, address, sameAs) defined once in
+            // PersonSchema.jsx, which is mounted globally — every one of the
+            // 150 posts now points at the same entity instead of each
+            // repeating its own partial, slightly-different Organization
+            // fragment.
+            publisher: { "@id": ORG_ID },
             mainEntityOfPage: {
                 "@type": "WebPage",
                 "@id": url,

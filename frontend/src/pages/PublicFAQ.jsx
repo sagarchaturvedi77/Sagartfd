@@ -81,7 +81,7 @@ export default function PublicFAQ() {
             <SEO
                 title="Mutual Fund & Financial Planning FAQs | The Financial Doctor"
                 description={`${FAQ_INDEX.length}+ answers on SIP, lumpsum, insurance, tax-saving and financial planning — search your question, from The Financial Doctor.`}
-                keywords="mutual fund FAQ, SIP questions answered, financial planning FAQ, term insurance FAQ, tax saving FAQ, mutual fund advisor Sehore, mutual fund advisor Madhya Pradesh, mutual fund advisor India, Sagar Chaturvedi FAQ, The Financial Doctor FAQ, AMFI registered mutual fund distributor, ARN-290298"
+                keywords="TFD FAQ, mutual fund FAQ, SIP questions answered, financial planning FAQ, term insurance FAQ, tax saving FAQ, mutual fund advisor Sehore, mutual fund advisor Madhya Pradesh, mutual fund advisor India, Sagar Chaturvedi FAQ, The Financial Doctor FAQ, AMFI registered mutual fund distributor, ARN-290298"
                 path="/faq"
             />
             <Navbar />
