@@ -217,23 +217,48 @@ const CalcVariantContext = createContext("public");
 
 function Slider({ value, onChange, min, max, label, format, testid }) {
     const variant = useContext(CalcVariantContext);
+
+    // Separate "what's literally typed" from the numeric `value` prop —
+    // needed so a user can type "12." while entering "12.5" without it
+    // snapping back to "12" on every keystroke (which a plain
+    // value={String(value)} binding would do).
+    const [displayValue, setDisplayValue] = useState(String(value));
+    const focusedRef = useRef(false);
+
+    useEffect(() => {
+        if (!focusedRef.current) setDisplayValue(String(value));
+    }, [value]);
+
     const numberInput = (
         <input
-            type="number"
-            value={value}
+            type="text"
+            inputMode="decimal"
+            value={displayValue}
+            onFocus={(e) => {
+                focusedRef.current = true;
+                // type="number" inputs silently ignore .select() on iOS
+                // Safari (a long-standing WebKit limitation) — that's why
+                // tapping a field showing "0" and typing just appended to
+                // it instead of replacing it. type="text" makes select()
+                // actually work, on iOS and everywhere else.
+                e.target.select();
+            }}
             onChange={(e) => {
                 const raw = e.target.value;
-                if (raw === "") { onChange(0); return; }
+                if (!/^\d*\.?\d*$/.test(raw)) return;
+                setDisplayValue(raw);
+                if (raw === "" || raw === ".") { onChange(0); return; }
                 const v = Number(raw);
                 if (!isNaN(v)) onChange(v);
             }}
-            onFocus={(e) => e.target.select()}
             onBlur={(e) => {
+                focusedRef.current = false;
                 let v = Number(e.target.value);
                 if (isNaN(v)) v = min ?? 0;
                 if (min !== undefined && v < min) v = min;
                 if (max !== undefined && v > max) v = max;
                 onChange(v);
+                setDisplayValue(String(v));
             }}
             data-testid={testid}
         />
