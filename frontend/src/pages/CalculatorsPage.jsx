@@ -271,10 +271,6 @@ export default function CalculatorsPage() {
             further; everything below is supporting context. */}
         <Calculators variant="public" activeType={calculatorType} hideHeading />
 
-        <div className="flex justify-center pt-6">
-          <LanguageToggle />
-        </div>
-
         <p className="text-xs text-[#2A364B]/60 text-center mt-6 px-6">
           Note: These calculators provide estimates based on assumed rates of
           return and are meant for planning purposes only, not guaranteed returns.
@@ -377,6 +373,14 @@ export default function CalculatorsPage() {
           </div>
         </section>
 
+        {/* Moved to sit directly above the FAQ — this toggle only ever
+            controlled the FAQ's language (the calculator widget above has
+            its own separate, unrelated "Proposal Language" picker for PDF
+            export), so it needs to sit next to the thing it actually
+            changes rather than floating right after the calculator. */}
+        <div className="flex justify-center pt-10">
+          <LanguageToggle />
+        </div>
         <FAQSection title="Calculators — Frequently Asked Questions" data={calcFAQ} />
       </main>
       <Footer />

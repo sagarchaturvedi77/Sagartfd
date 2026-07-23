@@ -707,7 +707,7 @@ export default function PublicBlog() {
                 (py-4 = 32px + h-12 logo = 48px) — top-16 (64px) left the
                 toolbar's top ~16px clipped under the fixed navbar. */}
             <div className="sm:hidden sticky top-20 z-30 bg-[#FBF7EE]/95 backdrop-blur border-b border-[#E2D8C2] px-4 py-2 flex items-center justify-between gap-2">
-                <LanguageToggle className="scale-[0.85] origin-left" />
+                <LanguageToggle className="scale-[0.85] origin-left" languages={["en", "hinglish"]} />
                 {contentId && detail && <ShareButton post={detail} lang={lang} />}
             </div>
             {/* pt-[164px] on mobile only — position:sticky reserves layout
@@ -737,12 +737,12 @@ export default function PublicBlog() {
                                     Investing, <span className="font-italic-serif text-[#C7102E]">explained simply.</span>
                                 </h1>
                             </div>
-                            <LanguageToggle className="hidden sm:inline-flex" />
+                            <LanguageToggle className="hidden sm:inline-flex" languages={["en", "hinglish"]} />
                         </div>
                     )}
                     {contentId && (
                         <div className="mb-6 hidden sm:flex justify-end">
-                            <LanguageToggle />
+                            <LanguageToggle languages={["en", "hinglish"]} />
                         </div>
                     )}
                     {contentId ? (
