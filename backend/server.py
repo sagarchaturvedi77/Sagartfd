@@ -160,32 +160,50 @@ async def create_contact(payload: ContactCreate):
 
 # -------------- ROUTES: MF Data (proxy MFAPI.in with caching) --------------
 
-# Curated top funds across categories
+# Curated top funds across categories — this hardcoded list used to be the
+# whole story (and had drifted wrong: several codes here had since stopped
+# matching their declared fund/category on mfapi.in). It's now only the
+# candidate POOL that scheduler_worker.py's weekly refresh_top_funds() job
+# ranks by trailing 1Y return; the actual "top 3 per category" result is
+# computed weekly and cached in Mongo (top_funds_collection), which
+# /mf/top-funds below reads from directly instead of live-fetching+ranking
+# on every request. Kept here (not only in scheduler_worker.py) so the
+# candidate pool is visible from the same file as the endpoint that
+# ultimately serves it.
 TOP_FUNDS = {
     "Large Cap": [
-        {"code": "106235", "name": "Nippon India Large Cap Fund - Regular Growth"},
-        {"code": "108466", "name": "ICICI Prudential Large Cap (Bluechip) Fund - Regular Growth"},
-        {"code": "112277", "name": "Axis Large Cap Fund - Regular Growth"},
+        {"code": "119598", "name": "SBI Large Cap Fund"},
+        {"code": "118825", "name": "Mirae Asset Large Cap Fund"},
+        {"code": "120586", "name": "ICICI Prudential Large Cap Fund"},
+        {"code": "118632", "name": "Nippon India Large Cap Fund"},
     ],
     "Mid Cap": [
-        {"code": "127039", "name": "Motilal Oswal Midcap Fund - Regular Growth"},
-        {"code": "105758", "name": "HDFC Mid Cap Fund - Regular Growth"},
-        {"code": "101161", "name": "Nippon India Multi Cap Fund - Regular Growth"},
+        {"code": "118989", "name": "HDFC Mid Cap Fund"},
+        {"code": "119775", "name": "Kotak Midcap Fund"},
+        {"code": "127042", "name": "Motilal Oswal Midcap Fund"},
+        {"code": "140228", "name": "Edelweiss Mid Cap Fund"},
+        {"code": "119581", "name": "Sundaram Mid Cap Fund"},
     ],
     "Small Cap": [
-        {"code": "113177", "name": "Nippon India Small Cap Fund - Regular Growth"},
-        {"code": "100177", "name": "Quant Small Cap Fund - Regular Growth"},
-        {"code": "125350", "name": "Axis Small Cap Fund - Regular Growth"},
+        {"code": "125497", "name": "SBI Small Cap Fund"},
+        {"code": "118778", "name": "Nippon India Small Cap Fund"},
+        {"code": "125354", "name": "Axis Small Cap Fund"},
+        {"code": "120164", "name": "Kotak Small Cap Fund"},
+        {"code": "145206", "name": "Tata Small Cap Fund"},
     ],
     "Flexi Cap": [
-        {"code": "122640", "name": "Parag Parikh Flexi Cap Fund - Regular Growth"},
-        {"code": "101762", "name": "HDFC Flexi Cap Fund - Regular Growth"},
-        {"code": "109830", "name": "Quant Flexi Cap Fund - Regular Growth"},
+        {"code": "122639", "name": "Parag Parikh Flexi Cap Fund"},
+        {"code": "118955", "name": "HDFC Flexi Cap Fund"},
+        {"code": "120662", "name": "UTI Flexi Cap Fund"},
+        {"code": "141925", "name": "Axis Flexi Cap Fund"},
+        {"code": "118535", "name": "Franklin India Flexi Cap Fund"},
     ],
-    "ELSS (Tax Saver)": [
-        {"code": "135784", "name": "Mirae Asset ELSS Tax Saver Fund - Regular Growth"},
-        {"code": "100175", "name": "Quant ELSS Tax Saver Fund - Regular Growth"},
-        {"code": "112323", "name": "Axis ELSS Tax Saver Fund - Regular Growth"},
+    "ELSS Tax Saver": [
+        {"code": "120592", "name": "ICICI Prudential ELSS Tax Saver Fund"},
+        {"code": "135781", "name": "Mirae Asset ELSS Tax Saver Fund"},
+        {"code": "120416", "name": "Invesco India ELSS Tax Saver Fund"},
+        {"code": "119773", "name": "Kotak ELSS Tax Saver Fund"},
+        {"code": "120847", "name": "Quant ELSS Tax Saver Fund"},
     ],
 }
 
@@ -236,10 +254,12 @@ async def fetch_fund(code: str) -> dict:
     return data
 
 
-@api_router.get("/mf/top-funds")
-async def top_funds():
-    """Return curated top funds across categories with latest NAV and returns."""
-    out = []
+async def _live_rank_top_funds():
+    """Live-computes the same ranking scheduler_worker.py's weekly job does
+    — every candidate in TOP_FUNDS, scored by 1Y return, top 3 kept per
+    category. Used as a fallback only (see top_funds() below) for the
+    window before the weekly cron has ever populated the cache, so the
+    endpoint never has to return empty right after a fresh deploy."""
     async def _build(category: str, fund: dict):
         for attempt in range(3):
             try:
@@ -264,12 +284,34 @@ async def top_funds():
                     return None
                 await asyncio.sleep(0.4 * (attempt + 1))
 
-    tasks = []
-    for cat, funds in TOP_FUNDS.items():
-        for f in funds:
-            tasks.append(_build(cat, f))
-    results = await asyncio.gather(*tasks)
-    out = [r for r in results if r]
+    tasks = [_build(cat, f) for cat, funds in TOP_FUNDS.items() for f in funds]
+    results = [r for r in await asyncio.gather(*tasks) if r]
+
+    by_category: dict = {}
+    for r in results:
+        by_category.setdefault(r["category"], []).append(r)
+    out = []
+    for cat, funds in by_category.items():
+        funds.sort(key=lambda f: f.get("return_1y") or -999, reverse=True)
+        out.extend(funds[:3])
+    return out
+
+
+@api_router.get("/mf/top-funds")
+async def top_funds():
+    """Serves the weekly-refreshed top-3-per-category cache (see
+    scheduler_worker.py's refresh_top_funds, run every week via
+    run_due_checks) instead of live-ranking on every request. Falls back to
+    a live computation only if the cache is empty (e.g. right after a fresh
+    deploy, before the weekly job has run yet)."""
+    from database import top_funds_collection
+    cached = await top_funds_collection.find().to_list(200)
+    if cached:
+        for doc in cached:
+            doc.pop("_id", None)
+        return {"categories": list(TOP_FUNDS.keys()), "funds": cached}
+
+    out = await _live_rank_top_funds()
     return {"categories": list(TOP_FUNDS.keys()), "funds": out}
 
 

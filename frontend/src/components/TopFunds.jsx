@@ -138,36 +138,60 @@ export default function TopFunds({ showViewAllLink = false, hideHeading = false 
     // 🎯 Extract central open hook
     const { openGateway } = useModal(); 
 
+    // Backend now ranks a curated candidate pool by trailing 1Y return once
+    // a week (scheduler_worker.py's refresh_top_funds) and caches the top 3
+    // per category — a single fast request here instead of this component
+    // fetching 15 funds' full NAV history from mfapi.in itself on every
+    // visit. Falls back to the old client-side MASTER_FUNDS path only if
+    // the backend request fails outright (e.g. backend briefly down), so
+    // the section never just goes blank.
     useEffect(() => {
         let mounted = true;
-        const fetchAllMasterFunds = async () => {
+        const API_BASE = process.env.REACT_APP_BACKEND_URL || "";
+
+        const fetchViaBackend = async () => {
+            const res = await fetch(`${API_BASE}/api/mf/top-funds`);
+            if (!res.ok) throw new Error("top-funds request failed");
+            const json = await res.json();
+            const funds = Array.isArray(json?.funds) ? json.funds : [];
+            if (!funds.length) throw new Error("top-funds returned empty");
+            return funds;
+        };
+
+        const fetchViaClientFallback = async () => {
+            const results = [];
+            await Promise.allSettled(
+                MASTER_FUNDS.map(async (fund, index) => {
+                    const live = await fetchFund(fund.code);
+                    results[index] = {
+                        ...fund,
+                        ...live,
+                        category: fund.category,
+                        fund_house: live.fund_house || fund.fund_house,
+                    };
+                })
+            );
+            return results.filter(Boolean);
+        };
+
+        (async () => {
+            setLoading(true);
             try {
-                setData([]);
-                const results = [];
-                await Promise.allSettled(
-                    MASTER_FUNDS.map(async (fund, index) => {
-                        const live = await fetchFund(fund.code);
-                        const row = {
-                            ...fund,
-                            ...live,
-                            category: fund.category,
-                            fund_house: live.fund_house || fund.fund_house,
-                        };
-                        results[index] = row;
-                        if (mounted) {
-                            setData(results.filter(Boolean));
-                            setLoading(false);
-                        }
-                    })
-                );
-                if (mounted) setData(results.filter(Boolean));
+                const funds = await fetchViaBackend();
+                if (mounted) setData(funds);
             } catch (e) {
-                console.error("Error fetching master funds:", e);
+                console.warn("Top funds backend fetch failed, falling back to client-side:", e);
+                try {
+                    const funds = await fetchViaClientFallback();
+                    if (mounted) setData(funds);
+                } catch (e2) {
+                    console.error("Error fetching top funds (both paths):", e2);
+                }
             } finally {
                 if (mounted) setLoading(false);
             }
-        };
-        fetchAllMasterFunds();
+        })();
+
         return () => {
             mounted = false;
         };

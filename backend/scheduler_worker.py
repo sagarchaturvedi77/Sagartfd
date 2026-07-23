@@ -51,6 +51,7 @@ targets = db.get_collection("targets")
 employee_profiles = db.get_collection("employee_profiles")
 notifications = db.get_collection("notifications")  # in-app bell/list — see backend/notification_service.py's NotificationInDB shape
 internship_students = db.get_collection("internship_students")
+top_funds_cache = db.get_collection("top_funds_cache")
 
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "")
 GEMINI_MODEL = os.environ.get("GEMINI_MODEL", "gemini-3.5-flash")
@@ -702,6 +703,137 @@ def _job_due_this_month(job_name: str, now_local: datetime) -> bool:
     return True
 
 
+# ── Weekly Top Funds ranking ──
+#
+# Replaces a hardcoded "top funds" list that had drifted badly wrong (14 of
+# 15 entries no longer matched their declared category/fund_house against
+# mfapi.in's live data — see frontend/src/lib/fundData.js git history for
+# the full audit). Instead of a static list that silently rots, this ranks
+# a curated candidate pool per category by trailing 1Y return every week
+# and caches the top 3 per category — so "top funds" stays factually
+# accurate without needing a manual re-check.
+#
+# The candidate pool itself is still curated (well-known, large, real
+# funds per category) rather than an unbounded scan of India's ~15,000
+# mutual fund schemes — this ranks WITHIN a reasonable shortlist, it
+# doesn't discover new funds from scratch.
+TOP_FUNDS_CANDIDATES = {
+    "Flexi Cap": [
+        {"code": "122639", "fund_house": "PPFAS Mutual Fund"},
+        {"code": "118955", "fund_house": "HDFC Mutual Fund"},
+        {"code": "120662", "fund_house": "UTI Mutual Fund"},
+        {"code": "141925", "fund_house": "Axis Mutual Fund"},
+        {"code": "118535", "fund_house": "Franklin Templeton Mutual Fund"},
+    ],
+    "Small Cap": [
+        {"code": "125497", "fund_house": "SBI Mutual Fund"},
+        {"code": "118778", "fund_house": "Nippon India Mutual Fund"},
+        {"code": "125354", "fund_house": "Axis Mutual Fund"},
+        {"code": "120164", "fund_house": "Kotak Mahindra Mutual Fund"},
+        {"code": "145206", "fund_house": "Tata Mutual Fund"},
+    ],
+    "Mid Cap": [
+        {"code": "118989", "fund_house": "HDFC Mutual Fund"},
+        {"code": "119775", "fund_house": "Kotak Mahindra Mutual Fund"},
+        {"code": "127042", "fund_house": "Motilal Oswal Mutual Fund"},
+        {"code": "140228", "fund_house": "Edelweiss Mutual Fund"},
+        {"code": "119581", "fund_house": "Sundaram Mutual Fund"},
+    ],
+    "Large Cap": [
+        {"code": "119598", "fund_house": "SBI Mutual Fund"},
+        {"code": "118825", "fund_house": "Mirae Asset Mutual Fund"},
+        {"code": "120586", "fund_house": "ICICI Prudential Mutual Fund"},
+        {"code": "118632", "fund_house": "Nippon India Mutual Fund"},
+    ],
+    "ELSS Tax Saver": [
+        {"code": "120592", "fund_house": "ICICI Prudential Mutual Fund"},
+        {"code": "135781", "fund_house": "Mirae Asset Mutual Fund"},
+        {"code": "120416", "fund_house": "Invesco Mutual Fund"},
+        {"code": "119773", "fund_house": "Kotak Mahindra Mutual Fund"},
+        {"code": "120847", "fund_house": "Quant Mutual Fund"},
+    ],
+}
+
+
+def _parse_mf_date(date_str: str) -> datetime:
+    d, m, y = date_str.split("-")
+    return datetime(int(y), int(m), int(d))
+
+
+def _closest_nav(rows: list[tuple[datetime, float]], target_dt: datetime) -> float | None:
+    past_dt, past_nav = min(rows, key=lambda r: abs((r[0] - target_dt).days))
+    return past_nav if past_nav > 0 else None
+
+
+def _cagr(latest_nav: float, past_nav: float | None, years: float) -> float | None:
+    if not past_nav or past_nav <= 0 or latest_nav <= 0:
+        return None
+    return round(((latest_nav / past_nav) ** (1 / years) - 1) * 100, 2)
+
+
+def _fetch_candidate_returns(code: str) -> dict | None:
+    """Fetches one candidate's full NAV history and computes trailing 1Y
+    (used for ranking) plus 3Y/5Y (shown in the UI alongside 1Y, same as
+    the fields the frontend already renders for every fund). Returns None
+    on any failure (missing code, empty history, non-positive NAV) rather
+    than raising, so one bad candidate doesn't abort the whole category's
+    ranking."""
+    if not httpx:
+        return None
+    try:
+        resp = httpx.get(f"https://api.mfapi.in/mf/{code}", timeout=20.0)
+        if resp.status_code != 200:
+            return None
+        data = resp.json()
+        history = data.get("data") or []
+        if not history:
+            return None
+        rows = [(_parse_mf_date(r["date"]), float(r["nav"])) for r in history if r.get("nav")]
+        if not rows:
+            return None
+        rows.sort(key=lambda r: r[0], reverse=True)
+        latest_dt, latest_nav = rows[0]
+        if latest_nav <= 0:
+            return None
+        return_1y = _cagr(latest_nav, _closest_nav(rows, latest_dt - timedelta(days=365)), 1)
+        if return_1y is None:
+            return None
+        meta = data.get("meta", {})
+        return {
+            "code": code,
+            "name": meta.get("scheme_name", f"Scheme {code}"),
+            "fund_house": meta.get("fund_house", ""),
+            "nav": latest_nav,
+            "nav_date": latest_dt.strftime("%Y-%m-%d"),
+            "return_1y": return_1y,
+            "return_3y": _cagr(latest_nav, _closest_nav(rows, latest_dt - timedelta(days=365 * 3)), 3),
+            "return_5y": _cagr(latest_nav, _closest_nav(rows, latest_dt - timedelta(days=365 * 5)), 5),
+        }
+    except Exception as e:
+        LOG.warning("top_funds: failed to fetch/score %s: %s", code, e)
+        return None
+
+
+def refresh_top_funds():
+    """Re-ranks every category's candidate pool by trailing 1Y return and
+    replaces the cached top 3 per category. Called weekly via
+    run_due_checks — see _job_due_this_week("top_funds_refresh", ...)."""
+    results = []
+    for category, candidates in TOP_FUNDS_CANDIDATES.items():
+        scored = [r for r in (_fetch_candidate_returns(c["code"]) for c in candidates) if r]
+        scored.sort(key=lambda r: r["return_1y"], reverse=True)
+        for r in scored[:3]:
+            results.append({**r, "category": category, "updated_at": datetime.utcnow()})
+
+    if not results:
+        LOG.warning("top_funds: refresh produced zero results — keeping previous cache")
+        return
+
+    top_funds_cache.delete_many({})
+    top_funds_cache.insert_many(results)
+    LOG.info("top_funds: refreshed %s funds across %s categories", len(results), len(TOP_FUNDS_CANDIDATES))
+
+
 def run_due_checks() -> dict:
     """One pass over every scheduled job — safe to call as often as the
     external cron likes (every 15-30 min recommended). Each job internally
@@ -730,6 +862,16 @@ def run_due_checks() -> dict:
         LOG.info("Running weekly employee progress report at %s", now_local.isoformat())
         send_employee_progress_report("weekly")
         ran.append("weekly_employee_progress")
+
+    # Once a week (any day — not tied to Monday like the reports above):
+    # re-rank each category's candidate funds by trailing 1Y return.
+    if _job_due_this_week("top_funds_refresh", now_local):
+        LOG.info("Refreshing top funds ranking at %s", now_local.isoformat())
+        try:
+            refresh_top_funds()
+        except Exception as e:
+            LOG.exception("top_funds refresh failed: %s", e)
+        ran.append("top_funds_refresh")
 
     # 1st of the month: monthly per-employee progress report.
     if now_local.day == 1 and now_local.hour >= MORNING_HOUR and _job_due_this_month("monthly_employee_progress", now_local):

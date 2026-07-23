@@ -66,3 +66,9 @@ internship_connect_threads_collection = db["internship_connect_threads"]
 # Cashfree Payment Gateway orders — generic across payment_type values
 # ("internship_signup", "certificate_regeneration", ...), see cashfree_client.py.
 payment_orders_collection = db["payment_orders"]
+# Weekly-refreshed cache of the top 3 real mutual funds per category,
+# ranked by trailing 1Y return from a curated candidate pool — written by
+# scheduler_worker.py's refresh_top_funds() (see run_due_checks), read by
+# the /api/mf/top-funds endpoint in server.py. Replaces a hardcoded,
+# never-updated fund list.
+top_funds_collection = db["top_funds_cache"]
