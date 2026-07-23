@@ -60,8 +60,12 @@ TOPIC_STYLE = {
     "retirement_planning": ((184, 114, 46), "RETIREMENT"),
     "general_investing": ((2, 67, 150), "INVESTING BASICS"),
     "awareness": ((90, 62, 32), "MARKET HISTORY"),
-    "brand_comparison": ((14, 27, 44), "WHY TFD"),
-    "other": ((14, 27, 44), "THE FINANCIAL DOCTOR"),
+    # Was (14, 27, 44) — identical to NAVY, making the badge/URL text
+    # (drawn directly in this colour) invisible against the navy
+    # background for every "brand_comparison"/"other" post. Site's gold
+    # accent instead, which has real contrast against navy.
+    "brand_comparison": ((216, 185, 138), "WHY TFD"),
+    "other": ((216, 185, 138), "THE FINANCIAL DOCTOR"),
 }
 
 

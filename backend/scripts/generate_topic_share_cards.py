@@ -46,8 +46,10 @@ TOPICS = {
     "retirement_planning": ((184, 114, 46), "RETIREMENT", "The salary stops. The plan shouldn't."),
     "general_investing": ((2, 67, 150), "INVESTING BASICS", "Investing, explained without the jargon."),
     "awareness": ((90, 62, 32), "MARKET HISTORY", "Every crash has a lesson. Most investors skip it."),
-    "brand_comparison": ((14, 27, 44), "WHY TFD", "Real advice. Real numbers."),
-    "other": ((14, 27, 44), "THE FINANCIAL DOCTOR", "Real advice. Real numbers."),
+    # Was (14, 27, 44) — identical to NAVY, making the badge/URL text
+    # invisible against the navy background. Gold accent instead.
+    "brand_comparison": ((216, 185, 138), "WHY TFD", "Real advice. Real numbers."),
+    "other": ((216, 185, 138), "THE FINANCIAL DOCTOR", "Real advice. Real numbers."),
 }
 
 
