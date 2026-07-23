@@ -154,13 +154,13 @@ export default function CityLandingPage() {
             />
 
             <section className="bg-white py-14 md:py-16 px-6 border-t border-[#E2D8C2]">
-                <div className="container-x max-w-4xl mx-auto grid sm:grid-cols-3 gap-5">
-                    <div className="bg-[#FBF7EE] border border-[#E2D8C2] rounded-2xl p-6">
+                <div className="container-x max-w-4xl mx-auto flex overflow-x-auto snap-x snap-mandatory gap-4 -mx-6 px-6 pb-2 no-scrollbar sm:grid sm:grid-cols-3 sm:gap-5 sm:overflow-visible sm:snap-none sm:mx-0 sm:px-0 sm:pb-0">
+                    <div className="shrink-0 w-[82%] snap-center sm:w-auto sm:shrink bg-[#FBF7EE] border border-[#E2D8C2] rounded-2xl p-6">
                         <ShieldCheck className="text-[#024396]" size={22} />
                         <h3 className="font-display text-base text-[#0E1B2C] mt-3 mb-1.5">AMFI Registered</h3>
                         <p className="text-sm text-[#2A364B]/80">ARN-290298 — verify us directly on AMFI's website before you invest a rupee.</p>
                     </div>
-                    <div className="bg-[#FBF7EE] border border-[#E2D8C2] rounded-2xl p-6">
+                    <div className="shrink-0 w-[82%] snap-center sm:w-auto sm:shrink bg-[#FBF7EE] border border-[#E2D8C2] rounded-2xl p-6">
                         <TrendingUp className="text-[#024396]" size={22} />
                         <h3 className="font-display text-base text-[#0E1B2C] mt-3 mb-1.5">Real, Live Fund Data</h3>
                         <p className="text-sm text-[#2A364B]/80">
@@ -168,7 +168,7 @@ export default function CityLandingPage() {
                             <Link to="/calculators" className="text-[#024396] underline">calculators</Link> use actual AMFI NAV history — not sample numbers.
                         </p>
                     </div>
-                    <div className="bg-[#FBF7EE] border border-[#E2D8C2] rounded-2xl p-6">
+                    <div className="shrink-0 w-[82%] snap-center sm:w-auto sm:shrink bg-[#FBF7EE] border border-[#E2D8C2] rounded-2xl p-6">
                         {isRemoteOnly ? <Video className="text-[#024396]" size={22} /> : <MapPin className="text-[#024396]" size={22} />}
                         <h3 className="font-display text-base text-[#0E1B2C] mt-3 mb-1.5">{isRemoteOnly ? "Fully Remote, Fully Real" : "In-Person When You Want It"}</h3>
                         <p className="text-sm text-[#2A364B]/80">{city.meetingMode}</p>
@@ -184,7 +184,7 @@ export default function CityLandingPage() {
                     <div className="text-[11px] uppercase tracking-[0.18em] text-[#5C677D] font-semibold mb-5">
                         Our services in {city.name}
                     </div>
-                    <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
                         <ServiceTile icon={TrendingUp} title="Mutual Fund & SIP Planning" desc={`Goal-based SIP, lumpsum and portfolio planning for ${city.name} investors, Regular Plan servicing.`} href="/services" />
                         <ServiceTile icon={ShieldCheck} title="Term Insurance" desc={`Independent term cover review and setup for ${city.name} families, through licensed partners.`} href="/term-insurance" />
                         <ServiceTile icon={HeartPulse} title="Health Insurance" desc={`Health cover comparison and setup as part of your overall ${city.name} financial plan.`} href="/health-insurance" />
@@ -234,11 +234,12 @@ function ServiceTile({ icon: Icon, title, desc, href, external }) {
     return (
         <Wrapper
             {...linkProps}
-            className="block bg-[#FBF7EE] border border-[#E2D8C2] rounded-2xl p-5 hover:border-[#024396]/40 hover:bg-white transition-colors"
+            className="block bg-[#FBF7EE] border border-[#E2D8C2] rounded-2xl p-3.5 sm:p-5 hover:border-[#024396]/40 hover:bg-white transition-colors"
         >
-            <Icon size={20} className="text-[#024396]" />
-            <h3 className="font-display text-[15px] text-[#0E1B2C] mt-2.5">{title}</h3>
-            <p className="text-sm text-[#2A364B]/75 leading-relaxed mt-1.5">{desc}</p>
+            <Icon size={18} className="text-[#024396] sm:hidden" />
+            <Icon size={20} className="text-[#024396] hidden sm:block" />
+            <h3 className="font-display text-[13px] sm:text-[15px] text-[#0E1B2C] mt-2 sm:mt-2.5 leading-snug">{title}</h3>
+            <p className="text-[11.5px] sm:text-sm text-[#2A364B]/75 leading-relaxed mt-1 sm:mt-1.5">{desc}</p>
         </Wrapper>
     );
 }

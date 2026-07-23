@@ -287,12 +287,12 @@ export default function AboutPage() {
                 usually missing: a written, goal-based plan.
               </p>
             </div>
-            <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 mt-10">
+            <div className="flex overflow-x-auto snap-x snap-mandatory gap-4 -mx-6 px-6 pb-2 no-scrollbar mt-10 sm:grid sm:grid-cols-2 lg:grid-cols-4 sm:gap-4 sm:overflow-visible sm:snap-none sm:mx-0 sm:px-0 sm:pb-0">
               {regions.map((r) => (
                 <Link
                   key={r.name}
                   to={r.href}
-                  className="block bg-white/60 border border-[#D8B98A]/50 rounded-2xl p-5 hover:bg-white hover:border-[#B8722E]/50 transition-colors"
+                  className="shrink-0 w-[78%] snap-center sm:w-auto sm:shrink block bg-white/60 border border-[#D8B98A]/50 rounded-2xl p-5 hover:bg-white hover:border-[#B8722E]/50 transition-colors"
                 >
                   <div className="flex items-center gap-1.5 text-[#8A5A22] font-display text-[15px]">
                     <MapPin size={14} /> {r.name}

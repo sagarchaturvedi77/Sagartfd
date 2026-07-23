@@ -657,7 +657,10 @@ export default function PublicBlog() {
                 over content) right under the fixed navbar — sticky so it
                 stays reachable while scrolling, without ever covering the
                 article text the way a `position: fixed` overlay did. */}
-            <div className="sm:hidden sticky top-16 z-30 bg-[#FBF7EE]/95 backdrop-blur border-b border-[#E2D8C2] px-4 py-2 flex items-center justify-between gap-2">
+            {/* top-20 (80px) matches the mobile navbar's real rendered height
+                (py-4 = 32px + h-12 logo = 48px) — top-16 (64px) left the
+                toolbar's top ~16px clipped under the fixed navbar. */}
+            <div className="sm:hidden sticky top-20 z-30 bg-[#FBF7EE]/95 backdrop-blur border-b border-[#E2D8C2] px-4 py-2 flex items-center justify-between gap-2">
                 <LanguageToggle className="scale-[0.85] origin-left" />
                 {contentId && detail && <ShareButton post={detail} lang={lang} />}
             </div>

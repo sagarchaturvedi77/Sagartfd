@@ -224,14 +224,13 @@ export default function PartnerPage() {
             </div>
             <div className="fund-animate-in fund-animate-in-delay-2 flex flex-col gap-2.5" style={{ fontVariantNumeric: "tabular-nums" }}>
               {[
-                { value: "40+", label: "AMC partnerships" },
-                { value: "8 yrs", label: "Track record" },
-                { value: "1000+", label: "Families served" },
-              ].map((s, i) => (
+                { value: "40+", label: "AMC partnerships", indent: "" },
+                { value: "8 yrs", label: "Track record", indent: "sm:ml-[18px]" },
+                { value: "1000+", label: "Families served", indent: "sm:ml-[36px]" },
+              ].map((s) => (
                 <div
                   key={s.label}
-                  className="bg-[#2E1B47] border border-[#4A2F6B] rounded-xl p-4 flex items-center justify-between"
-                  style={{ marginLeft: `${i * 18}px` }}
+                  className={`bg-[#2E1B47] border border-[#4A2F6B] rounded-xl p-4 flex items-center justify-between ${s.indent}`}
                 >
                   <span className="text-[13px] text-[#D4C3E5]">{s.label}</span>
                   <span className="font-display text-xl text-[#F3EDF8]">{s.value}</span>
