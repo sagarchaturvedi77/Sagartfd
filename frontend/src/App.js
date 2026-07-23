@@ -62,6 +62,7 @@ const CareerPage = lazy(() => import("./pages/CareerPage"));
 const AboutPage = lazy(() => import("./pages/AboutPage"));
 const LearnPage = lazy(() => import("./pages/LearnPage"));
 const SearchPage = lazy(() => import("./pages/SearchPage"));
+const LocationsPage = lazy(() => import("./pages/LocationsPage"));
 const CityLandingPage = lazy(() => import("./pages/CityLandingPage"));
 const CalculatorsPage = lazy(() => import("./pages/CalculatorsPage"));
 const TopFundsPage = lazy(() => import("./pages/TopFundsPage"));
@@ -179,6 +180,7 @@ function App() {
 
                 {/* 🔍 Sitewide FAQ + blog search */}
                 <Route path="/search" element={<SearchPage />} />
+                <Route path="/locations" element={<LocationsPage />} />
 
                 {/* 📍 Local SEO — one page per city/state we target.
                     NOTE: react-router only recognises ":param" as a whole

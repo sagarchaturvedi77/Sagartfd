@@ -62,6 +62,20 @@ export default function Home() {
                 path="/"
             />
             <Navbar />
+            {/* Clears the fixed navbar (~80px) with room to spare — Hero's
+                own pt-32/md:pt-40 below adds the rest of the breathing room
+                before its headline. */}
+            <div className="pt-24 px-6 flex justify-center">
+                <Link
+                    to="/locations"
+                    className="fund-animate-in inline-flex items-center gap-2 bg-[#0E1B2C] text-[#F6F1E8] text-xs sm:text-sm font-medium px-4 py-2 rounded-full border border-[#2A364B] hover:border-[#D8B98A]/60 hover:bg-[#152238] transition-colors"
+                    data-testid="home-pan-india-banner"
+                >
+                    <span aria-hidden>🇮🇳</span>
+                    <span>Pan-India Digital Presence — now serving investors in 35+ cities</span>
+                    <span className="text-[#D8B98A] font-semibold">Explore →</span>
+                </Link>
+            </div>
             <main>
                 <Hero />
                 <About />

@@ -664,7 +664,14 @@ export default function PublicBlog() {
                 <LanguageToggle className="scale-[0.85] origin-left" />
                 {contentId && detail && <ShareButton post={detail} lang={lang} />}
             </div>
-            <main className="pt-24 section">
+            {/* pt-[164px] on mobile only — position:sticky reserves layout
+                space at the toolbar's NATURAL (unstuck) position, not its
+                visually-stuck position, so a plain pt-24 leaves only a thin,
+                estimation-dependent margin between the stuck toolbar's
+                bottom edge and this content. Generous fixed clearance here
+                removes that ambiguity entirely; sm: and up reverts to pt-24
+                since the toolbar doesn't render there at all. */}
+            <main className="pt-[164px] sm:pt-24 section">
                 <div className="container-x">
                     {!contentId && (
                         <div className="mb-8 flex flex-wrap items-end justify-between gap-4">

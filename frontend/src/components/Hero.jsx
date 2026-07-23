@@ -10,8 +10,12 @@ export default function Hero() {
   // 🛠️ Step 2: Open function extract kiya
   const { openGateway } = useModal();
 
+  // pt-32/md:pt-40 dropped to pt-8/md:pt-10 — navbar clearance is now
+  // handled by the "Pan-India Digital Presence" banner rendered just above
+  // this section on Home.jsx, so this only needs its own internal breathing
+  // room, not a second full navbar-height offset.
   return (
-    <section id="top" className="relative overflow-hidden pt-32 pb-20 md:pt-40 md:pb-24">
+    <section id="top" className="relative overflow-hidden pt-8 pb-20 md:pt-10 md:pb-24">
       <div aria-hidden className="absolute -top-32 -right-40 w-[700px] h-[700px] rounded-full opacity-40 blur-3xl" style={{ background: "radial-gradient(circle at center, rgba(2, 67, 150,0.35) 0%, transparent 60%)" }} />
       <div aria-hidden className="absolute -bottom-40 -left-40 w-[600px] h-[600px] rounded-full opacity-30 blur-3xl" style={{ background: "radial-gradient(circle at center, rgba(199, 16, 46,0.35) 0%, transparent 60%)" }} />
       

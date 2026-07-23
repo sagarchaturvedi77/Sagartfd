@@ -11,8 +11,8 @@ const INTERNSHIP_LOGO_URL = "/assets/logos/TFD-INTERNSHIP-LOGO.png";
 export default function Footer() {
     return (
         <footer className="bg-[#0E1B2C] text-[#F6F1E8]/80">
-            <div className="container-x px-6 py-14 grid md:grid-cols-4 gap-10">
-                <div>
+            <div className="container-x px-6 py-14 grid grid-cols-2 gap-x-6 gap-y-10 md:grid-cols-4 md:gap-10">
+                <div className="col-span-2 md:col-span-1">
                     <img
                         src={LOGO_URL}
                         alt="The Financial Doctor"
@@ -95,7 +95,7 @@ export default function Footer() {
 
                 </div>
 
-                <div>
+                <div className="col-span-2 md:col-span-1">
                     <div className="text-[11px] tracking-[0.2em] uppercase text-[#C7102E] font-semibold">
                         Disclosure
                     </div>
