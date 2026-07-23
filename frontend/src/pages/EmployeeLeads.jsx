@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import PortalLayout from "../components/PortalLayout";
@@ -122,14 +122,24 @@ export default function EmployeeLeads() {
     return () => window.removeEventListener("tfd:lead-updated", onLeadUpdated);
   }, [load, loadSummary, loadDates]);
 
-  const runGlobalSearch = async (q) => {
+  // Debounced — this fired a real network request on every keystroke before,
+  // which both spammed the API and made the input feel laggy while typing.
+  // setGlobalSearch still updates synchronously so the input itself stays
+  // responsive; only the actual fetch waits for typing to pause.
+  const searchTimerRef = useRef(null);
+  useEffect(() => () => { if (searchTimerRef.current) clearTimeout(searchTimerRef.current); }, []);
+
+  const runGlobalSearch = (q) => {
     setGlobalSearch(q);
+    if (searchTimerRef.current) clearTimeout(searchTimerRef.current);
     if (q.trim().length < 2) { setGlobalResults(null); return; }
-    setSearching(true);
-    try {
-      const res = await fetch(`${API_BASE}/api/leads/search?q=${encodeURIComponent(q.trim())}`, { headers });
-      if (res.ok) setGlobalResults(await res.json());
-    } finally { setSearching(false); }
+    searchTimerRef.current = setTimeout(async () => {
+      setSearching(true);
+      try {
+        const res = await fetch(`${API_BASE}/api/leads/search?q=${encodeURIComponent(q.trim())}`, { headers });
+        if (res.ok) setGlobalResults(await res.json());
+      } finally { setSearching(false); }
+    }, 300);
   };
 
   const [submitNewLead, addingLeadSaving] = useSubmitOnce(async (e) => {

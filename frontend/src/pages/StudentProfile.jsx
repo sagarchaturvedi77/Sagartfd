@@ -103,7 +103,7 @@ export default function StudentProfile() {
         <div className="flex items-center gap-4">
           <button onClick={() => fileRef.current?.click()} className="relative shrink-0 group" title="Change photo">
             {student.photo_url ? (
-              <img src={student.photo_url} alt={student.name} className="w-16 h-16 rounded-2xl object-cover border border-[#14E0A0]/30" />
+              <img src={student.photo_url} alt={student.name} width={64} height={64} className="w-16 h-16 rounded-2xl object-cover border border-[#14E0A0]/30" />
             ) : (
               <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-[#14E0A0]/20 to-[#5EEAD4]/10 border border-[#14E0A0]/30 flex items-center justify-center text-[#14E0A0] text-2xl font-bold">
                 {(student.name || "?").charAt(0).toUpperCase()}

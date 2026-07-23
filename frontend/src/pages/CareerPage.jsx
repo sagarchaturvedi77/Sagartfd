@@ -288,7 +288,7 @@ export default function CareerPage() {
         description="Job opportunities at The Financial Doctor — Sales, Marketing, Finance, and HR roles in Sehore, MP. Apply for jobs in the financial services sector."
         keywords="jobs near me, financial services jobs, sales job, career opportunities, job openings finance sector"
         path="/career"
-        ogImage="https://thefinancialdoctor.in/assets/logos/TFD-WORKSPACE-LOGO.png"
+        ogImage="https://thefinancialdoctor.in/assets/logos/TFD-WORKSPACE-LOGO.webp"
       />
       <Navbar />
 

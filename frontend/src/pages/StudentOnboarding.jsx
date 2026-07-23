@@ -250,7 +250,7 @@ export default function StudentOnboarding() {
           <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-5 space-y-4 text-center">
             <div className="flex flex-col items-center gap-3">
               {student.photo_url ? (
-                <img src={student.photo_url} alt={student.name} className="w-28 h-28 rounded-2xl object-cover border border-[#14E0A0]/40" />
+                <img src={student.photo_url} alt={student.name} width={112} height={112} className="w-28 h-28 rounded-2xl object-cover border border-[#14E0A0]/40" />
               ) : (
                 <div className="w-28 h-28 rounded-2xl bg-white/5 border border-white/15 flex items-center justify-center text-white/25">
                   <User size={36} />

@@ -36,6 +36,7 @@ export default function EmployeeAttendance() {
   const [locStatus, setLocStatus] = useState("checking"); // checking | ok | wrong | denied
   const [locMsg, setLocMsg] = useState("");
   const [confirmedLoc, setConfirmedLoc] = useState(null);
+  const [historyLoading, setHistoryLoading] = useState(true);
 
   const fetchToday = useCallback(async () => {
     const res = await fetch(`${API_BASE}/api/attendance/today`, {
@@ -45,10 +46,12 @@ export default function EmployeeAttendance() {
   }, [token]);
 
   const fetchHistory = useCallback(async () => {
+    setHistoryLoading(true);
     const res = await fetch(`${API_BASE}/api/attendance/my-history?month=${month}&year=${year}`, {
       headers: { Authorization: `Bearer ${token}` },
     });
     if (res.ok) setHistory(await res.json());
+    setHistoryLoading(false);
   }, [token, month, year]);
 
   useEffect(() => { fetchToday(); }, [fetchToday]);
@@ -273,7 +276,7 @@ export default function EmployeeAttendance() {
             </select>
           </div>
         </div>
-        <DataTable columns={historyColumns} rows={history} emptyTitle="No attendance records for this month" />
+        <DataTable columns={historyColumns} rows={history} loading={historyLoading} emptyTitle="No attendance records for this month" />
       </div>
     </PortalLayout>
   );

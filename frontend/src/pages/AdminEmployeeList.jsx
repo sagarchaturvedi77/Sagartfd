@@ -561,7 +561,7 @@ export default function AdminEmployeeList() {
           <div className="space-y-4">
             {empDetail.uploads?.photo?.data && (
               <div className="text-center">
-                <img src={empDetail.uploads.photo.data} alt="Employee" className="w-20 h-20 rounded-full mx-auto object-cover border-4 border-[#024396]/20" />
+                <img src={empDetail.uploads.photo.data} alt="Employee" width={80} height={80} className="w-20 h-20 rounded-full mx-auto object-cover border-4 border-[#024396]/20" />
               </div>
             )}
 
@@ -682,7 +682,7 @@ export default function AdminEmployeeList() {
                   {Object.entries(empDetail.uploads).map(([key, val]) => (
                     <div key={key} className="text-center">
                       {val.content_type?.startsWith("image/") ? (
-                        <img src={val.data} alt={key} className="h-16 mx-auto rounded-lg object-contain border border-[#E2D8C2] dark:border-white/10" />
+                        <img src={val.data} alt={key} width={64} height={64} className="h-16 w-16 mx-auto rounded-lg object-contain border border-[#E2D8C2] dark:border-white/10" />
                       ) : (
                         <div className="h-16 bg-[#FBF7EE] dark:bg-white/5 rounded-lg flex items-center justify-center text-[10px] text-[#2A364B]/50 dark:text-[#C7CEDA]/50">PDF</div>
                       )}

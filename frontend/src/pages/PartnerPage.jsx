@@ -196,7 +196,7 @@ export default function PartnerPage() {
         description="Partner with The Financial Doctor — collaborate with an AMFI-registered mutual fund and insurance advisory to grow your client base and referrals."
         keywords="mutual fund partner, insurance referral partner, financial advisor partnership, mutual fund distributor partner program India, become a mutual fund agent, how to become a mutual fund agent, become a SIP agent, mutual fund agent registration, TFD PartnerHub, Sagar Chaturvedi, The Financial Doctor Sehore, mutual fund distributor Madhya Pradesh, AMFI registered mutual fund distributor, ARN-290298"
         path="/partner-with-us"
-        ogImage="https://thefinancialdoctor.in/assets/logos/TFD-PARTNERHUB-LOGO.png"
+        ogImage="https://thefinancialdoctor.in/assets/logos/TFD-PARTNERHUB-LOGO.webp"
       />
       <Navbar />
       <main>

@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import React, { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
 import {
@@ -10,12 +10,17 @@ import { useInternshipAuth } from "../portal/student/InternshipAuthContext";
 import { getCurrentLocation } from "../portal/api";
 import { useSubmitOnce } from "../lib/useSubmitOnce";
 import { DIFFICULTY_STYLES, AntiCheatTextarea, Section, LanguageToggle, NO_COPY_PROPS } from "../portal/student/taskUi";
-import SpreadsheetGrid from "../components/SpreadsheetGrid";
 import { buildSubmissionPayload } from "../lib/miniSpreadsheet";
 import TaskPlaybook from "../components/TaskPlaybook";
 import KanbanCrm, { buildKanbanSummary } from "../components/KanbanCrm";
 import RosterProcessor, { buildRosterSummary } from "../components/RosterProcessor";
 import AdCopyWorkspace, { buildAdCopySummary } from "../components/AdCopyWorkspace";
+
+// Lazy-loaded — the spreadsheet grid is only rendered for tasks whose
+// deliverable_type actually needs it, so most task visits shouldn't pay for
+// its bundle cost. buildSubmissionPayload lives in a separate module (not
+// re-exported from SpreadsheetGrid), so submission logic stays untouched.
+const SpreadsheetGrid = React.lazy(() => import("../components/SpreadsheetGrid"));
 
 // Sales/HR/Marketing practice tools (Kanban CRM, Roster Processor, Ad Copy
 // Workspace) — each is a controlled widget over its own local state, keyed
@@ -433,12 +438,14 @@ export default function TaskWorkspace() {
                   <p className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wide text-[#14E0A0] mb-2">
                     <Table2 size={13} /> Financial Workbook
                   </p>
-                  <SpreadsheetGrid
-                    template={task.spreadsheet_template}
-                    value={spreadsheetValue}
-                    onChange={(cellId, v) => setSpreadsheetValue((prev) => ({ ...prev, [cellId]: v }))}
-                    disabled={submitting}
-                  />
+                  <Suspense fallback={<div className="min-h-[220px] rounded-xl bg-white/5 border border-white/10 animate-pulse" />}>
+                    <SpreadsheetGrid
+                      template={task.spreadsheet_template}
+                      value={spreadsheetValue}
+                      onChange={(cellId, v) => setSpreadsheetValue((prev) => ({ ...prev, [cellId]: v }))}
+                      disabled={submitting}
+                    />
+                  </Suspense>
                 </div>
               )}
 

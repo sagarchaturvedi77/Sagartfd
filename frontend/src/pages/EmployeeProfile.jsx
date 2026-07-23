@@ -61,7 +61,7 @@ export default function EmployeeProfile() {
         <div className="bg-white dark:bg-[#101D2E] rounded-2xl border border-[#E2D8C2] dark:border-white/10 shadow-sm overflow-hidden">
           <div className="bg-gradient-to-r from-[#0E1B2C] to-[#162d4a] p-6 flex items-center gap-5">
             {photoSrc ? (
-              <img src={photoSrc} alt="Photo" className="w-20 h-20 rounded-full object-cover border-4 border-white/30" />
+              <img src={photoSrc} alt="Photo" width={80} height={80} className="w-20 h-20 rounded-full object-cover border-4 border-white/30" />
             ) : (
               <div className="w-20 h-20 rounded-full bg-white/20 flex items-center justify-center text-white text-3xl font-bold">
                 {profile.full_name?.charAt(0)}
@@ -122,7 +122,7 @@ export default function EmployeeProfile() {
                 {Object.entries(uploads).map(([key, val]) => (
                   <div key={key} className="text-center">
                     {val.content_type?.startsWith("image/") ? (
-                      <img src={val.data} alt={key} className="h-20 mx-auto rounded-xl object-contain border border-[#E2D8C2] dark:border-white/10" />
+                      <img src={val.data} alt={key} width={80} height={80} className="h-20 w-20 mx-auto rounded-xl object-contain border border-[#E2D8C2] dark:border-white/10" />
                     ) : (
                       <div className="h-20 bg-[#FBF7EE] dark:bg-white/5 rounded-xl flex items-center justify-center">
                         <svg className="w-6 h-6 text-[#024396]/40 dark:text-[#7CB0FF]/50" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">

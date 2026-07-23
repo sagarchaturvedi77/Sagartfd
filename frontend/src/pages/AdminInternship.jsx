@@ -648,7 +648,7 @@ function SubmissionsTab() {
 
               {s.photo_url && (
                 <a href={s.photo_url} target="_blank" rel="noreferrer" className="inline-block mt-2">
-                  <img src={s.photo_url} alt="submission" className="h-28 rounded-lg border border-[#E2D8C2] dark:border-white/10 object-cover" />
+                  <img src={s.photo_url} alt="submission" width={112} height={112} className="h-28 w-28 rounded-lg border border-[#E2D8C2] dark:border-white/10 object-cover" />
                 </a>
               )}
 

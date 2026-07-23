@@ -1,8 +1,11 @@
-import React, { useEffect, useState } from "react";
-import { Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, ResponsiveContainer } from "recharts";
+import React, { Suspense, useEffect, useState } from "react";
 import { Trophy, Medal, RefreshCw } from "lucide-react";
 import StudentLayout from "../portal/student/StudentLayout";
 import { useInternshipAuth } from "../portal/student/InternshipAuthContext";
+
+// Lazy-loaded — recharts is a heavy dependency and this radar chart is only
+// needed once a student has quiz-derived radar scores to show.
+const StudentRadarChart = React.lazy(() => import("../components/StudentRadarChart"));
 
 const API_BASE = process.env.REACT_APP_BACKEND_URL || "";
 
@@ -59,14 +62,9 @@ export default function StudentLeaderboard() {
           <p className="text-[11px] font-semibold text-white/45 uppercase tracking-wide mb-2">Skill Radar</p>
           {hasRadarData ? (
             <div style={{ width: "100%", height: 260 }}>
-              <ResponsiveContainer>
-                <RadarChart data={radarData} outerRadius="75%">
-                  <PolarGrid stroke="rgba(255,255,255,0.1)" />
-                  <PolarAngleAxis dataKey="subject" tick={{ fill: "rgba(255,255,255,0.6)", fontSize: 11 }} />
-                  <PolarRadiusAxis angle={90} domain={[0, 100]} tick={{ fill: "rgba(255,255,255,0.25)", fontSize: 9 }} />
-                  <Radar dataKey="value" stroke="#14E0A0" fill="#14E0A0" fillOpacity={0.35} />
-                </RadarChart>
-              </ResponsiveContainer>
+              <Suspense fallback={<div className="w-full h-full rounded-xl bg-white/5 animate-pulse" />}>
+                <StudentRadarChart radarData={radarData} />
+              </Suspense>
             </div>
           ) : (
             <p className="text-white/35 text-xs py-8 text-center">Pass your first quiz to see your skill radar.</p>

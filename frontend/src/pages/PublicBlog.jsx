@@ -611,7 +611,8 @@ function BlogDetail({ post, loading, lang }) {
                     src={blogThumbSrc(post, lang)}
                     alt={pickTitle(post, lang)}
                     className="lg:hidden w-full aspect-[1200/630] object-cover rounded-2xl mb-6"
-                    loading="lazy"
+                    loading="eager"
+                    fetchpriority="high"
                     decoding="async"
                     width={480}
                     height={252}
@@ -786,6 +787,7 @@ export default function PublicBlog() {
                 keywords={contentId ? pickKeywords(detail) : "mutual fund blog, SIP blog, financial planning blog India, Sagar Chaturvedi blog, The Financial Doctor blog, mutual fund advisor Sehore, mutual fund advisor Madhya Pradesh, ARN-290298"}
                 path={contentId ? `/blog/${contentId}` : "/blog"}
                 ogImage={contentId ? shareImageFor(detail, lang) : undefined}
+                preloadImage={contentId && detail ? blogThumbSrc(detail, lang) : undefined}
             />
             <Navbar />
             {/* Mobile-only toolbar, in normal document flow (not floating

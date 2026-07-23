@@ -33,7 +33,7 @@ export default function PublicVerifyEmployee() {
       <div style={{ background: "#fff", borderRadius: 20, maxWidth: 380, width: "100%", overflow: "hidden", boxShadow: "0 8px 32px rgba(2,6,23,0.12)" }}>
         {/* Header bar */}
         <div style={{ background: "#024396", padding: "16px 20px", display: "flex", alignItems: "center", gap: 12 }}>
-          <img src={LOGO_URL} alt="TFD" style={{ height: 36, objectFit: "contain", filter: "brightness(10)" }} />
+          <img src={LOGO_URL} alt="TFD" width={138} height={36} style={{ height: 36, objectFit: "contain", filter: "brightness(10)" }} />
           <div>
             <p style={{ color: "#fff", fontWeight: 700, fontSize: 13 }}>THE FINANCIAL DOCTOR</p>
             <p style={{ color: "rgba(255,255,255,0.7)", fontSize: 10 }}>Employee Verification</p>

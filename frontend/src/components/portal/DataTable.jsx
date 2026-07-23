@@ -12,7 +12,23 @@ import EmptyState from "./EmptyState";
  * hideBelow controls desktop column visibility only — mobile always shows
  * every column (as label:value rows) unless mobileHide is set on the column.
  */
-export default function DataTable({ columns, rows, keyField = "id", onRowClick, empty, emptyIcon, emptyTitle = "Nothing here yet", emptySubtitle }) {
+export default function DataTable({ columns, rows, keyField = "id", onRowClick, empty, emptyIcon, emptyTitle = "Nothing here yet", emptySubtitle, loading, skeletonRows = 5 }) {
+  // While the initial fetch is still in flight, `rows` is usually `[]` —
+  // indistinguishable from a genuinely empty result. Rendering EmptyState in
+  // that window (much shorter than a real table) then swapping to a full
+  // table once data lands causes a visible layout jump. Callers that pass
+  // `loading` get a same-shaped skeleton instead; callers that don't pass it
+  // keep the previous behavior exactly.
+  if (loading) {
+    return (
+      <div className="animate-pulse space-y-2" aria-hidden="true">
+        {Array.from({ length: skeletonRows }).map((_, i) => (
+          <div key={i} className="h-12 rounded-lg bg-[#F5F1EB] dark:bg-white/5" />
+        ))}
+      </div>
+    );
+  }
+
   if (!rows || rows.length === 0) {
     return empty || <EmptyState icon={emptyIcon} title={emptyTitle} subtitle={emptySubtitle} />;
   }

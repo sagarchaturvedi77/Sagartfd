@@ -8,7 +8,7 @@ import {
   TrendingUp, Landmark, Megaphone, Heart, FileText, QrCode, Award, Target,
 } from "lucide-react";
 
-const INTERNSHIP_LOGO_URL = "/assets/logos/TFD-INTERNSHIP-LOGO.png";
+const INTERNSHIP_LOGO_URL = "/assets/logos/TFD-INTERNSHIP-LOGO.webp";
 
 const TRACKS = [
   { value: "finance", label: "Finance", icon: Landmark },

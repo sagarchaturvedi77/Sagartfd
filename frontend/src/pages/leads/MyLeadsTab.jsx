@@ -9,7 +9,7 @@ const STATUS_LABELS = {
   interested: "Interested", converted: "Converted", lost: "Lost",
 };
 
-export default function MyLeadsTab({ myLeads, stats, filter, setFilter, employees, assignLead, assigning, deleteLead, deletingLead, setDetailLead }) {
+export default function MyLeadsTab({ myLeads, stats, filter, setFilter, employees, assignLead, assigning, deleteLead, deletingLead, setDetailLead, loading }) {
   const countFor = (key) => key === "follow_up"
     ? myLeads.filter((l) => l.follow_up_date && !["lost", "converted"].includes(l.status)).length
     : myLeads.filter((l) => l.status === key).length;
@@ -82,6 +82,7 @@ export default function MyLeadsTab({ myLeads, stats, filter, setFilter, employee
           columns={columns}
           rows={filtered}
           onRowClick={setDetailLead}
+          loading={loading}
           emptyIcon="📋"
           emptyTitle="No leads assigned to you"
           emptySubtitle="Assign leads to yourself during import or manually."

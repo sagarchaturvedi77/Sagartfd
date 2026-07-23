@@ -62,7 +62,7 @@ export default function PublicVerifyIntern() {
             <div className="bg-gradient-to-r from-[#14E0A0] to-[#5EEAD4] h-2" />
             <div className="p-6 text-center">
               {data.photo_url ? (
-                <img src={data.photo_url} alt={data.name} className="w-20 h-20 rounded-2xl object-cover border-2 border-[#14E0A0] mx-auto mb-4" />
+                <img src={data.photo_url} alt={data.name} width={80} height={80} className="w-20 h-20 rounded-2xl object-cover border-2 border-[#14E0A0] mx-auto mb-4" />
               ) : (
                 <div className="w-20 h-20 rounded-2xl bg-[#14E0A0]/10 border-2 border-[#14E0A0] flex items-center justify-center text-[#14E0A0] text-2xl font-bold mx-auto mb-4">
                   {(data.name || "T").charAt(0).toUpperCase()}

@@ -24,6 +24,7 @@ export default function Home() {
                 description="Grow your wealth with expert-guided Mutual Fund investments, SIP & Lumpsum planning, Term, Health & Motor Insurance, and complete financial planning — trusted, AMFI-registered advisory led by Sagar Chaturvedi."
                 keywords="TFD, TFD mutual fund, The Financial Doctor, mutual fund advisor near me, mutual fund distributor near me, mutual fund agent near me, mutual fund consultant near me, SIP agent near me, best mutual fund advisor, SIP calculator, SIP advisor, best SIP plan, SIP kya hai, mutual fund kya hai, how to invest in mutual funds, term insurance, health insurance plan, financial advisor India, AMFI registered advisor, mutual funds, mutual fund, mutal fund, mutualfund, mutualfunds, HDFC Mutual Fund, ICICI Prudential Mutual Fund, SBI Mutual Fund, Axis Mutual Fund, Nippon India Mutual Fund, Kotak Mutual Fund, Aditya Birla Sun Life Mutual Fund, UTI Mutual Fund, DSP Mutual Fund, Franklin Templeton Mutual Fund, Tata Mutual Fund, Mirae Asset Mutual Fund, Motilal Oswal Mutual Fund, Invesco Mutual Fund, Quant Mutual Fund, PPFAS Mutual Fund, Parag Parikh Flexi Cap Fund, Sagar Chaturvedi, ARN-290298"
                 path="/"
+                preloadImage="/assets/founder/sagar-photo.webp"
             />
             <Navbar />
             {/* Clears the fixed navbar (~80px) with room to spare — Hero's

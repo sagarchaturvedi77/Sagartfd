@@ -31,9 +31,19 @@ export default function AdminLeads() {
   const [myLeads, setMyLeads] = useState([]);
   const [employees, setEmployees] = useState([]);
   const [stats, setStats] = useState(null);
-  const [loading, setLoading] = useState(true); // eslint-disable-line no-unused-vars
+  const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState("");
   const [search, setSearch] = useState("");
+  // `search` drives the main `load()` effect below, which fires ~9 network
+  // requests (leads, employees, stats + the rest of the mount effect it's
+  // bundled with). Debouncing so those only fire once typing pauses, instead
+  // of on every keystroke — the input itself still updates instantly since
+  // it's bound to `search`, not `debouncedSearch`.
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+  useEffect(() => {
+    const t = setTimeout(() => setDebouncedSearch(search), 350);
+    return () => clearTimeout(t);
+  }, [search]);
   const [showAdd, setShowAdd] = useState(false);
   const [tab, setTab] = useState("my_leads");
   const [webLeads, setWebLeads] = useState([]);
@@ -91,7 +101,7 @@ export default function AdminLeads() {
     try {
       const params = new URLSearchParams();
       if (filter) params.set("status", filter);
-      if (search) params.set("search", search);
+      if (debouncedSearch) params.set("search", debouncedSearch);
       const [leadsRes, empRes, statsRes] = await Promise.all([
         fetch(`${API_BASE}/api/leads/?${params}`, { headers }),
         fetch(`${API_BASE}/api/auth/employees`, { headers }),
@@ -102,7 +112,7 @@ export default function AdminLeads() {
       if (statsRes.ok) setStats(await statsRes.json());
     } catch { /* silent */ }
     setLoading(false);
-  }, [token, filter, search]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [token, filter, debouncedSearch]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const loadMyLeads = useCallback(async () => {
     try {
@@ -823,7 +833,7 @@ export default function AdminLeads() {
             <div className="space-y-4 text-sm">
               <div className="flex items-center gap-3 flex-wrap">
                 {detailCareerLead.photo_url && (
-                  <img src={detailCareerLead.photo_url} alt={detailCareerLead.full_name} className="w-14 h-14 rounded-xl object-cover border border-[#E2D8C2] dark:border-white/10" />
+                  <img src={detailCareerLead.photo_url} alt={detailCareerLead.full_name} width={56} height={56} className="w-14 h-14 rounded-xl object-cover border border-[#E2D8C2] dark:border-white/10" />
                 )}
                 <div className="flex items-center gap-2 flex-wrap">
                   <StatusBadge status={detailCareerLead.status || "new"} />
@@ -902,6 +912,7 @@ export default function AdminLeads() {
             myLeads={myLeads} stats={stats} filter={filter} setFilter={setFilter}
             employees={employees} assignLead={assignLead} assigning={assigning}
             deleteLead={deleteLead} deletingLead={deletingLead} setDetailLead={setDetailLead}
+            loading={loading}
           />
         )}
 

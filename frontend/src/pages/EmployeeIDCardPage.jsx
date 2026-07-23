@@ -1,6 +1,4 @@
 import React, { useState, useEffect, useRef } from "react";
-import html2canvas from "html2canvas";
-import jsPDF from "jspdf";
 import PortalLayout from "../components/PortalLayout";
 import { useAuth } from "../context/AuthContext";
 import PageHeader from "../components/portal/PageHeader";
@@ -14,7 +12,7 @@ const API_BASE = process.env.REACT_APP_BACKEND_URL || "";
 // html2canvas PDF capture caused the browser to silently refuse to load it.
 // The main TFD logo (not the "TFD WorkSpace" staff-portal branding) is what
 // belongs on an ID/visiting card that clients and the public will see.
-const LOGO_URL = "/assets/logos/TFD-MAIN-LOGO.png";
+const LOGO_URL = "/assets/logos/TFD-MAIN-LOGO.webp";
 const QR_BASE = "https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=";
 
 export default function EmployeeIDCardPage() {
@@ -128,6 +126,13 @@ export default function EmployeeIDCardPage() {
     const previousTransform = scaleEl?.style.transform;
 
     try {
+      // Loaded on demand — html2canvas/jsPDF are only needed when the staff
+      // member actually clicks download, not on every ID-card page visit.
+      const [{ default: html2canvas }, { default: jsPDF }] = await Promise.all([
+        import("html2canvas"),
+        import("jspdf"),
+      ]);
+
       const originalScrollY = window.scrollY;
       window.scrollTo(0, 0);
       if (scaleEl) scaleEl.style.transform = "none";
@@ -262,7 +267,7 @@ export default function EmployeeIDCardPage() {
                 <div style={{ background: "#024396", height: 12, flexShrink: 0 }} />
 
                 <div style={{ padding: "16px", background: "#fff", position: "relative", flexShrink: 0, boxSizing: "border-box" }}>
-                  <img src={LOGO_URL} alt="TFD" style={{ height: 68, margin: "0 auto", display: "block" }} crossOrigin="anonymous" />
+                  <img src={LOGO_URL} alt="TFD" width={260} height={68} style={{ height: 68, width: "auto", margin: "0 auto", display: "block" }} crossOrigin="anonymous" />
                   <div style={{ position: "absolute", right: 12, top: 12, opacity: 0.08, fontSize: 48, color: "#024396", lineHeight: 1 }}>⬡</div>
                 </div>
 
@@ -351,7 +356,7 @@ export default function EmployeeIDCardPage() {
 
                 <div style={{ padding: "16px 32px", display: "flex", flex: 1, boxSizing: "border-box" }}>
                   <div style={{ flex: 1, zIndex: 10 }}>
-                    <img src={LOGO_URL} alt="TFD" style={{ height: 60, marginBottom: 12 }} crossOrigin="anonymous" />
+                    <img src={LOGO_URL} alt="TFD" width={230} height={60} style={{ height: 60, width: "auto", marginBottom: 12 }} crossOrigin="anonymous" />
 
                     <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-start", gap: "6px", marginBottom: 16 }}>
                       {/* FIX: Removed flexbox, used exact line-height so text stays centered in PDF */}

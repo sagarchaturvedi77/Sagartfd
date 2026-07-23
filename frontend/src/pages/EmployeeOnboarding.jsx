@@ -97,7 +97,7 @@ export default function EmployeeOnboarding() {
         {existing ? (
           <div className="space-y-2">
             {existing.content_type?.startsWith("image/") && (
-              <img src={existing.data} alt={label} className="h-20 mx-auto rounded-lg object-contain" />
+              <img src={existing.data} alt={label} width={80} height={80} className="h-20 w-20 mx-auto rounded-lg object-contain" />
             )}
             <p className="text-[10px] text-emerald-600 dark:text-emerald-400 font-medium">Uploaded: {existing.filename}</p>
           </div>

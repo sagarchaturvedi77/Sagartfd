@@ -1987,7 +1987,7 @@ function ProposalHeader({ T, genDate, lang }) {
     return (
         <>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderBottom: "2px solid #024396", paddingBottom: 10, marginBottom: 14 }}>
-                <img src={TFD_LOGO} crossOrigin="anonymous" alt="TFD" style={{ height: 46, objectFit: "contain" }} />
+                <img src={TFD_LOGO} crossOrigin="anonymous" alt="TFD" width={176} height={46} style={{ height: 46, objectFit: "contain" }} />
                 <div style={{ textAlign: "right" }}>
                     <div style={{ fontSize: 9.5, color: "#5C677D" }}>{T.amfiLine}</div>
                     <div style={{ fontSize: 10, color: "#5C677D", marginTop: 2 }}>{T.dateLabel}: {genDate}</div>

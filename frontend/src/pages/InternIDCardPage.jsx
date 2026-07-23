@@ -1,6 +1,4 @@
 import React, { useEffect, useRef, useState } from "react";
-import html2canvas from "html2canvas";
-import jsPDF from "jspdf";
 import { toast } from "sonner";
 import { Download, Share2 } from "lucide-react";
 import StudentLayout from "../portal/student/StudentLayout";
@@ -11,8 +9,8 @@ const API_BASE = process.env.REACT_APP_BACKEND_URL || "";
 // Same-origin assets — an external CDN URL sends no CORS headers, which
 // breaks the crossOrigin="anonymous" the <img> tags need for html2canvas's
 // PDF capture (same fix already applied to the staff Employee ID Card).
-const INTERNSHIP_LOGO_URL = "/assets/logos/TFD-INTERNSHIP-LOGO.png";
-const MAIN_LOGO_URL = "/assets/logos/TFD-MAIN-LOGO.png";
+const INTERNSHIP_LOGO_URL = "/assets/logos/TFD-INTERNSHIP-LOGO.webp";
+const MAIN_LOGO_URL = "/assets/logos/TFD-MAIN-LOGO.webp";
 const QR_BASE = "https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=";
 
 const TRACK_LABELS = {
@@ -66,6 +64,13 @@ export default function InternIDCardPage() {
     const element = cardRef.current;
     if (!element) return;
     try {
+      // Loaded on demand — html2canvas/jsPDF are only needed when the intern
+      // actually clicks download, not on every ID-card page visit.
+      const [{ default: html2canvas }, { default: jsPDF }] = await Promise.all([
+        import("html2canvas"),
+        import("jspdf"),
+      ]);
+
       const originalScrollY = window.scrollY;
       window.scrollTo(0, 0);
       const canvas = await html2canvas(element, { scale: 3, useCORS: true, backgroundColor: "#050B16", logging: false });

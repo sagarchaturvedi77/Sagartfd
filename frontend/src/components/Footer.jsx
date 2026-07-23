@@ -5,8 +5,8 @@ import { LINKS } from "@/lib/links";
 
 const LOGO_URL = "/assets/logos/TFD-MAIN-LOGO.webp";
 const WORKSPACE_LOGO_URL = "/assets/logos/TFD-WORKSPACE-LOGO.webp";
-const PARTNER_LOGO_URL = "/assets/logos/TFD-PARTNERHUB-LOGO.png";
-const INTERNSHIP_LOGO_URL = "/assets/logos/TFD-INTERNSHIP-LOGO.png";
+const PARTNER_LOGO_URL = "/assets/logos/TFD-PARTNERHUB-LOGO.webp";
+const INTERNSHIP_LOGO_URL = "/assets/logos/TFD-INTERNSHIP-LOGO.webp";
 
 export default function Footer() {
     return (
@@ -130,7 +130,7 @@ function FooterLogoBox({ href, src, name, label }) {
             className="flex flex-col items-center gap-2 group shrink-0"
         >
             <span className="w-24 h-24 rounded-xl bg-[#F6F1E8] border border-[#2A364B] flex items-center justify-center p-3 group-hover:border-[#C7102E] group-hover:scale-105 transition-all">
-                <img src={src} alt={name} className="w-full h-full object-contain" />
+                <img src={src} alt={name} width={96} height={96} className="w-full h-full object-contain" />
             </span>
             <span className="text-xs font-medium text-[#F6F1E8]/80 group-hover:text-[#F6F1E8]">{name}</span>
         </Link>

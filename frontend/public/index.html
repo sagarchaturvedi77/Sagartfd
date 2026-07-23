@@ -43,10 +43,13 @@
           <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Instrument+Serif:ital@0;1&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&display=swap" />
         </noscript>
 
-        <!-- LCP element on the homepage is the hero founder photo — preload it
-             so the browser fetches it immediately while parsing this document,
-             instead of waiting for React to mount and discover the <img> tag. -->
-        <link rel="preload" as="image" href="/assets/founder/sagar-photo.webp" fetchpriority="high" />
+        <!-- The hero founder photo is the LCP element on the homepage ONLY —
+             since this file is shared across every route, a static preload
+             here would waste bandwidth/priority on every OTHER page where
+             this image isn't used above the fold. It's preloaded per-route
+             instead via src/components/SEO.jsx's `preloadImage` prop
+             (Home.jsx passes this exact image; other pages pass their own
+             real LCP image, or nothing). -->
         <title>The Financial Doctor | Mutual Fund, SIP &amp; Insurance Plans</title>
 
         <!-- Open Graph / Twitter — static baseline for link-preview bots
@@ -74,8 +77,8 @@
           "name": "The Financial Doctor",
           "alternateName": "TFD",
           "url": "https://thefinancialdoctor.in/",
-          "logo": "https://thefinancialdoctor.in/assets/logos/TFD-MAIN-LOGO.png",
-          "image": "https://thefinancialdoctor.in/assets/logos/TFD-MAIN-LOGO.png",
+          "logo": "https://thefinancialdoctor.in/assets/logos/TFD-MAIN-LOGO.webp",
+          "image": "https://thefinancialdoctor.in/assets/logos/TFD-MAIN-LOGO.webp",
           "description": "AMFI-registered Mutual Fund Distributor (ARN-290298) offering Mutual Fund, SIP, Lumpsum, and Term, Health & Motor Insurance advisory.",
           "founder": {
             "@type": "Person",

@@ -34,7 +34,9 @@ export default function AdminActivityLog({ token, limit = 8 }) {
   useEffect(() => { load(); }, [load]);
 
   if (loading) {
-    return <div className="flex justify-center py-8"><div className="w-6 h-6 border-2 border-[#024396] border-t-transparent rounded-full animate-spin" /></div>;
+    // min-height roughly matches the loaded list/empty-state height below so
+    // the dashboard card doesn't visibly grow once the fetch resolves.
+    return <div className="min-h-[180px] flex items-center justify-center"><div className="w-6 h-6 border-2 border-[#024396] border-t-transparent rounded-full animate-spin" /></div>;
   }
   if (items.length === 0) {
     return <EmptyState icon="🕓" title="No recent activity yet" subtitle="Actions you take — adding leads, imports, reports, tasks — will show up here." />;
