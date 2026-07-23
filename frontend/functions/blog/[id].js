@@ -15,17 +15,12 @@
 const BACKEND_BASE = "https://sagartfd.onrender.com";
 const SITE_URL = "https://thefinancialdoctor.in";
 
-// One share image per topic (see backend/scripts/generate_topic_share_cards.py)
-// instead of a single generic card reused for all 150 posts — a SIP post
-// looks visibly different from a tax-saving or market-history one when shared.
-const KNOWN_TOPICS = new Set([
-  "sip", "lumpsum", "swp", "financial_planning", "term_insurance",
-  "health_insurance", "elss_tax_saving", "retirement_planning",
-  "general_investing", "awareness", "brand_comparison", "other",
-]);
+// One share image PER POST (see backend/scripts/generate_blog_post_share_cards.py,
+// run manually whenever posts are added/edited) — each post's own real
+// headline is baked into its own card, not a topic-shared generic one.
 function ogImageFor(post) {
-  const topic = KNOWN_TOPICS.has(post.topic) ? post.topic : "other";
-  return `${SITE_URL}/assets/og/blog-${topic}.png`;
+  if (!post?.id) return `${SITE_URL}/assets/og/blog-other.png`;
+  return `${SITE_URL}/assets/og/blog-post-${post.id}.png`;
 }
 
 // Every major share-preview/link-unfurl bot. Deliberately excludes

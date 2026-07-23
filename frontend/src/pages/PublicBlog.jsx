@@ -47,16 +47,20 @@ const CTA_LABELS = {
     brand_comparison: "Meet The Financial Doctor",
 };
 
-// One share card per topic (see backend/scripts/generate_topic_share_cards.py)
-// instead of a single generic image reused for all 150 posts. This is what
-// Google's JS-executing crawler reads via SEO.jsx's client-side tag — non-JS
-// share bots (WhatsApp/LinkedIn/Instagram/etc.) never see this path at all,
-// they're served a separate pre-rendered response by functions/blog/[id].js
-// at the edge, which picks the same per-topic image directly.
+// One share card PER POST (see backend/scripts/generate_blog_post_share_cards.py,
+// run manually whenever posts are added/edited) — each of the 150 articles
+// gets its own image with its own real headline baked in as the hook,
+// instead of one shared image reused across every post in a topic. This is
+// what Google's JS-executing crawler reads via SEO.jsx's client-side tag;
+// non-JS share bots (WhatsApp/LinkedIn/Instagram/etc.) never see this path
+// at all, they're served a separate pre-rendered response by
+// functions/blog/[id].js at the edge, which picks the same per-post image
+// directly. Falls back to the old per-topic image for any post whose card
+// hasn't been generated yet (e.g. freshly published, script not yet re-run).
 const DEFAULT_SHARE_IMAGE = "https://thefinancialdoctor.in/assets/og/blog-other.png";
 function shareImageFor(post) {
-    if (!post?.topic) return DEFAULT_SHARE_IMAGE;
-    return `https://thefinancialdoctor.in/assets/og/blog-${post.topic}.png`;
+    if (!post?.id) return DEFAULT_SHARE_IMAGE;
+    return `https://thefinancialdoctor.in/assets/og/blog-post-${post.id}.png`;
 }
 
 function formatDate(iso) {
