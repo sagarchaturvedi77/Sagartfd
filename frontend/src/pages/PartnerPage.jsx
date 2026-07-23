@@ -249,11 +249,11 @@ export default function PartnerPage() {
             <p className="text-[#2A364B]/80 text-center max-w-2xl mx-auto mb-10">
               Partners don't just earn commissions here — they build a real, compounding book of business.
             </p>
-            <div className="flex overflow-x-auto snap-x snap-mandatory gap-4 -mx-6 px-6 pb-2 no-scrollbar md:grid md:grid-cols-3 md:gap-6 md:overflow-visible md:snap-none md:mx-0 md:px-0 md:pb-0">
+            <div className="flex overflow-x-auto snap-x snap-mandatory gap-4 -mx-6 px-6 pb-2 no-scrollbar sm:grid sm:grid-cols-3 sm:gap-6 sm:overflow-visible sm:snap-none sm:mx-0 sm:px-0 sm:pb-0">
               {growth.map((g) => {
                 const Icon = g.icon;
                 return (
-                  <div key={g.title} className="shrink-0 w-[82%] snap-center md:w-auto md:shrink bg-[#FBF7EE] border border-[#E2D8C2] rounded-2xl p-6 relative">
+                  <div key={g.title} className="shrink-0 w-[82%] snap-center sm:w-auto sm:shrink bg-[#FBF7EE] border border-[#E2D8C2] rounded-2xl p-6 relative">
                     <div className="absolute top-4 right-5 font-display text-3xl text-[#241539]/10">{g.step}</div>
                     <div className="w-11 h-11 rounded-xl bg-[#8B5CF6]/10 text-[#8B5CF6] grid place-items-center">
                       <Icon size={20} />

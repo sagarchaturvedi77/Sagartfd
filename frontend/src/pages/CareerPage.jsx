@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Upload, CheckCircle, Briefcase, Award, ArrowUpRight, ArrowLeft, ChevronLeft, ChevronDown, Users, ShieldCheck, TrendingUp, Clock, Check } from "lucide-react";
+import { Upload, CheckCircle, Briefcase, Award, ArrowUpRight, ChevronLeft, ChevronDown, Users, ShieldCheck, TrendingUp, Clock, Check } from "lucide-react";
 import { toast } from "sonner";
 import { useSubmitOnce } from "../lib/useSubmitOnce";
 import SEO from "../components/SEO";
@@ -21,6 +21,24 @@ const STEPS = [
   { key: "form", label: "Your Details" },
   { key: "review", label: "Review & Confirm" },
   { key: "done", label: "Submitted" },
+];
+
+// Moved out of the hero badge row into their own section below — same four
+// benefits, now with a line of real substance instead of just a label.
+const perks = [
+  { icon: Users, title: "Great work culture", text: "A close-knit, collaborative team — not a call-centre floor." },
+  { icon: TrendingUp, title: "Growth & incentives", text: "Performance-linked incentives on top of a fixed salary, with a clear path to senior roles." },
+  { icon: ShieldCheck, title: "NISM/AMFI training", text: "We fund your certification and pair you with real client conversations from day one." },
+  { icon: Clock, title: "Work-life balance", text: "Structured hours and genuine support — this isn't a burn-and-churn sales floor." },
+];
+
+// The hiring process, as a lead-in to the form below — sets expectations
+// before asking someone to fill 25 fields.
+const hiringSteps = [
+  { n: "01", title: "Apply online", text: "Fill in your details and upload your resume and photo — takes about 5 minutes." },
+  { n: "02", title: "Screening call", text: "Our HR team reviews your application and calls to understand your background and interest." },
+  { n: "03", title: "Interview", text: "A conversation about the role, your experience, and what you're looking for — in person or over video." },
+  { n: "04", title: "Offer & onboarding", text: "If it's a fit, you'll get an offer, certification support, and a structured onboarding into your role." },
 ];
 
 async function uploadToCloudinary(file) {
@@ -274,37 +292,55 @@ export default function CareerPage() {
       />
       <Navbar />
 
-      {/* "OPPORTUNITY BOARD" HERO — warm amber, a role-badge strip instead
-          of the plain intro card the page used to open with. */}
-      <section className="relative overflow-hidden bg-[#241C0E] pt-28 pb-14 md:pt-32 md:pb-16 px-6">
+      {/* "OPEN ROLE" HERO — deep maroon-black instead of the amber-brown
+          every other page's dark hero leans on (Reviews already owns that
+          gold-on-brown combination), red glow instead of gold, headline-only
+          with no badge strip — the four benefit badges now get a proper
+          section of their own below instead of being crammed into the hero. */}
+      <section className="relative overflow-hidden bg-[#280C0E] pt-28 pb-14 md:pt-32 md:pb-16 px-6">
         <div
           aria-hidden
           className="fund-animate-in absolute -top-16 -left-20 w-[340px] h-[340px] rounded-full opacity-25 blur-3xl"
-          style={{ background: "radial-gradient(circle at center, rgba(217,168,73,0.55) 0%, transparent 65%)" }}
+          style={{ background: "radial-gradient(circle at center, rgba(199,16,46,0.55) 0%, transparent 65%)" }}
         />
         <div className="container-x relative max-w-3xl">
-          <div className="fund-animate-in inline-flex items-center gap-2 px-3 py-1 rounded-full border border-[#4A3D1F] bg-[#332A15] text-[11px] tracking-[0.2em] uppercase text-[#D9A849] font-semibold">
+          <div className="fund-animate-in inline-flex items-center gap-2 px-3 py-1 rounded-full border border-[#4A1F22] bg-[#33161A] text-[11px] tracking-[0.2em] uppercase text-[#FF8A80] font-semibold">
             We're hiring
           </div>
-          <h1 className="fund-animate-in fund-animate-in-delay-1 font-display text-3xl sm:text-4xl md:text-5xl text-[#F6F0E2] mt-5 leading-tight">
-            Build a career, <span className="font-italic-serif" style={{ color: "#D9A849" }}>not just a job.</span>
+          <h1 className="fund-animate-in fund-animate-in-delay-1 font-display text-3xl sm:text-4xl md:text-5xl text-[#F6ECEA] mt-5 leading-tight">
+            Build a career, <span className="font-italic-serif" style={{ color: "#FF8A80" }}>not just a job.</span>
           </h1>
-          <p className="fund-animate-in fund-animate-in-delay-2 mt-4 text-[#D8CBAC] text-[15px] sm:text-base max-w-xl leading-relaxed">
+          <p className="fund-animate-in fund-animate-in-delay-2 mt-4 text-[#DCC1BF] text-[15px] sm:text-base max-w-xl leading-relaxed">
             A fast-growing financial-distribution platform in Sehore, MP — goal-based mutual funds and
             protection planning for real families, with real training and real growth.
           </p>
-          <div className="fund-animate-in fund-animate-in-delay-3 flex flex-wrap gap-2 mt-7">
-            {[
-              { icon: Users, t: "Great work culture" },
-              { icon: TrendingUp, t: "Growth & incentives" },
-              { icon: ShieldCheck, t: "NISM/AMFI training" },
-              { icon: Clock, t: "Work-life balance" },
-            ].map((b) => {
-              const Icon = b.icon;
+        </div>
+      </section>
+
+      {/* WHY JOIN — the four hero badges promoted into a real perks section
+          with a line of substance each. Mobile: horizontal scroll-snap
+          slider. Desktop: 4-column grid. */}
+      <section className="bg-white py-14 md:py-16 px-6 border-b border-[#E2D8C2]">
+        <div className="container-x max-w-5xl mx-auto">
+          <div className="max-w-xl mb-8">
+            <div className="inline-flex items-center gap-1.5 text-xs text-[#C7102E] font-semibold uppercase tracking-wider">
+              Why join us
+            </div>
+            <h2 className="text-2xl md:text-3xl font-serif text-[#0E1B2C] mt-2">
+              Build your career the right way
+            </h2>
+          </div>
+          <div className="flex overflow-x-auto snap-x snap-mandatory gap-4 -mx-6 px-6 pb-2 no-scrollbar sm:grid sm:grid-cols-2 lg:grid-cols-4 sm:gap-5 sm:overflow-visible sm:snap-none sm:mx-0 sm:px-0 sm:pb-0">
+            {perks.map((p) => {
+              const Icon = p.icon;
               return (
-                <span key={b.t} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#332A15] border border-[#4A3D1F] text-[#D8CBAC] text-xs">
-                  <Icon size={13} style={{ color: "#D9A849" }} /> {b.t}
-                </span>
+                <div key={p.title} className="shrink-0 w-[80%] snap-center sm:w-auto sm:shrink bg-[#FBF7EE] border border-[#E2D8C2] rounded-2xl p-5">
+                  <div className="w-10 h-10 rounded-xl bg-[#C7102E]/10 text-[#C7102E] grid place-items-center">
+                    <Icon size={18} />
+                  </div>
+                  <h3 className="font-display text-[15px] text-[#0E1B2C] mt-3.5 mb-1.5">{p.title}</h3>
+                  <p className="text-[13px] text-[#2A364B]/80 leading-relaxed">{p.text}</p>
+                </div>
               );
             })}
           </div>
@@ -312,12 +348,60 @@ export default function CareerPage() {
       </section>
 
       <ProblemSolution
-        accent="#D9A849"
+        accent="#C7102E"
         problemLabel="What job-seekers usually face"
         problem="Most entry-level finance roles offer no real training — you're handed a target and a phone, with no one explaining how mutual funds, insurance, or client conversations actually work."
         solutionLabel="How TFD is different"
         solution="We fund your NISM/AMFI certification, pair you with real client interactions from day one, and build your career path openly — from your first sale to running your own book."
       />
+
+      {/* HOW IT WORKS — hiring-process timeline as a lead-in to the form
+          below, so applicants know what to expect before filling 25 fields.
+          Mobile: vertical stepped list with a connecting rail. Desktop:
+          horizontal rail across a 4-column grid — a genuinely different
+          layout, not the mobile list just widened. */}
+      <section className="bg-[#FBF7EE] py-14 md:py-16 px-6">
+        <div className="container-x max-w-5xl mx-auto">
+          <div className="max-w-xl mb-9">
+            <div className="inline-flex items-center gap-1.5 text-xs text-[#C7102E] font-semibold uppercase tracking-wider">
+              How it works
+            </div>
+            <h2 className="text-2xl md:text-3xl font-serif text-[#0E1B2C] mt-2">
+              From application to offer
+            </h2>
+          </div>
+
+          {/* mobile: vertical rail */}
+          <div className="sm:hidden relative pl-8">
+            <div className="absolute top-1 bottom-1 left-[13px] w-0.5 bg-[#E8C4C0]" aria-hidden />
+            <div className="space-y-7">
+              {hiringSteps.map((s) => (
+                <div key={s.n} className="relative">
+                  <div className="absolute -left-8 top-0 w-7 h-7 rounded-full bg-[#C7102E] text-white text-[11px] font-bold grid place-items-center ring-4 ring-[#FBF7EE]">
+                    {s.n.replace("0", "")}
+                  </div>
+                  <h3 className="font-display text-[15px] text-[#0E1B2C]">{s.title}</h3>
+                  <p className="text-[13px] text-[#2A364B]/80 mt-1 leading-relaxed">{s.text}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* desktop: horizontal rail */}
+          <div className="hidden sm:block relative pt-2">
+            <div className="absolute top-[13px] left-0 right-0 h-0.5 bg-[#E8C4C0]" aria-hidden />
+            <div className="grid grid-cols-4 gap-6">
+              {hiringSteps.map((s) => (
+                <div key={s.n} className="relative pt-7">
+                  <div className="absolute top-0 left-0 w-3.5 h-3.5 rounded-full bg-[#C7102E] border-2 border-[#FBF7EE] ring-2 ring-[#E8C4C0]" aria-hidden />
+                  <h3 className="font-display text-[15px] text-[#0E1B2C]">{s.title}</h3>
+                  <p className="text-[13px] text-[#2A364B]/80 mt-1.5 leading-relaxed">{s.text}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </section>
 
       <div className="max-w-3xl lg:max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="bg-white border border-[#E2D8C2] rounded-3xl shadow-xl overflow-hidden">
