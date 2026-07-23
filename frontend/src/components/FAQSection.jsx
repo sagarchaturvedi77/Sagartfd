@@ -1,10 +1,51 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
-import { ChevronDown, ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronDown, ChevronLeft, ChevronRight, Link as LinkIcon, Check } from "lucide-react";
 import { useLanguage } from "../context/LanguageContext";
 import LanguageToggle from "./LanguageToggle";
 
 const PAGE_SIZE = 6;
+
+// Stable, URL-safe id for a single FAQ item, derived purely from its
+// question text — so the same question always resolves to the same id
+// (usable as a `#hash` deep link) regardless of which page/position it
+// lands on. A short deterministic hash suffix is always appended, not only
+// when an ASCII-slug collision is spotted: Hindi/Hinglish question text
+// (used across every FAQSection instance via the `hi`/`hinglish` arrays)
+// strips down to an empty or near-identical ASCII slug once non-Latin
+// characters are removed, so most Hindi questions in the same list would
+// otherwise collide on the same id. The hash keeps every id unique
+// regardless of script. Kept as a local copy (not imported from
+// lib/faqIndex.js) to avoid a circular import — faqIndex.js pulls FAQ data
+// from pages that themselves render this component.
+const COMBINING_DIACRITICS_RE = new RegExp("[\\u0300-\\u036f]", "g");
+function slugifyFaqId(text) {
+    const raw = String(text || "");
+    const base = raw
+        .toLowerCase()
+        .normalize("NFKD")
+        .replace(COMBINING_DIACRITICS_RE, "")
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/^-+|-+$/g, "")
+        .slice(0, 60)
+        .replace(/-+$/g, "");
+    let hash = 0;
+    for (let i = 0; i < raw.length; i++) {
+        hash = (hash * 31 + raw.charCodeAt(i)) | 0;
+    }
+    const suffix = Math.abs(hash).toString(36);
+    return `faq-${base ? `${base}-` : ""}${suffix}`;
+}
+
+// Resolves the current `window.location.hash` (if any) against a given
+// list of {id}-bearing items, returning which page/position it lives at.
+function findHashMatch(list) {
+    const hash = decodeURIComponent(window.location.hash || "").replace(/^#/, "");
+    if (!hash) return null;
+    const idx = list.findIndex((item) => item.id === hash);
+    if (idx === -1) return null;
+    return { idx, page: Math.floor(idx / PAGE_SIZE), indexInPage: idx % PAGE_SIZE };
+}
 
 // Answers can embed links using markdown-style [label](/path) — internal
 // paths render as a react-router <Link> (no full reload), external URLs as
@@ -41,17 +82,76 @@ export default function FAQSection({ title = "Frequently Asked Questions", data 
     const { lang } = useLanguage();
     const [page, setPage] = useState(0);
     const [openIndex, setOpenIndex] = useState(null);
+    const [copiedId, setCopiedId] = useState(null);
+    // Set only when a hash deep-link opened an item — cleared right after
+    // the scroll fires — so ordinary clicks/pagination never trigger a scroll.
+    const pendingScrollId = useRef(null);
     const items = useMemo(() => data?.[lang] || data?.en || [], [data, lang]);
+    const itemsWithIds = useMemo(
+        () => items.map((item) => ({ ...item, id: slugifyFaqId(item.q) })),
+        [items]
+    );
 
+    // Runs on every language switch (mirrors the previous reset-only
+    // behaviour) AND on first mount — if the URL hash already points at one
+    // of this list's questions (e.g. a click-through from a Google/AI-engine
+    // answer built from this section's own FAQPage schema below), jump to
+    // its page and open it instead of resetting to page 0/closed.
     useEffect(() => {
-        setPage(0);
-        setOpenIndex(null);
-    }, [lang]);
+        const match = findHashMatch(itemsWithIds);
+        if (match) {
+            setPage(match.page);
+            setOpenIndex(match.indexInPage);
+            pendingScrollId.current = itemsWithIds[match.idx].id;
+        } else {
+            setPage(0);
+            setOpenIndex(null);
+            pendingScrollId.current = null;
+        }
+    }, [itemsWithIds]);
 
-    const totalPages = Math.max(1, Math.ceil(items.length / PAGE_SIZE));
+    // Also react to in-page hash changes (e.g. a "copy link" click on this
+    // same section, or the user editing the URL fragment directly).
+    useEffect(() => {
+        const onHashChange = () => {
+            const match = findHashMatch(itemsWithIds);
+            if (!match) return;
+            setPage(match.page);
+            setOpenIndex(match.indexInPage);
+            pendingScrollId.current = itemsWithIds[match.idx].id;
+        };
+        window.addEventListener("hashchange", onHashChange);
+        return () => window.removeEventListener("hashchange", onHashChange);
+    }, [itemsWithIds]);
+
+    // After the matched page/item state has committed and the DOM reflects
+    // the newly-opened answer, scroll it into view.
+    useEffect(() => {
+        if (!pendingScrollId.current) return undefined;
+        const id = pendingScrollId.current;
+        const t = setTimeout(() => {
+            const el = document.getElementById(id);
+            if (el) el.scrollIntoView({ behavior: "smooth", block: "center" });
+            pendingScrollId.current = null;
+        }, 60);
+        return () => clearTimeout(t);
+    }, [page, openIndex]);
+
+    const copyLink = (e, id) => {
+        e.stopPropagation();
+        const url = `${window.location.origin}${window.location.pathname}#${id}`;
+        if (navigator.clipboard?.writeText) {
+            navigator.clipboard.writeText(url).catch(() => {});
+        }
+        window.history.replaceState(null, "", `#${id}`);
+        setCopiedId(id);
+        setTimeout(() => setCopiedId((cur) => (cur === id ? null : cur)), 1500);
+    };
+
+    const totalPages = Math.max(1, Math.ceil(itemsWithIds.length / PAGE_SIZE));
     const pageItems = useMemo(
-        () => items.slice(page * PAGE_SIZE, page * PAGE_SIZE + PAGE_SIZE),
-        [items, page]
+        () => itemsWithIds.slice(page * PAGE_SIZE, page * PAGE_SIZE + PAGE_SIZE),
+        [itemsWithIds, page]
     );
 
     // FAQPage structured data (JSON-LD) — built from the same en/hi/hinglish
@@ -95,8 +195,9 @@ export default function FAQSection({ title = "Frequently Asked Questions", data 
                         const isOpen = openIndex === i;
                         return (
                             <div
-                                key={page * PAGE_SIZE + i}
-                                className={`border rounded-xl overflow-hidden transition-colors ${
+                                key={item.id}
+                                id={item.id}
+                                className={`border rounded-xl overflow-hidden transition-colors scroll-mt-24 ${
                                     isOpen ? "border-[#024396]/40 sm:col-span-2" : "border-[#E2D8C2]"
                                 }`}
                             >
@@ -105,10 +206,25 @@ export default function FAQSection({ title = "Frequently Asked Questions", data 
                                     className="w-full text-left px-5 py-4 bg-[#FBF7EE] hover:bg-[#F2EAD8] transition-colors flex items-center justify-between gap-3"
                                 >
                                     <span className="font-display text-[#0E1B2C] text-sm md:text-[15px] leading-snug">{item.q}</span>
-                                    <ChevronDown
-                                        size={16}
-                                        className={`shrink-0 text-[#024396] transition-transform ${isOpen ? "rotate-180" : ""}`}
-                                    />
+                                    <span className="shrink-0 flex items-center gap-2">
+                                        <span
+                                            role="button"
+                                            tabIndex={0}
+                                            onClick={(e) => copyLink(e, item.id)}
+                                            onKeyDown={(e) => {
+                                                if (e.key === "Enter" || e.key === " ") copyLink(e, item.id);
+                                            }}
+                                            aria-label="Copy link to this question"
+                                            title="Copy link to this question"
+                                            className="text-[#8A93A6] hover:text-[#024396] transition-colors p-1 -m-1"
+                                        >
+                                            {copiedId === item.id ? <Check size={14} /> : <LinkIcon size={14} />}
+                                        </span>
+                                        <ChevronDown
+                                            size={16}
+                                            className={`text-[#024396] transition-transform ${isOpen ? "rotate-180" : ""}`}
+                                        />
+                                    </span>
                                 </button>
                                 {isOpen && (
                                     <div className="px-5 py-4 bg-white">
