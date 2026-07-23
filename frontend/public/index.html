@@ -116,20 +116,26 @@
         }
         </script>
 
-        <!-- Google Analytics GA4 — loaded via requestIdleCallback (falling
-             back to window "load" where that's unavailable) instead of
-             eagerly in <head>, so it never competes with the hero image/
-             fonts/JS bundle for main-thread time during first paint/load —
-             requestIdleCallback specifically waits for a genuinely idle
-             moment rather than just "the load event fired", so a page still
-             busy hydrating doesn't get gtag.js competing for the same
-             thread. dataLayer.push still queues calls correctly however
-             late the actual gtag.js script arrives. -->
+        <!-- Google Analytics GA4 — TWO measurement IDs firing side by side
+             (both explicitly requested to stay live), loaded via
+             requestIdleCallback (falling back to window "load" where
+             that's unavailable) instead of eagerly in <head>, so it never
+             competes with the hero image/fonts/JS bundle for main-thread
+             time during first paint/load — requestIdleCallback specifically
+             waits for a genuinely idle moment rather than just "the load
+             event fired", so a page still busy hydrating doesn't get
+             gtag.js competing for the same thread. dataLayer.push still
+             queues calls correctly however late the actual gtag.js script
+             arrives. Only one gtag.js script load is needed — the same
+             library instance dispatches hits to every measurement ID
+             passed to a 'config' call, regardless of which ID is in the
+             script's own src= query string. -->
         <script>
           window.dataLayer = window.dataLayer || [];
           function gtag(){dataLayer.push(arguments);}
           gtag('js', new Date());
           gtag('config', 'G-BSMNKJ97HM');
+          gtag('config', 'G-F41MQLQDID');
           function loadGtagScript() {
             var s = document.createElement("script");
             s.async = true;
