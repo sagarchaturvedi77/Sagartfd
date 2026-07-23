@@ -1,16 +1,40 @@
 import React from "react";
 import { useParams, Navigate, Link } from "react-router-dom";
-import { MapPin, Video, ShieldCheck, TrendingUp, Calculator, BookOpen, Quote } from "lucide-react";
+import { MapPin, Video, ShieldCheck, TrendingUp, Calculator, BookOpen, Quote, HeartPulse, Car, FileCheck2 } from "lucide-react";
 import SEO from "@/components/SEO";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import FloatingActions from "@/components/FloatingActions";
 import ProblemSolution from "@/components/ProblemSolution";
+import FAQSection from "@/components/FAQSection";
 import { CITY_PAGES, findCityPage } from "@/data/cityPages";
 import { LINKS } from "@/lib/links";
 
 const SITE_URL = "https://thefinancialdoctor.in";
 const CITY_PATH_PREFIX = "mutual-fund-distributor-in-";
+
+// City-templated Q&A — genuine, answerable local content (not a doorway
+// template): every question is something someone would actually type into
+// Google or ask an AI answer engine about doing business with us FROM
+// this specific city, covering mutual funds, all three insurance lines,
+// calculators, and the proposal/portfolio-review workflow. Real FAQPage
+// schema is warranted here (unlike on blog posts) because this is
+// substantive, city-specific Q&A content, not a name-swapped template.
+function buildCityFAQ(city) {
+    const remote = city.meetingMode.toLowerCase().startsWith("100% video") || city.meetingMode.toLowerCase().startsWith("video consultation");
+    return {
+        en: [
+            { q: `Does The Financial Doctor offer mutual fund SIP advisory in ${city.name}?`, a: `Yes — we're an AMFI-registered Mutual Fund Distributor (ARN-290298) and work with ${city.name} clients on SIP, lumpsum, and goal-based mutual fund planning, ${remote ? "entirely over video consultation" : "both in-person and over video"}. [Book a free call](/mutual-fund-distributor-in-${city.slug}).` },
+            { q: `Can I get term insurance through The Financial Doctor in ${city.name}?`, a: `Yes, we help ${city.name} clients compare and set up term insurance cover through our licensed insurance partners, alongside your mutual fund planning. See our [Term Insurance](/term-insurance) page for details.` },
+            { q: `Do you offer health insurance plans for ${city.name} residents?`, a: `Yes — health insurance is one of the three insurance lines we advise on for ${city.name} clients, reviewed as part of your overall financial plan, not sold in isolation. Details on our [Health Insurance](/health-insurance) page.` },
+            { q: `Is motor insurance available through The Financial Doctor in ${city.name}?`, a: `Yes, we can help ${city.name} clients with motor insurance through our partner network, alongside your broader financial planning. See [Motor Insurance](/motor-insurance).` },
+            { q: `Can I use TFD's SIP and goal calculators for my ${city.name} financial plan?`, a: `Yes — our [SIP, lumpsum, retirement and goal calculators](/calculators) are free and open to anyone, including ${city.name} residents working out their own numbers before ever talking to us.` },
+            { q: `Do I get a written proposal or portfolio report as a ${city.name} client?`, a: `Yes — after your free consultation, we prepare a proposal/portfolio document specific to your goals, and ongoing clients get access to a live portfolio dashboard through our execution partner Asset Plus.` },
+            { q: `Is the first consultation free for ${city.name} clients?`, a: `Yes, your first consultation is completely free with no obligation — ${city.meetingMode.toLowerCase()}` },
+            { q: `How do I get started from ${city.name}?`, a: `[WhatsApp Sagar ji](${LINKS.whatsappDM}) directly, or use the "Book a Free Call" button on this page — mention you're in ${city.name} and we'll take it from there.` },
+        ],
+    };
+}
 
 // LocalBusiness structured data — areaServed lists every location we
 // actively target (not just the current page's city), which is what
@@ -72,8 +96,8 @@ export default function CityLandingPage() {
         <div className="relative">
             <SEO
                 title={`Best Mutual Fund Distributor in ${city.name} | The Financial Doctor`}
-                description={`Looking for a trusted mutual fund & wealth planning advisor in ${city.name}, ${city.state}? Sagar Chaturvedi (AMFI Registered, ARN-290298) offers zero-bias portfolio reviews and goal-based planning. Book a free call.`}
-                keywords={`mutual fund distributor ${city.name}, best mutual fund advisor ${city.name}, SIP advisor ${city.name}, financial planner ${city.state}`}
+                description={`Mutual fund SIP, term/health/motor insurance, free SIP & goal calculators, and a free portfolio review for ${city.name} investors — Sagar Chaturvedi (AMFI Registered, ARN-290298), zero-bias, goal-based planning with a written proposal. Book a free call.`}
+                keywords={`mutual fund distributor ${city.name}, best mutual fund advisor ${city.name}, SIP advisor ${city.name}, term insurance ${city.name}, health insurance ${city.name}, motor insurance ${city.name}, SIP calculator ${city.name}, free portfolio review ${city.name}, financial planner ${city.state}`}
                 path={`/mutual-fund-distributor-in-${city.slug}`}
             />
             <Navbar />
@@ -151,35 +175,28 @@ export default function CityLandingPage() {
                 </div>
             </section>
 
+            {/* Services in {city} — explicit mutual fund / insurance / calculator /
+                proposal coverage, both for readers and for AEO (answer engines
+                pull directly from clearly-labelled service blocks like this). */}
             <section className="bg-white py-14 md:py-16 px-6 border-t border-[#E2D8C2]">
-                <div className="container-x max-w-4xl mx-auto">
+                <div className="container-x max-w-5xl mx-auto">
                     <div className="text-[11px] uppercase tracking-[0.18em] text-[#5C677D] font-semibold mb-5">
-                        Before you talk to us, try these yourself
+                        Our services in {city.name}
                     </div>
-                    <div className="grid sm:grid-cols-2 gap-5">
-                        <Link
-                            to="/calculators"
-                            className="group flex items-center justify-between gap-4 bg-[#0E1B2C] text-white rounded-2xl p-6 hover:bg-[#1a2a3f] transition-colors"
-                        >
-                            <div>
-                                <Calculator size={22} className="text-[#D8B98A] mb-3" />
-                                <h3 className="font-display text-base">Free SIP & Goal Calculators</h3>
-                                <p className="text-sm text-[#F6F1E8]/70 mt-1.5">
-                                    Work out your own numbers for a {city.name} goal — no sign-up needed.
-                                </p>
-                            </div>
-                        </Link>
-                        <Link
-                            to="/blog"
-                            className="group flex items-center justify-between gap-4 bg-[#FBF7EE] border border-[#E2D8C2] rounded-2xl p-6 hover:border-[#024396]/40 transition-colors"
-                        >
-                            <div>
-                                <BookOpen size={22} className="text-[#024396] mb-3" />
-                                <h3 className="font-display text-base text-[#0E1B2C]">Read the TFD Blog</h3>
-                                <p className="text-sm text-[#2A364B]/70 mt-1.5">
-                                    150+ articles on SIP, insurance, tax-saving and financial planning — written by Sagar Chaturvedi.
-                                </p>
-                            </div>
+                    <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                        <ServiceTile icon={TrendingUp} title="Mutual Fund & SIP Planning" desc={`Goal-based SIP, lumpsum and portfolio planning for ${city.name} investors, Regular Plan servicing.`} href="/services" />
+                        <ServiceTile icon={ShieldCheck} title="Term Insurance" desc={`Independent term cover review and setup for ${city.name} families, through licensed partners.`} href="/term-insurance" />
+                        <ServiceTile icon={HeartPulse} title="Health Insurance" desc={`Health cover comparison and setup as part of your overall ${city.name} financial plan.`} href="/health-insurance" />
+                        <ServiceTile icon={Car} title="Motor Insurance" desc={`Motor insurance through our partner network, alongside your broader planning.`} href="/motor-insurance" />
+                        <ServiceTile icon={Calculator} title="Free Calculators" desc={`SIP, lumpsum, retirement and goal calculators — work out your own ${city.name} numbers, free.`} href="/calculators" />
+                        <ServiceTile icon={FileCheck2} title="Free Portfolio Review" desc={`A written proposal/portfolio report for ${city.name} clients after your free first consultation.`} href={whatsappHref} external />
+                    </div>
+                    <div className="flex flex-wrap gap-3 mt-8">
+                        <a href={whatsappHref} target="_blank" rel="noopener noreferrer" className="btn-pill btn-primary text-sm">
+                            Get My Free Portfolio Review
+                        </a>
+                        <Link to="/blog" className="btn-pill btn-ghost text-sm">
+                            Read the TFD Blog
                         </Link>
                     </div>
                 </div>
@@ -202,8 +219,25 @@ export default function CityLandingPage() {
                 </div>
             </section>
 
+            <FAQSection title={`${city.name} — Frequently Asked Questions`} data={buildCityFAQ(city)} />
+
             <Footer />
             <FloatingActions />
         </div>
+    );
+}
+
+function ServiceTile({ icon: Icon, title, desc, href, external }) {
+    const Wrapper = external ? "a" : Link;
+    const linkProps = external ? { href, target: "_blank", rel: "noopener noreferrer" } : { to: href };
+    return (
+        <Wrapper
+            {...linkProps}
+            className="block bg-[#FBF7EE] border border-[#E2D8C2] rounded-2xl p-5 hover:border-[#024396]/40 hover:bg-white transition-colors"
+        >
+            <Icon size={20} className="text-[#024396]" />
+            <h3 className="font-display text-[15px] text-[#0E1B2C] mt-2.5">{title}</h3>
+            <p className="text-sm text-[#2A364B]/75 leading-relaxed mt-1.5">{desc}</p>
+        </Wrapper>
     );
 }
