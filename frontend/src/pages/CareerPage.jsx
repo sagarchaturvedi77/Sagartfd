@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Upload, CheckCircle, Briefcase, Award, ArrowUpRight, ArrowLeft, ChevronLeft, Users, ShieldCheck, TrendingUp, Clock, Check } from "lucide-react";
+import { Upload, CheckCircle, Briefcase, Award, ArrowUpRight, ArrowLeft, ChevronLeft, ChevronDown, Users, ShieldCheck, TrendingUp, Clock, Check } from "lucide-react";
 import { toast } from "sonner";
 import { useSubmitOnce } from "../lib/useSubmitOnce";
 import SEO from "../components/SEO";
@@ -65,6 +65,30 @@ function StepIndicator({ step }) {
   );
 }
 
+// Mobile-only accordion (one section open at a time) for the ~25-field
+// application form — was one unbroken vertical stack of 7 sections on
+// mobile. sm: and up always shows every section expanded, same as before;
+// only the mobile behavior changes.
+function AccordionSection({ index, title, openSection, setOpenSection, children }) {
+  const isOpen = openSection === index;
+  return (
+    <div>
+      <button
+        type="button"
+        onClick={() => setOpenSection(isOpen ? null : index)}
+        className="w-full flex items-center justify-between text-left sm:pointer-events-none sm:cursor-default"
+      >
+        <h4 className="text-xs font-bold uppercase tracking-wider text-[#024396] border-b border-[#E2D8C2] pb-1.5 mb-4 flex-1">{title}</h4>
+        <ChevronDown
+          size={16}
+          className={`sm:hidden text-[#024396] shrink-0 -mt-3 transition-transform ${isOpen ? "rotate-180" : ""}`}
+        />
+      </button>
+      <div className={`${isOpen ? "block" : "hidden"} sm:!block`}>{children}</div>
+    </div>
+  );
+}
+
 function Row({ label, value }) {
   if (!value) return null;
   return (
@@ -77,6 +101,7 @@ function Row({ label, value }) {
 
 export default function CareerPage() {
   const [step, setStep] = useState("form"); // "form" | "review" | "done"
+  const [openSection, setOpenSection] = useState(1); // mobile-only accordion — which of the 7 form sections is expanded
   const [photoFile, setPhotoFile] = useState(null);
   const [resumeFile, setResumeFile] = useState(null);
   const [formData, setFormData] = useState({
@@ -311,8 +336,7 @@ export default function CareerPage() {
 
             {step === "form" && (
               <form onSubmit={goToReview} className="space-y-8">
-                <div>
-                  <h4 className="text-xs font-bold uppercase tracking-wider text-[#024396] border-b border-[#E2D8C2] pb-1.5 mb-4">1. Personal Details</h4>
+                <AccordionSection index={1} title="1. Personal Details" openSection={openSection} setOpenSection={setOpenSection}>
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                     <div>
                       <label className="block text-xs font-medium text-[#5C677D] mb-1">Full Name *</label>
@@ -348,10 +372,9 @@ export default function CareerPage() {
                       </select>
                     </div>
                   </div>
-                </div>
+                </AccordionSection>
 
-                <div>
-                  <h4 className="text-xs font-bold uppercase tracking-wider text-[#024396] border-b border-[#E2D8C2] pb-1.5 mb-4">2. Contact Details</h4>
+                <AccordionSection index={2} title="2. Contact Details" openSection={openSection} setOpenSection={setOpenSection}>
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                     <div>
                       <label className="block text-xs font-medium text-[#5C677D] mb-1">Mobile Number *</label>
@@ -378,10 +401,9 @@ export default function CareerPage() {
                       <textarea rows="2" value={formData.address} onChange={e => setFormData({...formData, address: e.target.value})} className="w-full bg-white border border-[#E2D8C2] rounded-xl px-4 py-2 text-sm focus:border-[#024396] outline-none resize-none"></textarea>
                     </div>
                   </div>
-                </div>
+                </AccordionSection>
 
-                <div>
-                  <h4 className="text-xs font-bold uppercase tracking-wider text-[#024396] border-b border-[#E2D8C2] pb-1.5 mb-4">3. Position & Professional Info</h4>
+                <AccordionSection index={3} title="3. Position & Professional Info" openSection={openSection} setOpenSection={setOpenSection}>
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                     <div>
                       <label className="block text-xs font-medium text-[#5C677D] mb-1">Position Applying For *</label>
@@ -430,10 +452,9 @@ export default function CareerPage() {
                       <input type="text" value={formData.expectedSalary} onChange={e => setFormData({...formData, expectedSalary: e.target.value})} className="w-full bg-white border border-[#E2D8C2] rounded-xl px-4 py-2 text-sm focus:border-[#024396] outline-none" />
                     </div>
                   </div>
-                </div>
+                </AccordionSection>
 
-                <div>
-                  <h4 className="text-xs font-bold uppercase tracking-wider text-[#024396] border-b border-[#E2D8C2] pb-1.5 mb-4">4. Education Parameters</h4>
+                <AccordionSection index={4} title="4. Education Parameters" openSection={openSection} setOpenSection={setOpenSection}>
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                     <div>
                       <label className="block text-xs font-medium text-[#5C677D] mb-1">Highest Qualification *</label>
@@ -457,10 +478,9 @@ export default function CareerPage() {
                       <input type="number" placeholder="YYYY" value={formData.passingYear} onChange={e => setFormData({...formData, passingYear: e.target.value})} className="w-full bg-white border border-[#E2D8C2] rounded-xl px-4 py-2 text-sm focus:border-[#024396] outline-none" />
                     </div>
                   </div>
-                </div>
+                </AccordionSection>
 
-                <div>
-                  <h4 className="text-xs font-bold uppercase tracking-wider text-[#024396] border-b border-[#E2D8C2] pb-1.5 mb-4">5. Skill Repository Selection</h4>
+                <AccordionSection index={5} title="5. Skill Repository Selection" openSection={openSection} setOpenSection={setOpenSection}>
                   <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-3">
                     {skillsList.map(skill => (
                       <label key={skill} className="flex items-center gap-2 bg-white border border-[#E2D8C2] px-3 py-2 rounded-xl text-xs text-[#2A364B] cursor-pointer select-none hover:border-[#024396]">
@@ -473,10 +493,9 @@ export default function CareerPage() {
                     <label className="block text-xs font-medium text-[#5C677D] mb-1">Other Skills</label>
                     <input type="text" placeholder="Specify other skills here..." value={formData.otherSkills} onChange={e => setFormData({...formData, otherSkills: e.target.value})} className="w-full bg-white border border-[#E2D8C2] rounded-xl px-4 py-2 text-sm focus:border-[#024396] outline-none" />
                   </div>
-                </div>
+                </AccordionSection>
 
-                <div>
-                  <h4 className="text-xs font-bold uppercase tracking-wider text-[#024396] border-b border-[#E2D8C2] pb-1.5 mb-4">6. Document Uploads</h4>
+                <AccordionSection index={6} title="6. Document Uploads" openSection={openSection} setOpenSection={setOpenSection}>
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                     <div>
                       <label className="block text-xs font-medium text-[#5C677D] mb-1.5">Upload Resume (PDF/DOC/DOCX) *</label>
@@ -529,10 +548,9 @@ export default function CareerPage() {
                       <input type="text" placeholder="Enter reference name if applicable" value={formData.refName} onChange={e => setFormData({...formData, refName: e.target.value})} className="w-full bg-white border border-[#E2D8C2] rounded-xl px-4 py-2 text-sm focus:border-[#024396] outline-none" />
                     </div>
                   </div>
-                </div>
+                </AccordionSection>
 
-                <div>
-                  <h4 className="text-xs font-bold uppercase tracking-wider text-[#024396] border-b border-[#E2D8C2] pb-1.5 mb-4">7. How Did You Hear About Us?</h4>
+                <AccordionSection index={7} title="7. How Did You Hear About Us?" openSection={openSection} setOpenSection={setOpenSection}>
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                     <div>
                       <label className="block text-xs font-medium text-[#5C677D] mb-1">How did you hear about us? *</label>
@@ -560,7 +578,7 @@ export default function CareerPage() {
                       </div>
                     )}
                   </div>
-                </div>
+                </AccordionSection>
 
                 <div className="space-y-4">
                   <div>
