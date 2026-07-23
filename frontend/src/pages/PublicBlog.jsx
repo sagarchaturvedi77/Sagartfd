@@ -95,18 +95,29 @@ function shareCaptionMinimal(post, lang, url) {
     return `${pickTitle(post, lang)}\n${url}`;
 }
 
+// Same per-post description fallback used by the SEO schema (meta_description,
+// falling back to a body excerpt) — reused here so the copied caption always
+// carries this specific post's own summary, not a generic brand line.
+function pickCaptionDescription(post, lang) {
+    if (post.meta_description) return post.meta_description;
+    const body = pickBody(post, lang);
+    return body ? `${body.slice(0, 180).trim()}...` : "";
+}
+
 // Telegram and the Instagram copy-caption flow both get the fuller
-// caption: hashtags, keywords and our handles spelled out, since neither
-// surfaces them automatically the way WhatsApp/LinkedIn's link-preview
-// card does. `includeUrl` is false for Telegram specifically — its share
-// intent takes the link as its own separate `url` param and generates its
-// own preview from that, so repeating the raw URL inside the caption text
-// would just show it twice in the composed message.
+// caption: description, hashtags and our handles spelled out, since
+// neither surfaces them automatically the way WhatsApp/LinkedIn's link-
+// preview card does. `includeUrl` is false for Telegram specifically —
+// its share intent takes the link as its own separate `url` param and
+// generates its own preview from that, so repeating the raw URL inside
+// the caption text would just show it twice in the composed message.
 function shareCaptionRich(post, lang, url, includeUrl = true) {
     const title = pickTitle(post, lang);
+    const description = pickCaptionDescription(post, lang);
     const tags = Array.isArray(post.hashtags) && post.hashtags.length ? post.hashtags.join(" ") : "";
     return [
         title,
+        description,
         "",
         "— The Financial Doctor | Sagar Chaturvedi (AMFI Registered, ARN-290298)",
         includeUrl ? url : null,
