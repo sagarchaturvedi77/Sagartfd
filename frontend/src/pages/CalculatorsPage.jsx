@@ -188,7 +188,7 @@ export const calcFAQ = {
 const DEFAULT_SEO = {
   title: "The Financial Doctor | SIP, Tax, Loan & EMI Calculator - Free Online Tools",
   description: "Free online calculators — SIP Calculator, Income Tax Calculator, EMI/Loan Calculator, Lumpsum Calculator, SWP Calculator, GST Calculator, Goal Planner — all in one place, instant results.",
-  keywords: "SIP calculator, EMI calculator, loan calculator, income tax calculator, lumpsum calculator, SWP calculator, GST calculator online, mutual fund calculator, goal based investment calculator",
+  keywords: "SIP calculator, SIP calculator online, free SIP calculator, EMI calculator, loan calculator, home loan EMI calculator, income tax calculator, income tax calculator online, lumpsum calculator, lump sum calculator, SWP calculator, systematic withdrawal plan calculator, GST calculator online, mutual fund calculator, mutual fund SIP calculator, goal based investment calculator, daily SIP calculator, step up SIP calculator, retirement calculator, inflation calculator, best SIP calculator India",
 };
 
 export default function CalculatorsPage() {

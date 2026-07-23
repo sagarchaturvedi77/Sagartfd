@@ -210,7 +210,7 @@ export default function AboutPage() {
       <SEO
         title="The Financial Doctor | About Us"
         description="Meet The Financial Doctor — an AMFI-registered mutual fund and insurance advisory led by Sagar Chaturvedi, built on transparent, goal-based financial planning."
-        keywords="financial advisor India, mutual fund advisor, about The Financial Doctor"
+        keywords="Sagar Chaturvedi, Sagar Chaturvedi Financial Doctor, Sagar Chaturvedi ARN-290298, Sagar Chaturvedi Sehore, Sagar Chaturvedi mutual fund distributor, financial advisor India, mutual fund advisor, mutual fund distributor, best mutual fund advisor, AMFI registered mutual fund distributor, about The Financial Doctor, mutual funds, mutual fund, mutal fund, HDFC Mutual Fund, ICICI Prudential Mutual Fund, SBI Mutual Fund, Axis Mutual Fund, Nippon India Mutual Fund, Kotak Mutual Fund, Aditya Birla Sun Life Mutual Fund, UTI Mutual Fund, DSP Mutual Fund, Franklin Templeton Mutual Fund, Tata Mutual Fund, Mirae Asset Mutual Fund, Motilal Oswal Mutual Fund, Invesco Mutual Fund"
         path="/about"
       />
       <Navbar />

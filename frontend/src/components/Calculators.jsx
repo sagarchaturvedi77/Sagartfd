@@ -789,13 +789,17 @@ const qrDataUrlRef = useRef(null);
                             ))}
                         </div>
                     ) : (
-                        <div className="grid grid-cols-3 sm:grid-cols-5 lg:grid-cols-9 gap-2">
+                        // Homepage-embedded strip: a horizontal scroll of pills on
+                        // mobile (matches the employee/dedicated-page tab treatment)
+                        // instead of just shrinking the same 9-col grid down to 3
+                        // columns, which read as identical structure, only smaller.
+                        <div className="flex gap-2 overflow-x-auto pb-2 -mx-1 px-1 no-scrollbar sm:grid sm:grid-cols-5 lg:grid-cols-9 sm:gap-2 sm:overflow-visible sm:mx-0 sm:px-0 sm:pb-0">
                             {TABS.map((t) => (
                                 <button
                                     key={t.id}
                                     data-testid={t.testid}
                                     onClick={() => setTab(t.id)}
-                                    className={`tab-pill text-center justify-center text-xs py-2 ${tab === t.id ? "active" : ""}`}
+                                    className={`tab-pill shrink-0 text-center justify-center text-xs py-2 ${tab === t.id ? "active" : ""}`}
                                 >
                                     {t.label}
                                 </button>

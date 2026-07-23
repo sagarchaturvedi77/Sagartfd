@@ -332,9 +332,10 @@ function BlogList({ posts, loading, lang, category, onCategoryChange, page, onPa
                 />
             </div>
 
-            {/* Category strip — picking one fetches only that category's
-                posts from the backend instead of loading everything at
-                once, keeping the page light as the article count grows. */}
+            {/* Category strip — filters the already-fetched `posts` array
+                client-side (same pattern as the search box above), so
+                picking a category is instant and never re-hits the
+                network. See PublicBlog's `categoryPosts` useMemo. */}
             <div className="flex flex-wrap gap-2 mb-8">
                 <button
                     onClick={() => onCategoryChange("all")}
@@ -432,8 +433,15 @@ function useBlogPostingSchema(post, lang) {
             "@type": "BlogPosting",
             headline: title,
             description,
+            image: {
+                "@type": "ImageObject",
+                url: shareImageFor(post),
+                width: 1200,
+                height: 630,
+            },
             author: {
                 "@type": "Person",
+                "@id": `${SITE_URL}/about#sagar-chaturvedi`,
                 name: "Sagar Chaturvedi",
                 url: `${SITE_URL}/about`,
             },
@@ -630,6 +638,14 @@ export default function PublicBlog() {
         setPage(0);
     };
 
+    // Category switch no longer re-fetches — see the effect below, which
+    // now loads every post exactly once. This just resets pagination so a
+    // category change always lands on that category's page 1.
+    const onCategoryChange = (c) => {
+        setCategory(c);
+        setPage(0);
+    };
+
     useEffect(() => {
         if (contentId) {
             setLoading(true);
@@ -641,20 +657,34 @@ export default function PublicBlog() {
         }
     }, [contentId]);
 
-    // Re-fetches only the selected category's posts — the "load less at
-    // once" behaviour: switching category never pulls the full article set
-    // into memory/DOM at the same time.
+    // Fetches the full blog list ONCE (mount, or whenever navigating back
+    // from a detail page to the list) rather than re-fetching per category.
+    // This used to be `&topic=${category}` in the query string and re-ran
+    // on every category-button click — meaning every click re-downloaded
+    // up to 200 posts' worth of full (bilingual) body text over the
+    // network, which is exactly what made the blog list feel slow on
+    // mobile: the FIRST click after landing on /blog always re-paid the
+    // full network round-trip again. Search (below, in BlogList) already
+    // filters this same `posts` array entirely client-side with zero
+    // network cost — category filtering now works the same way (see
+    // `categoryPosts` below), so the network is only ever hit once per
+    // visit and every subsequent category click is instant.
     useEffect(() => {
         if (contentId) return undefined;
         setLoading(true);
-        setPage(0);
-        const topicParam = category === "all" ? "" : `&topic=${category}`;
-        fetch(`${API_BASE}/api/internship/public/content?content_type=blog&limit=200${topicParam}`)
+        fetch(`${API_BASE}/api/internship/public/content?content_type=blog&limit=200`)
             .then((r) => (r.ok ? r.json() : []))
             .then((d) => setPosts(Array.isArray(d) ? d : []))
             .catch(() => setPosts([]))
             .finally(() => setLoading(false));
-    }, [contentId, category]);
+    }, [contentId]);
+
+    // Client-side category filter over the single fetched batch — mirrors
+    // BlogList's own search-term filtering (same pattern, same data).
+    const categoryPosts = useMemo(() => {
+        if (category === "all") return posts;
+        return posts.filter((p) => p.topic === category);
+    }, [posts, category]);
 
     return (
         <div className="relative">
@@ -682,8 +712,18 @@ export default function PublicBlog() {
                 estimation-dependent margin between the stuck toolbar's
                 bottom edge and this content. Generous fixed clearance here
                 removes that ambiguity entirely; sm: and up reverts to pt-24
-                since the toolbar doesn't render there at all. */}
-            <main className="pt-[164px] sm:pt-24 section">
+                since the toolbar doesn't render there at all.
+                IMPORTANT: these must stay `!`-important. The `.section`
+                class (index.css) sets its own shorthand `padding` (4rem/
+                5rem/7rem top depending on breakpoint) and, because index.css
+                places that rule AFTER `@tailwind utilities;`, it wins the
+                cascade over a plain `pt-[164px]`/`pt-24` at equal
+                specificity — silently shrinking this to ~64px on mobile
+                (less than the fixed navbar's own 80px height) and causing
+                the exact navbar/toolbar overlap this padding exists to
+                prevent. `!` forces these two declarations to win regardless
+                of source order. */}
+            <main className="!pt-[164px] sm:!pt-24 section">
                 <div className="container-x">
                     {!contentId && (
                         <div className="mb-8 flex flex-wrap items-end justify-between gap-4">
@@ -705,11 +745,11 @@ export default function PublicBlog() {
                         <BlogDetail post={detail} loading={loading} lang={lang} />
                     ) : (
                         <BlogList
-                            posts={posts}
+                            posts={categoryPosts}
                             loading={loading}
                             lang={lang}
                             category={category}
-                            onCategoryChange={setCategory}
+                            onCategoryChange={onCategoryChange}
                             page={page}
                             onPageChange={setPage}
                             query={query}

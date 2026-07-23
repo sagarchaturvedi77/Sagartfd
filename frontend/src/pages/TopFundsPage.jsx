@@ -182,7 +182,7 @@ export default function TopFundsPage() {
       <SEO
         title="The Financial Doctor | Top Mutual Funds & Returns - Compare & Invest"
         description="Explore top-performing mutual funds across Large Cap, Mid Cap, Small Cap, Flexi Cap, ELSS, Debt & Hybrid categories — live returns, fund comparison, and expert-picked schemes to invest in."
-        keywords="top mutual funds, best mutual funds India, mutual fund returns, compare mutual funds, large cap fund, small cap fund, ELSS fund, debt fund, hybrid fund"
+        keywords="top mutual funds, best mutual funds India, mutual fund returns, compare mutual funds, large cap fund, small cap fund, ELSS fund, debt fund, hybrid fund, mutual funds, mutual fund, mutal fund, mutualfund, best mutual fund advisor, HDFC Mutual Fund, ICICI Prudential Mutual Fund, SBI Mutual Fund, Axis Mutual Fund, Nippon India Mutual Fund, Kotak Mutual Fund, Aditya Birla Sun Life Mutual Fund, UTI Mutual Fund, DSP Mutual Fund, Franklin Templeton Mutual Fund, Tata Mutual Fund, Mirae Asset Mutual Fund, Motilal Oswal Mutual Fund, Invesco Mutual Fund"
         path="/top-funds"
       />
       <Navbar />

@@ -108,20 +108,21 @@ export default function LocationsPage() {
                                     </Link>
                                 )}
                             </div>
-                            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                            <div className="flex overflow-x-auto snap-x snap-mandatory gap-4 -mx-6 px-6 pb-2 no-scrollbar sm:grid sm:grid-cols-2 lg:grid-cols-3 sm:gap-4 sm:overflow-visible sm:snap-none sm:mx-0 sm:px-0 sm:pb-0">
                                 {g.cities.map((c) => (
                                     <Link
                                         key={c.slug}
                                         to={`/mutual-fund-distributor-in-${c.slug}`}
-                                        className="block bg-white border border-[#E2D8C2] rounded-2xl overflow-hidden hover:border-[#024396]/40 hover:shadow-sm transition-all"
+                                        className="shrink-0 w-[78%] snap-center sm:w-auto sm:shrink block bg-white border border-[#E2D8C2] rounded-2xl overflow-hidden hover:border-[#024396]/40 hover:shadow-sm transition-all"
                                     >
                                         <img
-                                            src={`/assets/og/city-${c.slug}.png`}
+                                            src={`/assets/og-thumbs/city-${c.slug}.webp`}
                                             alt={`The Financial Doctor — ${c.name}`}
                                             className="w-full aspect-[1200/630] object-cover"
                                             loading="lazy"
-                                            width={1200}
-                                            height={630}
+                                            decoding="async"
+                                            width={480}
+                                            height={252}
                                         />
                                         <div className="p-5">
                                             <div className="flex items-center gap-1.5 text-[#0E1B2C] font-display text-[16px]">
