@@ -32,7 +32,6 @@
 /jobs/                   /career   301
 
 # 👥 PARTNER WITH US SEO PAGES
-/partner-with-us         /partner-with-us   301
 /partner-with-us/        /partner-with-us   301
 /partnership             /partner-with-us   301
 /partnership/            /partner-with-us   301
@@ -44,15 +43,12 @@
 # 💼 INDIVIDUAL INSURANCE & SERVICES SEO PAGES
 /mutual-funds            /services          301
 /mutual-funds/           /services          301
-/term-insurance          /term-insurance    301
 /term-insurance/         /term-insurance    301
 /life-insurance          /term-insurance    301
 /life-insurance/         /term-insurance    301
-/health-insurance        /health-insurance  301
 /health-insurance/       /health-insurance  301
 /mediclaim               /health-insurance  301
 /mediclaim/              /health-insurance  301
-/motor-insurance         /motor-insurance   301
 /motor-insurance/        /motor-insurance   301
 /car-insurance           /motor-insurance   301
 /car-insurance/          /motor-insurance   301
