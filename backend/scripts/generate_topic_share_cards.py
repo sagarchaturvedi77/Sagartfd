@@ -16,6 +16,7 @@ Outputs to frontend/public/assets/og/blog-{topic}.png (1200x630 each).
 import sys
 from pathlib import Path
 
+import numpy as np
 from PIL import Image, ImageDraw, ImageFont, ImageOps
 
 ROOT = Path(__file__).resolve().parent.parent.parent
@@ -69,8 +70,20 @@ def wrap_text(draw, text, font_, max_width):
     return lines
 
 
+def gradient_bg(w, h, color1, color2):
+    x = np.linspace(0.0, 1.0, w, dtype=np.float32)
+    y = np.linspace(0.0, 1.0, h, dtype=np.float32)
+    t = (x[None, :] + y[:, None]) / 2.0
+    arr = np.empty((h, w, 3), dtype=np.uint8)
+    for c in range(3):
+        arr[:, :, c] = (color1[c] * (1 - t) + color2[c] * t).astype(np.uint8)
+    return Image.fromarray(arr, "RGB")
+
+
 def make_card(accent, badge, hook):
-    img = Image.new("RGB", (W, H), NAVY)
+    deep_navy = tuple(max(0, c - 8) for c in NAVY)
+    warm_corner = tuple(round(NAVY[i] * 0.82 + accent[i] * 0.18) for i in range(3))
+    img = gradient_bg(W, H, deep_navy, warm_corner)
     draw = ImageDraw.Draw(img)
 
     photo = Image.open(ASSETS / "founder" / "sagar-photo.webp").convert("RGB")

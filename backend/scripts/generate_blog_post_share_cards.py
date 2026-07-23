@@ -27,6 +27,7 @@ import sys
 import urllib.request
 from pathlib import Path
 
+import numpy as np
 from PIL import Image, ImageDraw, ImageFont, ImageOps
 
 ROOT = Path(__file__).resolve().parent.parent.parent
@@ -111,8 +112,26 @@ def fit_title(draw, text, max_width, max_lines, sizes):
     return f, lines, sizes[-1]
 
 
+def gradient_bg(w, h, color1, color2):
+    """Diagonal top-left -> bottom-right gradient, replacing the previous
+    flat navy fill — a flat single colour behind large type read as dull/
+    "blurry" rather than crisp; a subtle gradient gives it real depth."""
+    x = np.linspace(0.0, 1.0, w, dtype=np.float32)
+    y = np.linspace(0.0, 1.0, h, dtype=np.float32)
+    t = (x[None, :] + y[:, None]) / 2.0
+    arr = np.empty((h, w, 3), dtype=np.uint8)
+    for c in range(3):
+        arr[:, :, c] = (color1[c] * (1 - t) + color2[c] * t).astype(np.uint8)
+    return Image.fromarray(arr, "RGB")
+
+
 def make_card(accent, badge, title):
-    img = Image.new("RGB", (W, H), NAVY)
+    # Subtle navy gradient, deepening toward the bottom-right and warmed
+    # faintly by the topic's own accent colour — replaces the previous
+    # flat single-colour fill.
+    deep_navy = tuple(max(0, c - 8) for c in NAVY)
+    warm_corner = tuple(round(NAVY[i] * 0.82 + accent[i] * 0.18) for i in range(3))
+    img = gradient_bg(W, H, deep_navy, warm_corner)
     draw = ImageDraw.Draw(img)
 
     # Full-bleed photo, left third of the canvas — face-safe crop.
@@ -167,22 +186,31 @@ def main():
         posts = json.loads(resp.read().decode("utf-8"))
 
     print(f"Fetched {len(posts)} posts")
+    made = 0
     for i, post in enumerate(posts):
         topic = post.get("topic") or "other"
         accent, badge = TOPIC_STYLE.get(topic, TOPIC_STYLE["other"])
-        # post["title"] is the default/primary (Hinglish) title shown to
-        # everyone unless ?lang=en is in the URL — matches what most
-        # sharers will actually be looking at, so the image uses the same
-        # one title regardless of viewer language (same simplification the
-        # old per-topic cards already made).
+
+        # Default card: post["title"] is the primary (Hinglish) title shown
+        # to everyone unless ?lang=en is in the URL.
         title = clean_title(post["title"] or post.get("title_en") or "The Financial Doctor")
         img = make_card(accent, badge, title)
-        out_path = OUT_DIR / f"blog-post-{post['id']}.png"
-        img.save(out_path, "PNG", optimize=True)
-        if (i + 1) % 25 == 0 or i + 1 == len(posts):
-            print(f"  {i + 1}/{len(posts)} done")
+        img.save(OUT_DIR / f"blog-post-{post['id']}.png", "PNG", optimize=True)
+        made += 1
 
-    print(f"Saved {len(posts)} cards to {OUT_DIR}")
+        # English card — only generated when the post actually has an
+        # English translation; the site falls back to the default (above)
+        # for any post that doesn't, rather than a blank/missing image.
+        if post.get("title_en"):
+            title_en = clean_title(post["title_en"])
+            img_en = make_card(accent, badge, title_en)
+            img_en.save(OUT_DIR / f"blog-post-{post['id']}-en.png", "PNG", optimize=True)
+            made += 1
+
+        if (i + 1) % 25 == 0 or i + 1 == len(posts):
+            print(f"  {i + 1}/{len(posts)} posts done")
+
+    print(f"Saved {made} cards to {OUT_DIR}")
 
 
 if __name__ == "__main__":

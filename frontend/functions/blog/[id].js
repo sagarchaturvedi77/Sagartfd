@@ -15,12 +15,16 @@
 const BACKEND_BASE = "https://sagartfd.onrender.com";
 const SITE_URL = "https://thefinancialdoctor.in";
 
-// One share image PER POST (see backend/scripts/generate_blog_post_share_cards.py,
-// run manually whenever posts are added/edited) — each post's own real
-// headline is baked into its own card, not a topic-shared generic one.
-function ogImageFor(post) {
+// One share image PER POST, PER LANGUAGE (see
+// backend/scripts/generate_blog_post_share_cards.py, run manually whenever
+// posts are added/edited) — each post's own real headline is baked into
+// its own card, in whichever language the URL's ?lang= is requesting, not
+// a topic-shared generic one. Falls back to the Hinglish default if this
+// post has no English card generated (no title_en at generation time).
+function ogImageFor(post, lang) {
   if (!post?.id) return `${SITE_URL}/assets/og/blog-other.png`;
-  return `${SITE_URL}/assets/og/blog-post-${post.id}.png`;
+  const suffix = lang === "en" && post.title_en ? "-en" : "";
+  return `${SITE_URL}/assets/og/blog-post-${post.id}${suffix}.png`;
 }
 
 // Every major share-preview/link-unfurl bot. Deliberately excludes
@@ -49,7 +53,7 @@ function pickDescription(post, lang) {
 function botHtml(post, lang, pageUrl) {
   const title = `The Financial Doctor | ${escapeHtml(pickTitle(post, lang))}`;
   const description = escapeHtml(pickDescription(post, lang));
-  const image = ogImageFor(post);
+  const image = ogImageFor(post, lang);
   return `<!DOCTYPE html>
 <html lang="${lang === "en" ? "en" : "hi"}">
 <head>

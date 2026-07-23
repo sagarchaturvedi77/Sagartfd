@@ -48,20 +48,30 @@ const CTA_LABELS = {
     brand_comparison: "Meet The Financial Doctor",
 };
 
-// One share card PER POST (see backend/scripts/generate_blog_post_share_cards.py,
-// run manually whenever posts are added/edited) — each of the 150 articles
-// gets its own image with its own real headline baked in as the hook,
-// instead of one shared image reused across every post in a topic. This is
-// what Google's JS-executing crawler reads via SEO.jsx's client-side tag;
-// non-JS share bots (WhatsApp/LinkedIn/Instagram/etc.) never see this path
-// at all, they're served a separate pre-rendered response by
-// functions/blog/[id].js at the edge, which picks the same per-post image
-// directly. Falls back to the old per-topic image for any post whose card
-// hasn't been generated yet (e.g. freshly published, script not yet re-run).
+// One share card PER POST, PER LANGUAGE (see
+// backend/scripts/generate_blog_post_share_cards.py, run manually whenever
+// posts are added/edited) — every post's card is generated once with its
+// Hinglish title (the default, blog-post-{id}.png) and again with its
+// English title if one exists (blog-post-{id}-en.png), so a reader viewing
+// in English sees an English image, not just English page text with a
+// Hinglish-titled share card. Falls back to the default (Hinglish) image
+// for English if that specific post has no title_en yet, and to the old
+// per-topic image if the post has no per-post card generated at all (e.g.
+// freshly published, script not yet re-run).
 const DEFAULT_SHARE_IMAGE = "https://thefinancialdoctor.in/assets/og/blog-other.png";
-function shareImageFor(post) {
+// "-en" suffix only when this specific post actually has an English title
+// (see generate_blog_post_share_cards.py — English cards are only ever
+// generated for posts with title_en); falls back to the default Hinglish
+// image otherwise rather than a missing file.
+function imageLangSuffix(post, lang) {
+    return lang === "en" && post?.title_en ? "-en" : "";
+}
+function shareImageFor(post, lang) {
     if (!post?.id) return DEFAULT_SHARE_IMAGE;
-    return `https://thefinancialdoctor.in/assets/og/blog-post-${post.id}.png`;
+    return `https://thefinancialdoctor.in/assets/og/blog-post-${post.id}${imageLangSuffix(post, lang)}.png`;
+}
+function blogThumbSrc(post, lang) {
+    return `/assets/og-thumbs/blog-post-${post.id}${imageLangSuffix(post, lang)}.webp`;
 }
 
 function formatDate(iso) {
@@ -464,7 +474,7 @@ function useBlogPostingSchema(post, lang) {
             inLanguage: lang === "en" ? "en" : "hi-Latn",
             image: {
                 "@type": "ImageObject",
-                url: shareImageFor(post),
+                url: shareImageFor(post, lang),
                 width: 1200,
                 height: 630,
             },
@@ -528,7 +538,7 @@ function BlogDetail({ post, loading, lang }) {
     if (loading) return <p className="text-[#5C677D] text-sm">Loading...</p>;
     if (!post) return <p className="text-[#5C677D] text-sm">This article isn't available.</p>;
     return (
-        <div className="max-w-5xl mx-auto lg:grid lg:grid-cols-[1fr,300px] lg:gap-12 lg:items-start">
+        <div className="lg:grid lg:grid-cols-[1fr,340px] lg:gap-16 lg:items-start">
             {/* Reading column — width capped at a comfortable line length
                 (~68ch) even though the outer layout is wide, so desktop
                 gets a real landscape reading area instead of one narrow
@@ -567,6 +577,21 @@ function BlogDetail({ post, loading, lang }) {
                         ))}
                     </div>
                 )}
+                {/* Mobile only — same per-post share-card image now shown on
+                    desktop in the sidebar (see <aside> below), placed here
+                    below the header instead since the sidebar is hidden at
+                    this width. Lightweight WebP thumbnail, not the full
+                    1200x630 share PNG — this loads for every reader now,
+                    not just share bots, so size matters here. */}
+                <img
+                    src={blogThumbSrc(post, lang)}
+                    alt={pickTitle(post, lang)}
+                    className="lg:hidden w-full aspect-[1200/630] object-cover rounded-2xl mb-6"
+                    loading="lazy"
+                    decoding="async"
+                    width={480}
+                    height={252}
+                />
                 <div className="text-[#2A364B] leading-relaxed whitespace-pre-wrap text-[15px]">{pickBody(post, lang)}</div>
 
                 <ShareSection post={post} lang={lang} />
@@ -619,6 +644,15 @@ function BlogDetail({ post, loading, lang }) {
                 <button onClick={() => navigate("/blog")} className="flex items-center gap-1.5 text-xs font-semibold text-[#5C677D] hover:text-[#0E1B2C]">
                     <ArrowLeft size={14} /> All Articles
                 </button>
+                <img
+                    src={blogThumbSrc(post, lang)}
+                    alt={pickTitle(post, lang)}
+                    className="w-full aspect-[1200/630] object-cover rounded-2xl"
+                    loading="lazy"
+                    decoding="async"
+                    width={480}
+                    height={252}
+                />
                 <ShareButton post={post} lang={lang} />
                 {post.product_link && (
                     <a
@@ -721,7 +755,7 @@ export default function PublicBlog() {
                 description={contentId ? ((detail && detail.meta_description) || "Practical guides on SIP, lumpsum, SWP, tax-saving, and financial planning — written and reviewed for The Financial Doctor's investors.") : "Practical guides on SIP, lumpsum, SWP, tax-saving, and financial planning — written and reviewed for The Financial Doctor's investors."}
                 keywords={contentId ? pickKeywords(detail) : "mutual fund blog, SIP blog, financial planning blog India, Sagar Chaturvedi blog, The Financial Doctor blog, mutual fund advisor Sehore, mutual fund advisor Madhya Pradesh, ARN-290298"}
                 path={contentId ? `/blog/${contentId}` : "/blog"}
-                ogImage={contentId ? shareImageFor(detail) : undefined}
+                ogImage={contentId ? shareImageFor(detail, lang) : undefined}
             />
             <Navbar />
             {/* Mobile-only toolbar, in normal document flow (not floating
