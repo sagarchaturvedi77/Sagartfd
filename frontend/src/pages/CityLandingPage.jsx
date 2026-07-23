@@ -36,6 +36,13 @@ function accentTextColor(hex) {
     const blended = [r, g, b].map((c, i) => Math.round(c * 0.55 + cream[i] * 0.45));
     return `rgb(${blended[0]}, ${blended[1]}, ${blended[2]})`;
 }
+// A number of blog posts have a redundant "| The Financial Doctor" baked
+// into their stored title text (same issue fixed in PublicBlog.jsx's
+// pickTitle) — stripped here too since this page renders post.title raw.
+function cleanBlogTitle(title) {
+    return String(title || "").replace(/\s*\|\s*The Financial Doctor\s*$/i, "").trim();
+}
+
 function hexToRgb(hex) {
     const n = parseInt(hex.slice(1), 16);
     return `${(n >> 16) & 255}, ${(n >> 8) & 255}, ${n & 255}`;
@@ -401,7 +408,7 @@ export default function CityLandingPage() {
                                 >
                                     <img
                                         src={`/assets/og-thumbs/blog-post-${post.id}.webp`}
-                                        alt={post.title}
+                                        alt={cleanBlogTitle(post.title)}
                                         className="w-full aspect-[1200/630] object-cover"
                                         loading="lazy"
                                         decoding="async"
@@ -414,7 +421,7 @@ export default function CityLandingPage() {
                                                 {post.topic_label}
                                             </div>
                                         )}
-                                        <h3 className="font-display text-[14px] text-[#0E1B2C] leading-snug line-clamp-2">{post.title}</h3>
+                                        <h3 className="font-display text-[14px] text-[#0E1B2C] leading-snug line-clamp-2">{cleanBlogTitle(post.title)}</h3>
                                     </div>
                                 </Link>
                             ))}

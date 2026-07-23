@@ -79,17 +79,41 @@ function formatDate(iso) {
     return new Date(iso).toLocaleDateString("en-IN", { day: "numeric", month: "long", year: "numeric" });
 }
 
+// 51 of 150 posts (title or title_en) have a redundant "| The Financial
+// Doctor" baked into the stored title text itself — already stripped for
+// the share-card images (generate_blog_post_share_cards.py's clean_title)
+// but never for the actual on-page title, so it rendered raw in the H1,
+// list cards, <title>, schema, and share captions. Same cleanup here,
+// applied once in pickTitle so every one of those call sites gets it.
+function cleanTitle(title) {
+    return String(title || "").replace(/\s*\|\s*The Financial Doctor\s*$/i, "").trim();
+}
+
 // English fields (title_en/body_en) only exist when lang === "en" AND the
 // post actually has them populated; every other state (hi, hinglish, or a
 // post missing its English version) falls back to the original title/body,
 // which is the Hinglish version already live on the site.
 function pickTitle(post, lang) {
-    if (lang === "en" && post.title_en) return post.title_en;
-    return post.title;
+    if (lang === "en" && post.title_en) return cleanTitle(post.title_en);
+    return cleanTitle(post.title);
 }
 function pickBody(post, lang) {
     if (lang === "en" && post.body_en) return post.body_en;
     return post.body;
+}
+
+// The list view (cards + search) only ever shows a short excerpt, never
+// the full article — the list API call now fetches with `light=1` (see
+// the effect below), which omits body/body_en entirely to cut the
+// response from ~1.2MB to a fraction of that. meta_description is a
+// proper summary already generated for every post and ships either way,
+// so it's the right source for both the card preview and search matching
+// now that body isn't available on this data set. Falls back to pickBody
+// for any context that DOES have the full post (detail view, once
+// fetched individually).
+function pickPreview(post, lang) {
+    if (post.meta_description) return post.meta_description;
+    return pickBody(post, lang);
 }
 
 // The shared URL carries ?lang=en when the reader is in English mode, so
@@ -298,7 +322,7 @@ function BlogCard({ p, lang }) {
         <a href={`/blog/${p.id}`} className="card-cream p-4 flex flex-col hover:bg-[#F6F1E8] transition-colors">
             <span className="text-[10px] uppercase tracking-[0.16em] text-[#024396] font-semibold mb-1.5">{p.topic_label}</span>
             <h2 className="font-display text-[15px] text-[#0E1B2C] leading-snug mb-1.5 line-clamp-2">{pickTitle(p, lang)}</h2>
-            <p className="text-[13px] text-[#2A364B]/70 leading-relaxed line-clamp-2 flex-1">{pickBody(p, lang)}</p>
+            <p className="text-[13px] text-[#2A364B]/70 leading-relaxed line-clamp-2 flex-1">{pickPreview(p, lang)}</p>
             <div className="flex items-center justify-between mt-3 pt-2.5 border-t border-[#E2D8C2] text-[11px] text-[#5C677D]">
                 <span className="flex items-center gap-1"><User size={10} /> {p.author_name}</span>
                 <span>{formatDate(p.published_at)}</span>
@@ -312,7 +336,7 @@ function BlogList({ posts, loading, lang, category, onCategoryChange, page, onPa
     const filtered = useMemo(() => {
         if (!terms.length) return posts;
         return posts.filter((p) => {
-            const hay = `${pickTitle(p, lang)} ${pickBody(p, lang)}`.toLowerCase();
+            const hay = `${pickTitle(p, lang)} ${pickPreview(p, lang)}`.toLowerCase();
             return terms.every((t) => hay.includes(t));
         });
         // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -731,10 +755,16 @@ export default function PublicBlog() {
     // network cost — category filtering now works the same way (see
     // `categoryPosts` below), so the network is only ever hit once per
     // visit and every subsequent category click is instant.
+    //
+    // `light=1` additionally drops body/body_en from the response — the
+    // list view never shows full article text (see pickPreview, which
+    // uses meta_description instead), so shipping all 150 posts' full
+    // bilingual bodies here (measured ~1.2MB) was pure waste. The detail
+    // view fetches one full post individually below, unaffected.
     useEffect(() => {
         if (contentId) return undefined;
         setLoading(true);
-        fetch(`${API_BASE}/api/internship/public/content?content_type=blog&limit=200`)
+        fetch(`${API_BASE}/api/internship/public/content?content_type=blog&limit=200&light=1`)
             .then((r) => (r.ok ? r.json() : []))
             .then((d) => setPosts(Array.isArray(d) ? d : []))
             .catch(() => setPosts([]))

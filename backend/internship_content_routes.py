@@ -214,7 +214,12 @@ async def admin_review_content(content_id: str, data: ContentReviewIn, admin: di
 # ── Public (no auth) — what the real website reads ──────────────────────
 
 @router.get("/public/content", response_model=list[PublicContentOut])
-async def public_list_content(content_type: str = Query(default="blog"), topic: str | None = Query(default=None), limit: int = Query(default=30, le=300)):
+async def public_list_content(
+    content_type: str = Query(default="blog"),
+    topic: str | None = Query(default=None),
+    limit: int = Query(default=30, le=300),
+    light: bool = Query(default=False, description="Omit body/body_en (list views only ever show title + meta_description; full body is only needed on a single post's detail view)"),
+):
     query = {"status": "published", "content_type": content_type}
     if topic:
         query["topic"] = topic
@@ -223,11 +228,12 @@ async def public_list_content(content_type: str = Query(default="blog"), topic: 
     async for doc in cursor:
         out.append(PublicContentOut(
             id=doc["id"], content_type=doc["content_type"], topic=doc["topic"],
-            topic_label=TOPIC_LABELS.get(doc["topic"], doc["topic"]), title=doc["title"], body=doc["body"],
+            topic_label=TOPIC_LABELS.get(doc["topic"], doc["topic"]), title=doc["title"],
+            body="" if light else doc["body"],
             author_name=doc["student_name"], product_link=doc.get("product_link"),
             published_at=doc.get("published_at") or doc["created_at"],
             meta_description=doc.get("meta_description"), keywords=doc.get("keywords"),
-            title_en=doc.get("title_en"), body_en=doc.get("body_en"),
+            title_en=doc.get("title_en"), body_en=(None if light else doc.get("body_en")),
             hashtags=doc.get("hashtags"), date_modified=doc.get("date_modified"),
         ))
     return out
