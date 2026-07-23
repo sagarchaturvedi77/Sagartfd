@@ -13,6 +13,21 @@ import { LINKS } from "@/lib/links";
 const SITE_URL = "https://thefinancialdoctor.in";
 const CITY_PATH_PREFIX = "mutual-fund-distributor-in-";
 
+// Reuses the same accent-colour family already established across the
+// site's other bespoke pages (About/Services/Reviews/Contact/Calculators/
+// TopFunds/Partner) — cycled by each city's position in CITY_PAGES, so the
+// 47 city/state pages aren't all identically navy, without inventing a
+// clashing new palette.
+const CITY_ACCENTS = ["#024396", "#B8722E", "#0F6E5C", "#D9B15C", "#2E7FC7", "#6C63FF", "#22C55E", "#8B5CF6"];
+function accentFor(slug) {
+    const idx = CITY_PAGES.findIndex((c) => c.slug === slug);
+    return CITY_ACCENTS[(idx < 0 ? 0 : idx) % CITY_ACCENTS.length];
+}
+function hexToRgb(hex) {
+    const n = parseInt(hex.slice(1), 16);
+    return `${(n >> 16) & 255}, ${(n >> 8) & 255}, ${n & 255}`;
+}
+
 // City-templated Q&A — genuine, answerable local content (not a doorway
 // template): every question is something someone would actually type into
 // Google or ask an AI answer engine about doing business with us FROM
@@ -76,6 +91,8 @@ export default function CityLandingPage() {
 
     if (!city) return <Navigate to="/" replace />;
 
+    const accent = accentFor(city.slug);
+    const accentRgb = hexToRgb(accent);
     const isRemoteOnly = city.meetingMode.toLowerCase().startsWith("100% video") || city.meetingMode.toLowerCase().startsWith("video consultation");
     // City-specific WhatsApp message — so when someone clicks through from
     // this specific city page, the message Sagar receives already names
@@ -103,65 +120,66 @@ export default function CityLandingPage() {
             />
             <Navbar />
 
-            <section className="relative overflow-hidden bg-[#0E1B2C] pt-28 pb-0 md:pt-32 md:pb-16 px-0 md:px-6">
+            {/* Text-only hero with a per-city accent colour (see accentFor
+                above) instead of reusing the OG share-card image here — that
+                image already has its own baked-in headline/badge/button
+                text, and placing it next to this section's own live H1 just
+                duplicated the same message twice right next to each other.
+                The share card still does its job as og:image; it doesn't
+                need to also appear on the page itself. */}
+            <section className="relative overflow-hidden bg-[#0E1B2C] pt-28 pb-14 md:pt-32 md:pb-16 px-6">
                 <div
                     aria-hidden
                     className="fund-animate-in absolute -top-24 -right-32 w-[420px] h-[420px] rounded-full opacity-30 blur-3xl"
-                    style={{ background: "radial-gradient(circle at center, rgba(2,67,150,0.55) 0%, transparent 65%)" }}
+                    style={{ background: `radial-gradient(circle at center, rgba(${accentRgb},0.55) 0%, transparent 65%)` }}
                 />
-                {/* Genuinely different structure, not a resized column: on
-                    mobile the city banner leads full-bleed at the very top
-                    (an app-like "cover image" moment), text follows below;
-                    on desktop they sit side by side with text taking the
-                    lead position on the left. */}
-                <div className="container-x relative grid md:grid-cols-[1.1fr,0.9fr] md:gap-10 md:items-center">
-                    <img
-                        src={`/assets/og/city-${city.slug}.png`}
-                        alt={`The Financial Doctor in ${city.name}`}
-                        className="order-1 md:order-2 w-full aspect-[1200/630] object-cover md:rounded-2xl md:border md:border-[#2A364B]"
-                        loading="eager"
-                        width={1200}
-                        height={630}
-                    />
-                    <div className="order-2 md:order-1 px-6 md:px-0 pt-6 md:pt-0 pb-14 md:pb-0">
-                        <div className="fund-animate-in inline-flex items-center gap-2 px-3 py-1 rounded-full border border-[#2A364B] bg-[#0E1B2C]/60 text-[11px] tracking-[0.18em] uppercase text-[#8FB7E8] font-semibold">
-                            <MapPin size={13} /> {city.name}, {city.state}
+                <div className="container-x relative max-w-3xl">
+                    <div
+                        className="fund-animate-in inline-flex items-center gap-2 px-3 py-1 rounded-full border bg-[#0E1B2C]/60 text-[11px] tracking-[0.18em] uppercase font-semibold"
+                        style={{ borderColor: `rgba(${accentRgb},0.5)`, color: accent }}
+                    >
+                        <MapPin size={13} /> {city.name}, {city.state}
+                    </div>
+                    <h1 className="fund-animate-in fund-animate-in-delay-1 font-display text-3xl sm:text-4xl md:text-5xl text-[#F6F1E8] mt-5 leading-tight">
+                        Mutual fund advisory in {city.name} — <span className="font-italic-serif" style={{ color: accent }}>{city.heroLine}.</span>
+                    </h1>
+                    <p className="fund-animate-in fund-animate-in-delay-2 mt-4 text-[#F6F1E8]/75 text-[15px] sm:text-base max-w-2xl leading-relaxed">
+                        {city.intro}
+                    </p>
+                    {city.cultureLine && (
+                        <div className="fund-animate-in fund-animate-in-delay-2 mt-5 flex gap-2.5 max-w-xl border-l-2 pl-4 py-0.5" style={{ borderColor: accent }}>
+                            <Quote size={15} className="shrink-0 mt-0.5" style={{ color: accent }} />
+                            <p className="font-italic-serif text-[15px] sm:text-base leading-snug" style={{ color: accent }}>
+                                {city.cultureLine}
+                            </p>
                         </div>
-                        <h1 className="fund-animate-in fund-animate-in-delay-1 font-display text-3xl sm:text-4xl md:text-5xl text-[#F6F1E8] mt-5 leading-tight">
-                            Mutual fund advisory in {city.name} — <span className="font-italic-serif text-[#8FB7E8]">{city.heroLine}.</span>
-                        </h1>
-                        <p className="fund-animate-in fund-animate-in-delay-2 mt-4 text-[#F6F1E8]/75 text-[15px] sm:text-base leading-relaxed">
-                            {city.intro}
-                        </p>
-                        {city.cultureLine && (
-                            <div className="fund-animate-in fund-animate-in-delay-2 mt-5 flex gap-2.5 border-l-2 border-[#D8B98A] pl-4 py-0.5">
-                                <Quote size={15} className="text-[#D8B98A] shrink-0 mt-0.5" />
-                                <p className="font-italic-serif text-[#D8B98A] text-[15px] sm:text-base leading-snug">
-                                    {city.cultureLine}
-                                </p>
-                            </div>
-                        )}
-                        <div className="fund-animate-in fund-animate-in-delay-3 flex flex-wrap gap-3 mt-7">
-                            <a href={whatsappHref} target="_blank" rel="noopener noreferrer" className="btn-pill btn-primary text-sm">
-                                Book a Free Call
-                            </a>
-                            <Link to="/about" className="btn-pill btn-ghost text-sm">
-                                About Sagar Chaturvedi
-                            </Link>
-                        </div>
-                        <div className="fund-animate-in flex flex-wrap items-center gap-x-6 gap-y-2 mt-8 text-sm text-[#F6F1E8]/70">
-                            <span><b className="text-[#F6F1E8]">1000+</b> families served</span>
-                            <span><b className="text-[#F6F1E8]">ARN-290298</b> AMFI Registered</span>
-                            <span className="inline-flex items-center gap-1.5">
-                                {isRemoteOnly ? <Video size={14} /> : <MapPin size={14} />} {city.meetingMode}
-                            </span>
-                        </div>
+                    )}
+                    <div className="fund-animate-in fund-animate-in-delay-3 flex flex-wrap gap-3 mt-7">
+                        <a
+                            href={whatsappHref}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="btn-pill text-sm text-white font-medium px-5 py-2.5 rounded-full transition-opacity hover:opacity-90"
+                            style={{ background: accent }}
+                        >
+                            Book a Free Call
+                        </a>
+                        <Link to="/about" className="btn-pill btn-ghost text-sm">
+                            About Sagar Chaturvedi
+                        </Link>
+                    </div>
+                    <div className="fund-animate-in flex flex-wrap items-center gap-x-6 gap-y-2 mt-8 text-sm text-[#F6F1E8]/70">
+                        <span><b className="text-[#F6F1E8]">1000+</b> families served</span>
+                        <span><b className="text-[#F6F1E8]">ARN-290298</b> AMFI Registered</span>
+                        <span className="inline-flex items-center gap-1.5">
+                            {isRemoteOnly ? <Video size={14} /> : <MapPin size={14} />} {city.meetingMode}
+                        </span>
                     </div>
                 </div>
             </section>
 
             <ProblemSolution
-                accent="#024396"
+                accent={accent}
                 problemLabel={`What ${city.name} investors usually face`}
                 problem={`Most financial "advisors" in and around ${city.name} are really product sellers — pushing whatever pays the highest commission that month, with no ongoing relationship once the sale closes.`}
                 solutionLabel="How we're different"
