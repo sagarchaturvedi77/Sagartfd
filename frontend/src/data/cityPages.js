@@ -15,6 +15,7 @@ export const CITY_PAGES = [
     name: "Sehore",
     kind: "city",
     state: "Madhya Pradesh",
+    lat: 23.2, lng: 77.08,
     heroLine: "our home base",
     cultureLine: "Sehore invests the way it lives — decisions made together, over chai, not alone at 11pm scrolling an app.",
     intro:
@@ -28,6 +29,7 @@ export const CITY_PAGES = [
     name: "Bhopal",
     kind: "city",
     state: "Madhya Pradesh",
+    lat: 23.26, lng: 77.41,
     heroLine: "the state capital, 40 minutes from our office",
     cultureLine: "Bhopal's Lake City pace is unhurried — and that's exactly the temperament a 15-year SIP rewards.",
     intro:
@@ -41,6 +43,7 @@ export const CITY_PAGES = [
     name: "Indore",
     kind: "city",
     state: "Madhya Pradesh",
+    lat: 22.72, lng: 75.86,
     heroLine: "MP's business hub",
     cultureLine: "Indore built its wealth on vyapar and hustle — we just help make sure some of it compounds quietly in the background too.",
     intro:
@@ -54,6 +57,7 @@ export const CITY_PAGES = [
     name: "Gwalior",
     kind: "city",
     state: "Madhya Pradesh",
+    lat: 26.22, lng: 78.18,
     heroLine: "MP's defence & education city",
     cultureLine: "Gwalior runs on discipline — parade-ground punctuality translates surprisingly well into a SIP that never misses a date.",
     intro:
@@ -67,6 +71,7 @@ export const CITY_PAGES = [
     name: "Jabalpur",
     kind: "city",
     state: "Madhya Pradesh",
+    lat: 23.18, lng: 79.99,
     heroLine: "MP's judicial & education hub",
     cultureLine: "Jabalpur values a case built on evidence, not instinct — which is exactly how we'd like every investment decision made too.",
     intro:
@@ -80,6 +85,7 @@ export const CITY_PAGES = [
     name: "Ujjain",
     kind: "city",
     state: "Madhya Pradesh",
+    lat: 23.18, lng: 75.78,
     heroLine: "temple city, small-business economy",
     cultureLine: "Ujjain understands faith and patience better than most cities — both are exactly what a long-term SIP asks of you.",
     intro:
@@ -93,6 +99,7 @@ export const CITY_PAGES = [
     name: "Dewas",
     kind: "city",
     state: "Madhya Pradesh",
+    lat: 22.97, lng: 76.05,
     heroLine: "an industrial town close to home",
     cultureLine: "Dewas's factories run on shift-schedules and steady wages — the same steadiness that makes a monthly SIP genuinely painless.",
     intro:
@@ -106,6 +113,7 @@ export const CITY_PAGES = [
     name: "Nagda",
     kind: "city",
     state: "Madhya Pradesh",
+    lat: 23.45, lng: 75.42,
     heroLine: "an industrial town on the Chambal",
     cultureLine: "Nagda's mills taught generations to save for the season ahead — mutual funds just give that same instinct a better home.",
     intro:
@@ -119,6 +127,7 @@ export const CITY_PAGES = [
     name: "Ashta",
     kind: "city",
     state: "Madhya Pradesh",
+    lat: 23.03, lng: 76.72,
     heroLine: "a market town near Sehore",
     cultureLine: "Ashta's mandi runs on patience through the season — the same patience that turns a small SIP into a real corpus over the years.",
     intro:
@@ -132,6 +141,7 @@ export const CITY_PAGES = [
     name: "Sarangpur",
     kind: "city",
     state: "Madhya Pradesh",
+    lat: 23.56, lng: 76.47,
     heroLine: "a temple town in the Malwa belt",
     cultureLine: "Sarangpur's rhythm is built around ritual and routine — the exact quality that makes a SIP date impossible to forget.",
     intro:
@@ -145,6 +155,7 @@ export const CITY_PAGES = [
     name: "Shujalpur",
     kind: "city",
     state: "Madhya Pradesh",
+    lat: 23.41, lng: 76.75,
     heroLine: "a Malwa agricultural market town",
     cultureLine: "Shujalpur's farmers and traders already think in seasons and cycles — a SIP is just that same thinking, applied to money.",
     intro:
@@ -158,6 +169,7 @@ export const CITY_PAGES = [
     name: "Vidisha",
     kind: "city",
     state: "Madhya Pradesh",
+    lat: 23.53, lng: 77.81,
     heroLine: "a historic town near Bhopal",
     cultureLine: "Vidisha has been standing for two thousand years — a reminder that the things worth building are rarely built overnight.",
     intro:
@@ -171,6 +183,7 @@ export const CITY_PAGES = [
     name: "Mumbai",
     kind: "city",
     state: "Maharashtra",
+    lat: 19.08, lng: 72.88,
     heroLine: "India's financial capital — and a genuinely remote relationship",
     cultureLine: "Mumbai never really stops moving — a SIP is the one financial decision here that's designed to run quietly while you don't.",
     intro:
@@ -184,6 +197,7 @@ export const CITY_PAGES = [
     name: "Pune",
     kind: "city",
     state: "Maharashtra",
+    lat: 18.52, lng: 73.86,
     heroLine: "IT & auto-engineering hub — over video",
     cultureLine: "Pune raised a generation on ambition and engineering precision — we just apply that same precision to the plan behind your paycheck.",
     intro:
@@ -197,6 +211,7 @@ export const CITY_PAGES = [
     name: "Nagpur",
     kind: "city",
     state: "Maharashtra",
+    lat: 21.15, lng: 79.09,
     heroLine: "central India's logistics hub — over video",
     cultureLine: "Nagpur sits at the exact centre of the country — a fitting place to build a plan that's meant to stay balanced for decades.",
     intro:
@@ -210,6 +225,7 @@ export const CITY_PAGES = [
     name: "Nashik",
     kind: "city",
     state: "Maharashtra",
+    lat: 20.0, lng: 73.79,
     heroLine: "wine country & manufacturing — over video",
     cultureLine: "Good wine and a good SIP share one secret — neither rewards impatience, both reward the years you leave them alone.",
     intro:
@@ -223,6 +239,7 @@ export const CITY_PAGES = [
     name: "Ahmedabad",
     kind: "city",
     state: "Gujarat",
+    lat: 23.02, lng: 72.57,
     heroLine: "Gujarat's business capital — over video",
     cultureLine: "Ahmedabad taught the world 'business first' — we just make sure the businessman's own household finances get the same discipline.",
     intro:
@@ -236,6 +253,7 @@ export const CITY_PAGES = [
     name: "Surat",
     kind: "city",
     state: "Gujarat",
+    lat: 21.17, lng: 72.83,
     heroLine: "diamond & textile city — over video",
     cultureLine: "A Surat diamond is cut and polished patiently over weeks — your portfolio deserves that same patient, deliberate treatment.",
     intro:
@@ -249,6 +267,7 @@ export const CITY_PAGES = [
     name: "Vadodara",
     kind: "city",
     state: "Gujarat",
+    lat: 22.31, lng: 73.19,
     heroLine: "PSU & manufacturing hub — over video",
     cultureLine: "Vadodara's cultured, unhurried pace mirrors what a good SIP actually needs — steady, not sensational.",
     intro:
@@ -262,6 +281,7 @@ export const CITY_PAGES = [
     name: "Rajkot",
     kind: "city",
     state: "Gujarat",
+    lat: 22.3, lng: 70.8,
     heroLine: "Saurashtra's manufacturing hub — over video",
     cultureLine: "Rajkot's engineers build machines that run for decades on precision — a portfolio built with the same precision compounds just as reliably.",
     intro:
@@ -275,6 +295,7 @@ export const CITY_PAGES = [
     name: "Dwarka",
     kind: "city",
     state: "Gujarat",
+    lat: 22.24, lng: 68.97,
     heroLine: "Gujarat's coastal pilgrimage town — over video",
     cultureLine: "Dwarka has stood at the edge of the sea for millennia — proof that what's built to last doesn't need to move fast.",
     intro:
@@ -288,6 +309,7 @@ export const CITY_PAGES = [
     name: "Delhi",
     kind: "city",
     state: "Delhi NCR",
+    lat: 28.7, lng: 77.1,
     heroLine: "NCR — served entirely over video",
     cultureLine: "Delhi rewards ambition loudly — SIPs are the one financial habit here that quietly rewards patience instead.",
     intro:
@@ -301,6 +323,7 @@ export const CITY_PAGES = [
     name: "Gurgaon",
     kind: "city",
     state: "Delhi NCR",
+    lat: 28.46, lng: 77.03,
     heroLine: "corporate NCR — over video",
     cultureLine: "Gurgaon's skyline went up in a decade flat — proof that fast growth is possible, but a portfolio still needs the slow kind too.",
     intro:
@@ -314,6 +337,7 @@ export const CITY_PAGES = [
     name: "Noida",
     kind: "city",
     state: "Delhi NCR",
+    lat: 28.54, lng: 77.39,
     heroLine: "IT & media hub, NCR — over video",
     cultureLine: "Noida grew up planned, sector by sector — your portfolio deserves the same deliberate layout instead of a random pile of apps.",
     intro:
@@ -327,6 +351,7 @@ export const CITY_PAGES = [
     name: "Ghaziabad",
     kind: "city",
     state: "Delhi NCR",
+    lat: 28.67, lng: 77.42,
     heroLine: "NCR's satellite city — over video",
     cultureLine: "Ghaziabad is the gateway everyone passes through — a good financial plan should be the same: the thing that gets you to everything else.",
     intro:
@@ -340,6 +365,7 @@ export const CITY_PAGES = [
     name: "Lucknow",
     kind: "city",
     state: "Uttar Pradesh",
+    lat: 26.85, lng: 80.95,
     heroLine: "UP's capital, rising corporate base — over video",
     cultureLine: "Lucknow's tehzeeb runs on unhurried grace — that same unhurried grace is exactly what a 15-year SIP is built on.",
     intro:
@@ -353,6 +379,7 @@ export const CITY_PAGES = [
     name: "Kanpur",
     kind: "city",
     state: "Uttar Pradesh",
+    lat: 26.45, lng: 80.33,
     heroLine: "UP's industrial city — over video",
     cultureLine: "Kanpur's mills ran on discipline and shift-timing for generations — the same discipline is all a SIP really asks of you.",
     intro:
@@ -366,6 +393,7 @@ export const CITY_PAGES = [
     name: "Raipur",
     kind: "city",
     state: "Chhattisgarh",
+    lat: 21.25, lng: 81.63,
     heroLine: "Chhattisgarh's steel & mining hub — over video",
     cultureLine: "Raipur's steel plants turn raw ore into something built to last — a SIP does the same to a raw monthly income, given enough years.",
     intro:
@@ -379,6 +407,7 @@ export const CITY_PAGES = [
     name: "Patna",
     kind: "city",
     state: "Bihar",
+    lat: 25.59, lng: 85.14,
     heroLine: "Bihar's capital, a growing professional base — over video",
     cultureLine: "Patna has produced generations who left home to build careers elsewhere — a portfolio should do the same: work quietly while you're busy building.",
     intro:
@@ -392,6 +421,7 @@ export const CITY_PAGES = [
     name: "Jaipur",
     kind: "city",
     state: "Rajasthan",
+    lat: 26.91, lng: 75.79,
     heroLine: "Rajasthan's capital — over video",
     cultureLine: "Jaipur's forts were built to outlast centuries — ask your portfolio for the same: built to outlast a few bad quarters.",
     intro:
@@ -405,6 +435,7 @@ export const CITY_PAGES = [
     name: "Bangalore",
     kind: "city",
     state: "Karnataka",
+    lat: 12.97, lng: 77.59,
     heroLine: "India's tech capital — over video",
     cultureLine: "Bangalore ships code that scales overnight — a portfolio scales the old-fashioned way, one disciplined month at a time.",
     intro:
@@ -418,6 +449,7 @@ export const CITY_PAGES = [
     name: "Hyderabad",
     kind: "city",
     state: "Telangana",
+    lat: 17.39, lng: 78.49,
     heroLine: "IT & pharma hub — over video",
     cultureLine: "Hyderabad's pearls were formed slowly, layer by layer — a portfolio's real value is built the exact same unglamorous way.",
     intro:
@@ -431,6 +463,7 @@ export const CITY_PAGES = [
     name: "Chennai",
     kind: "city",
     state: "Tamil Nadu",
+    lat: 13.08, lng: 80.27,
     heroLine: "manufacturing & auto hub — over video",
     cultureLine: "Chennai trusts gold because it's held its value for generations — mutual funds simply ask for the same trust, earned the same way, over time.",
     intro:
@@ -444,6 +477,7 @@ export const CITY_PAGES = [
     name: "Kolkata",
     kind: "city",
     state: "West Bengal",
+    lat: 22.57, lng: 88.36,
     heroLine: "trading & business hub — over video",
     cultureLine: "Kolkata has been a trading city for three centuries — long enough to know that real wealth is built slowly, not overnight.",
     intro:
@@ -457,6 +491,7 @@ export const CITY_PAGES = [
     name: "Ludhiana",
     kind: "city",
     state: "Punjab",
+    lat: 30.9, lng: 75.86,
     heroLine: "Punjab's manufacturing hub — over video",
     cultureLine: "Ludhiana's karobaris built empires from a single machine and a lot of grit — a SIP just asks for that same grit, applied monthly.",
     intro:

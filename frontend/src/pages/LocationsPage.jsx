@@ -6,6 +6,7 @@ import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import FloatingActions from "@/components/FloatingActions";
 import { CITY_PAGES } from "@/data/cityPages";
+import LocationsMap from "@/components/LocationsMap";
 
 const SITE_URL = "https://thefinancialdoctor.in";
 
@@ -90,6 +91,19 @@ export default function LocationsPage() {
                         <span><b className="text-[#F6F1E8]">12</b> states</span>
                         <span><b className="text-[#F6F1E8]">1000+</b> families served</span>
                     </div>
+                </div>
+            </section>
+
+            <section className="bg-[#FBF7EE] py-14 md:py-16 px-6 border-t border-[#E2D8C2]">
+                <div className="container-x max-w-3xl mx-auto text-center mb-8">
+                    <div className="text-[11px] uppercase tracking-[0.18em] text-[#5C677D] font-semibold mb-2">Where we are</div>
+                    <h2 className="font-display text-xl sm:text-2xl text-[#0E1B2C]">
+                        Sehore is home base — every pin is a real relationship, not a marketing map.
+                    </h2>
+                </div>
+                <div className="container-x max-w-3xl mx-auto">
+                    <LocationsMap cities={CITY_PAGES} />
+                    <p className="text-center text-xs text-[#8A93A6] mt-4">Hover or tap a pin for the city name — click it to open that city's page.</p>
                 </div>
             </section>
 
