@@ -66,12 +66,13 @@ export default function About({ hideHeading = false } = {}) {
                         </Reveal>
                     </div>
 
-                    <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3 mt-10">
+                    <div className="grid grid-cols-2 lg:grid-cols-3 gap-2.5 sm:gap-3 mt-10">
                         {bullets.map((b, i) => (
                             <Reveal key={b} delay={i * 50} y={16}>
-                                <div className="flex items-start gap-2.5 bg-white border border-[#E2D8C2] rounded-xl px-4 py-3.5 h-full">
-                                    <BadgeCheck size={18} className="text-[#024396] mt-0.5 shrink-0" />
-                                    <span className="text-sm text-[#2A364B]">{b}</span>
+                                <div className="flex items-start gap-2 sm:gap-2.5 bg-white border border-[#E2D8C2] rounded-xl px-2.5 sm:px-4 py-3 sm:py-3.5 h-full">
+                                    <BadgeCheck size={16} className="text-[#024396] mt-0.5 shrink-0 sm:hidden" />
+                                    <BadgeCheck size={18} className="text-[#024396] mt-0.5 shrink-0 hidden sm:block" />
+                                    <span className="text-[12.5px] sm:text-sm text-[#2A364B] leading-snug">{b}</span>
                                 </div>
                             </Reveal>
                         ))}
@@ -123,13 +124,14 @@ export default function About({ hideHeading = false } = {}) {
                         thousands of lives.
                     </p>
 
-                    <ul className="mt-7 grid sm:grid-cols-2 gap-3">
+                    <ul className="mt-7 grid grid-cols-2 gap-2.5 sm:gap-3">
                         {bullets.map((b) => (
                             <li
                                 key={b}
-                                className="flex items-start gap-2.5 text-[15px] text-[#2A364B]"
+                                className="flex items-start gap-2 sm:gap-2.5 text-[13px] sm:text-[15px] text-[#2A364B] leading-snug"
                             >
-                                <BadgeCheck size={18} className="text-[#024396] mt-0.5 shrink-0" />
+                                <BadgeCheck size={16} className="text-[#024396] mt-0.5 shrink-0 sm:hidden" />
+                                <BadgeCheck size={18} className="text-[#024396] mt-0.5 shrink-0 hidden sm:block" />
                                 <span>{b}</span>
                             </li>
                         ))}

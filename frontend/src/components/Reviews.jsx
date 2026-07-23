@@ -440,11 +440,16 @@ export default function Reviews({ hideHeading = false } = {}) {
                         )}
                     </form>
 
-                    {/* List */}
+                    {/* List — on mobile, both variants use the same
+                        horizontal scroll-snap slider established elsewhere
+                        on the site (was CSS masonry even on mobile for the
+                        dedicated page, which meant a plain full-stack list
+                        below sm:); the dedicated page's masonry layout only
+                        kicks in at sm: and up, where there's room for it. */}
                     <div
                         className={
                             hideHeading
-                                ? "lg:col-span-7 columns-1 sm:columns-2 gap-4 space-y-4"
+                                ? "lg:col-span-7 flex overflow-x-auto snap-x snap-mandatory gap-4 -mx-6 px-6 pb-2 no-scrollbar sm:block sm:overflow-visible sm:snap-none sm:mx-0 sm:px-0 sm:pb-0 sm:columns-2 sm:gap-4 sm:space-y-4"
                                 : "lg:col-span-7 flex overflow-x-auto snap-x snap-mandatory gap-3 -mx-6 px-6 pb-2 no-scrollbar sm:grid sm:grid-cols-2 sm:gap-4 sm:overflow-visible sm:snap-none sm:mx-0 sm:px-0 sm:pb-0 content-start"
                         }
                         data-testid={IDS.reviews.list}
@@ -454,7 +459,7 @@ export default function Reviews({ hideHeading = false } = {}) {
                                 key={r.id}
                                 delay={idx * 70}
                                 y={20}
-                                className={hideHeading ? "break-inside-avoid block" : "shrink-0 w-[82%] snap-center sm:w-auto sm:shrink"}
+                                className={hideHeading ? "shrink-0 w-[82%] snap-center sm:w-auto sm:shrink sm:break-inside-avoid sm:block" : "shrink-0 w-[82%] snap-center sm:w-auto sm:shrink"}
                             >
                                 <ReviewCard r={r} />
                             </Reveal>

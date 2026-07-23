@@ -88,20 +88,20 @@ export default function Contact({ hideHeading = false } = {}) {
                         `}</style>
                     </form>
 
-                    <div className="grid sm:grid-cols-3 gap-4 mt-6">
-                        <a href="tel:+917773805794" className="flex flex-col items-center text-center gap-2 bg-[#FBF7EE] border border-[#E2D8C2] rounded-2xl p-5 hover:border-[#024396]/40 transition-colors" data-testid="contact-phone-link">
-                            <div className="w-11 h-11 rounded-xl bg-[#0E1B2C] text-[#F6F1E8] grid place-items-center"><Phone size={18} /></div>
-                            <div className="text-[10px] tracking-[0.18em] uppercase text-[#5C677D]">Phone / WhatsApp</div>
-                            <div className="font-display text-[#0E1B2C]">7773805794</div>
+                    <div className="grid grid-cols-3 gap-2 sm:gap-4 mt-6">
+                        <a href="tel:+917773805794" className="flex flex-col items-center text-center gap-1.5 sm:gap-2 bg-[#FBF7EE] border border-[#E2D8C2] rounded-2xl p-2.5 sm:p-5 hover:border-[#024396]/40 transition-colors" data-testid="contact-phone-link">
+                            <div className="w-8 h-8 sm:w-11 sm:h-11 rounded-xl bg-[#0E1B2C] text-[#F6F1E8] grid place-items-center"><Phone size={14} className="sm:hidden" /><Phone size={18} className="hidden sm:block" /></div>
+                            <div className="text-[8.5px] sm:text-[10px] tracking-[0.1em] sm:tracking-[0.18em] uppercase text-[#5C677D]">Phone / WhatsApp</div>
+                            <div className="font-display text-[#0E1B2C] text-[12px] sm:text-base">7773805794</div>
                         </a>
-                        <a href="mailto:wecare@thefinancialdoctor.in" className="flex flex-col items-center text-center gap-2 bg-[#FBF7EE] border border-[#E2D8C2] rounded-2xl p-5 hover:border-[#024396]/40 transition-colors">
-                            <div className="w-11 h-11 rounded-xl bg-[#0E1B2C] text-[#F6F1E8] grid place-items-center"><Mail size={18} /></div>
-                            <div className="text-[10px] tracking-[0.18em] uppercase text-[#5C677D]">Email</div>
-                            <div className="font-display text-[#0E1B2C] text-sm break-all">wecare@thefinancialdoctor.in</div>
+                        <a href="mailto:wecare@thefinancialdoctor.in" className="flex flex-col items-center text-center gap-1.5 sm:gap-2 bg-[#FBF7EE] border border-[#E2D8C2] rounded-2xl p-2.5 sm:p-5 hover:border-[#024396]/40 transition-colors">
+                            <div className="w-8 h-8 sm:w-11 sm:h-11 rounded-xl bg-[#0E1B2C] text-[#F6F1E8] grid place-items-center"><Mail size={14} className="sm:hidden" /><Mail size={18} className="hidden sm:block" /></div>
+                            <div className="text-[8.5px] sm:text-[10px] tracking-[0.1em] sm:tracking-[0.18em] uppercase text-[#5C677D]">Email</div>
+                            <div className="font-display text-[#0E1B2C] text-[10px] sm:text-sm break-all">wecare@thefinancialdoctor.in</div>
                         </a>
-                        <a href={LINKS.googleMaps} target="_blank" rel="noopener noreferrer" className="flex flex-col items-center text-center gap-2 bg-[#FBF7EE] border border-[#E2D8C2] rounded-2xl p-5 hover:border-[#024396]/40 transition-colors" data-testid="contact-map-link">
-                            <div className="w-11 h-11 rounded-xl bg-[#0E1B2C] text-[#F6F1E8] grid place-items-center"><MapPin size={18} /></div>
-                            <div className="text-[10px] tracking-[0.18em] uppercase text-[#5C677D]">Office — Sehore, MP</div>
+                        <a href={LINKS.googleMaps} target="_blank" rel="noopener noreferrer" className="flex flex-col items-center text-center gap-1.5 sm:gap-2 bg-[#FBF7EE] border border-[#E2D8C2] rounded-2xl p-2.5 sm:p-5 hover:border-[#024396]/40 transition-colors" data-testid="contact-map-link">
+                            <div className="w-8 h-8 sm:w-11 sm:h-11 rounded-xl bg-[#0E1B2C] text-[#F6F1E8] grid place-items-center"><MapPin size={14} className="sm:hidden" /><MapPin size={18} className="hidden sm:block" /></div>
+                            <div className="text-[8.5px] sm:text-[10px] tracking-[0.1em] sm:tracking-[0.18em] uppercase text-[#5C677D]">Office — Sehore, MP</div>
                             <span className="inline-flex items-center gap-1 text-xs text-[#024396]"><Navigation size={11} /> Get directions</span>
                         </a>
                     </div>

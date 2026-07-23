@@ -101,11 +101,11 @@ export default function Services({ hideHeading = false } = {}) {
                                 </article>
                             );
                         })}
-                        <div className="grid sm:grid-cols-2 gap-4">
+                        <div className="flex overflow-x-auto snap-x snap-mandatory gap-4 -mx-6 px-6 pb-2 no-scrollbar sm:grid sm:grid-cols-2 sm:gap-4 sm:overflow-visible sm:snap-none sm:mx-0 sm:px-0 sm:pb-0">
                             {items.slice(1).map((it, idx) => {
                                 const Icon = it.icon;
                                 return (
-                                    <Reveal key={it.title} delay={idx * 60} y={18}>
+                                    <Reveal key={it.title} delay={idx * 60} y={18} className="shrink-0 w-[85%] snap-center sm:w-auto sm:shrink">
                                         <article className="border border-[#E2D8C2] rounded-2xl p-5 flex items-start gap-4 h-full hover:border-[#024396]/40 transition-colors" data-testid={`service-card-${idx + 1}`}>
                                             <div className="w-11 h-11 rounded-xl bg-[#0E1B2C] grid place-items-center text-[#F6F1E8] shrink-0">
                                                 <Icon size={19} />
