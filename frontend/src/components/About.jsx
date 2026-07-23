@@ -56,7 +56,12 @@ export default function About({ hideHeading = false } = {}) {
                                     height={883}
                                     loading="lazy"
                                 />
-                                <div className="absolute top-3 right-3 inline-flex items-center gap-1.5 bg-[#C7102E] text-white px-2.5 py-1 rounded-full text-[11px] font-medium">
+                                {/* Top-left, not top-right — the photo itself already has
+                                    "SAGAR CHATURVEDI / CEO" baked into its top-right corner
+                                    (this badge was landing directly on top of that name), and
+                                    the bottom of the photo is a full-width contact-info bar.
+                                    Top-left is the one corner that's just clear background. */}
+                                <div className="absolute top-3 left-3 inline-flex items-center gap-1.5 bg-[#C7102E] text-white px-2.5 py-1 rounded-full text-[11px] font-medium">
                                     <Award size={12} /> Awarded
                                 </div>
                             </div>
@@ -97,7 +102,9 @@ export default function About({ hideHeading = false } = {}) {
                                 height={883}
                                 loading="lazy"
                             />
-                            <div className="absolute top-4 right-4 inline-flex items-center gap-1.5 bg-[#C7102E] text-white px-3 py-1.5 rounded-full text-xs font-medium">
+                            {/* Top-left — see note above, avoids the baked-in name text
+                                (top-right) and the contact-info bar (full-width bottom). */}
+                            <div className="absolute top-4 left-4 inline-flex items-center gap-1.5 bg-[#C7102E] text-white px-3 py-1.5 rounded-full text-xs font-medium">
                                 <Award size={14} /> Awarded
                             </div>
                         </div>

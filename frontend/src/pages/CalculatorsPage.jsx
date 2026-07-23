@@ -192,6 +192,16 @@ const DEFAULT_SEO = {
   keywords: "SIP calculator, SIP calculator online, free SIP calculator, EMI calculator, loan calculator, home loan EMI calculator, income tax calculator, income tax calculator online, lumpsum calculator, lump sum calculator, SWP calculator, systematic withdrawal plan calculator, GST calculator online, mutual fund calculator, mutual fund SIP calculator, goal based investment calculator, daily SIP calculator, step up SIP calculator, retirement calculator, inflation calculator, best SIP calculator India",
 };
 
+// Grouped into 3 real-world "tracks" instead of one flat list of 9 — how
+// someone actually thinks about the question ("how do I grow money" /
+// "how do I plan a payout or goal" / "what will this loan or tax actually
+// cost me"), not an alphabetical or menu-order dump.
+const CALC_TRACKS = [
+  { key: "grow", label: "Grow your money", accent: "#024396", ids: ["sip", "daily", "lumpsum"] },
+  { key: "plan", label: "Plan a goal or payout", accent: "#0F6E5C", ids: ["goal", "swp", "inflation"] },
+  { key: "cost", label: "Loans & tax", accent: "#B8722E", ids: ["emi", "tax", "gst"] },
+];
+
 export default function CalculatorsPage() {
   // 1. URL parameter ko read karega (jaise 'sip', 'gst', 'loan-emi')
   const { calculatorType } = useParams();
@@ -206,33 +216,34 @@ export default function CalculatorsPage() {
       <SEO title={seo.title} description={seo.description} keywords={seo.keywords} path={`/calculators${calculatorType ? `/${calculatorType}` : ""}`} />
       <Navbar />
       <main>
-        {/* PRECISION DASHBOARD HERO — deliberately distinct from the rest of
-            the site: indigo/graphite instead of brand navy, dot-grid instead
-            of soft blur blobs, tabular-numeral stat tiles instead of a photo
-            or icon — this page is a tool, so it looks like one. */}
-        <section className="relative overflow-hidden bg-[#12142A] pt-28 pb-14 md:pt-32 md:pb-16 px-6">
+        {/* TOOL HERO — on-brand navy/gold (not an off-brand indigo dashboard
+            look), still visibly distinct from every other page's hero via
+            the dot-grid texture and tabular-numeral stat tiles instead of a
+            photo, quote, or icon — a financial *instrument* panel, not a
+            SaaS product screen. */}
+        <section className="relative overflow-hidden bg-[#0E1B2C] pt-28 pb-14 md:pt-32 md:pb-16 px-6">
           <div
             aria-hidden
             className="absolute inset-0 opacity-[0.35]"
             style={{
-              backgroundImage: "radial-gradient(rgba(108,99,255,0.35) 1px, transparent 1px)",
+              backgroundImage: "radial-gradient(rgba(216,185,138,0.25) 1px, transparent 1px)",
               backgroundSize: "22px 22px",
             }}
           />
           <div
             aria-hidden
-            className="fund-animate-in absolute -top-20 right-[-10%] w-[380px] h-[380px] rounded-full opacity-25 blur-3xl"
-            style={{ background: "radial-gradient(circle at center, rgba(108,99,255,0.6) 0%, transparent 65%)" }}
+            className="fund-animate-in absolute -top-20 right-[-10%] w-[380px] h-[380px] rounded-full opacity-20 blur-3xl"
+            style={{ background: "radial-gradient(circle at center, rgba(216,185,138,0.6) 0%, transparent 65%)" }}
           />
           <div className="container-x relative grid lg:grid-cols-[1.1fr,0.9fr] gap-10 items-center">
             <div>
-              <div className="fund-animate-in inline-flex items-center gap-2 px-3 py-1 rounded-full border border-[#33375C] bg-[#1B1E3B] text-[11px] tracking-[0.18em] uppercase text-[#9C9FFF] font-semibold font-mono">
+              <div className="fund-animate-in inline-flex items-center gap-2 px-3 py-1 rounded-full border border-[#2A364B] bg-[#152238] text-[11px] tracking-[0.18em] uppercase text-[#D8B98A] font-semibold font-mono">
                 Plan · Visualise · Act
               </div>
-              <h1 className="fund-animate-in fund-animate-in-delay-1 font-display text-3xl sm:text-4xl md:text-5xl text-[#F1F1FA] mt-5 leading-tight">
-                Nine calculators. <span style={{ color: "#8B84FF" }} className="font-italic-serif">Zero guesswork.</span>
+              <h1 className="fund-animate-in fund-animate-in-delay-1 font-display text-3xl sm:text-4xl md:text-5xl text-[#F6F1E8] mt-5 leading-tight">
+                Nine calculators. <span style={{ color: "#D8B98A" }} className="font-italic-serif">Zero guesswork.</span>
               </h1>
-              <p className="fund-animate-in fund-animate-in-delay-2 mt-4 text-[#B7B8D6] text-[15px] sm:text-base max-w-xl leading-relaxed">
+              <p className="fund-animate-in fund-animate-in-delay-2 mt-4 text-[#F6F1E8]/70 text-[15px] sm:text-base max-w-xl leading-relaxed">
                 SIP, Lumpsum, SWP, Goal, EMI, Tax, GST &amp; Inflation — every number below is
                 computed live as you type, then exportable as a personalised proposal PDF.
               </p>
@@ -244,60 +255,66 @@ export default function CalculatorsPage() {
                 { label: "Tax saved, 80C", value: "₹46.8K" },
                 { label: "Goal corpus needed", value: "₹1.2Cr" },
               ].map((s) => (
-                <div key={s.label} className="bg-[#1B1E3B] border border-[#33375C] rounded-xl p-4">
-                  <div className="font-mono text-lg text-[#F1F1FA] font-semibold">{s.value}</div>
-                  <div className="text-[10.5px] text-[#8386AD] mt-1 leading-snug">{s.label}</div>
+                <div key={s.label} className="bg-[#152238] border border-[#2A364B] rounded-xl p-4">
+                  <div className="font-mono text-lg text-[#F6F1E8] font-semibold">{s.value}</div>
+                  <div className="text-[10.5px] text-[#8FA0BD] mt-1 leading-snug">{s.label}</div>
                 </div>
               ))}
             </div>
           </div>
         </section>
-        {/* 3. Hum activeType prop ke roop me calculatorType bhej rahe hain */}
         <ProblemSolution
-          accent="#6C63FF"
+          accent="#024396"
           problem="Most people invest, borrow, or plan a goal based on a rough guess — 'SIP for 10 years should be enough' — without ever running the actual numbers, then get an unpleasant surprise years later."
           solution="Nine free calculators compute the real math instantly — exact corpus, exact EMI, exact tax saved — so every decision is based on numbers you've actually seen, not a guess."
         />
 
-        {/* "PICK A CALCULATOR" CHOOSER — moved ahead of the tool itself and
-            made functional (each row/card is a real link to that
-            calculator's URL, routing into the same Calculators widget below
-            via its existing activeType prop) rather than a decorative
-            reference list that used to sit after the tool. This is what now
-            leads the page: read what a calculator does, then land straight
-            in it — not a compact tab strip first and an explanation as an
-            afterthought. Mobile: full-width stacked rows (readable
-            descriptions, not just a label); desktop: 3-col grid — both are
-            links, not just visually different containers. */}
-        <section className="bg-[#12142A] py-14 md:py-16 px-6">
+        {/* "PICK A CALCULATOR" CHOOSER — grouped into 3 real-world tracks
+            (grow / plan / cost) instead of one flat 9-item grid, each track
+            with its own accent-coloured left rail so the grouping reads at
+            a glance. Every row is still a real link to that calculator's
+            URL (routes into the same Calculators widget below via its
+            activeType prop) — this replaced a decorative reference list
+            that used to sit after the tool with something that both
+            explains AND leads straight into each calculator. */}
+        <section className="bg-[#FBF7EE] py-14 md:py-16 px-6">
           <div className="container-x max-w-5xl mx-auto">
-            <h2 className="font-display text-2xl md:text-3xl text-[#F1F1FA] mb-2 text-center">
+            <h2 className="font-display text-2xl md:text-3xl text-[#0E1B2C] mb-2 text-center">
               Which calculator do you need?
             </h2>
-            <p className="text-[#B7B8D6] text-center max-w-xl mx-auto mb-8 text-sm">
-              Tap one to jump straight into it below — your inputs stay live as you switch.
+            <p className="text-[#2A364B]/70 text-center max-w-xl mx-auto mb-10 text-sm">
+              Grouped by what you're actually trying to do — tap one to jump straight in below.
             </p>
-            <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-3">
-              {calcInfo.map((c) => {
-                const isActive = c.id === activeId;
-                return (
-                  <Link
-                    key={c.id}
-                    to={`/calculators/${c.id}`}
-                    className={`rounded-xl p-4 border transition-colors flex flex-col ${
-                      isActive
-                        ? "bg-[#6C63FF]/15 border-[#8B84FF]"
-                        : "bg-[#1B1E3B] border-[#33375C] hover:border-[#6C63FF]/50"
-                    }`}
+            <div className="grid md:grid-cols-3 gap-5">
+              {CALC_TRACKS.map((track) => (
+                <div key={track.key} className="bg-white rounded-2xl border border-[#E2D8C2] overflow-hidden">
+                  <div
+                    className="px-5 py-3 text-[11px] uppercase tracking-[0.16em] font-semibold border-b"
+                    style={{ color: track.accent, background: `${track.accent}0D`, borderColor: `${track.accent}33` }}
                   >
-                    <div className="flex items-center justify-between gap-2">
-                      <h3 className={`font-display text-[15px] ${isActive ? "text-[#F1F1FA]" : "text-[#D6D7EE]"}`}>{c.title}</h3>
-                      <ArrowRight size={14} className={isActive ? "text-[#8B84FF]" : "text-[#5B5E85]"} />
-                    </div>
-                    <p className="text-[12.5px] text-[#8386AD] leading-relaxed mt-1.5">{c.text}</p>
-                  </Link>
-                );
-              })}
+                    {track.label}
+                  </div>
+                  <div className="divide-y divide-[#E2D8C2]">
+                    {track.ids.map((id) => {
+                      const c = calcInfo.find((x) => x.id === id);
+                      const isActive = id === activeId;
+                      return (
+                        <Link
+                          key={id}
+                          to={`/calculators/${id}`}
+                          className={`flex items-start justify-between gap-3 px-5 py-4 transition-colors ${isActive ? "bg-[#F6F1E8]" : "hover:bg-[#FBF7EE]"}`}
+                        >
+                          <div>
+                            <h3 className="font-display text-[15px] text-[#0E1B2C]">{c.title}</h3>
+                            <p className="text-[12.5px] text-[#2A364B]/70 leading-relaxed mt-1">{c.text}</p>
+                          </div>
+                          <ArrowRight size={14} className="shrink-0 mt-1" style={{ color: track.accent }} />
+                        </Link>
+                      );
+                    })}
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
         </section>
