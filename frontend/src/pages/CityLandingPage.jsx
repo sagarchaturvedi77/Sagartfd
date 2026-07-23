@@ -1,6 +1,6 @@
-import React from "react";
+import React, { useState } from "react";
 import { useParams, Navigate, Link } from "react-router-dom";
-import { MapPin, Video, ShieldCheck, TrendingUp, Calculator, BookOpen, Quote, HeartPulse, Car, FileCheck2, PhoneCall, ClipboardList, LineChart } from "lucide-react";
+import { MapPin, Video, ShieldCheck, TrendingUp, Calculator, BookOpen, Quote, HeartPulse, Car, FileCheck2, PhoneCall, ClipboardList, LineChart, Share2, Linkedin, Check } from "lucide-react";
 import SEO from "@/components/SEO";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
@@ -337,9 +337,97 @@ export default function CityLandingPage() {
 
             <FAQSection title={`${city.name} — Frequently Asked Questions`} data={buildCityFAQ(city)} />
 
+            <CityShareSection city={city} pageUrl={`${SITE_URL}/mutual-fund-distributor-in-${city.slug}`} />
+
             <Footer />
             <FloatingActions />
         </div>
+    );
+}
+
+// Same share pattern as the blog's ShareSection (PublicBlog.jsx) — WhatsApp
+// and Telegram get real share intents; LinkedIn's own share window doesn't
+// reliably attach anything, so it copies a caption first and opens LinkedIn
+// after; Instagram has no web share-intent at all, so it copies a caption
+// only. The shared URL and its og:image (this city's own card, with the
+// distinct per-city accent colour) come from CityLandingPage's own SEO tag.
+function CityShareSection({ city, pageUrl }) {
+    const [copiedFor, setCopiedFor] = useState(null);
+    const caption = `${city.name} — Mutual Fund & Insurance Advisory | The Financial Doctor\n\nAMFI Registered (ARN-290298) — mutual funds, SIP, term/health/motor insurance and a free portfolio review, now available in ${city.name}.\n${pageUrl}\n\nInstagram: ${LINKS.instagram}\nLinkedIn: ${LINKS.linkedin}\nYouTube: ${LINKS.youtube}`;
+    const captionNoUrl = caption.replace(`${pageUrl}\n\n`, "");
+
+    const whatsappHref = `https://wa.me/?text=${encodeURIComponent(`${city.name} — Mutual Fund & Insurance Advisory | The Financial Doctor\n${pageUrl}`)}`;
+    const telegramHref = `https://t.me/share/url?url=${encodeURIComponent(pageUrl)}&text=${encodeURIComponent(captionNoUrl)}`;
+    const linkedinHref = `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(pageUrl)}`;
+
+    const copyThenOpen = async (text, key, href) => {
+        try {
+            await navigator.clipboard.writeText(text);
+            setCopiedFor(key);
+            setTimeout(() => setCopiedFor(null), 4000);
+        } catch {
+            // clipboard blocked — still open the share window below
+        }
+        window.open(href, "_blank", "noopener,noreferrer");
+    };
+
+    const copyForInstagram = async () => {
+        try {
+            await navigator.clipboard.writeText(caption);
+            setCopiedFor("instagram");
+            setTimeout(() => setCopiedFor(null), 2500);
+        } catch {
+            // clipboard blocked
+        }
+    };
+
+    return (
+        <section className="bg-white py-14 md:py-16 px-6 border-t border-[#E2D8C2]">
+            <div className="container-x max-w-4xl mx-auto">
+                <div className="text-[11px] uppercase tracking-[0.18em] text-[#5C677D] font-semibold mb-3">
+                    Share the {city.name} page
+                </div>
+                <div className="flex flex-wrap gap-2.5">
+                    <a
+                        href={whatsappHref}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-2 text-xs font-medium text-white bg-[#25D366] hover:brightness-105 px-4 py-2 rounded-full transition-all"
+                    >
+                        <Share2 size={13} /> Share on WhatsApp
+                    </a>
+                    <a
+                        href={telegramHref}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-2 text-xs font-medium text-white bg-[#26A5E4] hover:brightness-105 px-4 py-2 rounded-full transition-all"
+                    >
+                        Share on Telegram
+                    </a>
+                    <button
+                        onClick={(e) => {
+                            e.preventDefault();
+                            copyThenOpen(caption, "linkedin", linkedinHref);
+                        }}
+                        className="inline-flex items-center gap-2 text-xs font-medium text-white bg-[#0A66C2] hover:brightness-110 px-4 py-2 rounded-full transition-all"
+                    >
+                        {copiedFor === "linkedin" ? <Check size={13} /> : <Linkedin size={13} />}
+                        {copiedFor === "linkedin" ? "Caption & link copied — paste in the post" : "Share on LinkedIn"}
+                    </button>
+                    <button
+                        onClick={copyForInstagram}
+                        className="inline-flex items-center gap-2 text-xs font-medium text-white bg-gradient-to-tr from-[#FEDA75] via-[#D62976] to-[#4F5BD5] hover:brightness-105 px-4 py-2 rounded-full transition-all"
+                    >
+                        {copiedFor === "instagram" ? <Check size={13} /> : null}
+                        {copiedFor === "instagram" ? "Caption copied — paste on Instagram" : "Share on Instagram"}
+                    </button>
+                </div>
+                <p className="text-[11px] text-[#8A93A6] mt-2.5">
+                    Shares this page with its own title and {city.name}-specific image — WhatsApp/Telegram unfurl it
+                    automatically; LinkedIn and Instagram copy a ready caption since neither reliably attaches one on their own.
+                </p>
+            </div>
+        </section>
     );
 }
 
