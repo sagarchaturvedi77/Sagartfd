@@ -418,6 +418,27 @@ function BlogList({ posts, loading, lang, category, onCategoryChange, page, onPa
 
 const SITE_URL = "https://thefinancialdoctor.in";
 
+// Every other page type (Home, About, Services, Calculators, city pages)
+// passes a real `keywords` prop to <SEO> — the blog never did, so none of
+// the 150 post pages (or the list page) ever had a <meta name="keywords">
+// tag at all. Builds one from the post's own topic/hashtags/title words
+// plus the same brand terms used elsewhere, rather than a single generic
+// string repeated on every post.
+function pickKeywords(post) {
+    const base = ["mutual fund advisor", "SIP", "financial planning", "Sagar Chaturvedi", "The Financial Doctor", "ARN-290298", "AMFI registered mutual fund distributor"];
+    if (!post) return base.join(", ");
+    const topicWords = (post.topic_label || "").split(/\s+/).filter(Boolean);
+    const hashtagWords = Array.isArray(post.hashtags) ? post.hashtags.map((h) => h.replace(/^#/, "")) : [];
+    // A handful of the post's own title words add real per-article
+    // specificity without needing separate hand-authored keywords per post.
+    const titleWords = (post.title || "")
+        .replace(/[^\w\s]/g, "")
+        .split(/\s+/)
+        .filter((w) => w.length > 3)
+        .slice(0, 6);
+    return Array.from(new Set([...topicWords, ...hashtagWords, ...titleWords, ...base])).join(", ");
+}
+
 // BlogPosting structured data (JSON-LD) for the article detail view only --
 // same dynamic head-tag injection pattern as SEO.jsx / FAQSection.jsx
 // (plain DOM mutation on mount/update, no react-helmet dependency).
@@ -437,6 +458,9 @@ function useBlogPostingSchema(post, lang) {
             "@type": "BlogPosting",
             headline: title,
             description,
+            keywords: pickKeywords(post),
+            articleSection: post.topic_label || undefined,
+            inLanguage: lang === "en" ? "en" : "hi-Latn",
             image: {
                 "@type": "ImageObject",
                 url: shareImageFor(post),
@@ -457,6 +481,15 @@ function useBlogPostingSchema(post, lang) {
                 logo: {
                     "@type": "ImageObject",
                     url: `${SITE_URL}/assets/logos/TFD-MAIN-LOGO.webp`,
+                },
+                // Same service area as PersonSchema.jsx / the local business
+                // schema on city pages — reinforces the location signal on
+                // every one of the 150 posts, not just the About/city pages.
+                address: {
+                    "@type": "PostalAddress",
+                    addressLocality: "Sehore",
+                    addressRegion: "Madhya Pradesh",
+                    addressCountry: "IN",
                 },
             },
             mainEntityOfPage: {
@@ -695,6 +728,7 @@ export default function PublicBlog() {
             <SEO
                 title={contentId ? (detail ? `The Financial Doctor | ${pickTitle(detail, lang)}` : "The Financial Doctor | Article") : "The Financial Doctor | Blog — Mutual Funds, SIP & Financial Planning"}
                 description={contentId ? ((detail && detail.meta_description) || "Practical guides on SIP, lumpsum, SWP, tax-saving, and financial planning — written and reviewed for The Financial Doctor's investors.") : "Practical guides on SIP, lumpsum, SWP, tax-saving, and financial planning — written and reviewed for The Financial Doctor's investors."}
+                keywords={contentId ? pickKeywords(detail) : "mutual fund blog, SIP blog, financial planning blog India, Sagar Chaturvedi blog, The Financial Doctor blog, mutual fund advisor Sehore, mutual fund advisor Madhya Pradesh, ARN-290298"}
                 path={contentId ? `/blog/${contentId}` : "/blog"}
                 ogImage={contentId ? shareImageFor(detail) : undefined}
             />
