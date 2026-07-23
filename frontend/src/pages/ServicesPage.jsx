@@ -225,7 +225,7 @@ export default function ServicesPage() {
       <SEO
         title="The Financial Doctor | Mutual Fund & Insurance Services"
         description="Our services — Mutual Fund investment advisory, SIP planning, Term Insurance, Health Insurance, Motor Insurance, and complete financial planning under one roof."
-        keywords="term insurance plan, health insurance policy, motor insurance, car insurance, two wheeler insurance, life insurance, best insurance advisor, mutual fund advisor, mutual fund distributor, mutual fund distributor near me, best mutual fund advisor, SIP advisor, mutual funds, mutual fund, mutal fund, mutualfund, HDFC Mutual Fund, ICICI Prudential Mutual Fund, SBI Mutual Fund, Axis Mutual Fund, Nippon India Mutual Fund, Kotak Mutual Fund, Aditya Birla Sun Life Mutual Fund, UTI Mutual Fund, DSP Mutual Fund, Franklin Templeton Mutual Fund, Tata Mutual Fund, Mirae Asset Mutual Fund, Motilal Oswal Mutual Fund, Invesco Mutual Fund"
+        keywords="term insurance plan, health insurance policy, motor insurance, car insurance, two wheeler insurance, life insurance, best insurance advisor, insurance agent near me, mutual fund advisor, mutual fund distributor, mutual fund distributor near me, mutual fund agent near me, mutual fund agent, SIP agent, mutual fund consultant, best mutual fund advisor, SIP advisor, mutual funds, mutual fund, mutal fund, mutualfund, HDFC Mutual Fund, ICICI Prudential Mutual Fund, SBI Mutual Fund, Axis Mutual Fund, Nippon India Mutual Fund, Kotak Mutual Fund, Aditya Birla Sun Life Mutual Fund, UTI Mutual Fund, DSP Mutual Fund, Franklin Templeton Mutual Fund, Tata Mutual Fund, Mirae Asset Mutual Fund, Motilal Oswal Mutual Fund, Invesco Mutual Fund"
         path="/services"
       />
       <Navbar />

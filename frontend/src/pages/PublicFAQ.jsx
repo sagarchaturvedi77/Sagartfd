@@ -1,5 +1,5 @@
-import React, { useEffect, useMemo, useState } from "react";
-import { Search, ChevronDown, ArrowRight } from "lucide-react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
+import { Search, ChevronDown, ArrowRight, Link as LinkIcon, Check } from "lucide-react";
 import SEO from "@/components/SEO";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
@@ -7,6 +7,18 @@ import FloatingActions from "@/components/FloatingActions";
 import { FAQ_INDEX, FAQ_SOURCES } from "@/lib/faqIndex";
 
 const PAGE_SIZE = 8;
+
+// Resolves the current `window.location.hash` (if any) to its position in
+// the FULL FAQ_INDEX — not the currently filtered/searched `results` — so
+// a deep link always finds its target even if a leftover search query or
+// category filter would otherwise hide it.
+function findHashMatch() {
+    const hash = decodeURIComponent(window.location.hash || "").replace(/^#/, "");
+    if (!hash) return null;
+    const idx = FAQ_INDEX.findIndex((item) => item.id === hash);
+    if (idx === -1) return null;
+    return { idx, page: Math.floor(idx / PAGE_SIZE), indexInPage: idx % PAGE_SIZE };
+}
 
 function matchScore(text, terms) {
     const lower = (text || "").toLowerCase();
@@ -44,6 +56,10 @@ export default function PublicFAQ() {
     const [category, setCategory] = useState("all");
     const [openIndex, setOpenIndex] = useState(null);
     const [page, setPage] = useState(0);
+    const [copiedId, setCopiedId] = useState(null);
+    // Set only when a hash deep-link opened an item — cleared right after the
+    // scroll fires — so we never re-scroll on ordinary clicks/pagination.
+    const pendingScrollId = useRef(null);
 
     const terms = query.trim().toLowerCase().split(/\s+/).filter(Boolean);
     const isSearching = terms.length > 0;
@@ -65,6 +81,64 @@ export default function PublicFAQ() {
 
     useFaqIndexSchema();
 
+    // Deep-link on load: if the URL already points at a specific question
+    // (e.g. someone clicked through from a Google/AI-engine answer built
+    // from our FAQPage schema), clear any search/filter that would hide it,
+    // jump to the page it lives on, and open it.
+    useEffect(() => {
+        const match = findHashMatch();
+        if (!match) return;
+        setQuery("");
+        setCategory("all");
+        setPage(match.page);
+        setOpenIndex(match.indexInPage);
+        pendingScrollId.current = FAQ_INDEX[match.idx].id;
+        // Runs once on mount only — this is the initial-load deep link;
+        // subsequent hash changes are handled by the listener below.
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
+
+    // Also react to in-page hash changes (e.g. a "copy link" click on this
+    // same page, or the user editing the URL fragment directly) without
+    // requiring a full reload.
+    useEffect(() => {
+        const onHashChange = () => {
+            const match = findHashMatch();
+            if (!match) return;
+            setQuery("");
+            setCategory("all");
+            setPage(match.page);
+            setOpenIndex(match.indexInPage);
+            pendingScrollId.current = FAQ_INDEX[match.idx].id;
+        };
+        window.addEventListener("hashchange", onHashChange);
+        return () => window.removeEventListener("hashchange", onHashChange);
+    }, []);
+
+    // After the matched page/item state has committed and the DOM reflects
+    // the newly-opened answer, scroll it into view.
+    useEffect(() => {
+        if (!pendingScrollId.current) return undefined;
+        const id = pendingScrollId.current;
+        const t = setTimeout(() => {
+            const el = document.getElementById(id);
+            if (el) el.scrollIntoView({ behavior: "smooth", block: "center" });
+            pendingScrollId.current = null;
+        }, 60);
+        return () => clearTimeout(t);
+    }, [page, openIndex]);
+
+    const copyLink = (e, id) => {
+        e.stopPropagation();
+        const url = `${window.location.origin}${window.location.pathname}#${id}`;
+        if (navigator.clipboard?.writeText) {
+            navigator.clipboard.writeText(url).catch(() => {});
+        }
+        window.history.replaceState(null, "", `#${id}`);
+        setCopiedId(id);
+        setTimeout(() => setCopiedId((cur) => (cur === id ? null : cur)), 1500);
+    };
+
     const onQueryChange = (v) => {
         setQuery(v);
         setPage(0);
@@ -81,7 +155,7 @@ export default function PublicFAQ() {
             <SEO
                 title="Mutual Fund & Financial Planning FAQs | The Financial Doctor"
                 description={`${FAQ_INDEX.length}+ answers on SIP, lumpsum, insurance, tax-saving and financial planning — search your question, from The Financial Doctor.`}
-                keywords="TFD FAQ, mutual fund FAQ, SIP questions answered, financial planning FAQ, term insurance FAQ, tax saving FAQ, mutual fund advisor Sehore, mutual fund advisor Madhya Pradesh, mutual fund advisor India, Sagar Chaturvedi FAQ, The Financial Doctor FAQ, AMFI registered mutual fund distributor, ARN-290298"
+                keywords="TFD FAQ, mutual fund FAQ, SIP questions answered, SIP kya hai, financial planning FAQ, term insurance FAQ, tax saving FAQ, mutual fund agent FAQ, mutual fund advisor Sehore, mutual fund advisor Madhya Pradesh, mutual fund advisor India, Sagar Chaturvedi FAQ, The Financial Doctor FAQ, AMFI registered mutual fund distributor, ARN-290298"
                 path="/faq"
             />
             <Navbar />
@@ -151,7 +225,7 @@ export default function PublicFAQ() {
                             {pageItems.map((item, i) => {
                                 const isOpen = openIndex === i;
                                 return (
-                                    <div key={`${item.sourceKey}-${page}-${i}`} className="border border-[#E2D8C2] rounded-xl overflow-hidden bg-[#FBF7EE]">
+                                    <div key={item.id} id={item.id} className="border border-[#E2D8C2] rounded-xl overflow-hidden bg-[#FBF7EE] scroll-mt-24">
                                         <button
                                             onClick={() => setOpenIndex(isOpen ? null : i)}
                                             className="w-full text-left px-5 py-4 hover:bg-[#F2EAD8] transition-colors flex items-center justify-between gap-3"
@@ -160,7 +234,22 @@ export default function PublicFAQ() {
                                                 <span className="block text-[10px] uppercase tracking-wider text-[#024396] font-semibold mb-1">{item.source}</span>
                                                 <span className="font-display text-[#0E1B2C] text-sm md:text-[15px] leading-snug">{item.q}</span>
                                             </span>
-                                            <ChevronDown size={16} className={`shrink-0 text-[#024396] transition-transform ${isOpen ? "rotate-180" : ""}`} />
+                                            <span className="shrink-0 flex items-center gap-2">
+                                                <span
+                                                    role="button"
+                                                    tabIndex={0}
+                                                    onClick={(e) => copyLink(e, item.id)}
+                                                    onKeyDown={(e) => {
+                                                        if (e.key === "Enter" || e.key === " ") copyLink(e, item.id);
+                                                    }}
+                                                    aria-label="Copy link to this question"
+                                                    title="Copy link to this question"
+                                                    className="text-[#8A93A6] hover:text-[#024396] transition-colors p-1 -m-1"
+                                                >
+                                                    {copiedId === item.id ? <Check size={14} /> : <LinkIcon size={14} />}
+                                                </span>
+                                                <ChevronDown size={16} className={`text-[#024396] transition-transform ${isOpen ? "rotate-180" : ""}`} />
+                                            </span>
                                         </button>
                                         {isOpen && (
                                             <div className="px-5 py-4 bg-white">

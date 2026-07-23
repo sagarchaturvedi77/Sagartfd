@@ -460,7 +460,7 @@ const SITE_URL = "https://thefinancialdoctor.in";
 // plus the same brand terms used elsewhere, rather than a single generic
 // string repeated on every post.
 function pickKeywords(post) {
-    const base = ["mutual fund advisor", "SIP", "financial planning", "Sagar Chaturvedi", "The Financial Doctor", "ARN-290298", "AMFI registered mutual fund distributor"];
+    const base = ["mutual fund advisor", "mutual fund agent", "mutual fund distributor", "SIP", "SIP kya hai", "financial planning", "Sagar Chaturvedi", "The Financial Doctor", "ARN-290298", "AMFI registered mutual fund distributor"];
     if (!post) return base.join(", ");
     const topicWords = (post.topic_label || "").split(/\s+/).filter(Boolean);
     const hashtagWords = Array.isArray(post.hashtags) ? post.hashtags.map((h) => h.replace(/^#/, "")) : [];
