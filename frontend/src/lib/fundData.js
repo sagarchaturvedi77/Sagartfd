@@ -4,22 +4,28 @@
 // numbers. Returns (1Y/3Y/5Y CAGR) are computed from actual historical NAV,
 // never invented.
 
+// Every code below was individually re-verified against mfapi.in's live
+// meta (fund_house + scheme_category) before being added here — the
+// previous list had 14 of 15 codes mismatched against their declared
+// category/fund_house (some pointing at debt funds, a matured 2010 FMP,
+// or completely empty/delisted codes), silently showing wrong fund data
+// on the live site. See git history for the full before/after audit.
 export const MASTER_FUNDS = [
     { code: "122639", category: "Flexi Cap", fund_house: "PPFAS Mutual Fund" },
-    { code: "112939", category: "Flexi Cap", fund_house: "HDFC Mutual Fund" },
-    { code: "119841", category: "Flexi Cap", fund_house: "SBI Mutual Fund" },
-    { code: "148480", category: "Small Cap", fund_house: "Quant Mutual Fund" },
-    { code: "125497", category: "Small Cap", fund_house: "Nippon India Mutual Fund" },
-    { code: "118127", category: "Small Cap", fund_house: "HDFC Mutual Fund" },
-    { code: "120593", category: "Mid Cap", fund_house: "Axis Mutual Fund" },
-    { code: "112090", category: "Mid Cap", fund_house: "HDFC Mutual Fund" },
-    { code: "148477", category: "Mid Cap", fund_house: "Quant Mutual Fund" },
-    { code: "118989", category: "Large Cap", fund_house: "SBI Mutual Fund" },
-    { code: "120716", category: "Large Cap", fund_house: "Mirae Asset Mutual Fund" },
-    { code: "113028", category: "Large Cap", fund_house: "ICICI Prudential Mutual Fund" },
-    { code: "122313", category: "ELSS Tax Saver", fund_house: "Mirae Asset Mutual Fund" },
-    { code: "148464", category: "ELSS Tax Saver", fund_house: "Quant Mutual Fund" },
-    { code: "119775", category: "ELSS Tax Saver", fund_house: "SBI Mutual Fund" },
+    { code: "118955", category: "Flexi Cap", fund_house: "HDFC Mutual Fund" },
+    { code: "120662", category: "Flexi Cap", fund_house: "UTI Mutual Fund" },
+    { code: "125497", category: "Small Cap", fund_house: "SBI Mutual Fund" },
+    { code: "118778", category: "Small Cap", fund_house: "Nippon India Mutual Fund" },
+    { code: "125354", category: "Small Cap", fund_house: "Axis Mutual Fund" },
+    { code: "118989", category: "Mid Cap", fund_house: "HDFC Mutual Fund" },
+    { code: "119775", category: "Mid Cap", fund_house: "Kotak Mahindra Mutual Fund" },
+    { code: "127042", category: "Mid Cap", fund_house: "Motilal Oswal Mutual Fund" },
+    { code: "119598", category: "Large Cap", fund_house: "SBI Mutual Fund" },
+    { code: "118825", category: "Large Cap", fund_house: "Mirae Asset Mutual Fund" },
+    { code: "120586", category: "Large Cap", fund_house: "ICICI Prudential Mutual Fund" },
+    { code: "120592", category: "ELSS Tax Saver", fund_house: "ICICI Prudential Mutual Fund" },
+    { code: "135781", category: "ELSS Tax Saver", fund_house: "Mirae Asset Mutual Fund" },
+    { code: "120416", category: "ELSS Tax Saver", fund_house: "Invesco Mutual Fund" },
 ];
 
 export const fmtPct = (v) =>
