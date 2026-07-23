@@ -227,6 +227,7 @@ function Slider({ value, onChange, min, max, label, format, testid }) {
                 const v = Number(raw);
                 if (!isNaN(v)) onChange(v);
             }}
+            onFocus={(e) => e.target.select()}
             onBlur={(e) => {
                 let v = Number(e.target.value);
                 if (isNaN(v)) v = min ?? 0;

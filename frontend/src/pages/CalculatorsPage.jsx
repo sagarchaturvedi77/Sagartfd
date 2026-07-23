@@ -263,6 +263,64 @@ export default function CalculatorsPage() {
             </div>
           </div>
         </section>
+
+        {/* THE ACTUAL TOOL — leads the page, right after the hero, instead
+            of sitting below two sections of explanation and a chooser. The
+            widget has its own internal tab strip to switch calculators, so
+            this alone is enough to use any of the 9 without scrolling
+            further; everything below is supporting context. */}
+        <Calculators variant="public" activeType={calculatorType} hideHeading />
+
+        <div className="flex justify-center pt-6">
+          <LanguageToggle />
+        </div>
+
+        <p className="text-xs text-[#2A364B]/60 text-center mt-6 px-6">
+          Note: These calculators provide estimates based on assumed rates of
+          return and are meant for planning purposes only, not guaranteed returns.
+        </p>
+
+        {/* ADVANCED FEATURES — surfaces what's actually different about
+            this tool vs a generic online calculator: real functionality
+            that already exists in the widget above (personalised
+            trilingual proposal export, the EMI interest-free-SIP
+            suggestion, live growth charts, a direct advisor QR/WhatsApp
+            link on every proposal) but was never called out anywhere on
+            the page itself. */}
+        <section className="bg-[#0E1B2C] py-14 md:py-16 px-6">
+          <div className="container-x max-w-5xl mx-auto">
+            <div className="text-center mb-10">
+              <div className="text-[11px] tracking-[0.2em] uppercase text-[#D8B98A] font-semibold">Not just a calculator</div>
+              <h2 className="font-display text-2xl md:text-3xl text-[#F6F1E8] mt-2">What makes ours different</h2>
+            </div>
+            <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              {[
+                {
+                  title: "Proposal in your language",
+                  text: "Every result exports as a personalised proposal — in Hindi, English, or Hinglish — with your own name on it, ready to share on WhatsApp in one tap.",
+                },
+                {
+                  title: "Make a loan interest-free",
+                  text: "The EMI calculator shows exactly how a parallel SIP, run alongside your loan, can grow enough to offset your total interest cost.",
+                },
+                {
+                  title: "See the growth, not just the number",
+                  text: "SIP, Lumpsum, SWP, Goal and EMI results come with a year-by-year growth chart, not just a single final figure.",
+                },
+                {
+                  title: "A direct line to your advisor",
+                  text: "Every proposal carries a QR code and WhatsApp link straight to The Financial Doctor, so acting on a number takes one tap.",
+                },
+              ].map((f) => (
+                <div key={f.title} className="bg-[#152238] border border-[#2A364B] rounded-2xl p-5">
+                  <h3 className="font-display text-[15px] text-[#F6F1E8] leading-snug">{f.title}</h3>
+                  <p className="text-[12.5px] text-[#F6F1E8]/65 leading-relaxed mt-2">{f.text}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+
         <ProblemSolution
           accent="#024396"
           problem="Most people invest, borrow, or plan a goal based on a rough guess — 'SIP for 10 years should be enough' — without ever running the actual numbers, then get an unpleasant surprise years later."
@@ -318,17 +376,6 @@ export default function CalculatorsPage() {
             </div>
           </div>
         </section>
-
-        <Calculators variant="public" activeType={calculatorType} hideHeading />
-
-        <div className="flex justify-center pt-10">
-          <LanguageToggle />
-        </div>
-
-        <p className="text-xs text-[#2A364B]/60 text-center mt-10 px-6">
-          Note: These calculators provide estimates based on assumed rates of
-          return and are meant for planning purposes only, not guaranteed returns.
-        </p>
 
         <FAQSection title="Calculators — Frequently Asked Questions" data={calcFAQ} />
       </main>

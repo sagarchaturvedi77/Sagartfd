@@ -1,5 +1,5 @@
 import "./App.css";
-import React, { lazy, Suspense, useEffect } from "react";
+import React, { lazy, Suspense, useEffect, useRef } from "react";
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
 import { Toaster } from "sonner";
 import { ModalProvider } from "./context/ModalContext";
@@ -23,7 +23,10 @@ import StudentProtectedRoute from "./portal/student/StudentProtectedRoute";
 // (`/#about`), scroll to that element instead of the top.
 function ScrollToTop() {
   const { pathname, hash } = useLocation();
+  const prevPathname = useRef(pathname);
   useEffect(() => {
+    const prevPath = prevPathname.current;
+    prevPathname.current = pathname;
     if (hash) {
       const el = document.getElementById(hash.slice(1));
       if (el) {
@@ -31,6 +34,12 @@ function ScrollToTop() {
         return;
       }
     }
+    // Switching between calculator types (/calculators/sip -> /calculators/emi)
+    // changes the URL but is really an in-page tab switch on CalculatorsPage —
+    // it shouldn't yank the visitor back to the top of the page away from the
+    // calculator widget they're actively using.
+    const isCalculatorTabSwitch = prevPath.startsWith("/calculators") && pathname.startsWith("/calculators");
+    if (isCalculatorTabSwitch) return;
     window.scrollTo({ top: 0, left: 0, behavior: "auto" });
   }, [pathname, hash]);
   return null;
