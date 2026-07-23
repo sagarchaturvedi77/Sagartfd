@@ -99,6 +99,7 @@ export default function CityLandingPage() {
                 description={`Mutual fund SIP, term/health/motor insurance, free SIP & goal calculators, and a free portfolio review for ${city.name} investors — Sagar Chaturvedi (AMFI Registered, ARN-290298), zero-bias, goal-based planning with a written proposal. Book a free call.`}
                 keywords={`mutual fund distributor ${city.name}, best mutual fund advisor ${city.name}, SIP advisor ${city.name}, term insurance ${city.name}, health insurance ${city.name}, motor insurance ${city.name}, SIP calculator ${city.name}, free portfolio review ${city.name}, financial planner ${city.state}`}
                 path={`/mutual-fund-distributor-in-${city.slug}`}
+                ogImage={`${SITE_URL}/assets/og/city-${city.slug}.png`}
             />
             <Navbar />
 

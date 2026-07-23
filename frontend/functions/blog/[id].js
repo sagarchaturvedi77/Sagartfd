@@ -14,7 +14,19 @@
 // CityLandingPage.jsx); no Pages env var plumbing exists for this yet.
 const BACKEND_BASE = "https://sagartfd.onrender.com";
 const SITE_URL = "https://thefinancialdoctor.in";
-const OG_IMAGE = `${SITE_URL}/assets/og/blog-share-card.png`;
+
+// One share image per topic (see backend/scripts/generate_topic_share_cards.py)
+// instead of a single generic card reused for all 150 posts — a SIP post
+// looks visibly different from a tax-saving or market-history one when shared.
+const KNOWN_TOPICS = new Set([
+  "sip", "lumpsum", "swp", "financial_planning", "term_insurance",
+  "health_insurance", "elss_tax_saving", "retirement_planning",
+  "general_investing", "awareness", "brand_comparison", "other",
+]);
+function ogImageFor(post) {
+  const topic = KNOWN_TOPICS.has(post.topic) ? post.topic : "other";
+  return `${SITE_URL}/assets/og/blog-${topic}.png`;
+}
 
 // Every major share-preview/link-unfurl bot. Deliberately excludes
 // Googlebot — Google's own crawler DOES execute JS and reads the final
@@ -42,6 +54,7 @@ function pickDescription(post, lang) {
 function botHtml(post, lang, pageUrl) {
   const title = `${escapeHtml(pickTitle(post, lang))} | The Financial Doctor`;
   const description = escapeHtml(pickDescription(post, lang));
+  const image = ogImageFor(post);
   return `<!DOCTYPE html>
 <html lang="${lang === "en" ? "en" : "hi"}">
 <head>
@@ -54,14 +67,14 @@ function botHtml(post, lang, pageUrl) {
 <meta property="og:title" content="${title}" />
 <meta property="og:description" content="${description}" />
 <meta property="og:url" content="${escapeHtml(pageUrl)}" />
-<meta property="og:image" content="${OG_IMAGE}" />
+<meta property="og:image" content="${image}" />
 <meta property="og:image:width" content="1200" />
 <meta property="og:image:height" content="630" />
 <meta property="article:author" content="Sagar Chaturvedi" />
 <meta name="twitter:card" content="summary_large_image" />
 <meta name="twitter:title" content="${title}" />
 <meta name="twitter:description" content="${description}" />
-<meta name="twitter:image" content="${OG_IMAGE}" />
+<meta name="twitter:image" content="${image}" />
 </head>
 <body>
 <h1>${title}</h1>

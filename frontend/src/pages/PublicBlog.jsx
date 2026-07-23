@@ -47,13 +47,17 @@ const CTA_LABELS = {
     brand_comparison: "Meet The Financial Doctor",
 };
 
-// Branded share card (logo, founder photo, hook line, ARN, URL — see
-// backend/scripts/generate_share_card.py) used as og:image. This constant
-// is what Google's JS-executing crawler reads via SEO.jsx's client-side
-// tag. Non-JS share bots (WhatsApp/LinkedIn/Instagram/etc.) never see this
-// path at all — they're served a separate, pre-rendered HTML response by
-// functions/blog/[id].js at the edge, which sets the same image directly.
-const SHARE_IMAGE = "https://thefinancialdoctor.in/assets/og/blog-share-card.png";
+// One share card per topic (see backend/scripts/generate_topic_share_cards.py)
+// instead of a single generic image reused for all 150 posts. This is what
+// Google's JS-executing crawler reads via SEO.jsx's client-side tag — non-JS
+// share bots (WhatsApp/LinkedIn/Instagram/etc.) never see this path at all,
+// they're served a separate pre-rendered response by functions/blog/[id].js
+// at the edge, which picks the same per-topic image directly.
+const DEFAULT_SHARE_IMAGE = "https://thefinancialdoctor.in/assets/og/blog-other.png";
+function shareImageFor(post) {
+    if (!post?.topic) return DEFAULT_SHARE_IMAGE;
+    return `https://thefinancialdoctor.in/assets/og/blog-${post.topic}.png`;
+}
 
 function formatDate(iso) {
     if (!iso) return "";
@@ -646,7 +650,7 @@ export default function PublicBlog() {
                 title={contentId ? (detail ? `${pickTitle(detail, lang)} | The Financial Doctor` : "Article | The Financial Doctor") : "Blog — Mutual Funds, SIP & Financial Planning | The Financial Doctor"}
                 description={contentId ? ((detail && detail.meta_description) || "Practical guides on SIP, lumpsum, SWP, tax-saving, and financial planning — written and reviewed for The Financial Doctor's investors.") : "Practical guides on SIP, lumpsum, SWP, tax-saving, and financial planning — written and reviewed for The Financial Doctor's investors."}
                 path={contentId ? `/blog/${contentId}` : "/blog"}
-                ogImage={contentId ? SHARE_IMAGE : undefined}
+                ogImage={contentId ? shareImageFor(detail) : undefined}
             />
             <Navbar />
             {/* Mobile-only toolbar, in normal document flow (not floating
