@@ -65,7 +65,7 @@ export default function SearchPage() {
     return (
         <div className="relative" data-testid="search-page-root">
             <SEO
-                title={q ? `"${q}" — Search Results | The Financial Doctor` : "Search | The Financial Doctor"}
+                title={q ? `The Financial Doctor | "${q}" — Search Results` : "The Financial Doctor | Search"}
                 description="Search The Financial Doctor's FAQs and blog for answers on mutual funds, SIP, insurance, and financial planning."
                 path="/search"
             />

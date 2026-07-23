@@ -1,6 +1,6 @@
 import React from "react";
 import { Link } from "react-router-dom";
-import { Instagram, Youtube, Linkedin, MessageCircle, Sparkles, ShieldCheck, MapPin, Star } from "lucide-react";
+import { Instagram, Youtube, Linkedin, MessageCircle, ShieldCheck, MapPin, Star } from "lucide-react";
 import { LINKS } from "@/lib/links";
 
 const LOGO_URL = "/assets/logos/TFD-MAIN-LOGO.webp";
@@ -44,17 +44,6 @@ export default function Footer() {
                             1st Floor, above SK Finance, Sekdakhedi Road, New Bus Stand,
                             Sehore, MP – 466001
                         </span>
-                    </a>
-                    <a
-                        href="#ai-chat"
-                        onClick={(e) => {
-                            e.preventDefault();
-                            window.dispatchEvent(new CustomEvent("tfd:open-ai-chat"));
-                        }}
-                        className="inline-flex items-center gap-2 mt-5 text-sm text-[#C7102E] hover:text-[#F6F1E8]"
-                        data-testid="footer-ai-chat-link"
-                    >
-                        <Sparkles size={14} /> Ask TFD-AI anything
                     </a>
                 </div>
 

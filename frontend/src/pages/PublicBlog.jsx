@@ -659,7 +659,7 @@ export default function PublicBlog() {
     return (
         <div className="relative">
             <SEO
-                title={contentId ? (detail ? `${pickTitle(detail, lang)} | The Financial Doctor` : "Article | The Financial Doctor") : "Blog — Mutual Funds, SIP & Financial Planning | The Financial Doctor"}
+                title={contentId ? (detail ? `The Financial Doctor | ${pickTitle(detail, lang)}` : "The Financial Doctor | Article") : "The Financial Doctor | Blog — Mutual Funds, SIP & Financial Planning"}
                 description={contentId ? ((detail && detail.meta_description) || "Practical guides on SIP, lumpsum, SWP, tax-saving, and financial planning — written and reviewed for The Financial Doctor's investors.") : "Practical guides on SIP, lumpsum, SWP, tax-saving, and financial planning — written and reviewed for The Financial Doctor's investors."}
                 path={contentId ? `/blog/${contentId}` : "/blog"}
                 ogImage={contentId ? shareImageFor(detail) : undefined}

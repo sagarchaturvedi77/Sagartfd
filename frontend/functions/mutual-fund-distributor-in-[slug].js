@@ -72,7 +72,7 @@ function escapeHtml(s) {
 }
 
 function botHtml(city, pageUrl) {
-  const title = `Best Mutual Fund Distributor in ${city.name} | The Financial Doctor`;
+  const title = `The Financial Doctor | Best Mutual Fund Distributor in ${city.name}`;
   const description = `Mutual fund SIP, term/health/motor insurance, free calculators, and a free portfolio review for ${city.name} investors — Sagar Chaturvedi (AMFI Registered, ARN-290298).`;
   const image = `${SITE_URL}/assets/og/city-${city.slug}.png`;
   return `<!DOCTYPE html>

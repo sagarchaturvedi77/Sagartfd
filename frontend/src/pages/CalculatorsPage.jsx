@@ -196,7 +196,7 @@ export default function CalculatorsPage() {
   const { calculatorType } = useParams();
   const match = calcInfo.find((c) => c.id === calculatorType);
   const seo = match
-    ? { title: `${match.title} - Free Online Tool | The Financial Doctor`, description: match.description, keywords: DEFAULT_SEO.keywords }
+    ? { title: `The Financial Doctor | ${match.title} - Free Online Tool`, description: match.description, keywords: DEFAULT_SEO.keywords }
     : DEFAULT_SEO;
 
   return (

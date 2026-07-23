@@ -52,7 +52,7 @@ function pickDescription(post, lang) {
 }
 
 function botHtml(post, lang, pageUrl) {
-  const title = `${escapeHtml(pickTitle(post, lang))} | The Financial Doctor`;
+  const title = `The Financial Doctor | ${escapeHtml(pickTitle(post, lang))}`;
   const description = escapeHtml(pickDescription(post, lang));
   const image = ogImageFor(post);
   return `<!DOCTYPE html>

@@ -23,6 +23,19 @@ function accentFor(slug) {
     const idx = CITY_PAGES.findIndex((c) => c.slug === slug);
     return CITY_ACCENTS[(idx < 0 ? 0 : idx) % CITY_ACCENTS.length];
 }
+// Some palette entries (the navy-blue one especially, #024396) are too
+// close in darkness to the page's own navy hero background (#0E1B2C) to
+// read clearly as TEXT — fine as a button fill or a border, illegible as
+// foreground text on a near-black background. Blends the raw accent
+// partway toward cream specifically for text use, guaranteeing contrast
+// regardless of which of the 8 palette colours a given city lands on.
+function accentTextColor(hex) {
+    const n = parseInt(hex.slice(1), 16);
+    const r = (n >> 16) & 255, g = (n >> 8) & 255, b = n & 255;
+    const cream = [246, 241, 232];
+    const blended = [r, g, b].map((c, i) => Math.round(c * 0.55 + cream[i] * 0.45));
+    return `rgb(${blended[0]}, ${blended[1]}, ${blended[2]})`;
+}
 function hexToRgb(hex) {
     const n = parseInt(hex.slice(1), 16);
     return `${(n >> 16) & 255}, ${(n >> 8) & 255}, ${n & 255}`;
@@ -93,6 +106,7 @@ export default function CityLandingPage() {
 
     const accent = accentFor(city.slug);
     const accentRgb = hexToRgb(accent);
+    const accentText = accentTextColor(accent);
     const isRemoteOnly = city.meetingMode.toLowerCase().startsWith("100% video") || city.meetingMode.toLowerCase().startsWith("video consultation");
     // City-specific WhatsApp message — so when someone clicks through from
     // this specific city page, the message Sagar receives already names
@@ -112,7 +126,7 @@ export default function CityLandingPage() {
     return (
         <div className="relative">
             <SEO
-                title={`Best Mutual Fund Distributor in ${city.name} | The Financial Doctor`}
+                title={`The Financial Doctor | Best Mutual Fund Distributor in ${city.name}`}
                 description={`Mutual fund SIP, term/health/motor insurance, free SIP & goal calculators, and a free portfolio review for ${city.name} investors — Sagar Chaturvedi (AMFI Registered, ARN-290298), zero-bias, goal-based planning with a written proposal. Book a free call.`}
                 keywords={`mutual fund distributor ${city.name}, best mutual fund advisor ${city.name}, SIP advisor ${city.name}, term insurance ${city.name}, health insurance ${city.name}, motor insurance ${city.name}, SIP calculator ${city.name}, free portfolio review ${city.name}, financial planner ${city.state}`}
                 path={`/mutual-fund-distributor-in-${city.slug}`}
@@ -136,20 +150,20 @@ export default function CityLandingPage() {
                 <div className="container-x relative max-w-3xl">
                     <div
                         className="fund-animate-in inline-flex items-center gap-2 px-3 py-1 rounded-full border bg-[#0E1B2C]/60 text-[11px] tracking-[0.18em] uppercase font-semibold"
-                        style={{ borderColor: `rgba(${accentRgb},0.5)`, color: accent }}
+                        style={{ borderColor: `rgba(${accentRgb},0.5)`, color: accentText }}
                     >
                         <MapPin size={13} /> {city.name}, {city.state}
                     </div>
                     <h1 className="fund-animate-in fund-animate-in-delay-1 font-display text-3xl sm:text-4xl md:text-5xl text-[#F6F1E8] mt-5 leading-tight">
-                        Mutual fund advisory in {city.name} — <span className="font-italic-serif" style={{ color: accent }}>{city.heroLine}.</span>
+                        Mutual fund advisory in {city.name} — <span className="font-italic-serif" style={{ color: accentText }}>{city.heroLine}.</span>
                     </h1>
                     <p className="fund-animate-in fund-animate-in-delay-2 mt-4 text-[#F6F1E8]/75 text-[15px] sm:text-base max-w-2xl leading-relaxed">
                         {city.intro}
                     </p>
                     {city.cultureLine && (
                         <div className="fund-animate-in fund-animate-in-delay-2 mt-5 flex gap-2.5 max-w-xl border-l-2 pl-4 py-0.5" style={{ borderColor: accent }}>
-                            <Quote size={15} className="shrink-0 mt-0.5" style={{ color: accent }} />
-                            <p className="font-italic-serif text-[15px] sm:text-base leading-snug" style={{ color: accent }}>
+                            <Quote size={15} className="shrink-0 mt-0.5" style={{ color: accentText }} />
+                            <p className="font-italic-serif text-[15px] sm:text-base leading-snug" style={{ color: accentText }}>
                                 {city.cultureLine}
                             </p>
                         </div>
