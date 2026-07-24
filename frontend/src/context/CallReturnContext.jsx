@@ -1,6 +1,15 @@
-import React, { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
+import React, { createContext, useCallback, useContext, useEffect, useRef, useState, lazy, Suspense } from "react";
 import { useAuth } from "./AuthContext";
-import CallFlowPopup from "../components/CallFlowPopup";
+
+// Lazy-loaded: CallFlowPopup (and the ~14 lucide icons + ProtectedText it
+// pulls in) is a staff-portal-only "how did the call go?" form. This
+// provider wraps the ENTIRE app (see App.js) including every public
+// marketing page, so a static top-level import here shipped this
+// portal-only code to every public visitor's main.js bundle even though
+// outcomeLead/token below is only ever truthy for a logged-in portal user
+// mid-call-flow. Deferring it to its own chunk keeps it out of the
+// render-blocking shared bundle for the (much more numerous) public site.
+const CallFlowPopup = lazy(() => import("../components/CallFlowPopup"));
 
 const API_BASE = process.env.REACT_APP_BACKEND_URL || "";
 const MIN_HIDDEN_MS = 3000;
@@ -90,15 +99,17 @@ export function CallReturnProvider({ children }) {
     <CallReturnContext.Provider value={value}>
       {children}
       {outcomeLead && token && (
-        <CallFlowPopup
-          lead={outcomeLead}
-          token={token}
-          onClose={() => setOutcomeLead(null)}
-          onSaved={() => {
-            setOutcomeLead(null);
-            window.dispatchEvent(new CustomEvent("tfd:lead-updated"));
-          }}
-        />
+        <Suspense fallback={null}>
+          <CallFlowPopup
+            lead={outcomeLead}
+            token={token}
+            onClose={() => setOutcomeLead(null)}
+            onSaved={() => {
+              setOutcomeLead(null);
+              window.dispatchEvent(new CustomEvent("tfd:lead-updated"));
+            }}
+          />
+        </Suspense>
       )}
     </CallReturnContext.Provider>
   );

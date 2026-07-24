@@ -66,7 +66,7 @@ export default function Navbar() {
             <button
               key={l.id}
               onClick={() => handleNavClick(l)}
-              className="hover:text-[#024396] transition-colors relative font-medium text-[15px] cursor-pointer bg-transparent border-none outline-none"
+              className="hover:text-[#024396] transition-colors relative font-medium text-[15px] cursor-pointer bg-transparent border-none outline-none rounded-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#024396]"
             >
               {l.label}
               {l.badge && (

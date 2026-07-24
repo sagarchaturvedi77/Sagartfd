@@ -35,6 +35,25 @@ export default function DataTable({ columns, rows, keyField = "id", onRowClick, 
 
   const hideClass = (hideBelow) => (hideBelow === "lg" ? "hidden lg:table-cell" : hideBelow === "md" ? "hidden md:table-cell" : "");
 
+  // Rows with onRowClick were mouse/touch-only — no keyboard/screen-reader
+  // user could ever activate them (no role, no tabIndex, no key handler).
+  // role="button" + tabIndex + Enter/Space handling makes them behave like
+  // a real interactive control without changing the visual table markup.
+  const rowActivationProps = (row) =>
+    onRowClick
+      ? {
+          role: "button",
+          tabIndex: 0,
+          onClick: () => onRowClick(row),
+          onKeyDown: (e) => {
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+              onRowClick(row);
+            }
+          },
+        }
+      : {};
+
   return (
     <>
       {/* Desktop / tablet: real table */}
@@ -43,7 +62,7 @@ export default function DataTable({ columns, rows, keyField = "id", onRowClick, 
           <TableHeader>
             <TableRow className="border-[#E2D8C2] dark:border-white/10 hover:bg-transparent">
               {columns.map((col) => (
-                <TableHead key={col.key} className={`text-[11px] font-semibold text-[#2A364B]/60 dark:text-[#8E99AC] uppercase tracking-wider ${hideClass(col.hideBelow)} ${col.className || ""}`}>
+                <TableHead key={col.key} className={`text-[11px] font-semibold text-[#2A364B]/80 dark:text-[#C7CEDA] uppercase tracking-wider ${hideClass(col.hideBelow)} ${col.className || ""}`}>
                   {col.label}
                 </TableHead>
               ))}
@@ -53,8 +72,8 @@ export default function DataTable({ columns, rows, keyField = "id", onRowClick, 
             {rows.map((row) => (
               <TableRow
                 key={row[keyField]}
-                onClick={onRowClick ? () => onRowClick(row) : undefined}
-                className={`border-[#E2D8C2]/50 dark:border-white/10 ${onRowClick ? "cursor-pointer" : ""}`}
+                className={`border-[#E2D8C2]/50 dark:border-white/10 ${onRowClick ? "cursor-pointer focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#024396] focus-visible:-outline-offset-2" : ""}`}
+                {...rowActivationProps(row)}
               >
                 {columns.map((col) => (
                   <TableCell key={col.key} className={`text-sm text-[#0E1B2C] dark:text-[#F1EDE3] ${hideClass(col.hideBelow)} ${col.className || ""}`}>
@@ -76,9 +95,10 @@ export default function DataTable({ columns, rows, keyField = "id", onRowClick, 
           return (
             <div
               key={row[keyField]}
-              onClick={onRowClick ? () => onRowClick(row) : undefined}
-              className={`py-3 px-1 ${onRowClick ? "cursor-pointer active:bg-[#FBF7EE] dark:active:bg-white/5" : ""}`}
+              className={`py-3 px-1 ${onRowClick ? "cursor-pointer active:bg-[#FBF7EE] dark:active:bg-white/5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#024396] focus-visible:-outline-offset-2" : ""}`}
+              {...rowActivationProps(row)}
             >
+
               {primary && (
                 <div className="text-sm font-medium text-[#0E1B2C] dark:text-[#F1EDE3] mb-1.5">
                   {primary.render ? primary.render(row) : row[primary.key]}

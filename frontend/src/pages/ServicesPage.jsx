@@ -299,16 +299,18 @@ export default function ServicesPage() {
                     <button
                       type="button"
                       onClick={() => setOpenRow(isOpen ? -1 : idx)}
+                      aria-expanded={isOpen}
+                      aria-controls={`service-insurance-${idx}`}
                       className="w-full flex items-center gap-3 p-4 text-left"
                     >
                       <div className="w-10 h-10 rounded-xl grid place-items-center shrink-0" style={{ background: `${t.color}1A`, color: t.color }}>
-                        <Icon size={18} />
+                        <Icon size={18} aria-hidden="true" />
                       </div>
                       <span className="flex-1 font-display text-[#0E1B2C] text-[15px]">{t.title}</span>
-                      <ChevronDown size={16} className={`shrink-0 text-[#024396] transition-transform ${isOpen ? "rotate-180" : ""}`} />
+                      <ChevronDown size={16} aria-hidden="true" className={`shrink-0 text-[#024396] transition-transform ${isOpen ? "rotate-180" : ""}`} />
                     </button>
                     {isOpen && (
-                      <div className="px-4 pb-4">
+                      <div id={`service-insurance-${idx}`} className="px-4 pb-4">
                         <p className="text-sm text-[#2A364B]/80 leading-relaxed mb-3">{t.why}</p>
                         <ul className="space-y-1.5">
                           {t.points.map((p) => (

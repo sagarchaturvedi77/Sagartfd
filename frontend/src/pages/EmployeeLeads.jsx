@@ -331,6 +331,7 @@ export default function EmployeeLeads() {
           <input
             value={globalSearch} onChange={(e) => runGlobalSearch(e.target.value)}
             placeholder="Search by name or phone..."
+            aria-label="Search leads by name or phone"
             className="w-full pl-10 pr-4 py-3 rounded-xl border border-[#E2D8C2] dark:border-white/15 dark:bg-white/5 dark:text-[#F1EDE3] text-sm focus:outline-none focus:ring-2 focus:ring-[#024396]/30 bg-white"
           />
           {globalResults !== null && (
@@ -357,6 +358,7 @@ export default function EmployeeLeads() {
             <select
               value={selectedDate}
               onChange={(e) => setSelectedDate(e.target.value)}
+              aria-label="Calling batch"
               className="text-xs border border-[#E2D8C2] dark:border-white/15 dark:bg-white/5 dark:text-[#F1EDE3] rounded-lg px-3 py-1.5 bg-white"
             >
               <option value="">Oldest first (default queue)</option>

@@ -1,4 +1,4 @@
-import React, { useMemo, useRef, useState, useEffect, useContext, createContext, Suspense } from "react";
+import React, { useMemo, useRef, useState, useEffect, useContext, createContext, Suspense, useId } from "react";
 import { useNavigate } from "react-router-dom";
 // recharts (and the growth-series chart JSX that uses it) is only needed
 // once a visitor is actually looking at a chart-bearing calculator tab —
@@ -224,6 +224,12 @@ function Slider({ value, onChange, min, max, label, format, testid }) {
     // value={String(value)} binding would do).
     const [displayValue, setDisplayValue] = useState(String(value));
     const focusedRef = useRef(false);
+    // Label text is rendered as a plain sibling <label>, not wrapped around
+    // the <input> — so without an explicit id/htmlFor pair, screen readers
+    // have no programmatic way to associate the two. useId() gives every
+    // Slider instance (there are ~30 across the 9 calculator tabs) its own
+    // stable, collision-free id to wire that association up.
+    const inputId = useId();
 
     useEffect(() => {
         if (!focusedRef.current) setDisplayValue(String(value));
@@ -231,6 +237,7 @@ function Slider({ value, onChange, min, max, label, format, testid }) {
 
     const numberInput = (
         <input
+            id={inputId}
             type="text"
             inputMode="decimal"
             value={displayValue}
@@ -269,7 +276,7 @@ function Slider({ value, onChange, min, max, label, format, testid }) {
     if (variant === "employee") {
         return (
             <div className="flex items-start justify-between gap-3">
-                <label className="text-xs text-[#5C677D] pt-2 flex-1 min-w-0">{label}</label>
+                <label htmlFor={inputId} className="text-xs text-[#5C677D] pt-2 flex-1 min-w-0">{label}</label>
                 <div className="shrink-0 flex flex-col items-end">
                     {React.cloneElement(numberInput, {
                         className: "w-28 border border-[#E2D8C2] rounded-lg px-2.5 py-1.5 text-sm font-semibold text-right text-[#0E1B2C] outline-none focus:border-[#024396] bg-white",
@@ -282,7 +289,7 @@ function Slider({ value, onChange, min, max, label, format, testid }) {
 
     return (
         <div>
-            <label className="text-[12px] md:text-[13px] uppercase tracking-[0.15em] text-[#5C677D] block mb-2">
+            <label htmlFor={inputId} className="text-[12px] md:text-[13px] uppercase tracking-[0.15em] text-[#5C677D] block mb-2">
                 {label}
             </label>
             {React.cloneElement(numberInput, {
@@ -312,6 +319,14 @@ const CHART_TABS = ["sip", "daily", "lumpsum", "swp", "goal", "emi"];
 
 export default function Calculators({ variant = "public", employeeInfo = null, activeType = null, hideHeading = false }) {
     const navigate = useNavigate();
+    // Unique per mounted instance so the GST "Amount Type" <select> and the
+    // client-details modal's name/phone fields (the plain, non-Slider form
+    // controls on this page) can have proper id/htmlFor pairs without
+    // risking a collision if Calculators is ever rendered twice on the
+    // same page.
+    const gstAmountTypeId = useId();
+    const clientNameId = useId();
+    const clientPhoneId = useId();
 
     // Yahan humne default state me hi activeType daal diya hai
     const [tab, setTabRaw] = useState(activeType || "sip");
@@ -944,8 +959,8 @@ const qrDataUrlRef = useRef(null);
                                     </div>
                                 </div>
                                 <div>
-                                    <label className="text-[12px] md:text-[13px] uppercase tracking-[0.15em] text-[#5C677D] block mb-2">Amount Type</label>
-                                    <select value={gstType} onChange={(e) => setGstType(e.target.value)} className="w-full border border-[#E2D8C2] rounded-lg px-3 py-2 bg-white">
+                                    <label htmlFor={gstAmountTypeId} className="text-[12px] md:text-[13px] uppercase tracking-[0.15em] text-[#5C677D] block mb-2">Amount Type</label>
+                                    <select id={gstAmountTypeId} value={gstType} onChange={(e) => setGstType(e.target.value)} className="w-full border border-[#E2D8C2] rounded-lg px-3 py-2 bg-white">
                                         <option value="exclusive">Exclusive (GST to be added)</option>
                                         <option value="inclusive">Inclusive (GST already included)</option>
                                     </select>
@@ -1104,8 +1119,9 @@ const qrDataUrlRef = useRef(null);
     </p>
 )}
                             <div>
-                                <label className="text-xs text-[#5C677D] block mb-1">{variant === "employee" ? "Client Name" : "Your Name · Aapka Naam"}</label>
+                                <label htmlFor={clientNameId} className="text-xs text-[#5C677D] block mb-1">{variant === "employee" ? "Client Name" : "Your Name · Aapka Naam"}</label>
 <input
+    id={clientNameId}
     autoFocus
     value={clientInfo.name}
     onChange={(e) => setClientInfo({ ...clientInfo, name: e.target.value })}
@@ -1114,8 +1130,9 @@ const qrDataUrlRef = useRef(null);
 />
                             </div>
                             <div>
-    <label className="text-xs text-[#5C677D] block mb-1">{variant === "employee" ? "Client Phone (optional)" : "Contact Number · Contact No."}</label>
+    <label htmlFor={clientPhoneId} className="text-xs text-[#5C677D] block mb-1">{variant === "employee" ? "Client Phone (optional)" : "Contact Number · Contact No."}</label>
     <input
+        id={clientPhoneId}
         value={clientInfo.phone}
         onChange={(e) => setClientInfo({ ...clientInfo, phone: e.target.value })}
         placeholder="Enter your mobile number"

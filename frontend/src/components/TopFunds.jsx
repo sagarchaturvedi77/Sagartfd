@@ -440,10 +440,10 @@ export default function TopFunds({ showViewAllLink = false, hideHeading = false 
                             Showing page <span className="font-semibold text-[#0E1B2C]">{currentPage}</span> of <span className="font-semibold text-[#0E1B2C]">{totalPages}</span>
                         </div>
                         <div className="flex items-center gap-2">
-                            <button onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))} disabled={currentPage === 1} className="p-2 rounded-lg bg-[#FBF7EE] border border-[#E2D8C2] disabled:opacity-40 hover:bg-[#F6F1E8]">
+                            <button onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))} disabled={currentPage === 1} aria-label="Previous page" className="p-2 rounded-lg bg-[#FBF7EE] border border-[#E2D8C2] disabled:opacity-40 hover:bg-[#F6F1E8]">
                                 <ChevronLeft size={16} />
                             </button>
-                            <button onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))} disabled={currentPage === totalPages} className="p-2 rounded-lg bg-[#FBF7EE] border border-[#E2D8C2] disabled:opacity-40 hover:bg-[#F6F1E8]">
+                            <button onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))} disabled={currentPage === totalPages} aria-label="Next page" className="p-2 rounded-lg bg-[#FBF7EE] border border-[#E2D8C2] disabled:opacity-40 hover:bg-[#F6F1E8]">
                                 <ChevronRight size={16} />
                             </button>
                         </div>
@@ -593,7 +593,7 @@ function FundModal({ data, onClose }) {
     return (
         <div className="fixed inset-0 z-[60] bg-[#0E1B2C]/70 backdrop-blur grid place-items-center p-4" onClick={onClose}>
             <div onClick={(e) => e.stopPropagation()} className="bg-[#FBF7EE] border-2 border-[#E2D8C2] rounded-2xl p-6 max-w-2xl w-full shadow-2xl relative overflow-y-auto max-h-[92vh]">
-                <button onClick={onClose} className="absolute right-4 top-4 p-2 rounded-full bg-white border border-[#E2D8C2] text-[#5C677D] hover:text-[#0E1B2C]">
+                <button onClick={onClose} aria-label="Close" className="absolute right-4 top-4 p-2 rounded-full bg-white border border-[#E2D8C2] text-[#5C677D] hover:text-[#0E1B2C]">
                     <X size={16} />
                 </button>
 

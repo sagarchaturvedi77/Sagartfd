@@ -307,14 +307,16 @@ export default function AboutPage() {
                     <button
                       type="button"
                       onClick={() => setOpenRegion(isOpen ? -1 : idx)}
+                      aria-expanded={isOpen}
+                      aria-controls={`about-region-${idx}`}
                       className="w-full flex items-center gap-2 px-4 py-3.5 text-left"
                     >
-                      <MapPin size={14} className="text-[#8A5A22] shrink-0" />
+                      <MapPin size={14} aria-hidden="true" className="text-[#8A5A22] shrink-0" />
                       <span className="flex-1 font-display text-[#8A5A22] text-[15px]">{r.name}</span>
-                      <ChevronDown size={15} className={`shrink-0 text-[#B8722E] transition-transform ${isOpen ? "rotate-180" : ""}`} />
+                      <ChevronDown size={15} aria-hidden="true" className={`shrink-0 text-[#B8722E] transition-transform ${isOpen ? "rotate-180" : ""}`} />
                     </button>
                     {isOpen && (
-                      <div className="px-4 pb-4">
+                      <div id={`about-region-${idx}`} className="px-4 pb-4">
                         <p className="text-sm text-[#6B5636] leading-relaxed">{r.note}</p>
                         <Link to={r.href} className="inline-flex items-center gap-1 mt-2.5 text-xs font-medium text-[#B8722E]">
                           View {r.name} page <span aria-hidden>→</span>

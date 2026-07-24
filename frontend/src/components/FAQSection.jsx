@@ -201,33 +201,40 @@ export default function FAQSection({ title = "Frequently Asked Questions", data 
                                     isOpen ? "border-[#024396]/40 sm:col-span-2" : "border-[#E2D8C2]"
                                 }`}
                             >
-                                <button
-                                    onClick={() => setOpenIndex(isOpen ? null : i)}
-                                    className="w-full text-left px-5 py-4 bg-[#FBF7EE] hover:bg-[#F2EAD8] transition-colors flex items-center justify-between gap-3"
-                                >
-                                    <span className="font-display text-[#0E1B2C] text-sm md:text-[15px] leading-snug">{item.q}</span>
+                                <div className="w-full px-5 py-4 bg-[#FBF7EE] hover:bg-[#F2EAD8] transition-colors flex items-center justify-between gap-3">
+                                    {/* Two independent controls, not one nested inside the other —
+                                        a <button> cannot legally contain another interactive
+                                        control (the old markup put a role="button" span for the
+                                        copy-link action inside this toggle button), which is
+                                        invalid HTML and confuses screen readers/keyboard nav. */}
+                                    <button
+                                        type="button"
+                                        onClick={() => setOpenIndex(isOpen ? null : i)}
+                                        aria-expanded={isOpen}
+                                        aria-controls={`${item.id}-panel`}
+                                        className="flex-1 text-left bg-transparent border-none p-0 cursor-pointer font-display text-[#0E1B2C] text-sm md:text-[15px] leading-snug"
+                                    >
+                                        {item.q}
+                                    </button>
                                     <span className="shrink-0 flex items-center gap-2">
-                                        <span
-                                            role="button"
-                                            tabIndex={0}
+                                        <button
+                                            type="button"
                                             onClick={(e) => copyLink(e, item.id)}
-                                            onKeyDown={(e) => {
-                                                if (e.key === "Enter" || e.key === " ") copyLink(e, item.id);
-                                            }}
                                             aria-label="Copy link to this question"
                                             title="Copy link to this question"
-                                            className="text-[#8A93A6] hover:text-[#024396] transition-colors p-1 -m-1"
+                                            className="text-[#8A93A6] hover:text-[#024396] transition-colors p-1 -m-1 bg-transparent border-none cursor-pointer"
                                         >
                                             {copiedId === item.id ? <Check size={14} /> : <LinkIcon size={14} />}
-                                        </span>
+                                        </button>
                                         <ChevronDown
                                             size={16}
+                                            aria-hidden="true"
                                             className={`text-[#024396] transition-transform ${isOpen ? "rotate-180" : ""}`}
                                         />
                                     </span>
-                                </button>
+                                </div>
                                 {isOpen && (
-                                    <div className="px-5 py-4 bg-white">
+                                    <div id={`${item.id}-panel`} role="region" className="px-5 py-4 bg-white">
                                         <p className="text-sm text-[#2A364B]/85 leading-relaxed">
                                             <LinkedAnswer text={item.a} />
                                         </p>

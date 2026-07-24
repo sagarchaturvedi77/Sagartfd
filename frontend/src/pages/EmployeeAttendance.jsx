@@ -268,10 +268,10 @@ export default function EmployeeAttendance() {
         <div className="p-4 border-b border-[#E2D8C2] dark:border-white/10 flex items-center justify-between bg-[#FBF7EE]/50 dark:bg-white/5">
           <h3 className="text-sm font-semibold text-[#0E1B2C] dark:text-[#F1EDE3]">Attendance History</h3>
           <div className="flex items-center gap-2">
-            <select value={month} onChange={(e) => setMonth(Number(e.target.value))} className="border border-[#E2D8C2] dark:border-white/15 dark:bg-white/5 dark:text-[#F1EDE3] rounded-lg px-2 py-1.5 text-xs bg-white">
+            <select value={month} onChange={(e) => setMonth(Number(e.target.value))} aria-label="Select month" className="border border-[#E2D8C2] dark:border-white/15 dark:bg-white/5 dark:text-[#F1EDE3] rounded-lg px-2 py-1.5 text-xs bg-white">
               {monthNames.map((m, i) => <option key={i} value={i + 1}>{m}</option>)}
             </select>
-            <select value={year} onChange={(e) => setYear(Number(e.target.value))} className="border border-[#E2D8C2] dark:border-white/15 dark:bg-white/5 dark:text-[#F1EDE3] rounded-lg px-2 py-1.5 text-xs bg-white">
+            <select value={year} onChange={(e) => setYear(Number(e.target.value))} aria-label="Select year" className="border border-[#E2D8C2] dark:border-white/15 dark:bg-white/5 dark:text-[#F1EDE3] rounded-lg px-2 py-1.5 text-xs bg-white">
               {[2025, 2026, 2027].map((y) => <option key={y} value={y}>{y}</option>)}
             </select>
           </div>

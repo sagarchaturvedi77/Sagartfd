@@ -94,15 +94,18 @@ function AccordionSection({ index, title, openSection, setOpenSection, children 
       <button
         type="button"
         onClick={() => setOpenSection(isOpen ? null : index)}
+        aria-expanded={isOpen}
+        aria-controls={`career-section-${index}`}
         className="w-full flex items-center justify-between text-left sm:pointer-events-none sm:cursor-default"
       >
         <h4 className="text-xs font-bold uppercase tracking-wider text-[#024396] border-b border-[#E2D8C2] pb-1.5 mb-4 flex-1">{title}</h4>
         <ChevronDown
           size={16}
+          aria-hidden="true"
           className={`sm:hidden text-[#024396] shrink-0 -mt-3 transition-transform ${isOpen ? "rotate-180" : ""}`}
         />
       </button>
-      <div className={`${isOpen ? "block" : "hidden"} sm:!block`}>{children}</div>
+      <div id={`career-section-${index}`} className={`${isOpen ? "block" : "hidden"} sm:!block`}>{children}</div>
     </div>
   );
 }

@@ -126,6 +126,7 @@ export default function LeadPopup() {
                                         value={name}
                                         onChange={(e) => setName(e.target.value)}
                                         placeholder="Aapka naam"
+                                        aria-label="Your name"
                                         data-testid="lead-popup-name"
                                         className="w-full bg-[#F6F1E8] border border-[#E2D8C2] rounded-xl pl-11 pr-4 py-3 text-[#0E1B2C] placeholder:text-[#8A93A6] focus:border-[#024396]"
                                     />
@@ -142,6 +143,7 @@ export default function LeadPopup() {
                                         value={phone}
                                         onChange={(e) => setPhone(e.target.value)}
                                         placeholder="Mobile number"
+                                        aria-label="Mobile number"
                                         data-testid="lead-popup-phone"
                                         className="w-full bg-[#F6F1E8] border border-[#E2D8C2] rounded-xl pl-11 pr-4 py-3 text-[#0E1B2C] placeholder:text-[#8A93A6] focus:border-[#024396]"
                                     />

@@ -36,6 +36,21 @@ function accentTextColor(hex) {
     const blended = [r, g, b].map((c, i) => Math.round(c * 0.55 + cream[i] * 0.45));
     return `rgb(${blended[0]}, ${blended[1]}, ${blended[2]})`;
 }
+// Mirror of accentTextColor for the opposite case: several palette entries
+// (the yellow/green ones especially, #D9B15C and #22C55E) are too light to
+// read as small text on this page's white/cream card backgrounds further
+// down the page (contrast as low as ~2:1, well under WCAG AA's 4.5:1 for
+// normal text) — fine as a button fill or border, illegible as foreground
+// text on a light background. Blends the raw accent toward navy at the
+// same 55/45 ratio used above, just flipped toward the dark end instead of
+// cream, so every palette colour stays readable wherever it lands as text.
+function accentTextColorOnLight(hex) {
+    const n = parseInt(hex.slice(1), 16);
+    const r = (n >> 16) & 255, g = (n >> 8) & 255, b = n & 255;
+    const navy = [14, 27, 44];
+    const blended = [r, g, b].map((c, i) => Math.round(c * 0.55 + navy[i] * 0.45));
+    return `rgb(${blended[0]}, ${blended[1]}, ${blended[2]})`;
+}
 // A number of blog posts have a redundant "| The Financial Doctor" baked
 // into their stored title text (same issue fixed in PublicBlog.jsx's
 // pickTitle) — stripped here too since this page renders post.title raw.
@@ -157,6 +172,7 @@ export default function CityLandingPage() {
     const accent = accentFor(city.slug);
     const accentRgb = hexToRgb(accent);
     const accentText = accentTextColor(accent);
+    const accentTextLight = accentTextColorOnLight(accent);
     const isRemoteOnly = city.meetingMode.toLowerCase().startsWith("100% video") || city.meetingMode.toLowerCase().startsWith("video consultation");
     // City-specific WhatsApp message — so when someone clicks through from
     // this specific city page, the message Sagar receives already names
@@ -395,7 +411,7 @@ export default function CityLandingPage() {
                             <div className="text-[11px] uppercase tracking-[0.18em] text-[#5C677D] font-semibold">
                                 From the TFD Blog
                             </div>
-                            <Link to="/blog" className="text-xs font-medium hover:underline" style={{ color: accent }}>
+                            <Link to="/blog" className="text-xs font-medium hover:underline" style={{ color: accentTextLight }}>
                                 All articles →
                             </Link>
                         </div>
@@ -417,7 +433,7 @@ export default function CityLandingPage() {
                                     />
                                     <div className="p-4">
                                         {post.topic_label && (
-                                            <div className="text-[10px] uppercase tracking-[0.14em] font-semibold mb-1.5" style={{ color: accent }}>
+                                            <div className="text-[10px] uppercase tracking-[0.14em] font-semibold mb-1.5" style={{ color: accentTextLight }}>
                                                 {post.topic_label}
                                             </div>
                                         )}

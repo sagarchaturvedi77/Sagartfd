@@ -176,9 +176,11 @@ export default function PublicFAQ() {
                             <Search size={18} />
                         </div>
                         <input
+                            type="search"
                             value={query}
                             onChange={(e) => onQueryChange(e.target.value)}
                             placeholder="Search your question — e.g. SIP, term insurance, ELSS..."
+                            aria-label="Search FAQs"
                             className="w-full bg-[#FBF7EE] border border-[#E2D8C2] rounded-full pl-12 pr-4 py-3 text-[#0E1B2C] placeholder:text-[#8A93A6] focus:border-[#024396] text-sm"
                         />
                     </div>
@@ -226,33 +228,35 @@ export default function PublicFAQ() {
                                 const isOpen = openIndex === i;
                                 return (
                                     <div key={item.id} id={item.id} className="border border-[#E2D8C2] rounded-xl overflow-hidden bg-[#FBF7EE] scroll-mt-24">
-                                        <button
-                                            onClick={() => setOpenIndex(isOpen ? null : i)}
-                                            className="w-full text-left px-5 py-4 hover:bg-[#F2EAD8] transition-colors flex items-center justify-between gap-3"
-                                        >
-                                            <span className="min-w-0">
+                                        {/* Two independent controls, not nested — a <button> can't
+                                            legally contain another interactive control, which the
+                                            previous role="button" span for copy-link did. */}
+                                        <div className="w-full px-5 py-4 hover:bg-[#F2EAD8] transition-colors flex items-center justify-between gap-3">
+                                            <button
+                                                type="button"
+                                                onClick={() => setOpenIndex(isOpen ? null : i)}
+                                                aria-expanded={isOpen}
+                                                aria-controls={`${item.id}-panel`}
+                                                className="flex-1 min-w-0 text-left bg-transparent border-none p-0 cursor-pointer"
+                                            >
                                                 <span className="block text-[10px] uppercase tracking-wider text-[#024396] font-semibold mb-1">{item.source}</span>
                                                 <span className="font-display text-[#0E1B2C] text-sm md:text-[15px] leading-snug">{item.q}</span>
-                                            </span>
+                                            </button>
                                             <span className="shrink-0 flex items-center gap-2">
-                                                <span
-                                                    role="button"
-                                                    tabIndex={0}
+                                                <button
+                                                    type="button"
                                                     onClick={(e) => copyLink(e, item.id)}
-                                                    onKeyDown={(e) => {
-                                                        if (e.key === "Enter" || e.key === " ") copyLink(e, item.id);
-                                                    }}
                                                     aria-label="Copy link to this question"
                                                     title="Copy link to this question"
-                                                    className="text-[#8A93A6] hover:text-[#024396] transition-colors p-1 -m-1"
+                                                    className="text-[#8A93A6] hover:text-[#024396] transition-colors p-1 -m-1 bg-transparent border-none cursor-pointer"
                                                 >
                                                     {copiedId === item.id ? <Check size={14} /> : <LinkIcon size={14} />}
-                                                </span>
-                                                <ChevronDown size={16} className={`text-[#024396] transition-transform ${isOpen ? "rotate-180" : ""}`} />
+                                                </button>
+                                                <ChevronDown size={16} aria-hidden="true" className={`text-[#024396] transition-transform ${isOpen ? "rotate-180" : ""}`} />
                                             </span>
-                                        </button>
+                                        </div>
                                         {isOpen && (
-                                            <div className="px-5 py-4 bg-white">
+                                            <div id={`${item.id}-panel`} role="region" className="px-5 py-4 bg-white">
                                                 <p className="text-sm text-[#2A364B]/85 leading-relaxed">{item.a}</p>
                                                 <a href={item.path} className="inline-flex items-center gap-1 mt-3 text-xs text-[#024396] font-medium hover:underline">
                                                     More on {item.source} <ArrowRight size={12} />

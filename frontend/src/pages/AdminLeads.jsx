@@ -457,6 +457,7 @@ export default function AdminLeads() {
           <input
             value={search} onChange={(e) => setSearch(e.target.value)}
             placeholder="Search all leads by name or phone..."
+            aria-label="Search all leads by name or phone"
             className="w-full pl-10 pr-4 py-3 rounded-xl border border-[#E2D8C2] dark:border-white/15 dark:bg-white/5 dark:text-[#F1EDE3] text-sm focus:outline-none focus:ring-2 focus:ring-[#024396]/30 bg-white"
           />
           {search.trim().length > 0 && (
@@ -467,8 +468,11 @@ export default function AdminLeads() {
                 leads.map((r) => (
                   <div
                     key={r.id}
+                    role="button"
+                    tabIndex={0}
                     onClick={() => { setDetailLead(r); setSearch(""); }}
-                    className="px-4 py-2.5 border-b border-[#E2D8C2] dark:border-white/10 last:border-0 text-xs cursor-pointer hover:bg-[#FBF7EE] dark:hover:bg-white/5"
+                    onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setDetailLead(r); setSearch(""); } }}
+                    className="px-4 py-2.5 border-b border-[#E2D8C2] dark:border-white/10 last:border-0 text-xs cursor-pointer hover:bg-[#FBF7EE] dark:hover:bg-white/5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#024396]"
                   >
                     <p className="font-medium text-[#0E1B2C] dark:text-[#F1EDE3] flex items-center gap-1.5">
                       {r.name} — {r.phone}

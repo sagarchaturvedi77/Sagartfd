@@ -338,6 +338,7 @@ export default function PortalLayout({ children }) {
           <button
             className="bg-white/10 text-white border border-white/20 rounded-md px-2.5 py-1 text-xs hover:bg-white/20 transition-colors whitespace-nowrap flex items-center gap-1.5"
             onClick={() => setShowTranslator(v => !v)}
+            aria-label="Translate"
           >
             <Languages size={13} /> <span className="hidden sm:inline">Translate</span>
           </button>
@@ -351,7 +352,7 @@ export default function PortalLayout({ children }) {
 
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <button className="w-8 h-8 rounded-full bg-gradient-to-br from-[#024396] to-[#0356c4] text-white font-bold text-[13px] flex items-center justify-center shrink-0">
+              <button className="w-8 h-8 rounded-full bg-gradient-to-br from-[#024396] to-[#0356c4] text-white font-bold text-[13px] flex items-center justify-center shrink-0" aria-label={`Account menu for ${user?.name || "user"}`}>
                 {(user?.name || "U").charAt(0).toUpperCase()}
               </button>
             </DropdownMenuTrigger>
@@ -376,12 +377,13 @@ export default function PortalLayout({ children }) {
           <div className="fixed top-[58px] right-3.5 bg-white dark:bg-[#101D2E] border border-[#0E1B2C]/10 dark:border-white/10 rounded-xl p-3.5 z-[500] w-[300px] shadow-[0_8px_24px_rgba(0,0,0,0.15)]">
             <div className="flex justify-between items-center mb-2.5">
               <span className="text-[13px] font-bold text-[#0E1B2C] dark:text-[#F1EDE3] flex items-center gap-1.5"><Languages size={14} /> Smart Translator</span>
-              <button onClick={() => setShowTranslator(false)} className="text-lg text-[#5C677D] dark:text-[#8E99AC] leading-none">×</button>
+              <button onClick={() => setShowTranslator(false)} className="text-lg text-[#5C677D] dark:text-[#8E99AC] leading-none" aria-label="Close translator">×</button>
             </div>
             <textarea
               value={inputText}
               onChange={(e) => setInputText(e.target.value)}
               placeholder="Type message here..."
+              aria-label="Text to translate"
               rows={3}
               className="w-full border border-[#E2D8C2] dark:border-white/10 dark:bg-white/5 dark:text-[#F1EDE3] rounded-lg px-2.5 py-2 text-xs outline-none resize-none mb-2 focus:border-[#024396]"
             />
@@ -389,6 +391,7 @@ export default function PortalLayout({ children }) {
               <select
                 value={targetMode}
                 onChange={(e) => setTargetMode(e.target.value)}
+                aria-label="Translation direction"
                 className="flex-1 border border-[#E2D8C2] dark:border-white/10 dark:bg-white/5 dark:text-[#F1EDE3] rounded-md px-2 py-1 text-xs outline-none"
               >
                 <option value="english">Hindi → English</option>
@@ -468,6 +471,7 @@ export default function PortalLayout({ children }) {
           className={`fixed right-5 w-[52px] h-[52px] bg-gradient-to-br from-[#024396] to-[#0356c4] text-white rounded-full flex items-center justify-center shadow-[0_4px_16px_rgba(2,67,150,0.4)] hover:scale-105 transition-transform z-[500] ${isMobile ? "bottom-[76px]" : "bottom-[50px]"}`}
           onClick={() => setShowChatPopup(v => !v)}
           title="Team Chat"
+          aria-label="Team Chat"
         >
           <MessageCircle size={22} />
           {unreadChat > 0 && (
@@ -483,7 +487,7 @@ export default function PortalLayout({ children }) {
           <div className={`fixed right-3 w-[calc(100vw-24px)] md:w-80 h-[420px] bg-white dark:bg-[#101D2E] border border-[#0E1B2C]/[0.12] dark:border-white/10 rounded-2xl shadow-[0_8px_32px_rgba(0,0,0,0.18)] z-[500] flex flex-col overflow-hidden ${isMobile ? "bottom-[138px]" : "bottom-[112px]"}`}>
             <div className="bg-[#0E1B2C] px-3.5 py-3 flex items-center justify-between shrink-0">
               <span className="text-white font-bold text-[13px] flex items-center gap-1.5"><MessageCircle size={14} /> Team Chat</span>
-              <button className="text-white" onClick={() => setShowChatPopup(false)}><X size={18} /></button>
+              <button className="text-white" onClick={() => setShowChatPopup(false)} aria-label="Close chat"><X size={18} /></button>
             </div>
             <div className="flex-1 overflow-y-auto px-3 py-2.5 bg-[#F8FAFC] dark:bg-[#0B1420] flex flex-col gap-2">
               {popupMsgs.length === 0 && <p className="text-center text-xs text-[#9AA5B4] pt-5">No messages yet</p>}
@@ -513,9 +517,10 @@ export default function PortalLayout({ children }) {
                 value={popupText}
                 onChange={(e) => setPopupText(e.target.value)}
                 placeholder="Type a message..."
+                aria-label="Type a message"
                 disabled={popupSending}
               />
-              <button type="submit" className="bg-[#024396] text-white rounded-lg px-3.5 flex items-center justify-center disabled:opacity-50" disabled={popupSending || !popupText.trim()}>
+              <button type="submit" className="bg-[#024396] text-white rounded-lg px-3.5 flex items-center justify-center disabled:opacity-50" disabled={popupSending || !popupText.trim()} aria-label="Send message">
                 <Send size={14} />
               </button>
             </form>

@@ -431,6 +431,7 @@ export default function Reviews({ hideHeading = false } = {}) {
                                     <input
                                         data-testid={IDS.reviews.name}
                                         placeholder="Your name"
+                                        aria-label="Your name"
                                         value={form.name}
                                         onChange={(e) => setForm({ ...form, name: e.target.value })}
                                         className="min-w-0 bg-[#2A364B] border border-[#3a4761] rounded-xl px-3 py-2.5 text-[13px] sm:text-[14px] text-[#F6F1E8] placeholder:text-[#8A93A6] focus:border-[#C7102E]"
@@ -438,6 +439,7 @@ export default function Reviews({ hideHeading = false } = {}) {
                                     <input
                                         data-testid={IDS.reviews.location}
                                         placeholder="City"
+                                        aria-label="Your city"
                                         value={form.location}
                                         onChange={(e) => setForm({ ...form, location: e.target.value })}
                                         className="min-w-0 bg-[#2A364B] border border-[#3a4761] rounded-xl px-3 py-2.5 text-[13px] sm:text-[14px] text-[#F6F1E8] placeholder:text-[#8A93A6] focus:border-[#C7102E]"
@@ -513,6 +515,7 @@ export default function Reviews({ hideHeading = false } = {}) {
                                     required
                                     data-testid={IDS.reviews.message}
                                     placeholder="Likhiye apna experience…"
+                                    aria-label="Your review"
                                     value={form.message}
                                     onChange={(e) => setForm({ ...form, message: e.target.value })}
                                     rows={3}

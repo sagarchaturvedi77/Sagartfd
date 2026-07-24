@@ -229,13 +229,15 @@ export default function ContactPage() {
                     <button
                       type="button"
                       onClick={() => setOpenInfo(isOpen ? -1 : idx)}
+                      aria-expanded={isOpen}
+                      aria-controls={`contact-info-${idx}`}
                       className="w-full flex items-center gap-3 px-4 py-3.5 text-left"
                     >
-                      <span className="w-6 h-6 rounded-full text-white text-[11px] font-mono grid place-items-center shrink-0" style={{ background: "#2E7FC7" }}>{idx + 1}</span>
+                      <span aria-hidden="true" className="w-6 h-6 rounded-full text-white text-[11px] font-mono grid place-items-center shrink-0" style={{ background: "#2E7FC7" }}>{idx + 1}</span>
                       <span className="flex-1 font-display text-[#0E1B2C] text-sm">{i.title}</span>
-                      <ChevronDown size={15} className="shrink-0 transition-transform" style={{ color: "#2E7FC7", transform: isOpen ? "rotate(180deg)" : undefined }} />
+                      <ChevronDown size={15} aria-hidden="true" className="shrink-0 transition-transform" style={{ color: "#2E7FC7", transform: isOpen ? "rotate(180deg)" : undefined }} />
                     </button>
-                    {isOpen && <p className="px-4 pb-4 text-sm text-[#2A364B]/80 leading-relaxed">{i.text}</p>}
+                    {isOpen && <p id={`contact-info-${idx}`} className="px-4 pb-4 text-sm text-[#2A364B]/80 leading-relaxed">{i.text}</p>}
                   </div>
                 );
               })}
